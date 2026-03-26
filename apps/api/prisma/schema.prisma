@@ -4,10 +4,138 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  username      String   @unique
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  avatarUrl     String?  @map("avatar_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  lastLogin     DateTime? @map("last_login")
+  isVerified    Boolean  @default(false) @map("is_verified")
+  isActive      Boolean  @default(true) @map("is_active")
+
+  profile       UserProfile?
+  ratings       UserRating[]
+  gamesAsWhite  Game[] @relation("WhitePlayer")
+  gamesAsBlack  Game[] @relation("BlackPlayer")
+  wonGames      Game[] @relation("Winner")
+  sentRequests  Friendship[] @relation("Requester")
+  receivedRequests Friendship[] @relation("Receiver")
+
+  @@map("users")
+}
+
+model UserProfile {
+  userId      String @id @map("user_id")
+  displayName String? @map("display_name")
+  bio         String?
+  country     String?
+  timezone    String?
+  preferences Json   @default("{}")
+
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model GameType {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  rulesVersion String?  @map("rules_version")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  games        Game[]
+  userRatings  UserRating[]
+
+  @@map("game_types")
+}
+
+model UserRating {
+  id          Int      @id @default(autoincrement())
+  userId      String   @map("user_id")
+  gameTypeId  Int      @map("game_type_id")
+  rating      Int      @default(1200)
+  gamesPlayed Int      @default(0) @map("games_played")
+  wins        Int      @default(0)
+  losses      Int      @default(0)
+  draws       Int      @default(0)
+  peakRating  Int      @default(1200) @map("peak_rating")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameType    GameType @relation(fields: [gameTypeId], references: [id])
+
+  @@unique([userId, gameTypeId])
+  @@map("user_ratings")
+}
+
+model Game {
+  id                  String    @id @default(uuid())
+  gameTypeId          Int       @map("game_type_id")
+  whitePlayerId       String    @map("white_player_id")
+  blackPlayerId       String    @map("black_player_id")
+  winnerId            String?   @map("winner_id")
+  gameMode            String    @map("game_mode")
+  botDifficulty       String?   @map("bot_difficulty")
+  status              String    @default("active")
+  result              String?
+  endReason           String?   @map("end_reason")
+  initialBoard        Json      @map("initial_board")
+  finalBoard          Json?     @map("final_board")
+  startedAt           DateTime  @default(now()) @map("started_at")
+  endedAt             DateTime? @map("ended_at")
+  timeControl         Json?     @map("time_control")
+  whiteRatingBefore   Int?      @map("white_rating_before")
+  blackRatingBefore   Int?      @map("black_rating_before")
+  whiteRatingAfter    Int?      @map("white_rating_after")
+  blackRatingAfter    Int?      @map("black_rating_after")
+
+  gameType      GameType   @relation(fields: [gameTypeId], references: [id])
+  whitePlayer   User       @relation("WhitePlayer", fields: [whitePlayerId], references: [id])
+  blackPlayer   User       @relation("BlackPlayer", fields: [blackPlayerId], references: [id])
+  winner        User?      @relation("Winner", fields: [winnerId], references: [id])
+  moves         GameMove[]
+
+  @@map("games")
+}
+
+model GameMove {
+  id            Int      @id @default(autoincrement())
+  gameId        String   @map("game_id")
+  moveNumber    Int      @map("move_number")
+  playerId      String   @map("player_id")
+  moveNotation  String   @map("move_notation")
+  boardState    Json     @map("board_state")
+  timeRemaining Int?     @map("time_remaining")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  game          Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, moveNumber])
+  @@map("game_moves")
+}
+
+model Friendship {
+  id          Int      @id @default(autoincrement())
+  userId      String   @map("user_id")
+  friendId    String   @map("friend_id")
+  status      String   @default("pending")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation("Requester", fields: [userId], references: [id], onDelete: Cascade)
+  friend      User     @relation("Receiver", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@map("friendships")
 }
