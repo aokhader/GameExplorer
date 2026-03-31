@@ -1,0 +1,203 @@
+# Docker Compose Configuration for GameExplorer
+# This file defines all the infrastructure services needed for local development
+
+version: '3.8'
+# Version of Docker Compose file format
+# 3.8 is stable and widely supported
+# Determines which features are available
+
+services:
+  # Services are the containers that will run
+  # Each service is an isolated application/database
+
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  postgres:
+    # Service name - you'll reference this in connection strings
+    # Can be anything, but 'postgres' is conventional
+    
+    image: postgres:17-alpine
+    # Docker image to use
+    # postgres:17 = PostgreSQL version 17
+    # alpine = lightweight Linux distribution (smaller image size)
+    # Alternative: postgres:17 (uses Debian, larger but more compatible)
+    
+    container_name: gameexplorer_postgres
+    # Optional: gives the container a specific name
+    # Without this, Docker generates a name like "gameexplorer_postgres_1"
+    # Makes it easier to reference: docker exec -it gameexplorer_postgres psql
+    
+    restart: always
+    # Restart policy
+    # Options:
+    #   - always: restart on crash or Docker daemon restart
+    #   - unless-stopped: restart unless manually stopped
+    #   - on-failure: only restart if container exits with error
+    #   - no: never restart automatically
+    
+    environment:
+      # Environment variables passed to the container
+      # PostgreSQL reads these to configure itself
+      
+      POSTGRES_USER: gameexplorer
+      # The superuser username for PostgreSQL
+      # This is what you'll use to connect
+      
+      POSTGRES_PASSWORD: 5_game_explorer_dev_password_7
+      # The superuser password
+      # 📝 CHANGE THIS for security (even in dev)
+      # In production, use strong random passwords
+      
+      POSTGRES_DB: gameexplorer_db
+      # The default database to create on startup
+      # This is where your tables/data will live
+      
+    ports:
+      # Port mapping: HOST:CONTAINER
+      - "5432:5432"
+      # Maps port 5432 on your computer to port 5432 in container
+      # PostgreSQL default port is 5432
+      # 
+      # If you get "port already in use" error:
+      # - Change to "5433:5432" (different host port)
+      # - Then update DATABASE_URL to use port 5433
+      
+    volumes:
+      # Persistent storage - data survives container restarts
+      - postgres_data:/var/lib/postgresql/data
+      # postgres_data = named volume (defined at bottom of file)
+      # /var/lib/postgresql/data = where PostgreSQL stores data inside container
+      # 
+      # Without this, all data would be lost when container stops!
+      
+    healthcheck:
+      # Optional: Check if PostgreSQL is actually ready
+      test: ["CMD-SHELL", "pg_isready -U gameexplorer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Waits for PostgreSQL to be fully ready before marking as "healthy"
+      # Other services can depend on this
+
+  # ============================================
+  # Redis Cache
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    # Redis version 7 (latest stable)
+    # alpine = small size
+    
+    container_name: gameexplorer_redis
+    # 📝 Changed to match your project name
+    
+    restart: always
+    
+    ports:
+      - "6379:6379"
+      # Redis default port
+      # If already in use, change to "6380:6379"
+      
+    volumes:
+      - redis_data:/data
+      # Persists Redis data (optional for dev, but good practice)
+      # Redis stores data in /data directory
+      
+    command: redis-server --appendonly yes
+    # Custom command to run inside container
+    # --appendonly yes = enables persistence (AOF mode)
+    # Without this, Redis only stores data in memory (lost on restart)
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ============================================
+  # PgAdmin (Database GUI - Optional)
+  # ============================================
+  pgadmin:
+    # Web-based PostgreSQL management tool
+    # Access at http://localhost:5050
+    # Optional - you can remove this entire service if you prefer CLI
+    
+    image: dpage/pgadmin4
+    # Official PgAdmin 4 image
+    
+    container_name: gameexplorer_pgadmin
+    
+    restart: always
+    
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gameexplorer.com
+      # Login email for PgAdmin web interface
+      # 📝 CHANGE THIS to your email
+      
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      # Login password for PgAdmin web interface
+      # 📝 CHANGE THIS for security
+      
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      # Runs in desktop mode (simpler for local dev)
+      
+    ports:
+      - "5050:80"
+      # Access PgAdmin at http://localhost:5050
+      # If 5050 is taken, change to "5051:80" or any free port
+      
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      # Saves PgAdmin settings (server connections, preferences)
+      
+    depends_on:
+      - postgres
+      # Starts after postgres service
+      # Ensures database is available when PgAdmin starts
+
+  # ============================================
+  # Redis Commander (Redis GUI - Optional)
+  # ============================================
+  # Uncomment this if you want a web UI for Redis
+  #
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: gameexplorer_redis_commander
+    restart: always
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+
+# ============================================
+# Named Volumes
+# ============================================
+volumes:
+  # These are named volumes for persistent storage
+  # Docker manages these (stored in Docker's data directory)
+  
+  postgres_data:
+    # Stores all PostgreSQL data (tables, indexes, etc.)
+    # Located at: /var/lib/docker/volumes/gameexplorer_postgres_data
+    driver: local
+    # 'local' = stored on your computer's disk
+    # Alternative: network storage, cloud storage, etc.
+    
+  redis_data:
+    # Stores Redis persistent data (if AOF enabled)
+    driver: local
+    
+  pgadmin_data:
+    # Stores PgAdmin configuration
+    driver: local
+
+# ============================================
+# Networks (Optional - for advanced use)
+# ============================================
+# networks:
+#   gameexplorer_network:
+#     driver: bridge
+#     # Creates isolated network for all services
+#     # Useful when you have many services and want to control communication
