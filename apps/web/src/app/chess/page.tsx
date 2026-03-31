@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ChessEngine, ChessGameState, Position } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
@@ -14,9 +15,8 @@ export default function ChessPage() {
 
     if (result.valid && result.resultingState) {
       setGameState(result.resultingState);
-      setMessage(''); // Clear any error messages
+      setMessage('');
 
-      // Show game status
       if (result.resultingState.isCheckmate) {
         const winner = result.resultingState.currentTurn === 'white' ? 'Black' : 'White';
         setMessage(`Checkmate! ${winner} wins! 🎉`);
@@ -26,9 +26,8 @@ export default function ChessPage() {
         setMessage('Check!');
       }
     } else {
-      // Show error message
       setMessage(result.reason || 'Invalid move');
-      setTimeout(() => setMessage(''), 3000); // Clear after 3 seconds
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
@@ -44,7 +43,6 @@ export default function ChessPage() {
       return;
     }
 
-    // Create new game and replay all moves except the last one
     let newState = ChessEngine.newGame();
     for (let i = 0; i < gameState.moveHistory.length - 1; i++) {
       const move = gameState.moveHistory[i];
@@ -59,11 +57,24 @@ export default function ChessPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
+      {/* Back Button */}
+      <div className="container mx-auto px-4 pt-8">
+        <Link 
+          href="/"
+          className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Home
+        </Link>
+      </div>
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-            GameExplorer Chess
+            Chess
           </h1>
           <p className="text-slate-600 dark:text-slate-400">
             Play a game of chess with drag-and-drop or click to move
@@ -102,7 +113,7 @@ export default function ChessPage() {
           </button>
           <button
             onClick={handleUndo}
-            className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+            className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={gameState.moveHistory.length === 0}
           >
             Undo Move

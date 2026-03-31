@@ -1,3 +1,4 @@
+// packages/shared/src/game-logic/chess/engine.ts
 // Main chess game engine - validates and executes moves
 
 import type {
@@ -28,7 +29,8 @@ export class ChessEngine {
   static validateMove(
     gameState: ChessGameState,
     from: Position,
-    to: Position
+    to: Position,
+    skipGameEndCheck: boolean = false
   ): MoveValidationResult {
     // 1. Check if there's a piece at the starting position
     const piece = getPieceAt(gameState.board, from);
@@ -54,7 +56,7 @@ export class ChessEngine {
     }
 
     // 5. Move is valid - return the resulting state
-    const resultingState = this.executeMove(gameState, from, to);
+    const resultingState = this.executeMove(gameState, from, to, skipGameEndCheck);
     
     return {
       valid: true,
@@ -68,7 +70,8 @@ export class ChessEngine {
   static executeMove(
     gameState: ChessGameState,
     from: Position,
-    to: Position
+    to: Position,
+    skipGameEndCheck: boolean = false
   ): ChessGameState {
     const newState = cloneGameState(gameState);
     const piece = getPieceAt(newState.board, from);
@@ -115,12 +118,15 @@ export class ChessEngine {
       piece
     );
 
-    // Check for check/checkmate/stalemate
-    const opponentColor = newState.currentTurn;
-    newState.isCheck = isKingInCheck(newState.board, opponentColor);
-    newState.isCheckmate = this.isCheckmate(newState);
-    newState.isStalemate = this.isStalemate(newState);
-    newState.isDraw = this.isDraw(newState);
+    // Only check for game end conditions if not skipped (to prevent recursion)
+    if (!skipGameEndCheck) {
+      // Check for check/checkmate/stalemate
+      const opponentColor = newState.currentTurn;
+      newState.isCheck = isKingInCheck(newState.board, opponentColor);
+      newState.isCheckmate = this.isCheckmate(newState);
+      newState.isStalemate = this.isStalemate(newState);
+      newState.isDraw = this.isDraw(newState);
+    }
 
     return newState;
   }
@@ -226,7 +232,8 @@ export class ChessEngine {
 
           // Try each possible move
           for (const to of possibleMoves) {
-            const result = this.validateMove(gameState, from, to);
+            // IMPORTANT: Skip game end checks to prevent infinite recursion
+            const result = this.validateMove(gameState, from, to, true);
             if (result.valid) {
               return true; // Found at least one legal move
             }
@@ -274,7 +281,8 @@ export class ChessEngine {
           const possibleMoves = getPossibleMoves(gameState.board, from);
 
           for (const to of possibleMoves) {
-            const result = this.validateMove(gameState, from, to);
+            // Skip game end checks when just listing moves
+            const result = this.validateMove(gameState, from, to, true);
             if (result.valid) {
               legalMoves.push({ from, to });
             }
