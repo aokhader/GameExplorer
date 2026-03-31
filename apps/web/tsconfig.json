@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@gameexplorer/shared": ["../../packages/shared/src"]
     }
   },
   "include": [

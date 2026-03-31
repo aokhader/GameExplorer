@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@gameexplorer/shared": "workspace:*",
+    "@gameexplorer/ui": "workspace:*",
     "@tanstack/react-query": "^5.95.2",
     "axios": "^1.13.6",
     "next": "16.2.1",
