@@ -101,7 +101,7 @@ export default function ChessBotPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
+      <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
         <div className="container mx-auto px-4 pt-8">
           <Link 
             href="/chess"
@@ -203,9 +203,9 @@ export default function ChessBotPage() {
 
   return (
     // CRITICAL: Fixed height container to prevent shrinking
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
+    <div className="h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
       {/* Fixed Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
+      <div className="shrink-0 px-4 py-3 border-b border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
         <div className="container mx-auto flex items-center justify-between">
           <Link 
             href="/chess"
@@ -232,7 +232,7 @@ export default function ChessBotPage() {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 h-full max-h-full">
             {/* Left: Chess Board */}
             <div className="flex items-center justify-center min-h-0">
-              <div className="w-full max-w-[600px]">
+              <div className="w-full max-w-150">
                 <ChessBoard
                   gameState={gameState}
                   onMove={handleMove}
@@ -247,7 +247,7 @@ export default function ChessBotPage() {
               {/* Status Message */}
               {message && (
                 <div className={`
-                  flex-shrink-0 p-3 rounded-lg text-center font-medium text-sm
+                  shrink-0 p-3 rounded-lg text-center font-medium text-sm
                   ${isThinking 
                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                     : message.includes('Invalid')
@@ -259,7 +259,7 @@ export default function ChessBotPage() {
               )}
 
               {/* Game Info */}
-              <div className="flex-shrink-0 bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+              <div className="shrink-0 bg-white dark:bg-slate-800 rounded-lg shadow p-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-slate-600 dark:text-slate-400">Difficulty:</span>
@@ -290,7 +290,7 @@ export default function ChessBotPage() {
 
               {/* Move History - Scrollable */}
               <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden flex flex-col">
-                <div className="flex-shrink-0 p-4 border-b border-slate-200 dark:border-slate-700">
+                <div className="shrink-0 p-4 border-b border-slate-200 dark:border-slate-700">
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">Moves</h3>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">

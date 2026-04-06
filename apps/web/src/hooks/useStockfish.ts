@@ -1,4 +1,3 @@
-// apps/web/src/hooks/useStockfish.ts
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 export function useStockfish() {
