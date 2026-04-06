@@ -40,7 +40,7 @@ export default function ChessBotPage() {
       
       // Wait for move AND delay if needed
       const [move] = await Promise.all([
-        stockfish.getBestMove(gameState, skillLevel),
+        stockfish.getBestMove(gameState, difficulty),
         new Promise(resolve => setTimeout(resolve, thinkTime))
       ]);
 

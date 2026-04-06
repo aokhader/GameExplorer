@@ -1,44 +1,46 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+const DIFFICULTY_CONFIG = {
+  easy: { skill: 1, elo: 1000 },  
+  medium: { skill: 10, elo: 1600 },
+  hard: { skill: 20, elo: 2500 }
+};
+
 export function useStockfish() {
   const workerRef = useRef<Worker | null>(null);
   const [isReady, setIsReady] = useState(false);
-  
-  // We use a ref to store the 'resolve' function of the active Promise
   const moveResolverRef = useRef<((move: { from: string, to: string }) => void) | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       workerRef.current = new Worker('/stockfish/stockfish.js');
-
-      // Send the initial UCI command ONCE right after the worker is created
       workerRef.current.postMessage('uci');
 
       workerRef.current.onmessage = (e) => {
         const message = typeof e.data === 'string' ? e.data : e.data.data;
         
-        // Uncomment the line below if you want to see engine output for debugging
-        // console.log('Stockfish:', message);
-
         if (message === 'uciok') {
           setIsReady(true);
-          console.log('✅ Engine Ready for Commands');
           workerRef.current?.postMessage('isready');
         }
 
-        // When the engine finds the best move, resolve the active Promise
+        // Log the engine's internal evaluation (Centipawns/Mate) and search depth
+        if (typeof message === 'string' && message.startsWith('info depth')) {
+          // Only log the final few depths to avoid spamming the console
+          if (message.includes('depth 10') || message.includes('depth 12')) {
+             console.log('Bot Thought Process:', message);
+          }
+        }
+        // ==========================================
+
         if (typeof message === 'string' && message.startsWith('bestmove')) {
-          const moveStr = message.split(' ')[1]; // Extracts "e2e4"
+          const moveStr = message.split(' ')[1]; 
           
           if (moveStr && moveResolverRef.current) {
-            // Convert UCI string "e2e4" back to { from: 'e2', to: 'e4' }
             const from = moveStr.substring(0, 2);
             const to = moveStr.substring(2, 4);
             
-            // Resolve the Promise!
             moveResolverRef.current({ from, to });
-            
-            // Clear the resolver so it's ready for the next turn
             moveResolverRef.current = null;
           }
         }
@@ -50,37 +52,43 @@ export function useStockfish() {
     };
   }, []);
 
-  // Expose the Promise-based function your page.tsx expects
-  const getBestMove = useCallback((gameState: any, skillLevel: number): Promise<{ from: string, to: string }> => {
+  // Update this to accept the string difficulty rather than a raw number
+  const getBestMove = useCallback((gameState: any, difficulty: 'easy' | 'medium' | 'hard'): Promise<{ from: string, to: string }> => {
     return new Promise((resolve, reject) => {
       if (!workerRef.current || !isReady) {
         reject(new Error("Stockfish is not ready yet"));
         return;
       }
 
-      // Store the resolve function so the onmessage listener can call it later
       moveResolverRef.current = resolve;
 
-      // 1. Set the difficulty (Stockfish Skill Level goes from 0 to 20)
-      workerRef.current.postMessage(`setoption name Skill Level value ${skillLevel}`);
+      const config = DIFFICULTY_CONFIG[difficulty];
+      
+      console.log(`Configuring Bot for ${difficulty.toUpperCase()} mode (Target ELO: ${config.elo})`);
 
-      // 2. Feed the current board state to the bot. 
-      // If your GameState has a FEN string property, use it. 
-      // Otherwise, fallback to feeding it the move history from the starting position.
+      // 1. Clear hash/memory between moves so it doesn't use grandmaster lines from previous hard games
+      workerRef.current.postMessage('ucinewgame');
+
+      // 2. Explicit ELO configuration (Modern approach)
+      workerRef.current.postMessage('setoption name UCI_LimitStrength value true');
+      workerRef.current.postMessage(`setoption name UCI_Elo value ${config.elo}`);
+      
+      // Fallback to legacy Skill Level just to be safe across WASM versions
+      workerRef.current.postMessage(`setoption name Skill Level value ${config.skill}`);
+
+      // 3. Feed board state
       if (gameState.fen) {
         workerRef.current.postMessage(`position fen ${gameState.fen}`);
       } else if (gameState.moveHistory && gameState.moveHistory.length > 0) {
-        // Map GameExplorer moves to UCI format (e.g., e2e4)
         const uciMoves = gameState.moveHistory.map((m: any) => `${m.from}${m.to}`).join(' ');
         workerRef.current.postMessage(`position startpos moves ${uciMoves}`);
       } else {
-        // If no FEN and no move history, it must be the start of the game
         workerRef.current.postMessage(`position startpos`);
       }
 
-      // 3. Tell the bot to start thinking!
-      // A depth of 10-15 is usually instant in WASM. Higher depths take longer.
-      workerRef.current.postMessage(`go depth 12`);
+      // 4. Force a time limit (e.g., 1000ms) rather than fixed depth. 
+      // This makes "Easy" play fast and bad, and "Hard" use its full time to think.
+      workerRef.current.postMessage(`go movetime 1000`);
     });
   }, [isReady]);
 
