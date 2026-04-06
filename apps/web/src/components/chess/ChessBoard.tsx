@@ -1,7 +1,6 @@
-// apps/web/src/components/chess/ChessBoard.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChessEngine, ChessGameState, Position, Piece } from '@gameexplorer/shared';
 
 interface ChessBoardProps {
@@ -9,42 +8,73 @@ interface ChessBoardProps {
   onMove: (from: Position, to: Position) => void;
   playerColor?: 'white' | 'black';
   showCoordinates?: boolean;
+  compact?: boolean; // New: compact mode for better layout
+}
+
+interface AnimatingPiece {
+  piece: Piece;
+  from: Position;
+  to: Position;
+  startTime: number;
 }
 
 export function ChessBoard({ 
   gameState, 
   onMove, 
   playerColor = 'white',
-  showCoordinates = true 
+  showCoordinates = true,
+  compact = false
 }: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Position[]>([]);
   const [draggedPiece, setDraggedPiece] = useState<{ position: Position; piece: Piece } | null>(null);
+  const [animatingPiece, setAnimatingPiece] = useState<AnimatingPiece | null>(null);
+  const [lastMove, setLastMove] = useState<{ from: Position; to: Position } | null>(null);
+  
+  const boardRef = useRef<HTMLDivElement>(null);
 
-  // Determine board orientation (white on bottom by default)
+  // Determine board orientation
   const isFlipped = playerColor === 'black';
 
-  // Handle square click
+  // Animate piece movement
+  useEffect(() => {
+    if (gameState.moveHistory.length > 0) {
+      const latestMove = gameState.moveHistory[gameState.moveHistory.length - 1];
+      setLastMove({ from: latestMove.from, to: latestMove.to });
+
+      // Start animation
+      const piece = gameState.board[getRow(latestMove.to)][getCol(latestMove.to)];
+      if (piece) {
+        setAnimatingPiece({
+          piece,
+          from: latestMove.from,
+          to: latestMove.to,
+          startTime: Date.now(),
+        });
+
+        // Clear animation after completion
+        setTimeout(() => {
+          setAnimatingPiece(null);
+        }, 300); // Match CSS transition duration
+      }
+    }
+  }, [gameState.moveHistory.length]);
+
   const handleSquareClick = (position: Position) => {
     const piece = gameState.board[getRow(position)][getCol(position)];
 
-    // If a square is already selected
     if (selectedSquare) {
-      // Try to make a move
       if (validMoves.includes(position)) {
         onMove(selectedSquare, position);
         setSelectedSquare(null);
         setValidMoves([]);
       } else if (piece && piece.color === gameState.currentTurn) {
-        // Select different piece
         selectPiece(position);
       } else {
-        // Deselect
         setSelectedSquare(null);
         setValidMoves([]);
       }
     } else {
-      // Select a piece
       if (piece && piece.color === gameState.currentTurn) {
         selectPiece(position);
       }
@@ -59,7 +89,6 @@ export function ChessBoard({
     setValidMoves(moves);
   };
 
-  // Drag and drop handlers
   const handleDragStart = (position: Position, piece: Piece) => (e: React.DragEvent) => {
     if (piece.color !== gameState.currentTurn) {
       e.preventDefault();
@@ -69,7 +98,6 @@ export function ChessBoard({
     setDraggedPiece({ position, piece });
     selectPiece(position);
 
-    // Set drag image
     const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
     dragImage.style.position = 'absolute';
     dragImage.style.top = '-1000px';
@@ -98,7 +126,6 @@ export function ChessBoard({
     setDraggedPiece(null);
   };
 
-  // Render the board
   const renderBoard = () => {
     const squares = [];
     
@@ -112,6 +139,8 @@ export function ChessBoard({
         const isSelected = selectedSquare === position;
         const isValidMove = validMoves.includes(position);
         const isDragging = draggedPiece?.position === position;
+        const isLastMoveSquare = lastMove && (lastMove.from === position || lastMove.to === position);
+        const isAnimating = animatingPiece && (animatingPiece.from === position || animatingPiece.to === position);
 
         squares.push(
           <div
@@ -122,26 +151,24 @@ export function ChessBoard({
               ${isSelected ? 'selected' : ''}
               ${isValidMove ? 'valid-move' : ''}
               ${isDragging ? 'dragging' : ''}
+              ${isLastMoveSquare ? 'last-move' : ''}
             `}
             onClick={() => handleSquareClick(position)}
             onDragOver={handleDragOver}
             onDrop={handleDrop(position)}
           >
-            {/* Coordinates */}
-            {showCoordinates && col === 0 && (
+            {showCoordinates && col === (isFlipped ? 7 : 0) && (
               <div className="rank-label">{displayRow + 1}</div>
             )}
-            {showCoordinates && row === 0 && (
+            {showCoordinates && row === (isFlipped ? 7 : 0) && (
               <div className="file-label">{String.fromCharCode(97 + displayCol)}</div>
             )}
 
-            {/* Valid move indicator */}
             {isValidMove && (
               <div className={`move-indicator ${piece ? 'capture' : 'empty'}`} />
             )}
 
-            {/* Chess piece */}
-            {piece && !isDragging && (
+            {piece && !isDragging && !isAnimating && (
               <div
                 className="piece"
                 draggable={piece.color === gameState.currentTurn}
@@ -149,6 +176,13 @@ export function ChessBoard({
                 onDragEnd={handleDragEnd}
               >
                 {getPieceSymbol(piece)}
+              </div>
+            )}
+
+            {/* Animating piece */}
+            {animatingPiece && animatingPiece.to === position && (
+              <div className="piece animating">
+                {getPieceSymbol(animatingPiece.piece)}
               </div>
             )}
           </div>
@@ -160,46 +194,9 @@ export function ChessBoard({
   };
 
   return (
-    <div className="chess-board-container">
-      {/* Game status */}
-      <div className="game-status">
-        {gameState.isCheckmate && (
-          <div className="status-message checkmate">
-            Checkmate! {gameState.currentTurn === 'white' ? 'Black' : 'White'} wins!
-          </div>
-        )}
-        {gameState.isStalemate && (
-          <div className="status-message stalemate">
-            Stalemate! Game is a draw.
-          </div>
-        )}
-        {gameState.isCheck && !gameState.isCheckmate && (
-          <div className="status-message check">
-            Check!
-          </div>
-        )}
-        {!gameState.isCheckmate && !gameState.isStalemate && (
-          <div className="status-message turn">
-            {gameState.currentTurn === 'white' ? 'White' : 'Black'} to move
-          </div>
-        )}
-      </div>
-
-      {/* Chess board */}
-      <div className="chess-board">
+    <div className={`chess-board-wrapper ${compact ? 'compact' : ''}`}>
+      <div className="chess-board" ref={boardRef}>
         {renderBoard()}
-      </div>
-
-      {/* Move history */}
-      <div className="move-history">
-        <h3>Moves</h3>
-        <div className="moves-list">
-          {gameState.moveHistory.map((move, index) => (
-            <div key={index} className="move-item">
-              {Math.floor(index / 2) + 1}. {move.from}-{move.to}
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

@@ -15,6 +15,8 @@ import {
   cloneGameState,
   getOpponentColor,
   createInitialGameState,
+  positionToCoordinates,
+  coordinatesToPosition,
 } from './utils';
 import { getPossibleMoves, isKingInCheck } from './moves';
 
@@ -43,25 +45,145 @@ export class ChessEngine {
       return { valid: false, reason: 'Not your turn' };
     }
 
-    // 3. Check if the move is in the list of possible moves
-    const possibleMoves = getPossibleMoves(gameState.board, from);
-    if (!possibleMoves.includes(to)) {
-      return { valid: false, reason: 'Illegal move for this piece' };
+    // 3. Check if this is a castling move
+    const isCastling = this.isCastlingMove(gameState, from, to);
+    
+    if (isCastling) {
+      // Validate castling with all the special rules
+      const castlingValidation = this.validateCastling(gameState, from, to);
+      if (!castlingValidation.valid) {
+        return castlingValidation;
+      }
+    } else {
+      // 4. Check if the move is in the list of possible moves
+      const possibleMoves = getPossibleMoves(gameState.board, from);
+      if (!possibleMoves.includes(to)) {
+        return { valid: false, reason: 'Illegal move for this piece' };
+      }
+
+      // 5. Simulate the move and check if it leaves king in check
+      const simulatedState = this.simulateMove(gameState, from, to);
+      if (isKingInCheck(simulatedState.board, piece.color)) {
+        return { valid: false, reason: 'Move would leave king in check' };
+      }
     }
 
-    // 4. Simulate the move and check if it leaves king in check
-    const simulatedState = this.simulateMove(gameState, from, to);
-    if (isKingInCheck(simulatedState.board, piece.color)) {
-      return { valid: false, reason: 'Move would leave king in check' };
-    }
-
-    // 5. Move is valid - return the resulting state
+    // 6. Move is valid - return the resulting state
     const resultingState = this.executeMove(gameState, from, to, skipGameEndCheck);
     
     return {
       valid: true,
       resultingState,
     };
+  }
+
+  /**
+   * Check if a move is a castling move
+   * Castling is detected when the king moves 2 squares horizontally
+   */
+  private static isCastlingMove(gameState: ChessGameState, from: Position, to: Position): boolean {
+    const piece = getPieceAt(gameState.board, from);
+    if (!piece || piece.type !== 'king') return false;
+    
+    const fromCoords = positionToCoordinates(from);
+    const toCoords = positionToCoordinates(to);
+    
+    // King moving 2 squares horizontally = castling
+    const horizontalDistance = Math.abs(toCoords.col - fromCoords.col);
+    const verticalDistance = Math.abs(toCoords.row - fromCoords.row);
+    
+    return horizontalDistance === 2 && verticalDistance === 0;
+  }
+
+  /**
+   * Validate castling move according to chess rules
+   */
+  private static validateCastling(
+    gameState: ChessGameState,
+    from: Position,
+    to: Position
+  ): MoveValidationResult {
+    const piece = getPieceAt(gameState.board, from);
+    if (!piece || piece.type !== 'king') {
+      return { valid: false, reason: 'Not a king' };
+    }
+
+    const color = piece.color;
+    const fromCoords = positionToCoordinates(from);
+    const toCoords = positionToCoordinates(to);
+    const row = fromCoords.row;
+    
+    // Determine if kingside or queenside
+    const isKingside = toCoords.col > fromCoords.col;
+    
+    // Rule 1: Check castling rights
+    if (isKingside) {
+      if (color === 'white' && !gameState.castlingRights.whiteKingSide) {
+        return { valid: false, reason: 'White has lost kingside castling rights' };
+      }
+      if (color === 'black' && !gameState.castlingRights.blackKingSide) {
+        return { valid: false, reason: 'Black has lost kingside castling rights' };
+      }
+    } else {
+      if (color === 'white' && !gameState.castlingRights.whiteQueenSide) {
+        return { valid: false, reason: 'White has lost queenside castling rights' };
+      }
+      if (color === 'black' && !gameState.castlingRights.blackQueenSide) {
+        return { valid: false, reason: 'Black has lost queenside castling rights' };
+      }
+    }
+    
+    // Rule 2: King must be on starting square (e1 for white, e8 for black)
+    const expectedRow = color === 'white' ? 0 : 7;
+    if (fromCoords.row !== expectedRow || fromCoords.col !== 4) {
+      return { valid: false, reason: 'King not on starting square' };
+    }
+    
+    // Rule 3: King cannot be in check
+    if (isKingInCheck(gameState.board, color)) {
+      return { valid: false, reason: 'Cannot castle while in check' };
+    }
+    
+    // Rule 4: Squares between king and rook must be empty
+    // Rule 5: King cannot pass through or land in check
+    const rookCol = isKingside ? 7 : 0;
+    const step = isKingside ? 1 : -1;
+    const kingDestCol = isKingside ? 6 : 2; // g-file or c-file
+    
+    // Check all squares between king and rook are empty
+    for (let col = fromCoords.col + step; col !== rookCol; col += step) {
+      const checkPos = coordinatesToPosition({ row, col });
+      const pieceOnSquare = getPieceAt(gameState.board, checkPos);
+      if (pieceOnSquare) {
+        return { valid: false, reason: 'Pieces between king and rook' };
+      }
+    }
+    
+    // Rule 6: Rook must exist at the corner
+    const rookPos = coordinatesToPosition({ row, col: rookCol });
+    const rook = getPieceAt(gameState.board, rookPos);
+    if (!rook || rook.type !== 'rook' || rook.color !== color) {
+      return { valid: false, reason: 'No rook at expected position' };
+    }
+    
+    // Check that king doesn't pass through check
+    // King passes through: starting square, one square over, destination square
+    for (let col = fromCoords.col; col !== kingDestCol + step; col += step) {
+      const testPos = coordinatesToPosition({ row, col });
+      
+      // Create a test board with king at this position
+      const testBoard = setPieceAt(
+        setPieceAt(gameState.board, from, null),
+        testPos,
+        { type: 'king', color }
+      );
+      
+      if (isKingInCheck(testBoard, color)) {
+        return { valid: false, reason: 'King would pass through or land in check' };
+      }
+    }
+    
+    return { valid: true };
   }
 
   /**
@@ -81,21 +203,69 @@ export class ChessEngine {
       throw new Error('No piece at starting position');
     }
 
-    // Create move record
-    const move: Move = {
-      from,
-      to,
-      piece,
-      capturedPiece: capturedPiece || undefined,
-    };
+    // Check if this is castling
+    const isCastling = this.isCastlingMove(gameState, from, to);
+    
+    if (isCastling && piece.type === 'king') {
+      // Execute castling move
+      const fromCoords = positionToCoordinates(from);
+      const toCoords = positionToCoordinates(to);
+      const row = fromCoords.row;
+      const isKingside = toCoords.col > fromCoords.col;
+      
+      // Move king
+      let newBoard = setPieceAt(newState.board, from, null);
+      newBoard = setPieceAt(newBoard, to, piece);
+      
+      // Move rook
+      if (isKingside) {
+        // Kingside: Rook from h-file to f-file
+        const rookFrom = coordinatesToPosition({ row, col: 7 });
+        const rookTo = coordinatesToPosition({ row, col: 5 });
+        const rook = getPieceAt(newBoard, rookFrom);
+        if (rook) {
+          newBoard = setPieceAt(newBoard, rookFrom, null);
+          newBoard = setPieceAt(newBoard, rookTo, rook);
+        }
+      } else {
+        // Queenside: Rook from a-file to d-file
+        const rookFrom = coordinatesToPosition({ row, col: 0 });
+        const rookTo = coordinatesToPosition({ row, col: 3 });
+        const rook = getPieceAt(newBoard, rookFrom);
+        if (rook) {
+          newBoard = setPieceAt(newBoard, rookFrom, null);
+          newBoard = setPieceAt(newBoard, rookTo, rook);
+        }
+      }
+      
+      newState.board = newBoard;
+      
+      // Record castling move
+      const move: Move = {
+        from,
+        to,
+        piece,
+        isCastling: true,
+        castlingSide: isKingside ? 'kingside' : 'queenside',
+      };
+      newState.moveHistory.push(move);
+    } else {
+      // Normal move
+      const move: Move = {
+        from,
+        to,
+        piece,
+        capturedPiece: capturedPiece || undefined,
+      };
 
-    // Move the piece
-    let newBoard = setPieceAt(newState.board, from, null);
-    newBoard = setPieceAt(newBoard, to, piece);
-    newState.board = newBoard;
+      // Move the piece
+      let newBoard = setPieceAt(newState.board, from, null);
+      newBoard = setPieceAt(newBoard, to, piece);
+      newState.board = newBoard;
 
-    // Update move history
-    newState.moveHistory.push(move);
+      // Update move history
+      newState.moveHistory.push(move);
+    }
 
     // Update turn
     newState.currentTurn = getOpponentColor(gameState.currentTurn);

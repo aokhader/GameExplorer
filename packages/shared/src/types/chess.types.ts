@@ -43,6 +43,7 @@ export interface Move {
   promotion?: PieceType; // For pawn promotion
   isEnPassant?: boolean;
   isCastling?: boolean;
+  castlingSide?: 'kingside' | 'queenside';
   isCheck?: boolean;
   isCheckmate?: boolean;
 }

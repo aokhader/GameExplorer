@@ -210,6 +210,8 @@ function getKingMoves(board: Board, position: Position, color: Color): Position[
   return moves;
 }
 
+
+
 /**
  * Generic sliding moves (for bishop, rook, queen)
  * Continues in a direction until hitting edge or piece

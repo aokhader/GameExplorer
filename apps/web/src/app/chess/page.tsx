@@ -56,7 +56,7 @@ export default function ChessPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
       {/* Back Button */}
       <div className="container mx-auto px-4 pt-8">
         <Link 
@@ -105,6 +105,13 @@ export default function ChessPage() {
 
         {/* Controls */}
         <div className="flex justify-center gap-4 mt-8">
+            <Link
+              href="/chess/bot"
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+            >
+              Play vs Bot 
+            </Link>
+
           <button
             onClick={handleReset}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors"
