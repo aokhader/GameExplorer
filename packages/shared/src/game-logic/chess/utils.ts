@@ -1,4 +1,5 @@
 // Utility functions for chess game logic
+// Utility functions for chess game logic
 
 import type { Position, Coordinates, Board, Piece, Color, ChessGameState, CastlingRights } from '../../types/chess.types';
 
@@ -21,7 +22,7 @@ export function coordinatesToPosition(coords: Coordinates): Position {
   const file = String.fromCharCode('a'.charCodeAt(0) + coords.col);
   const rank = (coords.row + 1).toString();
   
-  return file + rank;
+  return (file + rank) as Position;
 }
 
 /**
@@ -63,6 +64,7 @@ export function setPieceAt(board: Board, position: Position, piece: Piece | null
 
 /**
  * Create initial chess board state
+ * FIXED: Each piece is now a unique object to prevent React re-render issues
  */
 export function createInitialBoard(): Board {
   const board: Board = Array(8).fill(null).map(() => Array(8).fill(null));
@@ -79,10 +81,29 @@ export function createInitialBoard(): Board {
     { type: 'rook', color: 'black' },
   ];
   
-  board[6] = Array(8).fill({ type: 'pawn', color: 'black' });
+  // Array.fill() creates references to the SAME object, causing pieces to disappear
+  board[6] = [
+    { type: 'pawn', color: 'black' },
+    { type: 'pawn', color: 'black' },
+    { type: 'pawn', color: 'black' },
+    { type: 'pawn', color: 'black' },
+    { type: 'pawn', color: 'black' },
+    { type: 'pawn', color: 'black' },
+    { type: 'pawn', color: 'black' },
+    { type: 'pawn', color: 'black' },
+  ];
   
   // White pieces (rank 1 and 2)
-  board[1] = Array(8).fill({ type: 'pawn', color: 'white' });
+  board[1] = [
+    { type: 'pawn', color: 'white' },
+    { type: 'pawn', color: 'white' },
+    { type: 'pawn', color: 'white' },
+    { type: 'pawn', color: 'white' },
+    { type: 'pawn', color: 'white' },
+    { type: 'pawn', color: 'white' },
+    { type: 'pawn', color: 'white' },
+    { type: 'pawn', color: 'white' },
+  ];
   
   board[0] = [
     { type: 'rook', color: 'white' },

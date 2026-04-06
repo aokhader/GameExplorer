@@ -1,4 +1,5 @@
 // Move generation for each chess piece type
+// Move generation for each chess piece type
 
 import type { Board, Position, Coordinates, Piece, Color } from '../../types/chess.types';
 import {
@@ -170,13 +171,13 @@ function getQueenMoves(board: Board, position: Position, color: Color): Position
 }
 
 /**
- * King moves (one square in any direction)
+ * King moves (one square in any direction + castling)
  */
 function getKingMoves(board: Board, position: Position, color: Color): Position[] {
   const moves: Position[] = [];
   const coords = positionToCoordinates(position);
 
-  // All 8 surrounding squares
+  // All 8 surrounding squares (normal king moves)
   const kingOffsets = [
     { row: 1, col: 0 },   // Up
     { row: 1, col: 1 },   // Up-right
@@ -205,7 +206,24 @@ function getKingMoves(board: Board, position: Position, color: Color): Position[
     }
   }
 
-  // TODO: Castling (requires game state, will implement later)
+  // Add castling destinations if king is on starting square
+  const row = coords.row;
+  const col = coords.col;
+  const startRow = color === 'white' ? 0 : 7;
+  
+  // King must be on e-file (col 4) and starting rank
+  if (row === startRow && col === 4) {
+    // Kingside castling - king moves to g-file (col 6)
+    const kingsideTarget = coordinatesToPosition({ row: startRow, col: 6 });
+    moves.push(kingsideTarget);
+    
+    // Queenside castling - king moves to c-file (col 2)
+    const queensideTarget = coordinatesToPosition({ row: startRow, col: 2 });
+    moves.push(queensideTarget);
+  }
+  
+  // Note: The engine will validate if castling is actually legal
+  // (checking castling rights, pieces between, check conditions, etc.)
 
   return moves;
 }

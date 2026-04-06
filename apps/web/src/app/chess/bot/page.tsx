@@ -36,7 +36,13 @@ export default function ChessBotPage() {
 
     try {
       const skillLevel = { easy: 1, medium: 10, hard: 20 }[difficulty];
-      const move = await stockfish.getBestMove(gameState, skillLevel);
+      const thinkTime = { easy: 500, medium: 1000, hard: 1500 }[difficulty];
+      
+      // Wait for move AND delay if needed
+      const [move] = await Promise.all([
+        stockfish.getBestMove(gameState, skillLevel),
+        new Promise(resolve => setTimeout(resolve, thinkTime))
+      ]);
 
       if (move) {
         const result = ChessEngine.validateMove(gameState, move.from, move.to);
