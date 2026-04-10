@@ -6,6 +6,7 @@ import { ChessEngine, ChessGameState, Position } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { useStockfish } from '@/hooks/useStockfish';
+import { saveGame } from '@gameexplorer/db';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -29,6 +30,24 @@ export default function ChessBotPage() {
       makeBotMove();
     }
   }, [gameState, playerColor, gameStarted, isThinking, stockfish.isReady]);
+
+  // saving game
+  useEffect(() => {
+    if (!gameStarted) return;
+    
+    let result: 'white' | 'black' | 'draw' | null = null;
+
+    if (gameState.isCheckmate) {
+      // The side that just moved won — that's the opposite of currentTurn
+      result = gameState.currentTurn === 'white' ? 'black' : 'white';
+    } else if (gameState.isStalemate || gameState.isDraw) {
+      result = 'draw';
+    }
+
+    if (result) {
+      saveGame(gameState, playerColor, result, difficulty);
+    }
+  }, [gameState.isCheckmate, gameState.isStalemate, gameState.isDraw]);
 
   const makeBotMove = async () => {
     setIsThinking(true);

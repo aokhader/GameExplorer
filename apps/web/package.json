@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@gameexplorer/shared": "workspace:*",
+    "@gameexplorer/db": "workspace:*",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.103.0",
     "@tanstack/react-query": "^5.95.2",
     "axios": "^1.13.6",
     "next": "16.2.1",

@@ -17,6 +17,15 @@ export default function ChessLandingPage() {
       available: true,
     },
     {
+      id: 'replays',
+      title: 'Game Replays',
+      description: 'Review and replay your past games',
+      icon: '📼',
+      href: '/chess/replays',
+      gradient: 'from-amber-500 to-orange-500',
+      available: true,
+    },
+    {
       id: 'multiplayer',
       title: 'Online Multiplayer',
       description: 'Play against other players around the world',
