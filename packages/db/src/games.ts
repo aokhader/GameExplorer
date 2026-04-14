@@ -7,13 +7,15 @@ export async function saveGame(
   gameState: ChessGameState,
   playerColor: Color,
   result: NewGame['result'],
-  difficulty?: string
+  difficulty?: string,
+  userId?: string
 ): Promise<SavedGame | null> {
   const newGame: NewGame = {
     player_color: playerColor,
     opponent: 'stockfish',
     result,
     difficulty,
+    user_id: userId ?? null,
     moves: gameState.moveHistory.map(m => ({
       from: m.from,
       to: m.to,

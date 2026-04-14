@@ -23,6 +23,7 @@ export interface SavedGame {
   result: GameResult;
   moves: StoredMove[];
   difficulty?: string;
+  user_id: string | null;
 }
 
 // What we send to Supabase on insert (no id/created_at, those are auto-generated)

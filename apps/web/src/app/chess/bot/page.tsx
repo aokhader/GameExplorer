@@ -6,7 +6,7 @@ import { ChessEngine, ChessGameState, Position } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { useStockfish } from '@/hooks/useStockfish';
-import { saveGame } from '@gameexplorer/db';
+import { saveGame, getCurrentUser } from '@gameexplorer/db';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -17,35 +17,43 @@ export default function ChessBotPage() {
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const stockfish = useStockfish();
+
+  // Fetch the current user once on mount
+  useEffect(() => {
+    getCurrentUser().then((user) => {
+      if (user) setUserId(user.id);
+    });
+  }, []);
 
   useEffect(() => {
     if (!gameStarted) return;
     if (gameState.isCheckmate || gameState.isStalemate || gameState.isDraw) return;
-    
+
     const isBotTurn = gameState.currentTurn !== playerColor;
-    
+
     if (isBotTurn && !isThinking && stockfish.isReady) {
       makeBotMove();
     }
   }, [gameState, playerColor, gameStarted, isThinking, stockfish.isReady]);
 
-  // saving game
+  // Save game when it ends
   useEffect(() => {
     if (!gameStarted) return;
-    
+
     let result: 'white' | 'black' | 'draw' | null = null;
 
     if (gameState.isCheckmate) {
-      // The side that just moved won — that's the opposite of currentTurn
       result = gameState.currentTurn === 'white' ? 'black' : 'white';
     } else if (gameState.isStalemate || gameState.isDraw) {
       result = 'draw';
     }
 
     if (result) {
-      saveGame(gameState, playerColor, result, difficulty);
+      // Pass userId — null if not signed in, game still saves anonymously
+      saveGame(gameState, playerColor, result, difficulty, userId ?? undefined);
     }
   }, [gameState.isCheckmate, gameState.isStalemate, gameState.isDraw]);
 
@@ -54,10 +62,8 @@ export default function ChessBotPage() {
     setMessage('Bot is thinking...');
 
     try {
-      const skillLevel = { easy: 1, medium: 10, hard: 20 }[difficulty];
       const thinkTime = { easy: 500, medium: 1000, hard: 1500 }[difficulty];
-      
-      // Wait for move AND delay if needed
+
       const [move] = await Promise.all([
         stockfish.getBestMove(gameState, difficulty),
         new Promise(resolve => setTimeout(resolve, thinkTime))
@@ -65,10 +71,10 @@ export default function ChessBotPage() {
 
       if (move) {
         const result = ChessEngine.validateMove(gameState, move.from, move.to);
-        
+
         if (result.valid && result.resultingState) {
           setGameState(result.resultingState);
-          
+
           if (result.resultingState.isCheckmate) {
             setMessage('Checkmate! Bot wins! 🤖');
           } else if (result.resultingState.isCheck) {
@@ -118,7 +124,7 @@ export default function ChessBotPage() {
 
   const handleStartGame = () => {
     setGameStarted(true);
-    
+
     if (playerColor === 'black') {
       setTimeout(() => makeBotMove(), 500);
     }
@@ -128,7 +134,7 @@ export default function ChessBotPage() {
     return (
       <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
         <div className="container mx-auto px-4 pt-8">
-          <Link 
+          <Link
             href="/chess"
             className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
           >
@@ -144,11 +150,25 @@ export default function ChessBotPage() {
             Play vs Bot
           </h1>
 
+          {/* Sign-in nudge for guests */}
+          {!userId && (
+            <div className="mb-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 flex items-center justify-between gap-4">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Sign in to save your games and track your progress.
+              </p>
+              <Link
+                href="/auth/signin"
+                className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Sign in
+              </Link>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mb-6">
             <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-6">
               Choose Difficulty
             </h2>
-            
             <div className="space-y-4">
               {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => (
                 <button
@@ -177,7 +197,6 @@ export default function ChessBotPage() {
             <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-6">
               Choose Your Color
             </h2>
-            
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => setPlayerColor('white')}
@@ -195,7 +214,6 @@ export default function ChessBotPage() {
                   You move first
                 </div>
               </button>
-
               <button
                 onClick={() => setPlayerColor('black')}
                 className={`
@@ -227,12 +245,11 @@ export default function ChessBotPage() {
   }
 
   return (
-    // CRITICAL: Fixed height container to prevent shrinking
     <div className="h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
       {/* Fixed Header */}
       <div className="shrink-0 px-4 py-3 border-b border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
         <div className="container mx-auto flex items-center justify-between">
-          <Link 
+          <Link
             href="/chess"
             className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
           >
@@ -241,7 +258,6 @@ export default function ChessBotPage() {
             </svg>
             Back
           </Link>
-          
           <button
             onClick={handleNewGame}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -251,7 +267,7 @@ export default function ChessBotPage() {
         </div>
       </div>
 
-      {/* Main Game Area - Takes remaining space */}
+      {/* Main Game Area */}
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto h-full px-4 py-4">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 h-full max-h-full">
@@ -273,7 +289,7 @@ export default function ChessBotPage() {
               {message && (
                 <div className={`
                   shrink-0 p-3 rounded-lg text-center font-medium text-sm
-                  ${isThinking 
+                  ${isThinking
                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                     : message.includes('Invalid')
                       ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
@@ -313,7 +329,7 @@ export default function ChessBotPage() {
                 </div>
               </div>
 
-              {/* Move History - Scrollable */}
+              {/* Move History */}
               <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden flex flex-col">
                 <div className="shrink-0 p-4 border-b border-slate-200 dark:border-slate-700">
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">Moves</h3>
@@ -323,7 +339,6 @@ export default function ChessBotPage() {
                     {Array.from({ length: Math.ceil(gameState.moveHistory.length / 2) }).map((_, i) => {
                       const whiteMove = gameState.moveHistory[i * 2];
                       const blackMove = gameState.moveHistory[i * 2 + 1];
-                      
                       return (
                         <div key={i} className="flex items-center gap-2 text-sm font-mono">
                           <span className="text-slate-500 dark:text-slate-400 w-8">{i + 1}.</span>
