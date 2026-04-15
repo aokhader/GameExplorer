@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn, signInWithOAuth } from '@gameexplorer/db';
+import { supabase } from '@gameexplorer/db';
+
 
 export default function SignInPage() {
   const router = useRouter();
@@ -15,20 +17,22 @@ export default function SignInPage() {
   const handleSignIn = async () => {
     setLoading(true);
     setError(null);
-    const result = await signIn(email, password);
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+        setError(error.message);
+        setLoading(false); // ← must come after setError, not before
     } else {
-      router.replace('/profile');
+        router.replace('/profile');
     }
   };
 
   const handleOAuth = async (provider: 'google' | 'facebook') => {
     setError(null);
-    const result = await signInWithOAuth(provider);
-    if (result.error) setError(result.error);
-    // Otherwise browser redirects automatically
+    const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) setError(error.message);
   };
 
   return (

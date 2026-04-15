@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signUp, signInWithOAuth } from '@gameexplorer/db';
+import { hashEmail, encryptEmail } from '@gameexplorer/db';
+import { supabase } from '@gameexplorer/db';
+
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -16,19 +18,37 @@ export default function SignUpPage() {
   const handleSignUp = async () => {
     setLoading(true);
     setError(null);
-    const result = await signUp(email, password, username);
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
-    } else {
-      router.replace('/profile');
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error || !data.user) {
+        setError(error?.message ?? 'Sign up failed');
+        setLoading(false);
+        return;
     }
+
+    const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        username,
+    });
+
+    console.log('Profile insert result:', profileError);
+
+    if (profileError) {
+        setError('Account created but profile setup failed: ' + profileError.message);
+        setLoading(false);
+        return;
+    }
+
+    router.replace('/profile');
   };
 
   const handleOAuth = async (provider: 'google' | 'facebook') => {
     setError(null);
-    const result = await signInWithOAuth(provider);
-    if (result.error) setError(result.error);
+    const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) setError(error.message);
   };
 
   return (

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getCurrentUser, getPublicProfile, getGames, signOut } from '@gameexplorer/db';
+import { getPublicProfile, getGames } from '@gameexplorer/db';
+import { supabase } from '@gameexplorer/db';
 import type { AuthUser, Profile, SavedGame } from '@gameexplorer/db';
 import { useRouter } from 'next/navigation';
 
@@ -45,30 +46,29 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        router.replace('/auth/signin');
-        return;
-      }
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.replace('/auth/signin');
+          return;
+        }
+        setUser({ id: user.id, email: user.email! });
 
-      setUser(currentUser);
+        const [profileData, gamesData] = await Promise.all([
+          getPublicProfile(user.id),
+          getGames(),
+        ]);
 
-      const [profileData, gamesData] = await Promise.all([
-        getPublicProfile(currentUser.id),
-        getGames(),
-      ]);
-
-      setProfile(profileData);
-      setGames(gamesData);
-      setLoading(false);
+        setProfile(profileData);
+        setGames(gamesData);
+        setLoading(false);
     }
 
-    load();
+    loadUser();
   }, [router]);
 
   const handleSignOut = async () => {
-    await signOut();
+    await supabase.auth.signOut();
     router.replace('/');
   };
 

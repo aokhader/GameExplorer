@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@gameexplorer/shared": "workspace:*",
+    "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.0.0"
   },
   "devDependencies": {

@@ -1,4 +1,3 @@
-// apps/web/src/app/auth/callback/route.ts
 // Handles the OAuth redirect from Google/Facebook after successful login.
 // Supabase exchanges the code for a session and sets the auth cookie.
 

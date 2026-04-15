@@ -6,7 +6,8 @@ import { ChessEngine, ChessGameState, Position } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { useStockfish } from '@/hooks/useStockfish';
-import { saveGame, getCurrentUser } from '@gameexplorer/db';
+import { saveGame } from '@gameexplorer/db';
+import { supabase } from '@gameexplorer/db';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -21,11 +22,13 @@ export default function ChessBotPage() {
 
   const stockfish = useStockfish();
 
-  // Fetch the current user once on mount
   useEffect(() => {
-    getCurrentUser().then((user) => {
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) setUserId(user.id);
-    });
+    }
+
+    loadUser();
   }, []);
 
   useEffect(() => {

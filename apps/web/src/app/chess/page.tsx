@@ -2,16 +2,19 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { getCurrentUser } from '@gameexplorer/db';
+import { supabase } from '@gameexplorer/db';
 
 export default function ChessLandingPage() {
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    getCurrentUser().then((user) => {
-      if (user) setUsername(user.email.split('@')[0]);
-    });
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUsername(user.email?.split('@')[0] ?? null);
+    }
+
+    loadUser();
   }, []);
 
   const gameModes = [
