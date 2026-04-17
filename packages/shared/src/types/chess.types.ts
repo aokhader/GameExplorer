@@ -88,6 +88,7 @@ export interface MoveValidationResult {
   valid: boolean;
   reason?: string;
   resultingState?: ChessGameState;
+  needsPromotion?: boolean
 }
 
 /**

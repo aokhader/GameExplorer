@@ -1,5 +1,4 @@
 // Utility functions for chess game logic
-// Utility functions for chess game logic
 
 import type { Position, Coordinates, Board, Piece, Color, ChessGameState, CastlingRights } from '../../types/chess.types';
 

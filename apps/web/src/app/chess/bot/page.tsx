@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChessEngine, ChessGameState, Position } from '@gameexplorer/shared';
+import { ChessEngine, ChessGameState, Position, PieceType } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { useStockfish } from '@/hooks/useStockfish';
-import { saveGame } from '@gameexplorer/db';
-import { supabase } from '@gameexplorer/db';
+import { saveGame, supabase } from '@gameexplorer/db';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -27,7 +26,6 @@ export default function ChessBotPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setUserId(user.id);
     }
-
     loadUser();
   }, []);
 
@@ -36,18 +34,15 @@ export default function ChessBotPage() {
     if (gameState.isCheckmate || gameState.isStalemate || gameState.isDraw) return;
 
     const isBotTurn = gameState.currentTurn !== playerColor;
-
     if (isBotTurn && !isThinking && stockfish.isReady) {
       makeBotMove();
     }
   }, [gameState, playerColor, gameStarted, isThinking, stockfish.isReady]);
 
-  // Save game when it ends
   useEffect(() => {
     if (!gameStarted) return;
 
     let result: 'white' | 'black' | 'draw' | null = null;
-
     if (gameState.isCheckmate) {
       result = gameState.currentTurn === 'white' ? 'black' : 'white';
     } else if (gameState.isStalemate || gameState.isDraw) {
@@ -55,7 +50,6 @@ export default function ChessBotPage() {
     }
 
     if (result) {
-      // Pass userId — null if not signed in, game still saves anonymously
       saveGame(gameState, playerColor, result, difficulty, userId ?? undefined);
     }
   }, [gameState.isCheckmate, gameState.isStalemate, gameState.isDraw]);
@@ -69,15 +63,22 @@ export default function ChessBotPage() {
 
       const [move] = await Promise.all([
         stockfish.getBestMove(gameState, difficulty),
-        new Promise(resolve => setTimeout(resolve, thinkTime))
+        new Promise(resolve => setTimeout(resolve, thinkTime)),
       ]);
 
       if (move) {
-        const result = ChessEngine.validateMove(gameState, move.from, move.to);
+        // Stockfish encodes promotion in the move object — pass it directly,
+        // no picker needed for bot moves
+        const result = ChessEngine.validateMove(
+          gameState,
+          move.from,
+          move.to,
+          false,
+          move.promotion as PieceType | undefined,
+        );
 
         if (result.valid && result.resultingState) {
           setGameState(result.resultingState);
-
           if (result.resultingState.isCheckmate) {
             setMessage('Checkmate! Bot wins! 🤖');
           } else if (result.resultingState.isCheck) {
@@ -95,11 +96,12 @@ export default function ChessBotPage() {
     }
   };
 
-  const handleMove = (from: Position, to: Position) => {
+  // ChessBoard calls this — promotionPiece is populated after user picks from the modal
+  const handleMove = (from: Position, to: Position, promotionPiece?: PieceType) => {
     if (isThinking) return;
     if (gameState.currentTurn !== playerColor) return;
 
-    const result = ChessEngine.validateMove(gameState, from, to);
+    const result = ChessEngine.validateMove(gameState, from, to, false, promotionPiece);
 
     if (result.valid && result.resultingState) {
       setGameState(result.resultingState);
@@ -112,7 +114,7 @@ export default function ChessBotPage() {
       } else if (result.resultingState.isCheck) {
         setMessage('Check!');
       }
-    } else {
+    } else if (!result.needsPromotion) {
       setMessage(result.reason || 'Invalid move');
       setTimeout(() => setMessage(''), 3000);
     }
@@ -127,7 +129,6 @@ export default function ChessBotPage() {
 
   const handleStartGame = () => {
     setGameStarted(true);
-
     if (playerColor === 'black') {
       setTimeout(() => makeBotMove(), 500);
     }
@@ -153,7 +154,6 @@ export default function ChessBotPage() {
             Play vs Bot
           </h1>
 
-          {/* Sign-in nudge for guests */}
           {!userId && (
             <div className="mb-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 flex items-center justify-between gap-4">
               <p className="text-sm text-blue-700 dark:text-blue-300">
@@ -249,7 +249,6 @@ export default function ChessBotPage() {
 
   return (
     <div className="h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
-      {/* Fixed Header */}
       <div className="shrink-0 px-4 py-3 border-b border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
         <div className="container mx-auto flex items-center justify-between">
           <Link
@@ -270,11 +269,9 @@ export default function ChessBotPage() {
         </div>
       </div>
 
-      {/* Main Game Area */}
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto h-full px-4 py-4">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 h-full max-h-full">
-            {/* Left: Chess Board */}
             <div className="flex items-center justify-center min-h-0">
               <div className="w-full max-w-150">
                 <ChessBoard
@@ -286,9 +283,7 @@ export default function ChessBotPage() {
               </div>
             </div>
 
-            {/* Right: Info and Move List */}
             <div className="flex flex-col gap-4 min-h-0">
-              {/* Status Message */}
               {message && (
                 <div className={`
                   shrink-0 p-3 rounded-lg text-center font-medium text-sm
@@ -302,20 +297,15 @@ export default function ChessBotPage() {
                 </div>
               )}
 
-              {/* Game Info */}
               <div className="shrink-0 bg-white dark:bg-slate-800 rounded-lg shadow p-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-slate-600 dark:text-slate-400">Difficulty:</span>
-                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100 capitalize">
-                      {difficulty}
-                    </span>
+                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100 capitalize">{difficulty}</span>
                   </div>
                   <div>
                     <span className="text-slate-600 dark:text-slate-400">Your Color:</span>
-                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100 capitalize">
-                      {playerColor}
-                    </span>
+                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100 capitalize">{playerColor}</span>
                   </div>
                   <div>
                     <span className="text-slate-600 dark:text-slate-400">Turn:</span>
@@ -325,14 +315,11 @@ export default function ChessBotPage() {
                   </div>
                   <div>
                     <span className="text-slate-600 dark:text-slate-400">Move:</span>
-                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100">
-                      {gameState.fullMoveNumber}
-                    </span>
+                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100">{gameState.fullMoveNumber}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Move History */}
               <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden flex flex-col">
                 <div className="shrink-0 p-4 border-b border-slate-200 dark:border-slate-700">
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">Moves</h3>
@@ -347,10 +334,12 @@ export default function ChessBotPage() {
                           <span className="text-slate-500 dark:text-slate-400 w-8">{i + 1}.</span>
                           <span className="flex-1 text-slate-800 dark:text-slate-100">
                             {whiteMove.from}-{whiteMove.to}
+                            {whiteMove.promotion ? `=${whiteMove.promotion[0].toUpperCase()}` : ''}
                           </span>
                           {blackMove && (
                             <span className="flex-1 text-slate-800 dark:text-slate-100">
                               {blackMove.from}-{blackMove.to}
+                              {blackMove.promotion ? `=${blackMove.promotion[0].toUpperCase()}` : ''}
                             </span>
                           )}
                         </div>

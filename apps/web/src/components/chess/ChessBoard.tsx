@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChessEngine, ChessGameState, Position, Piece } from '@gameexplorer/shared';
+import { ChessEngine, ChessGameState, Position, Piece, PieceType } from '@gameexplorer/shared';
 
 interface ChessBoardProps {
   gameState: ChessGameState;
-  onMove: (from: Position, to: Position) => void;
+  onMove: (from: Position, to: Position, promotionPiece?: PieceType) => void;
   playerColor?: 'white' | 'black';
   showCoordinates?: boolean;
-  compact?: boolean; // New: compact mode for better layout
+  compact?: boolean;
 }
 
 interface AnimatingPiece {
@@ -18,31 +18,71 @@ interface AnimatingPiece {
   startTime: number;
 }
 
-export function ChessBoard({ 
-  gameState, 
-  onMove, 
+interface PendingPromotion {
+  from: Position;
+  to: Position;
+}
+
+// Promotion picker — shown as an overlay on the board when a pawn reaches the back rank
+function PromotionPicker({
+  color,
+  onSelect,
+}: {
+  color: 'white' | 'black';
+  onSelect: (piece: PieceType) => void;
+}) {
+  const pieces: PieceType[] = ['queen', 'rook', 'bishop', 'knight'];
+
+  const symbols: Record<string, string> = {
+    'white-queen': '♕', 'white-rook': '♖', 'white-bishop': '♗', 'white-knight': '♘',
+    'black-queen': '♛', 'black-rook': '♜', 'black-bishop': '♝', 'black-knight': '♞',
+  };
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 rounded-lg">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4">
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 text-center mb-3">
+          Promote pawn to:
+        </p>
+        <div className="flex gap-2">
+          {pieces.map((type) => (
+            <button
+              key={type}
+              onClick={() => onSelect(type)}
+              className="w-14 h-14 flex items-center justify-center text-4xl rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900 hover:scale-110 transition-all shadow-sm"
+              title={type.charAt(0).toUpperCase() + type.slice(1)}
+            >
+              {symbols[`${color}-${type}`]}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ChessBoard({
+  gameState,
+  onMove,
   playerColor = 'white',
   showCoordinates = true,
-  compact = false
+  compact = false,
 }: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Position[]>([]);
   const [draggedPiece, setDraggedPiece] = useState<{ position: Position; piece: Piece } | null>(null);
   const [animatingPiece, setAnimatingPiece] = useState<AnimatingPiece | null>(null);
   const [lastMove, setLastMove] = useState<{ from: Position; to: Position } | null>(null);
-  
-  const boardRef = useRef<HTMLDivElement>(null);
+  const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
 
-  // Determine board orientation
+  const boardRef = useRef<HTMLDivElement>(null);
   const isFlipped = playerColor === 'black';
 
-  // Animate piece movement
   useEffect(() => {
     if (gameState.moveHistory.length > 0) {
       const latestMove = gameState.moveHistory[gameState.moveHistory.length - 1];
       setLastMove({ from: latestMove.from, to: latestMove.to });
 
-      // Start animation
       const piece = gameState.board[getRow(latestMove.to)][getCol(latestMove.to)];
       if (piece) {
         setAnimatingPiece({
@@ -51,21 +91,19 @@ export function ChessBoard({
           to: latestMove.to,
           startTime: Date.now(),
         });
-
-        // Clear animation after completion
-        setTimeout(() => {
-          setAnimatingPiece(null);
-        }, 300); // Match CSS transition duration
+        setTimeout(() => setAnimatingPiece(null), 300);
       }
     }
   }, [gameState.moveHistory.length]);
 
   const handleSquareClick = (position: Position) => {
+    if (pendingPromotion) return; // ignore clicks while promotion picker is open
+
     const piece = gameState.board[getRow(position)][getCol(position)];
 
     if (selectedSquare) {
       if (validMoves.includes(position)) {
-        onMove(selectedSquare, position);
+        attemptMove(selectedSquare, position);
         setSelectedSquare(null);
         setValidMoves([]);
       } else if (piece && piece.color === gameState.currentTurn) {
@@ -81,6 +119,25 @@ export function ChessBoard({
     }
   };
 
+  /**
+   * Attempt a move — if it needs promotion, show the picker instead of
+   * calling onMove immediately.
+   */
+  const attemptMove = (from: Position, to: Position) => {
+    const result = ChessEngine.validateMove(gameState, from, to);
+    if (result.needsPromotion) {
+      setPendingPromotion({ from, to });
+    } else if (result.valid) {
+      onMove(from, to);
+    }
+  };
+
+  const handlePromotionSelect = (piece: PieceType) => {
+    if (!pendingPromotion) return;
+    onMove(pendingPromotion.from, pendingPromotion.to, piece);
+    setPendingPromotion(null);
+  };
+
   const selectPiece = (position: Position) => {
     setSelectedSquare(position);
     const moves = ChessEngine.getAllLegalMoves(gameState)
@@ -94,7 +151,6 @@ export function ChessBoard({
       e.preventDefault();
       return;
     }
-
     setDraggedPiece({ position, piece });
     selectPiece(position);
 
@@ -106,29 +162,23 @@ export function ChessBoard({
     setTimeout(() => document.body.removeChild(dragImage), 0);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
   const handleDrop = (position: Position) => (e: React.DragEvent) => {
     e.preventDefault();
-    
     if (draggedPiece && validMoves.includes(position)) {
-      onMove(draggedPiece.position, position);
+      attemptMove(draggedPiece.position, position);
     }
-
     setDraggedPiece(null);
     setSelectedSquare(null);
     setValidMoves([]);
   };
 
-  const handleDragEnd = () => {
-    setDraggedPiece(null);
-  };
+  const handleDragEnd = () => setDraggedPiece(null);
 
   const renderBoard = () => {
     const squares = [];
-    
+
     for (let row = 7; row >= 0; row--) {
       for (let col = 0; col < 8; col++) {
         const displayRow = isFlipped ? 7 - row : row;
@@ -179,7 +229,6 @@ export function ChessBoard({
               </div>
             )}
 
-            {/* Animating piece */}
             {animatingPiece && animatingPiece.to === position && (
               <div className="piece animating">
                 {getPieceSymbol(animatingPiece.piece)}
@@ -195,14 +244,22 @@ export function ChessBoard({
 
   return (
     <div className={`chess-board-wrapper ${compact ? 'compact' : ''}`}>
-      <div className="chess-board" ref={boardRef}>
-        {renderBoard()}
+      {/* Promotion picker overlays the entire board */}
+      <div className="relative">
+        <div className="chess-board" ref={boardRef}>
+          {renderBoard()}
+        </div>
+        {pendingPromotion && (
+          <PromotionPicker
+            color={playerColor}
+            onSelect={handlePromotionSelect}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-// Helper functions
 function getRow(position: Position): number {
   return parseInt(position[1]) - 1;
 }
@@ -217,19 +274,10 @@ function getPositionFromCoords(row: number, col: number): Position {
 
 function getPieceSymbol(piece: Piece): string {
   const symbols: Record<string, string> = {
-    'white-pawn': '♙',
-    'white-knight': '♘',
-    'white-bishop': '♗',
-    'white-rook': '♖',
-    'white-queen': '♕',
-    'white-king': '♔',
-    'black-pawn': '♟',
-    'black-knight': '♞',
-    'black-bishop': '♝',
-    'black-rook': '♜',
-    'black-queen': '♛',
-    'black-king': '♚',
+    'white-pawn': '♙', 'white-knight': '♘', 'white-bishop': '♗',
+    'white-rook': '♖', 'white-queen': '♕', 'white-king': '♔',
+    'black-pawn': '♟', 'black-knight': '♞', 'black-bishop': '♝',
+    'black-rook': '♜', 'black-queen': '♛', 'black-king': '♚',
   };
-
   return symbols[`${piece.color}-${piece.type}`] || '?';
 }

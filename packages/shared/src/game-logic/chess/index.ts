@@ -4,3 +4,4 @@ export * from '../../types/chess.types';
 export * from './utils';
 export * from './moves';
 export * from './engine';
+export * from './weakEngine';

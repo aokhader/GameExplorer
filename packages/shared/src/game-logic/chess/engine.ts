@@ -5,9 +5,9 @@ import type {
   ChessGameState,
   Move,
   Position,
-  Board,
   MoveValidationResult,
   Piece,
+  PieceType,
 } from '../../types/chess.types';
 import {
   getPieceAt,
@@ -21,18 +21,32 @@ import {
 import { getPossibleMoves, isKingInCheck } from './moves';
 
 /**
+ * Check if a pawn move results in promotion
+ */
+function isPawnPromotion(piece: Piece, to: Position): boolean {
+  if (piece.type !== 'pawn') return false;
+  const toCoords = positionToCoordinates(to);
+  return (piece.color === 'white' && toCoords.row === 7) ||
+         (piece.color === 'black' && toCoords.row === 0);
+}
+
+/**
  * Chess Game Engine
  * Handles all game logic, move validation, and state updates
  */
 export class ChessEngine {
   /**
-   * Validate and execute a move
+   * Validate and execute a move.
+   * Pass promotionPiece when a pawn reaches the back rank.
+   * If promotionPiece is omitted and the move is a promotion,
+   * returns { valid: true, needsPromotion: true } so the UI can show a picker.
    */
   static validateMove(
     gameState: ChessGameState,
     from: Position,
     to: Position,
-    skipGameEndCheck: boolean = false
+    skipGameEndCheck: boolean = false,
+    promotionPiece?: PieceType,
   ): MoveValidationResult {
     // 1. Check if there's a piece at the starting position
     const piece = getPieceAt(gameState.board, from);
@@ -47,9 +61,8 @@ export class ChessEngine {
 
     // 3. Check if this is a castling move
     const isCastling = this.isCastlingMove(gameState, from, to);
-    
+
     if (isCastling) {
-      // Validate castling with all the special rules
       const castlingValidation = this.validateCastling(gameState, from, to);
       if (!castlingValidation.valid) {
         return castlingValidation;
@@ -66,33 +79,43 @@ export class ChessEngine {
       if (isKingInCheck(simulatedState.board, piece.color)) {
         return { valid: false, reason: 'Move would leave king in check' };
       }
+
+      // 6. If this is a promotion move and no piece was provided, signal the UI
+      if (isPawnPromotion(piece, to) && !promotionPiece) {
+        return { valid: true, needsPromotion: true };
+      }
     }
 
-    // 6. Move is valid - return the resulting state
-    const resultingState = this.executeMove(gameState, from, to, skipGameEndCheck);
-    
-    return {
-      valid: true,
-      resultingState,
-    };
+    // 7. Move is valid — execute it
+    const resultingState = this.executeMove(
+      gameState,
+      from,
+      to,
+      skipGameEndCheck,
+      promotionPiece,
+    );
+
+    return { valid: true, resultingState };
   }
 
   /**
    * Check if a move is a castling move
-   * Castling is detected when the king moves 2 squares horizontally
    */
-  private static isCastlingMove(gameState: ChessGameState, from: Position, to: Position): boolean {
+  private static isCastlingMove(
+    gameState: ChessGameState,
+    from: Position,
+    to: Position,
+  ): boolean {
     const piece = getPieceAt(gameState.board, from);
     if (!piece || piece.type !== 'king') return false;
-    
+
     const fromCoords = positionToCoordinates(from);
     const toCoords = positionToCoordinates(to);
-    
-    // King moving 2 squares horizontally = castling
-    const horizontalDistance = Math.abs(toCoords.col - fromCoords.col);
-    const verticalDistance = Math.abs(toCoords.row - fromCoords.row);
-    
-    return horizontalDistance === 2 && verticalDistance === 0;
+
+    return (
+      Math.abs(toCoords.col - fromCoords.col) === 2 &&
+      Math.abs(toCoords.row - fromCoords.row) === 0
+    );
   }
 
   /**
@@ -101,7 +124,7 @@ export class ChessEngine {
   private static validateCastling(
     gameState: ChessGameState,
     from: Position,
-    to: Position
+    to: Position,
   ): MoveValidationResult {
     const piece = getPieceAt(gameState.board, from);
     if (!piece || piece.type !== 'king') {
@@ -112,114 +135,85 @@ export class ChessEngine {
     const fromCoords = positionToCoordinates(from);
     const toCoords = positionToCoordinates(to);
     const row = fromCoords.row;
-    
-    // Determine if kingside or queenside
     const isKingside = toCoords.col > fromCoords.col;
-    
-    // Rule 1: Check castling rights
+
     if (isKingside) {
-      if (color === 'white' && !gameState.castlingRights.whiteKingSide) {
+      if (color === 'white' && !gameState.castlingRights.whiteKingSide)
         return { valid: false, reason: 'White has lost kingside castling rights' };
-      }
-      if (color === 'black' && !gameState.castlingRights.blackKingSide) {
+      if (color === 'black' && !gameState.castlingRights.blackKingSide)
         return { valid: false, reason: 'Black has lost kingside castling rights' };
-      }
     } else {
-      if (color === 'white' && !gameState.castlingRights.whiteQueenSide) {
+      if (color === 'white' && !gameState.castlingRights.whiteQueenSide)
         return { valid: false, reason: 'White has lost queenside castling rights' };
-      }
-      if (color === 'black' && !gameState.castlingRights.blackQueenSide) {
+      if (color === 'black' && !gameState.castlingRights.blackQueenSide)
         return { valid: false, reason: 'Black has lost queenside castling rights' };
-      }
     }
-    
-    // Rule 2: King must be on starting square (e1 for white, e8 for black)
+
     const expectedRow = color === 'white' ? 0 : 7;
-    if (fromCoords.row !== expectedRow || fromCoords.col !== 4) {
+    if (fromCoords.row !== expectedRow || fromCoords.col !== 4)
       return { valid: false, reason: 'King not on starting square' };
-    }
-    
-    // Rule 3: King cannot be in check
-    if (isKingInCheck(gameState.board, color)) {
+
+    if (isKingInCheck(gameState.board, color))
       return { valid: false, reason: 'Cannot castle while in check' };
-    }
-    
-    // Rule 4: Squares between king and rook must be empty
-    // Rule 5: King cannot pass through or land in check
+
     const rookCol = isKingside ? 7 : 0;
     const step = isKingside ? 1 : -1;
-    const kingDestCol = isKingside ? 6 : 2; // g-file or c-file
-    
-    // Check all squares between king and rook are empty
+    const kingDestCol = isKingside ? 6 : 2;
+
     for (let col = fromCoords.col + step; col !== rookCol; col += step) {
       const checkPos = coordinatesToPosition({ row, col });
-      const pieceOnSquare = getPieceAt(gameState.board, checkPos);
-      if (pieceOnSquare) {
+      if (getPieceAt(gameState.board, checkPos))
         return { valid: false, reason: 'Pieces between king and rook' };
-      }
     }
-    
-    // Rule 6: Rook must exist at the corner
+
     const rookPos = coordinatesToPosition({ row, col: rookCol });
     const rook = getPieceAt(gameState.board, rookPos);
-    if (!rook || rook.type !== 'rook' || rook.color !== color) {
+    if (!rook || rook.type !== 'rook' || rook.color !== color)
       return { valid: false, reason: 'No rook at expected position' };
-    }
-    
-    // Check that king doesn't pass through check
-    // King passes through: starting square, one square over, destination square
+
     for (let col = fromCoords.col; col !== kingDestCol + step; col += step) {
       const testPos = coordinatesToPosition({ row, col });
-      
-      // Create a test board with king at this position
       const testBoard = setPieceAt(
         setPieceAt(gameState.board, from, null),
         testPos,
-        { type: 'king', color }
+        { type: 'king', color },
       );
-      
-      if (isKingInCheck(testBoard, color)) {
+      if (isKingInCheck(testBoard, color))
         return { valid: false, reason: 'King would pass through or land in check' };
-      }
     }
-    
+
     return { valid: true };
   }
 
   /**
-   * Execute a validated move (does not check validity)
+   * Execute a validated move (does not re-check validity).
+   * promotionPiece defaults to 'queen' if not provided and move is a promotion.
    */
   static executeMove(
     gameState: ChessGameState,
     from: Position,
     to: Position,
-    skipGameEndCheck: boolean = false
+    skipGameEndCheck: boolean = false,
+    promotionPiece?: PieceType,
   ): ChessGameState {
     const newState = cloneGameState(gameState);
     const piece = getPieceAt(newState.board, from);
     const capturedPiece = getPieceAt(newState.board, to);
 
-    if (!piece) {
-      throw new Error('No piece at starting position');
-    }
+    if (!piece) throw new Error('No piece at starting position');
 
-    // Check if this is castling
     const isCastling = this.isCastlingMove(gameState, from, to);
-    
+
     if (isCastling && piece.type === 'king') {
-      // Execute castling move
       const fromCoords = positionToCoordinates(from);
       const toCoords = positionToCoordinates(to);
       const row = fromCoords.row;
       const isKingside = toCoords.col > fromCoords.col;
-      
-      // Move king
+
       let newBoard = setPieceAt(newState.board, from, null);
       newBoard = setPieceAt(newBoard, to, piece);
-      
-      // Move rook
+
       if (isKingside) {
-        // Kingside: Rook from h-file to f-file
         const rookFrom = coordinatesToPosition({ row, col: 7 });
         const rookTo = coordinatesToPosition({ row, col: 5 });
         const rook = getPieceAt(newBoard, rookFrom);
@@ -228,7 +222,6 @@ export class ChessEngine {
           newBoard = setPieceAt(newBoard, rookTo, rook);
         }
       } else {
-        // Queenside: Rook from a-file to d-file
         const rookFrom = coordinatesToPosition({ row, col: 0 });
         const rookTo = coordinatesToPosition({ row, col: 3 });
         const rook = getPieceAt(newBoard, rookFrom);
@@ -237,33 +230,37 @@ export class ChessEngine {
           newBoard = setPieceAt(newBoard, rookTo, rook);
         }
       }
-      
+
       newState.board = newBoard;
-      
-      // Record castling move
-      const move: Move = {
-        from,
-        to,
-        piece,
+      newState.moveHistory.push({
+        from, to, piece,
         isCastling: true,
         castlingSide: isKingside ? 'kingside' : 'queenside',
-      };
-      newState.moveHistory.push(move);
+      });
     } else {
-      // Normal move
+      // Determine if this is a promotion
+      const isPromotion = isPawnPromotion(piece, to);
+      // Default to queen if no piece specified (e.g. Stockfish moves)
+      const resolvedPromotion: PieceType | undefined = isPromotion
+        ? (promotionPiece ?? 'queen')
+        : undefined;
+
+      // The piece that actually lands on the target square
+      const landingPiece: Piece = isPromotion
+        ? { type: resolvedPromotion!, color: piece.color }
+        : piece;
+
       const move: Move = {
         from,
         to,
         piece,
         capturedPiece: capturedPiece || undefined,
+        promotion: resolvedPromotion,
       };
 
-      // Move the piece
       let newBoard = setPieceAt(newState.board, from, null);
-      newBoard = setPieceAt(newBoard, to, piece);
+      newBoard = setPieceAt(newBoard, to, landingPiece);
       newState.board = newBoard;
-
-      // Update move history
       newState.moveHistory.push(move);
     }
 
@@ -272,7 +269,7 @@ export class ChessEngine {
 
     // Update move counters
     if (capturedPiece || piece.type === 'pawn') {
-      newState.halfMoveClock = 0; // Reset on capture or pawn move
+      newState.halfMoveClock = 0;
     } else {
       newState.halfMoveClock++;
     }
@@ -281,16 +278,13 @@ export class ChessEngine {
       newState.fullMoveNumber++;
     }
 
-    // Update castling rights (if king or rook moved)
     newState.castlingRights = this.updateCastlingRights(
       newState.castlingRights,
       from,
-      piece
+      piece,
     );
 
-    // Only check for game end conditions if not skipped (to prevent recursion)
     if (!skipGameEndCheck) {
-      // Check for check/checkmate/stalemate
       const opponentColor = newState.currentTurn;
       newState.isCheck = isKingInCheck(newState.board, opponentColor);
       newState.isCheckmate = this.isCheckmate(newState);
@@ -301,40 +295,28 @@ export class ChessEngine {
     return newState;
   }
 
-  /**
-   * Simulate a move without actually executing it
-   */
   private static simulateMove(
     gameState: ChessGameState,
     from: Position,
-    to: Position
+    to: Position,
   ): ChessGameState {
     const simulatedState = cloneGameState(gameState);
     const piece = getPieceAt(simulatedState.board, from);
+    if (!piece) return simulatedState;
 
-    if (!piece) {
-      return simulatedState;
-    }
-
-    // Move the piece
     let newBoard = setPieceAt(simulatedState.board, from, null);
     newBoard = setPieceAt(newBoard, to, piece);
     simulatedState.board = newBoard;
-
     return simulatedState;
   }
 
-  /**
-   * Update castling rights based on piece movement
-   */
   private static updateCastlingRights(
     rights: ChessGameState['castlingRights'],
     from: Position,
-    piece: Piece
+    piece: Piece,
   ): ChessGameState['castlingRights'] {
     const newRights = { ...rights };
 
-    // King moved - lose all castling rights for that color
     if (piece.type === 'king') {
       if (piece.color === 'white') {
         newRights.whiteKingSide = false;
@@ -345,7 +327,6 @@ export class ChessEngine {
       }
     }
 
-    // Rook moved - lose castling rights for that side
     if (piece.type === 'rook') {
       if (from === 'a1') newRights.whiteQueenSide = false;
       if (from === 'h1') newRights.whiteKingSide = false;
@@ -356,43 +337,19 @@ export class ChessEngine {
     return newRights;
   }
 
-  /**
-   * Check if current player is in checkmate
-   */
   private static isCheckmate(gameState: ChessGameState): boolean {
-    const currentColor = gameState.currentTurn;
-
-    // Must be in check to be checkmate
-    if (!isKingInCheck(gameState.board, currentColor)) {
-      return false;
-    }
-
-    // Check if any legal move exists
+    if (!isKingInCheck(gameState.board, gameState.currentTurn)) return false;
     return !this.hasLegalMoves(gameState);
   }
 
-  /**
-   * Check if current player is in stalemate
-   */
   private static isStalemate(gameState: ChessGameState): boolean {
-    const currentColor = gameState.currentTurn;
-
-    // Must NOT be in check to be stalemate
-    if (isKingInCheck(gameState.board, currentColor)) {
-      return false;
-    }
-
-    // Check if any legal move exists
+    if (isKingInCheck(gameState.board, gameState.currentTurn)) return false;
     return !this.hasLegalMoves(gameState);
   }
 
-  /**
-   * Check if the current player has any legal moves
-   */
   private static hasLegalMoves(gameState: ChessGameState): boolean {
     const currentColor = gameState.currentTurn;
 
-    // Try all pieces
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const piece = gameState.board[row][col];
@@ -400,46 +357,26 @@ export class ChessEngine {
           const from = String.fromCharCode('a'.charCodeAt(0) + col) + (row + 1);
           const possibleMoves = getPossibleMoves(gameState.board, from);
 
-          // Try each possible move
           for (const to of possibleMoves) {
-            // IMPORTANT: Skip game end checks to prevent infinite recursion
-            const result = this.validateMove(gameState, from, to, true);
-            if (result.valid) {
-              return true; // Found at least one legal move
-            }
+            const result = this.validateMove(gameState, from, to, true, 'queen');
+            if (result.valid && !result.needsPromotion) return true;
           }
         }
       }
     }
 
-    return false; // No legal moves found
-  }
-
-  /**
-   * Check if game is a draw
-   */
-  private static isDraw(gameState: ChessGameState): boolean {
-    // 50-move rule
-    if (gameState.halfMoveClock >= 50) {
-      return true;
-    }
-
-    // Stalemate
-    if (gameState.isStalemate) {
-      return true;
-    }
-
-    // TODO: Implement these draw conditions:
-    // - Insufficient material (K vs K, K+B vs K, K+N vs K, etc.)
-    // - Threefold repetition
-
     return false;
   }
 
-  /**
-   * Get all legal moves for the current player
-   */
-  static getAllLegalMoves(gameState: ChessGameState): { from: Position; to: Position }[] {
+  private static isDraw(gameState: ChessGameState): boolean {
+    if (gameState.halfMoveClock >= 50) return true;
+    if (gameState.isStalemate) return true;
+    return false;
+  }
+
+  static getAllLegalMoves(
+    gameState: ChessGameState,
+  ): { from: Position; to: Position }[] {
     const legalMoves: { from: Position; to: Position }[] = [];
     const currentColor = gameState.currentTurn;
 
@@ -451,9 +388,9 @@ export class ChessEngine {
           const possibleMoves = getPossibleMoves(gameState.board, from);
 
           for (const to of possibleMoves) {
-            // Skip game end checks when just listing moves
-            const result = this.validateMove(gameState, from, to, true);
-            if (result.valid) {
+            // Pass 'queen' so promotion moves are treated as valid without UI
+            const result = this.validateMove(gameState, from, to, true, 'queen');
+            if (result.valid && !result.needsPromotion) {
               legalMoves.push({ from, to });
             }
           }
@@ -464,9 +401,6 @@ export class ChessEngine {
     return legalMoves;
   }
 
-  /**
-   * Create a new game with initial position
-   */
   static newGame(): ChessGameState {
     return createInitialGameState();
   }
