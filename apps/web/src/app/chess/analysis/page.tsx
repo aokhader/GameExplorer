@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ChessEngine, ChessGameState, Position, PieceType,
@@ -11,35 +11,13 @@ import { ChessPiece } from '@gameexplorer/ui';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import type { BoardArrow } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
+import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useStockfishAnalysis } from '@/hooks/useStockfishAnalysis';
 
 type Mode = 'edit' | 'analyze';
 
 const PIECE_TYPES: PieceType[] = ['king', 'queen', 'rook', 'bishop', 'knight', 'pawn'];
 const EMPTY_FEN = '8/8/8/8/8/8/8/8 w - - 0 1';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Short algebraic notation for the move that produced stateAfter */
-function getMoveText(stateBefore: ChessGameState, stateAfter: ChessGameState): string {
-  const history = stateAfter.moveHistory;
-  if (history.length === 0) return '';
-  const move = history[history.length - 1];
-
-  if (move.isCastling) return move.castlingSide === 'kingside' ? 'O-O' : 'O-O-O';
-
-  const piece = stateBefore.board[parseInt(move.from[1]) - 1][move.from.charCodeAt(0) - 97];
-  if (!piece) return `${move.from}–${move.to}`;
-
-  const LETTERS: Record<string, string> = { king: 'K', queen: 'Q', rook: 'R', bishop: 'B', knight: 'N', pawn: '' };
-  const letter = LETTERS[piece.type] ?? '';
-  const isCapture = !!(move.capturedPiece || move.isEnPassant);
-  const pawnFile = piece.type === 'pawn' && isCapture ? move.from[0] : '';
-  const promo = move.promotion ? `=${move.promotion[0].toUpperCase()}` : '';
-  const check = stateAfter.isCheckmate ? '#' : stateAfter.isCheck ? '+' : '';
-
-  return `${letter}${pawnFile}${isCapture ? 'x' : ''}${move.to}${promo}${check}`;
-}
 
 // ── Eval bar ──────────────────────────────────────────────────────────────────
 
@@ -83,7 +61,6 @@ export default function AnalysisPage() {
   // ── Shared ─────────────────────────────────────────────────────────────────
   const [flipBoard, setFlipBoard] = useState(false);
   const [copied, setCopied] = useState(false);
-  const moveListRef = useRef<HTMLDivElement>(null);
 
   const stockfish = useStockfishAnalysis();
 
@@ -106,13 +83,6 @@ export default function AnalysisPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAnalyzeState, mode, stockfish.isReady, analysisEnabled]);
-
-  // Auto-scroll move list to keep current move in view
-  useEffect(() => {
-    if (mode !== 'analyze' || !moveListRef.current) return;
-    const active = moveListRef.current.querySelector('[data-active="true"]');
-    active?.scrollIntoView({ block: 'nearest' });
-  }, [currentIndex, mode]);
 
   // ── Mode switching ──────────────────────────────────────────────────────────
 
@@ -241,21 +211,7 @@ export default function AnalysisPage() {
     ? [{ from: activeBestMove.from, to: activeBestMove.to }]
     : [];
 
-  // Build move pairs for the move list (one pair per full move)
-  const movePairs = (() => {
-    const pairs: { white?: { text: string; idx: number }; black?: { text: string; idx: number }; num: number }[] = [];
-    for (let i = 1; i < timeline.length; i++) {
-      const text = getMoveText(timeline[i - 1], timeline[i]);
-      const moveNum = Math.ceil(i / 2);
-      if (i % 2 === 1) {
-        pairs.push({ num: moveNum, white: { text, idx: i } });
-      } else {
-        const last = pairs[pairs.length - 1];
-        if (last) last.black = { text, idx: i };
-      }
-    }
-    return pairs;
-  })();
+  const movePairs = buildMovePairs(timeline);
 
   const isInPlacementMode = !!(selectedPiece || eraserMode);
 
@@ -322,12 +278,12 @@ export default function AnalysisPage() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-auto">
-        <div className="container mx-auto px-3 py-3 lg:h-full">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-3 lg:h-full">
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="container mx-auto px-3 py-3 h-full">
+          <div className="grid grid-cols-1 grid-rows-[auto_1fr] lg:grid-cols-[1fr_380px] lg:grid-rows-1 gap-3 h-full">
 
             {/* Board column */}
-            <div className="flex items-center justify-center lg:min-h-0">
+            <div className="flex items-center justify-center min-h-0">
               <div className="flex items-stretch gap-2 justify-center">
                 {mode === 'analyze' && (
                   <EvalBar cp={activeCp} mate={activeMate} turn={activeState.currentTurn} />
@@ -350,7 +306,7 @@ export default function AnalysisPage() {
             </div>
 
             {/* Right panel */}
-            <div className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto pb-2">
+            <div className="flex flex-col gap-3 min-h-0 overflow-y-auto pb-2">
 
               {mode === 'edit' ? (
                 <>
@@ -538,87 +494,20 @@ export default function AnalysisPage() {
                     </p>
                   </div>
 
-                  {/* ── Navigation controls ── */}
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    {/* ← → buttons */}
-                    <div className="flex items-center border-b border-slate-200 dark:border-slate-700">
-                      <button
-                        onClick={() => handleJump(0)}
-                        disabled={currentIndex === 0}
-                        className="flex-1 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-bold border-r border-slate-200 dark:border-slate-700"
-                        title="Go to start"
-                      >
-                        ⇤
-                      </button>
-                      <button
-                        onClick={handlePrev}
-                        disabled={currentIndex === 0}
-                        className="flex-1 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-bold border-r border-slate-200 dark:border-slate-700"
-                        title="Previous move"
-                      >
-                        ←
-                      </button>
-                      <button
-                        onClick={handleNext}
-                        disabled={currentIndex >= timeline.length - 1}
-                        className="flex-1 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-bold border-r border-slate-200 dark:border-slate-700"
-                        title="Next move"
-                      >
-                        →
-                      </button>
-                      <button
-                        onClick={() => handleJump(timeline.length - 1)}
-                        disabled={currentIndex >= timeline.length - 1}
-                        className="flex-1 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-bold"
-                        title="Go to end"
-                      >
-                        ⇥
-                      </button>
-                    </div>
-
-                    {/* Move list */}
-                    <div className="max-h-48 overflow-y-auto p-2" ref={moveListRef}>
-                      {movePairs.length === 0 ? (
-                        <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-2">No moves yet — play on the board</p>
-                      ) : (
-                        <div className="space-y-px">
-                          {movePairs.map(({ num, white, black }) => (
-                            <div key={num} className="flex items-center gap-1 text-sm font-mono rounded">
-                              <span className="text-slate-400 dark:text-slate-500 w-6 text-right shrink-0 text-xs">{num}.</span>
-                              {white && (
-                                <button
-                                  onClick={() => handleJump(white.idx)}
-                                  data-active={currentIndex === white.idx}
-                                  className={`flex-1 text-left px-2 py-0.5 rounded transition-colors ${
-                                    currentIndex === white.idx
-                                      ? 'bg-blue-500 text-white font-semibold'
-                                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                  }`}
-                                >
-                                  {white.text}
-                                </button>
-                              )}
-                              {black ? (
-                                <button
-                                  onClick={() => handleJump(black.idx)}
-                                  data-active={currentIndex === black.idx}
-                                  className={`flex-1 text-left px-2 py-0.5 rounded transition-colors ${
-                                    currentIndex === black.idx
-                                      ? 'bg-blue-500 text-white font-semibold'
-                                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                  }`}
-                                >
-                                  {black.text}
-                                </button>
-                              ) : (
-                                <span className="flex-1" />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  {/* ── Navigation + move list ── */}
+                  <ChessMoveList
+                    movePairs={movePairs}
+                    currentIndex={currentIndex}
+                    onJump={handleJump}
+                    onFirst={() => handleJump(0)}
+                    onPrev={handlePrev}
+                    onNext={handleNext}
+                    onLast={() => handleJump(timeline.length - 1)}
+                    canGoBack={currentIndex > 0}
+                    canGoForward={currentIndex < timeline.length - 1}
+                    scrollHeight="max-h-48"
+                    emptyMessage="No moves yet — play on the board"
+                  />
 
                   {/* ── FEN ── */}
                   <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700">

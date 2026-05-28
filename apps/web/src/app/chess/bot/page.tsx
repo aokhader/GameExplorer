@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChessEngine, ChessGameState, Position, PieceType } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
+import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useStockfish } from '@/hooks/useStockfish';
+import { useChessAudio } from '@/hooks/useChessAudio';
 import { saveGame, supabase } from '@gameexplorer/db';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
 export default function ChessBotPage() {
-  const [gameState, setGameState] = useState<ChessGameState>(() => ChessEngine.newGame());
-  const [message, setMessage] = useState<string>('');
+  const [timeline, setTimeline] = useState<ChessGameState[]>(() => [ChessEngine.newGame()]);
+  const [viewIndex, setViewIndex] = useState(0);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [isThinking, setIsThinking] = useState(false);
@@ -20,6 +22,17 @@ export default function ChessBotPage() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const stockfish = useStockfish();
+  const { playCheck, playCheckmate } = useChessAudio();
+
+  // Refs so async callbacks always see fresh values without stale closures
+  const timelineRef = useRef(timeline);
+  timelineRef.current = timeline;
+  const viewIndexRef = useRef(viewIndex);
+  viewIndexRef.current = viewIndex;
+
+  const liveState = timeline[timeline.length - 1];
+  const displayState = timeline[viewIndex];
+  const isAtLive = viewIndex === timeline.length - 1;
 
   useEffect(() => {
     async function loadUser() {
@@ -29,48 +42,49 @@ export default function ChessBotPage() {
     loadUser();
   }, []);
 
+  // Trigger bot move when it's the bot's turn
   useEffect(() => {
     if (!gameStarted) return;
-    if (gameState.isCheckmate || gameState.isStalemate || gameState.isDraw) return;
-
-    const isBotTurn = gameState.currentTurn !== playerColor;
+    if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw) return;
+    const isBotTurn = liveState.currentTurn !== playerColor;
     if (isBotTurn && !isThinking && stockfish.isReady) {
       makeBotMove();
     }
-  }, [gameState, playerColor, gameStarted, isThinking, stockfish.isReady]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady]);
 
+  // Save game when it ends
   useEffect(() => {
     if (!gameStarted) return;
-
     let result: 'white' | 'black' | 'draw' | null = null;
-    if (gameState.isCheckmate) {
-      result = gameState.currentTurn === 'white' ? 'black' : 'white';
-    } else if (gameState.isStalemate || gameState.isDraw) {
+    if (liveState.isCheckmate) {
+      result = liveState.currentTurn === 'white' ? 'black' : 'white';
+    } else if (liveState.isStalemate || liveState.isDraw) {
       result = 'draw';
     }
-
     if (result) {
-      saveGame(gameState, playerColor, result, difficulty, userId ?? undefined);
+      saveGame(liveState, playerColor, result, difficulty, userId ?? undefined);
     }
-  }, [gameState.isCheckmate, gameState.isStalemate, gameState.isDraw]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveState.isCheckmate, liveState.isStalemate, liveState.isDraw]);
 
   const makeBotMove = async () => {
+    const currentTimeline = timelineRef.current;
+    const wasAtLive = viewIndexRef.current === currentTimeline.length - 1;
+    const currentLiveState = currentTimeline[currentTimeline.length - 1];
+
     setIsThinking(true);
-    setMessage('Bot is thinking...');
 
     try {
       const thinkTime = { easy: 500, medium: 1000, hard: 1500 }[difficulty];
-
       const [move] = await Promise.all([
-        stockfish.getBestMove(gameState, difficulty),
+        stockfish.getBestMove(currentLiveState, difficulty),
         new Promise(resolve => setTimeout(resolve, thinkTime)),
       ]);
 
       if (move) {
-        // Stockfish encodes promotion in the move object — pass it directly,
-        // no picker needed for bot moves
         const result = ChessEngine.validateMove(
-          gameState,
+          currentLiveState,
           move.from,
           move.to,
           false,
@@ -78,51 +92,41 @@ export default function ChessBotPage() {
         );
 
         if (result.valid && result.resultingState) {
-          setGameState(result.resultingState);
-          if (result.resultingState.isCheckmate) {
-            setMessage('Checkmate! Bot wins! 🤖');
-          } else if (result.resultingState.isCheck) {
-            setMessage('Check!');
-          } else {
-            setMessage('');
-          }
+          const next = result.resultingState;
+          const newLength = currentTimeline.length + 1;
+          setTimeline(prev => [...prev, next]);
+          if (wasAtLive) setViewIndex(newLength - 1);
+
+          if (next.isCheckmate) playCheckmate();
+          else if (next.isCheck) playCheck();
         }
       }
     } catch (error) {
       console.error('Bot error:', error);
-      setMessage('Bot encountered an error');
     } finally {
       setIsThinking(false);
     }
   };
 
-  // ChessBoard calls this — promotionPiece is populated after user picks from the modal
   const handleMove = (from: Position, to: Position, promotionPiece?: PieceType) => {
-    if (isThinking) return;
-    if (gameState.currentTurn !== playerColor) return;
+    if (!isAtLive || isThinking) return;
+    if (liveState.currentTurn !== playerColor) return;
 
-    const result = ChessEngine.validateMove(gameState, from, to, false, promotionPiece);
-
+    const result = ChessEngine.validateMove(liveState, from, to, false, promotionPiece);
     if (result.valid && result.resultingState) {
-      setGameState(result.resultingState);
-      setMessage('');
+      const next = result.resultingState;
+      const newIdx = timeline.length;
+      setTimeline(prev => [...prev, next]);
+      setViewIndex(newIdx);
 
-      if (result.resultingState.isCheckmate) {
-        setMessage('Checkmate! You win! 🎉');
-      } else if (result.resultingState.isStalemate) {
-        setMessage('Stalemate! The game is a draw.');
-      } else if (result.resultingState.isCheck) {
-        setMessage('Check!');
-      }
-    } else if (!result.needsPromotion) {
-      setMessage(result.reason || 'Invalid move');
-      setTimeout(() => setMessage(''), 3000);
+      if (next.isCheckmate) playCheckmate();
+      else if (next.isCheck) playCheck();
     }
   };
 
   const handleNewGame = () => {
-    setGameState(ChessEngine.newGame());
-    setMessage('');
+    setTimeline([ChessEngine.newGame()]);
+    setViewIndex(0);
     setGameStarted(false);
     setIsThinking(false);
   };
@@ -133,6 +137,12 @@ export default function ChessBotPage() {
       setTimeout(() => makeBotMove(), 500);
     }
   };
+
+  const movePairs = buildMovePairs(timeline);
+  const canGoBack = viewIndex > 0;
+  const canGoForward = viewIndex < timeline.length - 1;
+
+  // ── Setup screen ──────────────────────────────────────────────────────────────
 
   if (!gameStarted) {
     return (
@@ -247,8 +257,17 @@ export default function ChessBotPage() {
     );
   }
 
+  // ── Game screen ───────────────────────────────────────────────────────────────
+
+  const gameOverMsg = liveState.isCheckmate
+    ? `Checkmate — ${liveState.currentTurn === 'white' ? 'Black' : 'White'} wins`
+    : liveState.isStalemate ? 'Stalemate — Draw'
+    : liveState.isDraw ? 'Draw'
+    : null;
+
   return (
     <div className="h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
+      {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
         <div className="container mx-auto flex items-center justify-between">
           <Link
@@ -260,22 +279,40 @@ export default function ChessBotPage() {
             </svg>
             Back
           </Link>
-          <button
-            onClick={handleNewGame}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm"
-          >
-            New Game
-          </button>
+          <div className="flex items-center gap-3">
+            {isThinking && (
+              <span className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
+                Bot thinking…
+              </span>
+            )}
+            {!isAtLive && (
+              <button
+                onClick={() => setViewIndex(timeline.length - 1)}
+                className="text-xs px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium"
+              >
+                Live ⇥
+              </button>
+            )}
+            <button
+              onClick={handleNewGame}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm"
+            >
+              New Game
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      {/* Body */}
+      <div className="flex-1 min-h-0 overflow-hidden">
         <div className="container mx-auto h-full px-4 py-4">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 h-full max-h-full">
+          <div className="grid grid-cols-1 grid-rows-[auto_1fr] lg:grid-cols-[1fr_380px] lg:grid-rows-1 gap-4 h-full max-h-full">
+
+            {/* Board */}
             <div className="flex items-center justify-center min-h-0">
               <div className="w-full max-w-150">
                 <ChessBoard
-                  gameState={gameState}
+                  gameState={displayState}
                   onMove={handleMove}
                   playerColor={playerColor}
                   showCoordinates={true}
@@ -283,71 +320,49 @@ export default function ChessBotPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 min-h-0">
-              {message && (
-                <div className={`
-                  shrink-0 p-3 rounded-lg text-center font-medium text-sm
-                  ${isThinking
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                    : message.includes('Invalid')
-                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'}
-                `}>
-                  {message}
-                </div>
-              )}
-
-              <div className="shrink-0 bg-white dark:bg-slate-800 rounded-lg shadow p-4">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-slate-600 dark:text-slate-400">Difficulty:</span>
-                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100 capitalize">{difficulty}</span>
+            {/* Sidebar */}
+            <div className="flex flex-col gap-3 min-h-0">
+              {/* Info card */}
+              <div className="shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <div className="flex gap-1.5">
+                    <span className="text-slate-500 dark:text-slate-400">Difficulty:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100 capitalize">{difficulty}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-600 dark:text-slate-400">Your Color:</span>
-                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100 capitalize">{playerColor}</span>
+                  <div className="flex gap-1.5">
+                    <span className="text-slate-500 dark:text-slate-400">Playing:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100 capitalize">{playerColor}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-600 dark:text-slate-400">Turn:</span>
-                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100">
-                      {gameState.currentTurn === 'white' ? 'White' : 'Black'}
-                    </span>
+                  <div className="flex gap-1.5">
+                    <span className="text-slate-500 dark:text-slate-400">Turn:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100 capitalize">{liveState.currentTurn}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-600 dark:text-slate-400">Move:</span>
-                    <span className="ml-2 font-semibold text-slate-800 dark:text-slate-100">{gameState.fullMoveNumber}</span>
+                  <div className="flex gap-1.5">
+                    <span className="text-slate-500 dark:text-slate-400">Move:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">{liveState.fullMoveNumber}</span>
                   </div>
                 </div>
+                {gameOverMsg && (
+                  <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600 text-sm font-semibold text-center text-amber-700 dark:text-amber-300">
+                    {gameOverMsg}
+                  </div>
+                )}
               </div>
 
-              <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden flex flex-col">
-                <div className="shrink-0 p-4 border-b border-slate-200 dark:border-slate-700">
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">Moves</h3>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4">
-                  <div className="space-y-1">
-                    {Array.from({ length: Math.ceil(gameState.moveHistory.length / 2) }).map((_, i) => {
-                      const whiteMove = gameState.moveHistory[i * 2];
-                      const blackMove = gameState.moveHistory[i * 2 + 1];
-                      return (
-                        <div key={i} className="flex items-center gap-2 text-sm font-mono">
-                          <span className="text-slate-500 dark:text-slate-400 w-8">{i + 1}.</span>
-                          <span className="flex-1 text-slate-800 dark:text-slate-100">
-                            {whiteMove.from}-{whiteMove.to}
-                            {whiteMove.promotion ? `=${whiteMove.promotion[0].toUpperCase()}` : ''}
-                          </span>
-                          {blackMove && (
-                            <span className="flex-1 text-slate-800 dark:text-slate-100">
-                              {blackMove.from}-{blackMove.to}
-                              {blackMove.promotion ? `=${blackMove.promotion[0].toUpperCase()}` : ''}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+              {/* Move list with navigation */}
+              <ChessMoveList
+                className="flex-1 min-h-0"
+                movePairs={movePairs}
+                currentIndex={viewIndex}
+                onJump={setViewIndex}
+                onFirst={() => setViewIndex(0)}
+                onPrev={() => setViewIndex(i => Math.max(0, i - 1))}
+                onNext={() => setViewIndex(i => Math.min(timeline.length - 1, i + 1))}
+                onLast={() => setViewIndex(timeline.length - 1)}
+                canGoBack={canGoBack}
+                canGoForward={canGoForward}
+                emptyMessage="No moves yet — make your first move"
+              />
             </div>
           </div>
         </div>
