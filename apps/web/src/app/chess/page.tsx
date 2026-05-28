@@ -56,12 +56,12 @@ export default function ChessLandingPage() {
     },
     {
       id: 'analysis',
-      title: 'Game Analysis',
-      description: 'Review and analyze your past games',
-      icon: '📊',
+      title: 'Analysis Board',
+      description: 'Build any position and get Stockfish engine analysis',
+      icon: '🔍',
       href: '/chess/analysis',
       gradient: 'from-orange-500 to-red-500',
-      available: false,
+      available: true,
     },
   ];
 

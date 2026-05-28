@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { hashEmail, encryptEmail } from '@gameexplorer/db';
 import { supabase } from '@gameexplorer/db';
 
 
@@ -30,8 +29,6 @@ export default function SignUpPage() {
         id: data.user.id,
         username,
     });
-
-    console.log('Profile insert result:', profileError);
 
     if (profileError) {
         setError('Account created but profile setup failed: ' + profileError.message);

@@ -16,14 +16,14 @@
   border-radius: 4px;
   overflow: hidden;
   aspect-ratio: 1 / 1;
-  width: 100%;
-  max-width: min(90vh, 600px); /* Responsive but not too large */
+  /* Self-contained size so the board never collapses when the board is empty */
+  width: min(90vh, 600px);
   height: auto;
 }
 
 /* Compact mode for better layout */
 .chess-board-wrapper.compact .chess-board {
-  max-width: min(70vh, 520px);
+  width: min(70vh, 520px);
 }
 
 /* Square */
@@ -136,14 +136,16 @@
   filter: brightness(0.9);
 }
 
-/* Chess Pieces */
+/* Chess Pieces — SVG-based, sized as a fraction of the square */
 .piece {
-  font-size: clamp(2.5rem, 6vw, 4rem);
+  width: 82%;
+  height: 82%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   user-select: none;
   cursor: grab;
   z-index: 3;
-  line-height: 1;
-  transition: none; /* Remove default transition */
   position: relative;
 }
 
@@ -151,22 +153,15 @@
   cursor: grabbing;
 }
 
-/* Smooth piece animation */
-.piece.animating {
-  animation: piece-move 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 10;
+/* Pop animation when a piece lands on a square */
+.piece.just-arrived {
+  animation: piece-arrive 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes piece-move {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.15);
-  }
-  100% {
-    transform: scale(1);
-  }
+@keyframes piece-arrive {
+  0%   { transform: scale(0.75); }
+  60%  { transform: scale(1.1);  }
+  100% { transform: scale(1);    }
 }
 
 /* Hover effect for pieces */
@@ -182,19 +177,15 @@
 /* Responsive sizing */
 @media (max-width: 1024px) {
   .chess-board {
-    max-width: min(85vh, 500px);
+    width: min(85vh, 500px);
   }
 }
 
 @media (max-width: 768px) {
   .chess-board {
-    max-width: min(90vw, 450px);
+    width: min(90vw, 450px);
   }
-  
-  .piece {
-    font-size: clamp(2rem, 8vw, 3rem);
-  }
-  
+
   .rank-label,
   .file-label {
     font-size: 0.55rem;
@@ -203,18 +194,14 @@
 
 @media (max-width: 480px) {
   .chess-board {
-    max-width: 95vw;
+    width: 95vw;
   }
-  
-  .piece {
-    font-size: clamp(1.75rem, 9vw, 2.5rem);
-  }
-  
+
   .rank-label,
   .file-label {
     font-size: 0.5rem;
   }
-  
+
   .move-indicator.empty {
     width: 25%;
     height: 25%;

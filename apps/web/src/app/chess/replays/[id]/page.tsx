@@ -18,7 +18,7 @@ function buildStateTimeline(game: SavedGame): ChessGameState[] {
 
   for (const move of game.moves) {
     const current = timeline[timeline.length - 1];
-    const result = ChessEngine.validateMove(current, move.from, move.to);
+    const result = ChessEngine.validateMove(current, move.from, move.to, false, move.promotion);
     if (result.valid && result.resultingState) {
       timeline.push(result.resultingState);
     } else {

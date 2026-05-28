@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn, signInWithOAuth } from '@gameexplorer/db';
 import { supabase } from '@gameexplorer/db';
 
 

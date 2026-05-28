@@ -16,14 +16,15 @@ import {
 export function getPossibleMoves(
   board: Board,
   position: Position,
-  includeCaptures: boolean = true
+  includeCaptures: boolean = true,
+  enPassantTarget: Position | null = null
 ): Position[] {
   const piece = getPieceAt(board, position);
   if (!piece) return [];
 
   switch (piece.type) {
     case 'pawn':
-      return getPawnMoves(board, position, piece.color);
+      return getPawnMoves(board, position, piece.color, enPassantTarget);
     case 'knight':
       return getKnightMoves(board, position, piece.color);
     case 'bishop':
@@ -42,7 +43,7 @@ export function getPossibleMoves(
 /**
  * Pawn moves (most complex piece!)
  */
-function getPawnMoves(board: Board, position: Position, color: Color): Position[] {
+function getPawnMoves(board: Board, position: Position, color: Color, enPassantTarget: Position | null = null): Position[] {
   const moves: Position[] = [];
   const coords = positionToCoordinates(position);
   const direction = color === 'white' ? 1 : -1; // White moves up, black moves down
@@ -84,7 +85,15 @@ function getPawnMoves(board: Board, position: Position, color: Color): Position[
     }
   }
 
-  // TODO: En passant (requires game state, will implement later)
+  // En passant
+  if (enPassantTarget) {
+    const epCoords = positionToCoordinates(enPassantTarget);
+    for (const captureDir of captureDirections) {
+      if (captureDir.row === epCoords.row && captureDir.col === epCoords.col) {
+        moves.push(enPassantTarget);
+      }
+    }
+  }
 
   return moves;
 }

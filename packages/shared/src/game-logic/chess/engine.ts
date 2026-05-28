@@ -69,7 +69,7 @@ export class ChessEngine {
       }
     } else {
       // 4. Check if the move is in the list of possible moves
-      const possibleMoves = getPossibleMoves(gameState.board, from);
+      const possibleMoves = getPossibleMoves(gameState.board, from, true, gameState.enPassantTarget);
       if (!possibleMoves.includes(to)) {
         return { valid: false, reason: 'Illegal move for this piece' };
       }
@@ -238,6 +238,9 @@ export class ChessEngine {
         castlingSide: isKingside ? 'kingside' : 'queenside',
       });
     } else {
+      // Detect en passant
+      const isEnPassant = piece.type === 'pawn' && to === gameState.enPassantTarget;
+
       // Determine if this is a promotion
       const isPromotion = isPawnPromotion(piece, to);
       // Default to queen if no piece specified (e.g. Stockfish moves)
@@ -250,22 +253,46 @@ export class ChessEngine {
         ? { type: resolvedPromotion!, color: piece.color }
         : piece;
 
+      const opponentColor = getOpponentColor(piece.color);
       const move: Move = {
         from,
         to,
         piece,
-        capturedPiece: capturedPiece || undefined,
+        capturedPiece: isEnPassant
+          ? { type: 'pawn', color: opponentColor }
+          : (capturedPiece || undefined),
         promotion: resolvedPromotion,
+        isEnPassant: isEnPassant || undefined,
       };
 
       let newBoard = setPieceAt(newState.board, from, null);
       newBoard = setPieceAt(newBoard, to, landingPiece);
+
+      // En passant: remove the captured pawn (same row as attacker, same col as target)
+      if (isEnPassant) {
+        const fromCoords = positionToCoordinates(from);
+        const toCoords = positionToCoordinates(to);
+        const capturedPawnPos = coordinatesToPosition({ row: fromCoords.row, col: toCoords.col });
+        newBoard = setPieceAt(newBoard, capturedPawnPos, null);
+      }
+
       newState.board = newBoard;
       newState.moveHistory.push(move);
     }
 
     // Update turn
     newState.currentTurn = getOpponentColor(gameState.currentTurn);
+
+    // Update en passant target for the next move
+    const fromCoords = positionToCoordinates(from);
+    const toCoords = positionToCoordinates(to);
+    if (piece.type === 'pawn' && Math.abs(toCoords.row - fromCoords.row) === 2) {
+      // Double pawn push — the skipped square is the en passant target
+      const skippedRow = (fromCoords.row + toCoords.row) / 2;
+      newState.enPassantTarget = coordinatesToPosition({ row: skippedRow, col: fromCoords.col });
+    } else {
+      newState.enPassantTarget = null;
+    }
 
     // Update move counters
     if (capturedPiece || piece.type === 'pawn') {
@@ -306,6 +333,15 @@ export class ChessEngine {
 
     let newBoard = setPieceAt(simulatedState.board, from, null);
     newBoard = setPieceAt(newBoard, to, piece);
+
+    // En passant: also remove the captured pawn (not on 'to', but beside 'from')
+    if (piece.type === 'pawn' && to === gameState.enPassantTarget) {
+      const fromCoords = positionToCoordinates(from);
+      const toCoords = positionToCoordinates(to);
+      const capturedPawnPos = coordinatesToPosition({ row: fromCoords.row, col: toCoords.col });
+      newBoard = setPieceAt(newBoard, capturedPawnPos, null);
+    }
+
     simulatedState.board = newBoard;
     return simulatedState;
   }
@@ -355,7 +391,7 @@ export class ChessEngine {
         const piece = gameState.board[row][col];
         if (piece && piece.color === currentColor) {
           const from = String.fromCharCode('a'.charCodeAt(0) + col) + (row + 1);
-          const possibleMoves = getPossibleMoves(gameState.board, from);
+          const possibleMoves = getPossibleMoves(gameState.board, from, true, gameState.enPassantTarget);
 
           for (const to of possibleMoves) {
             const result = this.validateMove(gameState, from, to, true, 'queen');
@@ -385,7 +421,7 @@ export class ChessEngine {
         const piece = gameState.board[row][col];
         if (piece && piece.color === currentColor) {
           const from = String.fromCharCode('a'.charCodeAt(0) + col) + (row + 1);
-          const possibleMoves = getPossibleMoves(gameState.board, from);
+          const possibleMoves = getPossibleMoves(gameState.board, from, true, gameState.enPassantTarget);
 
           for (const to of possibleMoves) {
             // Pass 'queen' so promotion moves are treated as valid without UI
