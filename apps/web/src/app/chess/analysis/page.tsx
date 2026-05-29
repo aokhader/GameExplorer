@@ -461,7 +461,7 @@ export default function AnalysisPage() {
                                 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
                                 : 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400'
                         }`}>
-                          {!stockfish.isReady ? 'loading' : !analysisEnabled ? 'off' : stockfish.isAnalyzing ? `depth ${depth}` : `d${depth} ✓`}
+                          {!stockfish.isReady ? 'loading' : !analysisEnabled ? 'off' : stockfish.isAnalyzing ? (depth > 0 ? `depth ${depth}` : '…') : `d${depth} ✓`}
                         </span>
                         {/* Toggle switch */}
                         <button
