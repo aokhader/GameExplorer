@@ -37,6 +37,15 @@ export default function ChessLandingPage() {
       available: true,
     },
     {
+      id: 'analysis',
+      title: 'Analysis Board',
+      description: 'Build any position and get Stockfish engine analysis',
+      icon: '🔍',
+      href: '/chess/analysis',
+      gradient: 'from-orange-500 to-red-500',
+      available: true,
+    },
+    {
       id: 'multiplayer',
       title: 'Online Multiplayer',
       description: 'Play against other players around the world',
@@ -53,15 +62,6 @@ export default function ChessLandingPage() {
       href: '/chess/local',
       gradient: 'from-green-500 to-emerald-500',
       available: false,
-    },
-    {
-      id: 'analysis',
-      title: 'Analysis Board',
-      description: 'Build any position and get Stockfish engine analysis',
-      icon: '🔍',
-      href: '/chess/analysis',
-      gradient: 'from-orange-500 to-red-500',
-      available: true,
     },
   ];
 
