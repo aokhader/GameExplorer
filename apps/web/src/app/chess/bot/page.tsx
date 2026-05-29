@@ -6,16 +6,56 @@ import { ChessEngine, ChessGameState, Position, PieceType } from '@gameexplorer/
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
-import { useStockfish } from '@/hooks/useStockfish';
+import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
 import { useChessAudio } from '@/hooks/useChessAudio';
 import { saveGame, supabase } from '@gameexplorer/db';
 
-type Difficulty = 'easy' | 'medium' | 'hard';
+// ── ELO helpers ────────────────────────────────────────────────────────────────
+
+const ELO_PRESETS = [
+  { elo: 600,  label: 'Beginner' },
+  { elo: 900,  label: 'Novice'   },
+  { elo: 1200, label: 'Club'     },
+  { elo: 1500, label: 'Inter.'   },
+  { elo: 2000, label: 'Advanced' },
+  { elo: 2800, label: 'Master'   },
+] as const;
+
+function eloLabel(elo: number): string {
+  if (elo < 600)  return 'Beginner';
+  if (elo < 800)  return 'Novice';
+  if (elo < 1000) return 'Casual';
+  if (elo < 1200) return 'Club Player';
+  if (elo < 1400) return 'Intermediate';
+  if (elo < 1600) return 'Competitive';
+  if (elo < 1800) return 'Advanced';
+  if (elo < 2000) return 'Expert';
+  if (elo < 2200) return 'Candidate Master';
+  if (elo < 2400) return 'FIDE Master';
+  if (elo < 2600) return 'International Master';
+  return 'Grandmaster';
+}
+
+function eloDescription(elo: number): string {
+  if (elo < 600)  return 'Hangs pieces frequently, random-looking play';
+  if (elo < 800)  return 'Misses basic tactics, occasional blunders';
+  if (elo < 1000) return 'Spots one-move threats, misses combinations';
+  if (elo < 1200) return 'Consistent but beatable with simple tactics';
+  if (elo < 1400) return 'Solid basic play, catches most hanging pieces';
+  if (elo < 1600) return 'Strong tactically, handles most positions well';
+  if (elo < 1800) return 'Plays like a serious club competitor';
+  if (elo < 2000) return 'Near-tournament strength, very accurate';
+  if (elo < 2200) return 'Finds deep combinations reliably';
+  if (elo < 2400) return 'Near-master level play';
+  return 'Elite — extremely strong';
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ChessBotPage() {
   const [timeline, setTimeline] = useState<ChessGameState[]>(() => [ChessEngine.newGame()]);
   const [viewIndex, setViewIndex] = useState(0);
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [targetElo, setTargetElo] = useState(1200);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
@@ -29,6 +69,8 @@ export default function ChessBotPage() {
   timelineRef.current = timeline;
   const viewIndexRef = useRef(viewIndex);
   viewIndexRef.current = viewIndex;
+  const targetEloRef = useRef(targetElo);
+  targetEloRef.current = targetElo;
 
   const liveState = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -63,7 +105,7 @@ export default function ChessBotPage() {
       result = 'draw';
     }
     if (result) {
-      saveGame(liveState, playerColor, result, difficulty, userId ?? undefined);
+      saveGame(liveState, playerColor, result, `elo-${targetEloRef.current}`, userId ?? undefined);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState.isCheckmate, liveState.isStalemate, liveState.isDraw]);
@@ -72,14 +114,14 @@ export default function ChessBotPage() {
     const currentTimeline = timelineRef.current;
     const wasAtLive = viewIndexRef.current === currentTimeline.length - 1;
     const currentLiveState = currentTimeline[currentTimeline.length - 1];
+    const elo = targetEloRef.current;
 
     setIsThinking(true);
 
     try {
-      const thinkTime = { easy: 500, medium: 1000, hard: 1500 }[difficulty];
       const [move] = await Promise.all([
-        stockfish.getBestMove(currentLiveState, difficulty),
-        new Promise(resolve => setTimeout(resolve, thinkTime)),
+        stockfish.getBestMove(currentLiveState, elo),
+        new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
       ]);
 
       if (move) {
@@ -159,7 +201,7 @@ export default function ChessBotPage() {
           </Link>
         </div>
 
-        <div className="container mx-auto px-4 py-16 max-w-2xl">
+        <div className="container mx-auto px-4 py-10 max-w-2xl">
           <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-8 text-center">
             Play vs Bot
           </h1>
@@ -178,34 +220,64 @@ export default function ChessBotPage() {
             </div>
           )}
 
+          {/* ELO selector */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mb-6">
             <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-6">
-              Choose Difficulty
+              Bot Strength
             </h2>
-            <div className="space-y-4">
-              {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => (
+
+            {/* ELO display */}
+            <div className="text-center mb-6">
+              <div className="text-6xl font-bold tabular-nums text-slate-800 dark:text-slate-100 leading-none mb-1">
+                {targetElo}
+              </div>
+              <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                {eloLabel(targetElo)}
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {eloDescription(targetElo)}
+              </div>
+            </div>
+
+            {/* Slider */}
+            <div className="mb-4">
+              <input
+                type="range"
+                min={400}
+                max={3000}
+                step={25}
+                value={targetElo}
+                onChange={e => setTargetElo(Number(e.target.value))}
+                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-blue-600 bg-slate-200 dark:bg-slate-600"
+              />
+              <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500 mt-1.5 px-0.5">
+                <span>400</span>
+                <span>1200</span>
+                <span>2000</span>
+                <span>3000</span>
+              </div>
+            </div>
+
+            {/* Quick presets */}
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {ELO_PRESETS.map(({ elo, label }) => (
                 <button
-                  key={diff}
-                  onClick={() => setDifficulty(diff)}
-                  className={`
-                    w-full p-4 rounded-lg text-left transition-all
-                    ${difficulty === diff
-                      ? 'bg-blue-600 text-white shadow-lg scale-105'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
-                    }
-                  `}
+                  key={elo}
+                  onClick={() => setTargetElo(elo)}
+                  className={`py-2 px-1 rounded-lg text-center text-sm transition-all ${
+                    targetElo === elo
+                      ? 'bg-blue-600 text-white font-semibold shadow-md scale-105'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  }`}
                 >
-                  <div className="font-semibold text-lg capitalize">{diff}</div>
-                  <div className={`text-sm ${difficulty === diff ? 'text-blue-100' : 'text-slate-600 dark:text-slate-400'}`}>
-                    {diff === 'easy' && 'Beginner - Makes mistakes'}
-                    {diff === 'medium' && 'Intermediate - Plays well'}
-                    {diff === 'hard' && 'Advanced - Very strong'}
-                  </div>
+                  <div className="font-bold">{elo}</div>
+                  <div className="text-xs opacity-75 leading-tight">{label}</div>
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Color selector */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mb-6">
             <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-6">
               Choose Your Color
@@ -213,13 +285,11 @@ export default function ChessBotPage() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => setPlayerColor('white')}
-                className={`
-                  p-6 rounded-lg transition-all
-                  ${playerColor === 'white'
+                className={`p-6 rounded-lg transition-all ${
+                  playerColor === 'white'
                     ? 'bg-blue-600 text-white shadow-lg scale-105'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
-                  }
-                `}
+                }`}
               >
                 <div className="text-4xl mb-2">♔</div>
                 <div className="font-semibold">White</div>
@@ -229,13 +299,11 @@ export default function ChessBotPage() {
               </button>
               <button
                 onClick={() => setPlayerColor('black')}
-                className={`
-                  p-6 rounded-lg transition-all
-                  ${playerColor === 'black'
+                className={`p-6 rounded-lg transition-all ${
+                  playerColor === 'black'
                     ? 'bg-blue-600 text-white shadow-lg scale-105'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
-                  }
-                `}
+                }`}
               >
                 <div className="text-4xl mb-2">♚</div>
                 <div className="font-semibold">Black</div>
@@ -326,8 +394,13 @@ export default function ChessBotPage() {
               <div className="shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                   <div className="flex gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400">Difficulty:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 capitalize">{difficulty}</span>
+                    <span className="text-slate-500 dark:text-slate-400">ELO:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">
+                      {targetElo}
+                      <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
+                        ({eloLabel(targetElo)})
+                      </span>
+                    </span>
                   </div>
                   <div className="flex gap-1.5">
                     <span className="text-slate-500 dark:text-slate-400">Playing:</span>

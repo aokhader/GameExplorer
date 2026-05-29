@@ -286,6 +286,95 @@ export function getBestMoveWeak(
   return withPromotion(state, bestMove);
 }
 
+// ---------------------------------------------------------------------------
+// Continuous ELO-based engine (400 – 1399)
+// ---------------------------------------------------------------------------
+
+/**
+ * Calibration bands for ELO-based play.
+ * Each entry: [eloLo, eloHi, depth, blunderChanceLo, blunderChanceHi, noiseLo, noiseHi]
+ *
+ * Depth is the main lever for ELO jumps; blunderChance and evalNoise are
+ * interpolated linearly within each band for smooth in-band scaling.
+ *
+ * Calibration rationale:
+ *   depth 1 (400–750)   — one-ply look-ahead, frequent hanging pieces     ≈ 400–700 ELO
+ *   depth 2 (750–1050)  — two-ply, basic tactics spotted                  ≈ 750–1050 ELO
+ *   depth 3 (1050–1280) — three-ply, consistent one-movers caught         ≈ 1050–1280 ELO
+ *   depth 4 (1280–1400) — four-ply, most simple tactics handled           ≈ 1280–1399 ELO
+ */
+const ELO_BANDS: [number, number, number, number, number, number, number][] = [
+  //  lo    hi   d  blunderLo  blunderHi  noiseLo  noiseHi
+  [  400,  750,  1,   0.70,      0.22,     280,      95  ],
+  [  750, 1050,  2,   0.18,      0.05,      90,      38  ],
+  [ 1050, 1280,  3,   0.04,      0.01,      32,      12  ],
+  [ 1280, 1400,  4,   0.010,     0.004,     10,       4  ],
+];
+
+interface EloConfig { depth: number; blunderChance: number; evalNoise: number }
+
+function eloToConfig(elo: number): EloConfig {
+  const e = Math.max(400, Math.min(1399, elo));
+  for (const [lo, hi, depth, blLo, blHi, nLo, nHi] of ELO_BANDS) {
+    if (e >= lo && e < hi) {
+      const t = (e - lo) / (hi - lo);
+      return {
+        depth,
+        blunderChance: blLo + t * (blHi - blLo),
+        evalNoise:     nLo  + t * (nHi  - nLo),
+      };
+    }
+  }
+  // Fallback to depth-4 top end
+  return { depth: 4, blunderChance: 0.004, evalNoise: 4 };
+}
+
+/**
+ * Returns the best move calibrated to `targetElo` (400–1399).
+ * For ELO ≥ 1400 use Stockfish with UCI_Elo.
+ */
+export function getBestMoveElo(
+  state: ChessGameState,
+  targetElo: number,
+): WeakEngineMove {
+  const config = eloToConfig(targetElo);
+  const color: Color = state.currentTurn;
+  const legalMoves = ChessEngine.getAllLegalMoves(state);
+
+  if (legalMoves.length === 0) {
+    throw new Error('No legal moves available — game should already be over.');
+  }
+
+  if (Math.random() < config.blunderChance) {
+    const move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+    return withPromotion(state, move);
+  }
+
+  const isMaximizing = color === 'white';
+  let bestMove = legalMoves[0];
+  let bestScore = isMaximizing ? -Infinity : Infinity;
+
+  for (const move of orderMoves(state, legalMoves)) {
+    const next = ChessEngine.executeMove(state, move.from, move.to, false, 'queen');
+    const score = minimax(
+      next,
+      config.depth - 1,
+      -Infinity,
+      Infinity,
+      !isMaximizing,
+      config.evalNoise,
+    );
+    if (isMaximizing ? score > bestScore : score < bestScore) {
+      bestScore = score;
+      bestMove = move;
+    }
+  }
+
+  return withPromotion(state, bestMove);
+}
+
+// ---------------------------------------------------------------------------
+
 /** Detect if a move is a pawn promotion and default to queen. */
 function withPromotion(
   state: ChessGameState,
