@@ -278,12 +278,12 @@ export default function AnalysisPage() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <div className="container mx-auto px-3 py-3 h-full">
-          <div className="grid grid-cols-1 grid-rows-[auto_1fr] lg:grid-cols-[1fr_380px] lg:grid-rows-1 gap-3 h-full">
+      <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
+        <div className="container mx-auto px-3 py-3 lg:h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] lg:grid-rows-1 gap-3 lg:h-full">
 
             {/* Board column */}
-            <div className="flex items-center justify-center min-h-0">
+            <div className="flex items-center justify-center lg:min-h-0">
               <div className="flex items-stretch gap-2 justify-center">
                 {mode === 'analyze' && (
                   <EvalBar cp={activeCp} mate={activeMate} turn={activeState.currentTurn} />
@@ -306,7 +306,7 @@ export default function AnalysisPage() {
             </div>
 
             {/* Right panel */}
-            <div className="flex flex-col gap-3 min-h-0 overflow-y-auto pb-2">
+            <div className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto pb-2">
 
               {mode === 'edit' ? (
                 <>

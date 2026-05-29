@@ -78,8 +78,17 @@ export function ChessMoveList({
 
   useEffect(() => {
     if (!scrollRef.current) return;
-    const active = scrollRef.current.querySelector('[data-active="true"]');
-    active?.scrollIntoView({ block: 'nearest' });
+    const container = scrollRef.current;
+    const active = container.querySelector('[data-active="true"]') as HTMLElement | null;
+    if (!active) return;
+    // Scroll only within the list container — never the page.
+    const top = active.offsetTop - container.offsetTop;
+    const bottom = top + active.offsetHeight;
+    if (top < container.scrollTop) {
+      container.scrollTop = top;
+    } else if (bottom > container.scrollTop + container.clientHeight) {
+      container.scrollTop = bottom - container.clientHeight;
+    }
   }, [currentIndex]);
 
   const navBtn = (disabled: boolean) =>
