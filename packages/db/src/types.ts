@@ -1,6 +1,6 @@
 import type { Move, Color } from '@gameexplorer/shared';
 
-// What we store per move — Move from shared + FEN snapshot after the move
+// What we store per chess move
 export interface StoredMove {
   from: string;
   to: string;
@@ -13,14 +13,27 @@ export interface StoredMove {
   isCheckmate?: boolean;
 }
 
+// What we store per checkers move
+export interface CheckersStoredMove {
+  from: string;
+  to: string;
+  path: string[];
+  captures: string[];
+  isKingPromotion?: boolean;
+}
+
 export type GameResult = 'white' | 'black' | 'draw';
+export type GameType = 'chess' | 'checkers';
 
 export interface SavedGame {
   id: string;
   created_at: string;
+  game_type?: GameType;
   player_color: Color;
   opponent: string;
   result: GameResult;
+  // Chess games: StoredMove[]. Checkers games: CheckersStoredMove[] stored as JSONB.
+  // Use game_type to discriminate at the call site.
   moves: StoredMove[];
   difficulty?: string;
   user_id: string | null;

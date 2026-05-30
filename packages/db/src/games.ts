@@ -1,7 +1,7 @@
 // Game Queries
 import { supabase } from './client';
 import type { NewGame, SavedGame } from './types';
-import type { ChessGameState, Color } from '@gameexplorer/shared';
+import type { ChessGameState, Color, CheckersGameState, CheckersColor } from '@gameexplorer/shared';
 
 export interface SaveGameOptions {
   mode?: 'casual' | 'rated';
@@ -64,6 +64,45 @@ export async function getGames(userId?: string): Promise<SavedGame[]> {
   }
 
   return data as SavedGame[];
+}
+
+export async function saveCheckersGame(
+  gameState: CheckersGameState,
+  playerColor: CheckersColor,
+  result: NewGame['result'],
+  difficulty?: string,
+  userId?: string,
+): Promise<SavedGame | null> {
+  const newGame: NewGame = {
+    game_type: 'checkers',
+    player_color: playerColor,
+    opponent: 'bot',
+    result,
+    difficulty,
+    user_id: userId ?? null,
+    mode: 'casual',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    moves: gameState.moveHistory.map(m => ({
+      from: m.from,
+      to: m.to,
+      path: m.path,
+      captures: m.captures,
+      isKingPromotion: m.isKingPromotion,
+    })) as any,
+  };
+
+  const { data, error } = await supabase
+    .from('games')
+    .insert(newGame)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to save checkers game:', error);
+    return null;
+  }
+
+  return data as SavedGame;
 }
 
 export async function getGameById(id: string): Promise<SavedGame | null> {

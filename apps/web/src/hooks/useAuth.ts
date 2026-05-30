@@ -6,12 +6,12 @@ export function useAuth() {
   const { user, loading, setUser, setLoading } = useAuthStore();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: { id: string; email?: string } | null } }) => {
       setUser(data.user ? { id: data.user.id, email: data.user.email! } : null);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: unknown, session: { user: { id: string; email?: string } | null } | null) => {
       setUser(session?.user ? { id: session.user.id, email: session.user.email! } : null);
       setLoading(false);
     });
