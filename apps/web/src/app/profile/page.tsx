@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getPublicProfile, getGames, supabase } from '@gameexplorer/db';
-import type { AuthUser, Profile, SavedGame } from '@gameexplorer/db';
+import { getPublicProfile, getGames, getUserRating, supabase } from '@gameexplorer/db';
+import type { AuthUser, Profile, SavedGame, UserRating } from '@gameexplorer/db';
 import { useRouter } from 'next/navigation';
 
 function formatDate(iso: string) {
@@ -42,6 +42,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Pick<Profile, 'id' | 'username' | 'created_at'> | null>(null);
   const [games, setGames] = useState<SavedGame[]>([]);
+  const [rating, setRating] = useState<UserRating | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,13 +54,15 @@ export default function ProfilePage() {
         }
         setUser({ id: user.id, email: user.email! });
 
-        const [profileData, gamesData] = await Promise.all([
+        const [profileData, gamesData, ratingData] = await Promise.all([
           getPublicProfile(user.id),
           getGames(user.id),
+          getUserRating(user.id),
         ]);
 
         setProfile(profileData);
         setGames(gamesData);
+        setRating(ratingData);
         setLoading(false);
     }
 
@@ -109,6 +112,34 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
+
+        {/* Training rating */}
+        {rating && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5 mb-6 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                Training Rating
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-slate-800 dark:text-slate-100">
+                  {rating.rating}
+                </span>
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  Peak: {rating.peak_rating}
+                </span>
+              </div>
+            </div>
+            <div className="text-right text-sm text-slate-500 dark:text-slate-400 space-y-0.5">
+              <div>{rating.games_played} rated game{rating.games_played !== 1 ? 's' : ''}</div>
+              <div>{rating.wins}W / {rating.losses}L / {rating.draws}D</div>
+              {rating.games_played < 30 && (
+                <div className="text-xs text-amber-600 dark:text-amber-400">
+                  Provisional ({30 - rating.games_played} left)
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-3 mb-8">
