@@ -2,6 +2,9 @@
 
 // Chess
 export * from './game-logic/chess';
+
+// Rating utilities
+export * from './utils/rating';
 // Future games
 // export * from './game-logic/checkers';
 // export * from './game-logic/reversi';

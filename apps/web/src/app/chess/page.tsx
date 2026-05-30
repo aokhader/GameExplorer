@@ -19,6 +19,15 @@ export default function ChessLandingPage() {
       available: true,
     },
     {
+      id: 'training',
+      title: 'Training Mode',
+      description: 'Play rated games against a bot matched to your skill level',
+      icon: '🎯',
+      href: '/chess/training',
+      gradient: 'from-green-500 to-teal-500',
+      available: true,
+    },
+    {
       id: 'replays',
       title: 'Game Replays',
       description: 'Review and replay your past games',

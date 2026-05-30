@@ -3,12 +3,19 @@ import { supabase } from './client';
 import type { NewGame, SavedGame } from './types';
 import type { ChessGameState, Color } from '@gameexplorer/shared';
 
+export interface SaveGameOptions {
+  mode?: 'casual' | 'rated';
+  rating_before?: number;
+  rating_after?: number;
+}
+
 export async function saveGame(
   gameState: ChessGameState,
   playerColor: Color,
   result: NewGame['result'],
   difficulty?: string,
-  userId?: string
+  userId?: string,
+  options?: SaveGameOptions,
 ): Promise<SavedGame | null> {
   const newGame: NewGame = {
     player_color: playerColor,
@@ -16,6 +23,9 @@ export async function saveGame(
     result,
     difficulty,
     user_id: userId ?? null,
+    mode: options?.mode ?? 'casual',
+    rating_before: options?.rating_before,
+    rating_after: options?.rating_after,
     moves: gameState.moveHistory.map(m => ({
       from: m.from,
       to: m.to,
