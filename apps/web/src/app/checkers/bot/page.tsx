@@ -7,40 +7,55 @@ import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
 import { saveCheckersGame } from '@gameexplorer/db';
 
-// ── ELO helpers ────────────────────────────────────────────────────────────────
+// ── Difficulty levels ─────────────────────────────────────────────────────────
+// Each entry maps to a distinct minimax depth — that's what makes them
+// meaningfully different. Within a level the engine also interpolates blunder
+// chance and noise, but depth is the primary skill lever.
 
-const ELO_PRESETS = [
-  { elo: 500,  label: 'Beginner' },
-  { elo: 800,  label: 'Casual'   },
-  { elo: 1100, label: 'Club'     },
-  { elo: 1400, label: 'Strong'   },
-  { elo: 1700, label: 'Expert'   },
-  { elo: 2000, label: 'Master'   },
+const DIFFICULTY_LEVELS = [
+  {
+    elo: 500,
+    label: 'Beginner',
+    description: 'Frequently misses captures and blunders pieces',
+    depth: 1,
+    icon: '🟢',
+  },
+  {
+    elo: 800,
+    label: 'Casual',
+    description: 'Misses multi-jump chains, plays somewhat randomly',
+    depth: 2,
+    icon: '🔵',
+  },
+  {
+    elo: 1100,
+    label: 'Club',
+    description: 'Consistent play, catches most forced captures',
+    depth: 3,
+    icon: '🟡',
+  },
+  {
+    elo: 1400,
+    label: 'Strong',
+    description: 'Strong tactically, handles most positions well',
+    depth: 4,
+    icon: '🟠',
+  },
+  {
+    elo: 1700,
+    label: 'Expert',
+    description: 'Very difficult to beat, deep tactical vision',
+    depth: 5,
+    icon: '🔴',
+  },
+  {
+    elo: 2000,
+    label: 'Master',
+    description: 'Near-optimal play — essentially a computer',
+    depth: 5,
+    icon: '⚫',
+  },
 ] as const;
-
-function eloLabel(elo: number): string {
-  if (elo < 600)  return 'Beginner';
-  if (elo < 800)  return 'Novice';
-  if (elo < 1000) return 'Casual';
-  if (elo < 1200) return 'Club Player';
-  if (elo < 1400) return 'Intermediate';
-  if (elo < 1600) return 'Strong Player';
-  if (elo < 1800) return 'Expert';
-  if (elo < 2000) return 'Near-Perfect';
-  return 'Perfect Play';
-}
-
-function eloDescription(elo: number): string {
-  if (elo < 600)  return 'Frequently misses captures and blunders pieces';
-  if (elo < 800)  return 'Misses multi-jump opportunities, plays somewhat randomly';
-  if (elo < 1000) return 'Spots simple captures, misses combinations';
-  if (elo < 1200) return 'Consistent play, catches most forced captures';
-  if (elo < 1400) return 'Strong tactically, handles most positions well';
-  if (elo < 1600) return 'Rarely makes mistakes, good endgame technique';
-  if (elo < 1800) return 'Very difficult to beat, deep tactical vision';
-  if (elo < 2000) return 'Near-optimal play across all phases';
-  return 'Essentially perfect — plays like a computer';
-}
 
 function thinkTimeForElo(elo: number): number {
   if (elo < 700)  return 300;
@@ -192,49 +207,39 @@ export default function CheckersBotPage() {
             Play vs Bot
           </h1>
 
-          {/* ELO selector */}
+          {/* Difficulty selector */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mb-6">
             <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-6">Bot Strength</h2>
-
-            <div className="text-center mb-6">
-              <div className="text-6xl font-bold tabular-nums text-slate-800 dark:text-slate-100 leading-none mb-1">
-                {targetElo}
-              </div>
-              <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                {eloLabel(targetElo)}
-              </div>
-              <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {eloDescription(targetElo)}
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <input
-                type="range" min={400} max={2000} step={25}
-                value={targetElo}
-                onChange={e => setTargetElo(Number(e.target.value))}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-blue-600 bg-slate-200 dark:bg-slate-600"
-              />
-              <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500 mt-1.5 px-0.5">
-                <span>400</span><span>900</span><span>1400</span><span>2000</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-              {ELO_PRESETS.map(({ elo, label }) => (
-                <button
-                  key={elo}
-                  onClick={() => setTargetElo(elo)}
-                  className={`py-2 px-1 rounded-lg text-center text-sm transition-all ${
-                    targetElo === elo
-                      ? 'bg-blue-600 text-white font-semibold shadow-md scale-105'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                  }`}
-                >
-                  <div className="font-bold">{elo}</div>
-                  <div className="text-xs opacity-75 leading-tight">{label}</div>
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {DIFFICULTY_LEVELS.map((level) => {
+                const selected = targetElo === level.elo;
+                return (
+                  <button
+                    key={level.elo}
+                    onClick={() => setTargetElo(level.elo)}
+                    className={`relative p-4 rounded-xl text-left transition-all border-2 ${
+                      selected
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 shadow-md scale-[1.02]'
+                        : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-white dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">{level.icon}</div>
+                    <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'}`}>
+                      {level.label}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                      {level.description}
+                    </div>
+                    {selected && (
+                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -354,8 +359,7 @@ export default function CheckersBotPage() {
                   <div className="flex gap-1.5">
                     <span className="text-slate-500 dark:text-slate-400">Bot:</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-100">
-                      {targetElo}
-                      <span className="text-xs font-normal text-slate-500 ml-1">({eloLabel(targetElo)})</span>
+                      {DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label ?? targetElo}
                     </span>
                   </div>
                   <div className="flex gap-1.5">
