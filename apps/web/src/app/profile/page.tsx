@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getPublicProfile, getGames } from '@gameexplorer/db';
-import { supabase } from '@gameexplorer/db';
+import { getPublicProfile, getGames, supabase } from '@gameexplorer/db';
 import type { AuthUser, Profile, SavedGame } from '@gameexplorer/db';
 import { useRouter } from 'next/navigation';
 
@@ -56,7 +55,7 @@ export default function ProfilePage() {
 
         const [profileData, gamesData] = await Promise.all([
           getPublicProfile(user.id),
-          getGames(),
+          getGames(user.id),
         ]);
 
         setProfile(profileData);
@@ -66,11 +65,6 @@ export default function ProfilePage() {
 
     loadUser();
   }, [router]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.replace('/');
-  };
 
   if (loading) {
     return (
@@ -90,29 +84,17 @@ export default function ProfilePage() {
   const winRate = games.length > 0 ? Math.round((wins / games.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
-      {/* Header */}
-      <div className="border-b border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Home
-          </Link>
-          <button
-            onClick={handleSignOut}
-            className="text-sm text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
+    <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 pt-16">
+      <div className="container mx-auto px-4 pt-8 pb-8 max-w-3xl">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-sm mb-8"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Home
+        </Link>
         {/* Avatar + username */}
         <div className="flex items-center gap-4 mb-8">
           <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold shrink-0">

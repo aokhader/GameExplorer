@@ -43,11 +43,10 @@ export async function saveGame(
   return data as SavedGame;
 }
 
-export async function getGames(): Promise<SavedGame[]> {
-  const { data, error } = await supabase
-    .from('games')
-    .select('*')
-    .order('created_at', { ascending: false });
+export async function getGames(userId?: string): Promise<SavedGame[]> {
+  let query = supabase.from('games').select('*').order('created_at', { ascending: false });
+  if (userId) query = query.eq('user_id', userId);
+  const { data, error } = await query;
 
   if (error) {
     console.error('Failed to fetch games:', error);

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   ChessEngine, ChessGameState, Position, PieceType,
   stateToFen, fenToState,
@@ -13,6 +14,7 @@ import type { BoardArrow } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useStockfishAnalysis } from '@/hooks/useStockfishAnalysis';
+import { getGameById } from '@gameexplorer/db';
 
 type Mode = 'edit' | 'analyze';
 
@@ -41,7 +43,10 @@ function EvalBar({ cp, mate, turn }: { cp: number | null; mate: number | null; t
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function AnalysisPage() {
+function AnalysisPageInner() {
+  const searchParams = useSearchParams();
+  const gameId = searchParams.get('gameId');
+
   const [mode, setMode] = useState<Mode>('edit');
 
   // ── Edit mode ──────────────────────────────────────────────────────────────
@@ -63,6 +68,25 @@ export default function AnalysisPage() {
   const [copied, setCopied] = useState(false);
 
   const stockfish = useStockfishAnalysis();
+
+  // If a gameId is in the URL, load that game and jump straight to analyze mode
+  useEffect(() => {
+    if (!gameId) return;
+    getGameById(gameId).then((game) => {
+      if (!game) return;
+      const tl: ChessGameState[] = [ChessEngine.newGame()];
+      for (const move of game.moves) {
+        const current = tl[tl.length - 1];
+        const result = ChessEngine.validateMove(current, move.from, move.to, false, move.promotion);
+        if (result.valid && result.resultingState) tl.push(result.resultingState);
+        else break;
+      }
+      setTimeline(tl);
+      setCurrentIndex(tl.length - 1);
+      setMode('analyze');
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId]);
 
   // Sync FEN input with editState in edit mode
   useEffect(() => {
@@ -198,7 +222,9 @@ export default function AnalysisPage() {
   if (mode === 'analyze' && stockfish.isReady && analysisEnabled) {
     if (activeMate !== null) {
       const wm = activeMate * sign;
-      evalText = wm > 0 ? `Mate in ${Math.abs(wm)}` : `Mated in ${Math.abs(wm)}`;
+      const loser = activeState.currentTurn; // the side to move is the one getting mated
+      const winner = loser === 'white' ? 'Black' : 'White';
+      evalText = wm > 0 ? `Mate in ${Math.abs(wm)}` : wm === 0 ? `Checkmate — ${winner} wins` : `Mated in ${Math.abs(wm)}`;
     } else if (activeCp !== null) {
       const wCp = activeCp * sign;
       evalText = wCp > 0 ? `+${(wCp / 100).toFixed(2)}` : wCp < 0 ? `${(wCp / 100).toFixed(2)}` : '0.00';
@@ -224,19 +250,19 @@ export default function AnalysisPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 overflow-hidden">
+    <div className="h-screen flex flex-col bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 overflow-hidden pt-16">
 
       {/* Header */}
       <div className="shrink-0 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-between gap-3">
           <Link
-            href="/chess"
+            href={gameId ? '/chess/replays' : '/chess'}
             className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back
+            {gameId ? 'Replays' : 'Back'}
           </Link>
 
           <div className="flex items-center gap-2">
@@ -538,5 +564,17 @@ export default function AnalysisPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AnalysisPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen pt-16 flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+        <div className="text-slate-400 dark:text-slate-500">Loading…</div>
+      </div>
+    }>
+      <AnalysisPageInner />
+    </Suspense>
   );
 }

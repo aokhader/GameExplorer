@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getGames, SavedGame } from '@gameexplorer/db';
+import { useAuth } from '@/hooks/useAuth';
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -36,34 +37,33 @@ function ResultBadge({ game }: { game: SavedGame }) {
 export default function ReplaysPage() {
   const [games, setGames] = useState<SavedGame[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    getGames().then((data) => {
+    if (loading === false) return; // already loaded
+    getGames(user?.id).then((data) => {
       setGames(data);
       setLoading(false);
     });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
-      {/* Header */}
-      <div className="border-b border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link
-            href="/chess"
-            className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </Link>
-          <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">Replays</h1>
-          <div className="w-16" />
-        </div>
-      </div>
+    <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 pt-16">
+      <div className="container mx-auto px-4 pt-8 max-w-3xl">
+        {/* Back link */}
+        <Link
+          href="/chess"
+          className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-sm mb-8"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back
+        </Link>
 
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-8">Replays</h1>
+
         {loading ? (
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (

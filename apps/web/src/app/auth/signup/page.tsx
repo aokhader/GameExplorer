@@ -49,7 +49,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center px-4 pt-16">
       <div className="w-full max-w-sm">
         <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 text-center mb-8">
           Create account

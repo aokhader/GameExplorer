@@ -1,21 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { supabase } from '@gameexplorer/db';
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ChessLandingPage() {
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUsername(user.email?.split('@')[0] ?? null);
-    }
-
-    loadUser();
-  }, []);
+  useAuth(); // initialise auth store
 
   const gameModes = [
     {
@@ -66,9 +57,9 @@ export default function ChessLandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 pt-16">
       {/* Header */}
-      <div className="container mx-auto px-4 pt-8 flex items-center justify-between">
+      <div className="container mx-auto px-4 pt-8">
         <Link
           href="/"
           className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors group"
@@ -78,26 +69,6 @@ export default function ChessLandingPage() {
           </svg>
           Back to Home
         </Link>
-
-        {/* Profile / Sign in button */}
-        {username ? (
-          <Link
-            href="/profile"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all text-sm font-medium text-slate-700 dark:text-slate-200"
-          >
-            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-              {username[0].toUpperCase()}
-            </div>
-            {username}
-          </Link>
-        ) : (
-          <Link
-            href="/auth/signin"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-sm"
-          >
-            Sign in
-          </Link>
-        )}
       </div>
 
       {/* Main Content */}

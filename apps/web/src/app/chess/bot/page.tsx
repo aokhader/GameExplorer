@@ -8,7 +8,8 @@ import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
 import { useChessAudio } from '@/hooks/useChessAudio';
-import { saveGame, supabase } from '@gameexplorer/db';
+import { useAuth } from '@/hooks/useAuth';
+import { saveGame } from '@gameexplorer/db';
 
 // ── ELO helpers ────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,7 @@ export default function ChessBotPage() {
 
   const stockfish = useStockfish();
   const { playCheck, playCheckmate } = useChessAudio();
+  const { user } = useAuth();
 
   // Refs so async callbacks always see fresh values without stale closures
   const timelineRef = useRef(timeline);
@@ -77,12 +79,8 @@ export default function ChessBotPage() {
   const isAtLive = viewIndex === timeline.length - 1;
 
   useEffect(() => {
-    async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
-    }
-    loadUser();
-  }, []);
+    setUserId(user?.id ?? null);
+  }, [user]);
 
   // Trigger bot move when it's the bot's turn
   useEffect(() => {
@@ -188,7 +186,7 @@ export default function ChessBotPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
+      <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 pt-16">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/chess"
@@ -205,20 +203,6 @@ export default function ChessBotPage() {
           <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-8 text-center">
             Play vs Bot
           </h1>
-
-          {!userId && (
-            <div className="mb-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 flex items-center justify-between gap-4">
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                Sign in to save your games and track your progress.
-              </p>
-              <Link
-                href="/auth/signin"
-                className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
-              >
-                Sign in
-              </Link>
-            </div>
-          )}
 
           {/* ELO selector */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mb-6">
@@ -334,7 +318,7 @@ export default function ChessBotPage() {
     : null;
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
+    <div className="h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden pt-16">
       {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
         <div className="container mx-auto flex items-center justify-between">
