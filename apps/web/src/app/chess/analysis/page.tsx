@@ -224,7 +224,7 @@ function AnalysisPageInner() {
       const wm = activeMate * sign;
       const loser = activeState.currentTurn; // the side to move is the one getting mated
       const winner = loser === 'white' ? 'Black' : 'White';
-      evalText = wm > 0 ? `Mate in ${Math.abs(wm)}` : wm === 0 ? `Checkmate — ${winner} wins` : `Mated in ${Math.abs(wm)}`;
+      evalText = wm > 0 ? `Mate in ${Math.abs(wm)}` : wm === 0 ? `Checkmate — ${winner} wins` : `Mate in ${Math.abs(wm)}`;
     } else if (activeCp !== null) {
       const wCp = activeCp * sign;
       evalText = wCp > 0 ? `+${(wCp / 100).toFixed(2)}` : wCp < 0 ? `${(wCp / 100).toFixed(2)}` : '0.00';
@@ -355,7 +355,7 @@ function AnalysisPageInner() {
                               setSelectedPiece(active ? null : { type, color: 'white' });
                               setEraserMode(false);
                             }}
-                            className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-[44px] min-h-[44px] ${
+                            className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-11 min-h-11 ${
                               active
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 scale-110 shadow-md'
                                 : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -379,7 +379,7 @@ function AnalysisPageInner() {
                               setSelectedPiece(active ? null : { type, color: 'black' });
                               setEraserMode(false);
                             }}
-                            className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-[44px] min-h-[44px] ${
+                            className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-11 min-h-11 ${
                               active
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 scale-110 shadow-md'
                                 : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -500,7 +500,7 @@ function AnalysisPageInner() {
                           }`}
                         >
                           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
-                            analysisEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+                            analysisEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
                           }`} />
                         </button>
                       </div>
