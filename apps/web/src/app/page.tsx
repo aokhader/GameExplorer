@@ -31,7 +31,7 @@ export default function HomePage() {
       description: 'Flip the board to your color. Strategic and fast-paced!',
       icon: '⚪',
       color: 'from-green-500 to-green-700',
-      available: false,
+      available: true,
       path: '/reversi',
     },
   ];

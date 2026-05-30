@@ -7,4 +7,4 @@ export * from './game-logic/chess';
 export * from './utils/rating';
 // Checkers
 export * from './game-logic/checkers';
-// export * from './game-logic/reversi';
+export * from './game-logic/reversi';

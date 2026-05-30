@@ -1,7 +1,7 @@
 // Game Queries
 import { supabase } from './client';
 import type { NewGame, SavedGame } from './types';
-import type { ChessGameState, Color, CheckersGameState, CheckersColor } from '@gameexplorer/shared';
+import type { ChessGameState, Color, CheckersGameState, CheckersColor, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 
 export interface SaveGameOptions {
   mode?: 'casual' | 'rated';
@@ -99,6 +99,43 @@ export async function saveCheckersGame(
 
   if (error) {
     console.error('Failed to save checkers game:', error);
+    return null;
+  }
+
+  return data as SavedGame;
+}
+
+export async function saveReversiGame(
+  gameState: ReversiGameState,
+  playerColor: ReversiColor,
+  result: NewGame['result'],
+  difficulty?: string,
+  userId?: string,
+): Promise<SavedGame | null> {
+  const newGame: NewGame = {
+    game_type: 'reversi',
+    player_color: playerColor,
+    opponent: 'bot',
+    result,
+    difficulty,
+    user_id: userId ?? null,
+    mode: 'casual',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    moves: gameState.moveHistory.map(m => ({
+      position: m.position,
+      flipped:  m.flipped,
+      color:    m.color,
+    })) as any,
+  };
+
+  const { data, error } = await supabase
+    .from('games')
+    .insert(newGame)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to save reversi game:', error);
     return null;
   }
 

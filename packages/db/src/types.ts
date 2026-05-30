@@ -22,8 +22,15 @@ export interface CheckersStoredMove {
   isKingPromotion?: boolean;
 }
 
+// What we store per reversi move
+export interface ReversiStoredMove {
+  position: string | null; // null = pass
+  flipped: string[];
+  color: 'black' | 'white';
+}
+
 export type GameResult = 'white' | 'black' | 'draw';
-export type GameType = 'chess' | 'checkers';
+export type GameType = 'chess' | 'checkers' | 'reversi';
 
 export interface SavedGame {
   id: string;

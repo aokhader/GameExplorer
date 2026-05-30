@@ -46,10 +46,7 @@ export function Navigation() {
             <NavLink href="/" active={pathname === '/'}>Home</NavLink>
             <NavLink href="/chess" active={pathname === '/chess'}>Chess</NavLink>
             <NavLink href="/checkers" active={pathname === '/checkers'}>Checkers</NavLink>
-            <NavLink href="/reversi" active={pathname === '/reversi'}>
-              Reversi
-              <span className="ml-1 text-xs text-slate-400">(Soon)</span>
-            </NavLink>
+            <NavLink href="/reversi" active={pathname === '/reversi'}>Reversi</NavLink>
           </div>
 
           {/* Auth area */}
