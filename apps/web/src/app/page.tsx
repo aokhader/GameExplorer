@@ -22,7 +22,7 @@ export default function HomePage() {
       description: 'Jump your way to victory in this classic board game.',
       icon: '⚫',
       color: 'from-red-500 to-red-700',
-      available: false,
+      available: true,
       path: '/checkers',
     },
     {
