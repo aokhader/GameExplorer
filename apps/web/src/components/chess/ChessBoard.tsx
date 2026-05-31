@@ -23,6 +23,12 @@ interface ChessBoardProps {
   onSquareClick?: (position: Position) => void;
   /** Allow selecting and previewing moves for pieces of any color, regardless of whose turn it is */
   allowSelectAnyColor?: boolean;
+  /**
+   * Precomputed legal-move destinations keyed by from-square.
+   * When provided the board does a pure O(1) map lookup on piece selection
+   * instead of running getAllLegalMoves() on the main thread.
+   */
+  legalMovesMap?: Map<Position, Position[]>;
 }
 
 interface PendingPromotion {
@@ -138,26 +144,50 @@ export function ChessBoard({
   editMode = false,
   onSquareClick,
   allowSelectAnyColor = false,
+  legalMovesMap,
 }: ChessBoardProps) {
+  // ── Optimistic state ───────────────────────────────────────────────────────
+  // Applied immediately on move confirmation via executeMove(skipGameEndCheck=true).
+  // The board renders from this instantly; the parent validates asynchronously
+  // in the background and sends back the confirmed gameState, at which point we
+  // discard the optimistic copy. This eliminates the parent round-trip delay.
+  const [optimisticState, setOptimisticState] = useState<ChessGameState | null>(null);
+  const effectiveState = optimisticState ?? gameState;
+
+  // Discard optimistic state once the parent confirms (new gameState prop).
+  useEffect(() => { setOptimisticState(null); }, [gameState]);
+
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Position[]>([]);
-  const [draggedPiece, setDraggedPiece] = useState<{ position: Position; piece: Piece } | null>(null);
-  const [lastMove, setLastMove] = useState<{ from: Position; to: Position } | null>(null);
+  // Piece currently being pointer-dragged (drives ghost visibility & source opacity).
+  // Position updates go directly to the DOM via ghostRef — no per-frame re-renders.
+  const [dragging, setDragging] = useState<{ piece: Piece; from: Position; halfSize: number } | null>(null);
+  // Derived synchronously — no state, no extra render cycle.
+  const lastMoveEntry = effectiveState.moveHistory.at(-1) ?? null;
+  const lastMove = lastMoveEntry
+    ? { from: lastMoveEntry.from, to: lastMoveEntry.to }
+    : null;
+  // lastMoveTo only drives the 300 ms pop animation; one frame of lag is fine.
   const [lastMoveTo, setLastMoveTo] = useState<Position | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
 
-  const boardRef = useRef<HTMLDivElement>(null);
+  const boardRef  = useRef<HTMLDivElement>(null);
+  const ghostRef  = useRef<HTMLDivElement>(null);
+  // Always-current ref so pointer handlers don't close over stale state.
+  const draggingRef  = useRef(dragging);
+  draggingRef.current = dragging;
+  const dragMovesRef = useRef<Position[]>([]);
   const isFlipped = playerColor === 'black';
 
+  // Trigger the arrival pop-animation whenever the move list grows.
   useEffect(() => {
-    if (gameState.moveHistory.length > 0) {
-      const latestMove = gameState.moveHistory[gameState.moveHistory.length - 1];
-      setLastMove({ from: latestMove.from, to: latestMove.to });
-      setLastMoveTo(latestMove.to);
-      const t = setTimeout(() => setLastMoveTo(null), 300);
-      return () => clearTimeout(t);
-    }
-  }, [gameState.moveHistory.length]);
+    const latest = effectiveState.moveHistory.at(-1);
+    if (!latest) return;
+    setLastMoveTo(latest.to);
+    const t = setTimeout(() => setLastMoveTo(null), 300);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveState.moveHistory.length]);
 
   // Reset selection when edit mode changes
   useEffect(() => {
@@ -173,8 +203,8 @@ export function ChessBoard({
 
     if (pendingPromotion) return;
 
-    const piece = gameState.board[getRow(position)][getCol(position)];
-    const canSelect = allowSelectAnyColor ? !!piece : !!(piece && piece.color === gameState.currentTurn);
+    const piece = effectiveState.board[getRow(position)][getCol(position)];
+    const canSelect = allowSelectAnyColor ? !!piece : !!(piece && piece.color === effectiveState.currentTurn);
 
     if (selectedSquare) {
       if (validMoves.includes(position)) {
@@ -194,74 +224,153 @@ export function ChessBoard({
     }
   };
 
-  const attemptMove = (from: Position, to: Position) => {
-    // In allowSelectAnyColor mode (browse/preview), never execute moves — just deselect
+  /**
+   * Apply a move immediately via executeMove(skipGameEndCheck=true) — this is
+   * O(1) compared to the O(N²) full validateMove + isCheckmate path.
+   * The board renders the new position instantly (optimistic update).
+   * onMove notifies the parent, which runs full validation in the background.
+   */
+  const attemptMove = (from: Position, to: Position, promotionPiece?: PieceType) => {
     if (allowSelectAnyColor) {
       setSelectedSquare(null);
       setValidMoves([]);
       return;
     }
-    const result = ChessEngine.validateMove(gameState, from, to);
-    if (result.needsPromotion) {
-      setPendingPromotion({ from, to });
-    } else if (result.valid) {
-      onMove(from, to);
+
+    // Check pawn promotion with a simple coordinate test — no engine call needed.
+    const piece = effectiveState.board[getRow(from)][getCol(from)];
+    if (piece?.type === 'pawn' && !promotionPiece) {
+      const toRow = parseInt(to[1]) - 1;
+      const isPromotion = (piece.color === 'white' && toRow === 7) ||
+                          (piece.color === 'black' && toRow === 0);
+      if (isPromotion) {
+        setPendingPromotion({ from, to });
+        return;
+      }
     }
+
+    // Apply move optimistically for zero-latency visual feedback.
+    // skipGameEndCheck=true skips the expensive getAllLegalMoves scan for
+    // checkmate/stalemate — the parent handles that via full validateMove.
+    const optimistic = ChessEngine.executeMove(effectiveState, from, to, true, promotionPiece);
+    setOptimisticState(optimistic);
+    onMove(from, to, promotionPiece);
   };
 
   const handlePromotionSelect = (piece: PieceType) => {
     if (!pendingPromotion) return;
-    onMove(pendingPromotion.from, pendingPromotion.to, piece);
+    attemptMove(pendingPromotion.from, pendingPromotion.to, piece);
     setPendingPromotion(null);
   };
 
+  /**
+   * Select a piece and show its legal destinations.
+   * If the parent passed a precomputed legalMovesMap this is an O(1) lookup.
+   * Otherwise we fall back to running getAllLegalMoves (needed for allowSelectAnyColor
+   * mode where external maps are not provided).
+   */
   const selectPiece = (position: Position) => {
     setSelectedSquare(position);
-    const piece = gameState.board[getRow(position)][getCol(position)];
-    // When allowSelectAnyColor, temporarily treat the clicked piece's color as the active turn
-    const stateForMoves = (allowSelectAnyColor && piece && piece.color !== gameState.currentTurn)
-      ? { ...gameState, currentTurn: piece.color }
-      : gameState;
-    const moves = ChessEngine.getAllLegalMoves(stateForMoves)
-      .filter(move => move.from === position)
-      .map(move => move.to);
+
+    let moves: Position[];
+    if (legalMovesMap && !allowSelectAnyColor) {
+      // O(1) — precomputed by parent, no engine call here
+      moves = legalMovesMap.get(position) ?? [];
+    } else {
+      const piece = effectiveState.board[getRow(position)][getCol(position)];
+      const stateForMoves = (allowSelectAnyColor && piece && piece.color !== effectiveState.currentTurn)
+        ? { ...effectiveState, currentTurn: piece.color }
+        : effectiveState;
+      moves = ChessEngine.getAllLegalMoves(stateForMoves)
+        .filter(m => m.from === position)
+        .map(m => m.to as Position);
+    }
+
     setValidMoves(moves);
+    dragMovesRef.current = moves;
   };
 
-  const handleDragStart = (position: Position, piece: Piece) => (e: React.DragEvent) => {
-    if (editMode || allowSelectAnyColor || piece.color !== gameState.currentTurn) {
-      e.preventDefault();
-      return;
-    }
-    setDraggedPiece({ position, piece });
+  // ── Pointer-based drag (no HTML5 drag API → no browser-imposed delay) ────────
+
+  /** Convert a viewport point to the board Position under it, or null if off-board. */
+  const getSquareAtPoint = (clientX: number, clientY: number): Position | null => {
+    const board = boardRef.current;
+    if (!board) return null;
+    const rect = board.getBoundingClientRect();
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+    const gridCol = Math.floor((clientX - rect.left) / (rect.width  / 8));
+    const gridRow = Math.floor((clientY - rect.top)  / (rect.height / 8));
+    const displayRow = isFlipped ? gridRow     : 7 - gridRow;
+    const displayCol = isFlipped ? 7 - gridCol : gridCol;
+    return getPositionFromCoords(displayRow, displayCol);
+  };
+
+  const handlePiecePointerDown = (position: Position, piece: Piece) => (e: React.PointerEvent) => {
+    if (editMode || allowSelectAnyColor || piece.color !== effectiveState.currentTurn) return;
+    if (e.button !== 0) return; // left-click only
+    e.preventDefault();
+
+    // Route all subsequent pointer events to the board even when off-board.
+    boardRef.current?.setPointerCapture(e.pointerId);
+
     selectPiece(position);
 
-    // Pin the ghost to the actual rendered pixel size so CSS percentage-based
-    // rules (width:82%, etc.) don't balloon it when placed on document.body.
-    const el = e.currentTarget as HTMLElement;
-    const { width, height } = el.getBoundingClientRect();
-    const dragImage = el.cloneNode(true) as HTMLElement;
-    dragImage.style.cssText =
-      `position:fixed;top:-${Math.ceil(height) + 10}px;left:0;` +
-      `width:${width}px;height:${height}px`;
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, width / 2, height / 2);
-    setTimeout(() => document.body.removeChild(dragImage), 0);
+    const { width } = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const halfSize = width / 2;
+
+    // Position ghost immediately (imperative, no re-render).
+    if (ghostRef.current) {
+      ghostRef.current.style.width  = `${width}px`;
+      ghostRef.current.style.height = `${width}px`;
+      ghostRef.current.style.left   = `${e.clientX - halfSize}px`;
+      ghostRef.current.style.top    = `${e.clientY - halfSize}px`;
+    }
+
+    const d = { piece, from: position, halfSize };
+    draggingRef.current = d;
+    setDragging(d);
   };
 
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
-
-  const handleDrop = (position: Position) => (e: React.DragEvent) => {
+  const handleBoardPointerMove = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
     e.preventDefault();
-    if (!editMode && draggedPiece && validMoves.includes(position)) {
-      attemptMove(draggedPiece.position, position);
+    // Move ghost imperatively — avoids a React re-render on every frame.
+    if (ghostRef.current) {
+      ghostRef.current.style.left = `${e.clientX - draggingRef.current.halfSize}px`;
+      ghostRef.current.style.top  = `${e.clientY - draggingRef.current.halfSize}px`;
     }
-    setDraggedPiece(null);
+  };
+
+  const handleBoardPointerUp = (e: React.PointerEvent) => {
+    const drag = draggingRef.current;
+    if (!drag) return;
+    e.preventDefault();
+
+    const target = getSquareAtPoint(e.clientX, e.clientY);
+    if (target && target !== drag.from && !editMode && dragMovesRef.current.includes(target)) {
+      attemptMove(drag.from, target);
+      setSelectedSquare(null);
+      setValidMoves([]);
+    } else if (target !== drag.from) {
+      // Dropped on invalid square or off-board — clear selection.
+      setSelectedSquare(null);
+      setValidMoves([]);
+      dragMovesRef.current = [];
+    }
+    // Dropped back on source square → keep selection so click-to-move still works.
+
+    draggingRef.current = null;
+    setDragging(null);
+  };
+
+  const handleBoardPointerCancel = () => {
+    // OS cancelled the gesture (e.g. incoming call on mobile).
+    draggingRef.current = null;
+    setDragging(null);
     setSelectedSquare(null);
     setValidMoves([]);
+    dragMovesRef.current = [];
   };
-
-  const handleDragEnd = () => setDraggedPiece(null);
 
   const renderBoard = () => {
     const squares = [];
@@ -271,11 +380,11 @@ export function ChessBoard({
         const displayRow = isFlipped ? 7 - row : row;
         const displayCol = isFlipped ? 7 - col : col;
         const position = getPositionFromCoords(displayRow, displayCol);
-        const piece = gameState.board[displayRow][displayCol];
+        const piece = effectiveState.board[displayRow][displayCol];
         const isLight = (displayRow + displayCol) % 2 === 0;
         const isSelected = selectedSquare === position;
         const isValidMove = validMoves.includes(position);
-        const isDragging = draggedPiece?.position === position;
+        const isDragging = dragging?.from === position;
         const isLastMoveSquare = lastMove && (lastMove.from === position || lastMove.to === position);
         const justArrived = lastMoveTo === position;
 
@@ -291,8 +400,6 @@ export function ChessBoard({
               ${isLastMoveSquare ? 'last-move' : ''}
             `}
             onClick={() => handleSquareClick(position)}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop(position)}
           >
             {showCoordinates && col === (isFlipped ? 7 : 0) && (
               <div className="rank-label">{displayRow + 1}</div>
@@ -305,16 +412,14 @@ export function ChessBoard({
               <div className={`move-indicator ${piece ? 'capture' : 'empty'}`} />
             )}
 
-            {/* Piece — always rendered so onDragEnd fires on the still-in-DOM
-                element. The parent .square.dragging already provides opacity:0.4
-                for the "lifted" look. No pointer-events or draggable override
-                needed — the browser won't start a new drag mid-drag anyway. */}
             {piece && (
               <div
                 className={`piece${justArrived ? ' just-arrived' : ''}`}
-                draggable={!editMode && piece.color === gameState.currentTurn}
-                onDragStart={handleDragStart(position, piece)}
-                onDragEnd={handleDragEnd}
+                onPointerDown={
+                  !editMode && piece.color === effectiveState.currentTurn
+                    ? handlePiecePointerDown(position, piece)
+                    : undefined
+                }
               >
                 <ChessPiece type={piece.type} color={piece.color} size="100%" />
               </div>
@@ -330,9 +435,41 @@ export function ChessBoard({
   return (
     <div className={`chess-board-wrapper ${compact ? 'compact' : ''}`}>
       <div className="relative">
-        <div className="chess-board" ref={boardRef}>
+        <div
+          className="chess-board"
+          ref={boardRef}
+          style={{ touchAction: 'none' }}
+          onPointerMove={handleBoardPointerMove}
+          onPointerUp={handleBoardPointerUp}
+          onPointerCancel={handleBoardPointerCancel}
+        >
           {renderBoard()}
         </div>
+
+        {/* Drag ghost — positioned imperatively on every pointermove so React
+            never re-renders the board just to move a floating piece. */}
+        <div
+          ref={ghostRef}
+          style={{
+            display:        dragging ? 'flex' : 'none',
+            position:       'fixed',
+            alignItems:     'center',
+            justifyContent: 'center',
+            pointerEvents:  'none',
+            zIndex:         9999,
+            cursor:         'grabbing',
+            // left / top / width / height set imperatively in pointer handlers
+          }}
+        >
+          {dragging && (
+            <ChessPiece
+              type={dragging.piece.type}
+              color={dragging.piece.color}
+              size="100%"
+            />
+          )}
+        </div>
+
         {arrows && arrows.length > 0 && (
           <ArrowOverlay arrows={arrows} isFlipped={isFlipped} />
         )}

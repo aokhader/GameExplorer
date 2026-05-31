@@ -19,6 +19,9 @@
   /* Self-contained size so the board never collapses when the board is empty */
   width: min(90vh, 600px);
   height: auto;
+  /* Prevent browser from hijacking touch-drag for scroll/zoom */
+  touch-action: none;
+  user-select: none;
 }
 
 /* Compact mode for better layout */
