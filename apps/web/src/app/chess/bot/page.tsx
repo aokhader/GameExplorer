@@ -173,9 +173,8 @@ export default function ChessBotPage() {
 
   const handleStartGame = () => {
     setGameStarted(true);
-    if (playerColor === 'black') {
-      setTimeout(() => makeBotMove(), 500);
-    }
+    // The useEffect watching liveState/gameStarted/stockfish.isReady handles
+    // triggering the first bot move when the player picks black — no setTimeout needed.
   };
 
   const movePairs = buildMovePairs(timeline);
