@@ -102,7 +102,7 @@ export default function ChessTrainingPage() {
   useEffect(() => {
     if (!user) return;
     setRatingLoading(true);
-    getUserRating(user.id).then(r => {
+    getUserRating(user.id, 'chess').then(r => {
       setUserRating(r);
       setRatingLoading(false);
     });
@@ -149,7 +149,7 @@ export default function ChessTrainingPage() {
       outcome === 'draw' ? 'draw' : liveState.currentTurn !== playerColor ? playerColor : (playerColor === 'white' ? 'black' : 'white');
 
     Promise.all([
-      upsertUserRating(user.id, newRating, outcome),
+      upsertUserRating(user.id, newRating, outcome, 'chess'),
       saveGame(
         liveState,
         playerColor,

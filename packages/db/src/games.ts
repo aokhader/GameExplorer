@@ -9,6 +9,30 @@ export interface SaveGameOptions {
   rating_after?: number;
 }
 
+const MAX_STORED_GAMES = 80;
+
+/**
+ * Deletes the oldest games for a user when they exceed MAX_STORED_GAMES.
+ * Called automatically after every save — fire-and-forget, never throws.
+ */
+async function pruneOldGames(userId: string): Promise<void> {
+  try {
+    // Fetch all game IDs ordered oldest first
+    const { data, error } = await supabase
+      .from('games')
+      .select('id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (error || !data || data.length <= MAX_STORED_GAMES) return;
+
+    const toDelete = data.slice(0, data.length - MAX_STORED_GAMES).map((g: { id: string }) => g.id);
+    await supabase.from('games').delete().in('id', toDelete);
+  } catch {
+    // Non-critical — never let pruning break the save flow
+  }
+}
+
 export async function saveGame(
   gameState: ChessGameState,
   playerColor: Color,
@@ -50,6 +74,7 @@ export async function saveGame(
     return null;
   }
 
+  if (userId) pruneOldGames(userId);
   return data as SavedGame;
 }
 
@@ -72,6 +97,7 @@ export async function saveCheckersGame(
   result: NewGame['result'],
   difficulty?: string,
   userId?: string,
+  options?: SaveGameOptions,
 ): Promise<SavedGame | null> {
   const newGame: NewGame = {
     game_type: 'checkers',
@@ -80,7 +106,9 @@ export async function saveCheckersGame(
     result,
     difficulty,
     user_id: userId ?? null,
-    mode: 'casual',
+    mode: options?.mode ?? 'casual',
+    rating_before: options?.rating_before,
+    rating_after: options?.rating_after,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     moves: gameState.moveHistory.map(m => ({
       from: m.from,
@@ -102,6 +130,7 @@ export async function saveCheckersGame(
     return null;
   }
 
+  if (userId) pruneOldGames(userId);
   return data as SavedGame;
 }
 
@@ -111,6 +140,7 @@ export async function saveReversiGame(
   result: NewGame['result'],
   difficulty?: string,
   userId?: string,
+  options?: SaveGameOptions,
 ): Promise<SavedGame | null> {
   const newGame: NewGame = {
     game_type: 'reversi',
@@ -119,7 +149,9 @@ export async function saveReversiGame(
     result,
     difficulty,
     user_id: userId ?? null,
-    mode: 'casual',
+    mode: options?.mode ?? 'casual',
+    rating_before: options?.rating_before,
+    rating_after: options?.rating_after,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     moves: gameState.moveHistory.map(m => ({
       position: m.position,
@@ -139,6 +171,7 @@ export async function saveReversiGame(
     return null;
   }
 
+  if (userId) pruneOldGames(userId);
   return data as SavedGame;
 }
 

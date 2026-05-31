@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { CheckersEngine, CheckersGameState, getBestCheckersMove } from '@gameexplorer/shared';
+import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome } from '@gameexplorer/shared';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
-import { saveCheckersGame } from '@gameexplorer/db';
+import { saveCheckersGame, getUserRating, upsertUserRating } from '@gameexplorer/db';
+import type { UserRating } from '@gameexplorer/db';
 
 // ── Difficulty levels ─────────────────────────────────────────────────────────
 // Each entry maps to a distinct minimax depth — that's what makes them
@@ -65,6 +66,14 @@ function thinkTimeForElo(elo: number): number {
   return 1300;
 }
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface RatingResult {
+  before: number;
+  after: number;
+  delta: number;
+}
+
 // ── Move notation ──────────────────────────────────────────────────────────────
 
 function formatMove(move: CheckersGameState['moveHistory'][number]): string {
@@ -82,6 +91,9 @@ export default function CheckersBotPage() {
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [userId, setUserId]         = useState<string | null>(null);
+  const [userRating, setUserRating] = useState<UserRating | null>(null);
+  const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
+  const [gameSaved, setGameSaved]   = useState(false);
 
   const { user } = useAuth();
 
@@ -93,12 +105,20 @@ export default function CheckersBotPage() {
   targetEloRef.current = targetElo;
   const playerColorRef = useRef(playerColor);
   playerColorRef.current = playerColor;
+  const userRatingRef  = useRef(userRating);
+  userRatingRef.current = userRating;
 
   const liveState   = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
   const isAtLive    = viewIndex === timeline.length - 1;
 
   useEffect(() => { setUserId(user?.id ?? null); }, [user]);
+
+  // Load rating when user is available
+  useEffect(() => {
+    if (!user) return;
+    getUserRating(user.id, 'checkers').then(setUserRating);
+  }, [user]);
 
   const makeBotMove = useCallback(async () => {
     const currentTimeline  = timelineRef.current;
@@ -139,20 +159,41 @@ export default function CheckersBotPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState, playerColor, gameStarted, isThinking]);
 
-  // Save game when it ends
+  // Save game and update rating when it ends
   useEffect(() => {
-    if (!gameStarted || !liveState.isGameOver) return;
-    const result =
+    if (!gameStarted || !liveState.isGameOver || gameSaved) return;
+    setGameSaved(true);
+
+    const pc = playerColorRef.current;
+    const result: 'white' | 'black' | 'draw' =
       liveState.winner === null ? 'draw'
-      : liveState.winner === playerColorRef.current ? playerColorRef.current
-      : (playerColorRef.current === 'white' ? 'black' : 'white');
-    saveCheckersGame(
-      liveState,
-      playerColorRef.current,
-      result as 'white' | 'black' | 'draw',
-      `elo-${targetEloRef.current}`,
-      userId ?? undefined,
-    );
+      : liveState.winner === pc ? pc
+      : (pc === 'white' ? 'black' : 'white');
+
+    const outcome: GameOutcome =
+      result === 'draw' ? 'draw' : result === pc ? 'win' : 'loss';
+
+    const current = userRatingRef.current;
+    const uid = userId;
+
+    if (current && uid) {
+      const rawDelta = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played) - current.rating;
+      const newRating = Math.max(100, current.rating + rawDelta);
+
+      Promise.all([
+        upsertUserRating(uid, newRating, outcome, 'checkers'),
+        saveCheckersGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid, {
+          mode: 'rated',
+          rating_before: current.rating,
+          rating_after: newRating,
+        }),
+      ]).then(([updatedRating]) => {
+        setUserRating(updatedRating);
+        setRatingResult({ before: current.rating, after: newRating, delta: rawDelta });
+      });
+    } else {
+      saveCheckersGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid ?? undefined);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState.isGameOver]);
 
@@ -173,6 +214,8 @@ export default function CheckersBotPage() {
     setViewIndex(0);
     setGameStarted(false);
     setIsThinking(false);
+    setRatingResult(null);
+    setGameSaved(false);
   };
 
   const handleStartGame = () => {
@@ -297,6 +340,48 @@ export default function CheckersBotPage() {
 
   return (
     <div className="h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden pt-16">
+
+      {/* Rating result overlay */}
+      {ratingResult && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pt-16">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+            <div className="text-5xl mb-3">
+              {ratingResult.delta > 0 ? '🏆' : ratingResult.delta < 0 ? '😞' : '🤝'}
+            </div>
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-1">
+              {gameOverMsg}
+            </div>
+            <div className="mt-5 mb-5 p-4 rounded-xl bg-slate-50 dark:bg-slate-700">
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-slate-500 dark:text-slate-400 text-sm">Rating</span>
+                <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{ratingResult.before}</span>
+                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{ratingResult.after}</span>
+                <span className={`text-lg font-bold ${ratingResult.delta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {ratingResult.delta >= 0 ? '+' : ''}{ratingResult.delta}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleNewGame}
+                className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-sm"
+              >
+                Play Again
+              </button>
+              <Link
+                href="/checkers"
+                className="w-full px-4 py-2.5 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-800 dark:text-slate-100 font-semibold rounded-lg transition-colors text-sm block"
+              >
+                Back to Checkers
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
         <div className="container mx-auto flex items-center justify-between">

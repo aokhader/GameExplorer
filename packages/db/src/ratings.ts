@@ -1,8 +1,10 @@
 import { supabase } from './client';
 import type { GameOutcome } from '@gameexplorer/shared';
+import type { GameType } from './types';
 
 export interface UserRating {
   user_id: string;
+  game_type: GameType;
   rating: number;
   games_played: number;
   wins: number;
@@ -14,9 +16,10 @@ export interface UserRating {
 
 const DEFAULT_RATING = 1200;
 
-function defaultRating(userId: string): UserRating {
+function defaultRating(userId: string, gameType: GameType): UserRating {
   return {
     user_id: userId,
+    game_type: gameType,
     rating: DEFAULT_RATING,
     games_played: 0,
     wins: 0,
@@ -27,15 +30,16 @@ function defaultRating(userId: string): UserRating {
   };
 }
 
-/** Fetch a user's rating row. Returns a default 1200 object if no row exists yet. */
-export async function getUserRating(userId: string): Promise<UserRating> {
+/** Fetch a user's rating row for a specific game type. Returns a default 1200 object if no row exists yet. */
+export async function getUserRating(userId: string, gameType: GameType = 'chess'): Promise<UserRating> {
   const { data, error } = await supabase
     .from('user_ratings')
     .select('*')
     .eq('user_id', userId)
+    .eq('game_type', gameType)
     .single();
 
-  if (error || !data) return defaultRating(userId);
+  if (error || !data) return defaultRating(userId, gameType);
   return data as UserRating;
 }
 
@@ -48,12 +52,14 @@ export async function upsertUserRating(
   userId: string,
   newRating: number,
   outcome: GameOutcome,
+  gameType: GameType = 'chess',
 ): Promise<UserRating> {
   // Fetch current row first so we can increment counters properly
-  const current = await getUserRating(userId);
+  const current = await getUserRating(userId, gameType);
 
   const updated: UserRating = {
     user_id: userId,
+    game_type: gameType,
     rating: newRating,
     games_played: current.games_played + 1,
     wins: current.wins + (outcome === 'win' ? 1 : 0),
@@ -65,7 +71,7 @@ export async function upsertUserRating(
 
   const { data, error } = await supabase
     .from('user_ratings')
-    .upsert(updated, { onConflict: 'user_id' })
+    .upsert(updated, { onConflict: 'user_id,game_type' })
     .select()
     .single();
 
