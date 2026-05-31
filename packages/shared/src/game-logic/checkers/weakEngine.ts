@@ -21,7 +21,7 @@ interface EloConfig { depth: number; blunderChance: number; evalNoise: number }
 function eloToConfig(elo: number): EloConfig {
   const e = Math.max(400, Math.min(2000, elo));
   for (const [lo, hi, depth, blLo, blHi, nLo, nHi] of ELO_BANDS) {
-    if (e >= lo && e <= hi) {
+    if (e >= lo && e < hi) {
       const t = hi > lo ? (e - lo) / (hi - lo) : 0;
       return {
         depth,
