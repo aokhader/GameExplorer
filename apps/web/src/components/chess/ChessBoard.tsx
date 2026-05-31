@@ -236,11 +236,16 @@ export function ChessBoard({
     setDraggedPiece({ position, piece });
     selectPiece(position);
 
-    const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-1000px';
+    // Pin the ghost to the actual rendered pixel size so CSS percentage-based
+    // rules (width:82%, etc.) don't balloon it when placed on document.body.
+    const el = e.currentTarget as HTMLElement;
+    const { width, height } = el.getBoundingClientRect();
+    const dragImage = el.cloneNode(true) as HTMLElement;
+    dragImage.style.cssText =
+      `position:fixed;top:-${Math.ceil(height) + 10}px;left:0;` +
+      `width:${width}px;height:${height}px`;
     document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 40, 40);
+    e.dataTransfer.setDragImage(dragImage, width / 2, height / 2);
     setTimeout(() => document.body.removeChild(dragImage), 0);
   };
 
@@ -300,7 +305,11 @@ export function ChessBoard({
               <div className={`move-indicator ${piece ? 'capture' : 'empty'}`} />
             )}
 
-            {piece && !isDragging && (
+            {/* Piece — always rendered so onDragEnd fires on the still-in-DOM
+                element. The parent .square.dragging already provides opacity:0.4
+                for the "lifted" look. No pointer-events or draggable override
+                needed — the browser won't start a new drag mid-drag anyway. */}
+            {piece && (
               <div
                 className={`piece${justArrived ? ' just-arrived' : ''}`}
                 draggable={!editMode && piece.color === gameState.currentTurn}

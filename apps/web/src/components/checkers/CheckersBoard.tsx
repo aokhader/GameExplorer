@@ -139,10 +139,17 @@ export function CheckersBoard({
     if (!piece || piece.color !== gameState.currentTurn) { e.preventDefault(); return; }
     setDraggedFrom(pos);
     selectSquare(pos);
-    const img = e.currentTarget.cloneNode(true) as HTMLElement;
-    img.style.cssText = 'position:absolute;top:-1000px';
+    // Use getBoundingClientRect so the ghost matches the rendered pixel size.
+    // Without explicit width/height the Tailwind inset-[6%] classes expand the
+    // clone to ~88 % of the viewport, causing the giant flashing ghost.
+    const el = e.currentTarget as HTMLElement;
+    const { width, height } = el.getBoundingClientRect();
+    const img = el.cloneNode(true) as HTMLElement;
+    img.style.cssText =
+      `position:fixed;top:-${Math.ceil(height) + 10}px;left:0;` +
+      `width:${width}px;height:${height}px`;
     document.body.appendChild(img);
-    e.dataTransfer.setDragImage(img, 30, 30);
+    e.dataTransfer.setDragImage(img, width / 2, height / 2);
     setTimeout(() => document.body.removeChild(img), 0);
   };
 
@@ -224,12 +231,16 @@ export function CheckersBoard({
               style={{ borderColor: 'rgba(0,0,0,0.30)' }} />
           )}
 
-          {/* Piece */}
-          {piece && !isDragging && (
+          {/* Piece — always rendered so onDragEnd fires on the still-in-DOM
+              element regardless of drop outcome. opacity-40 gives the
+              "lifted" look without blocking pointer events (which would
+              break the drag gesture). */}
+          {piece && (
             <div
               className={`absolute inset-[6%] flex items-center justify-center
                 transition-transform duration-200 ease-out
-                ${justArrived ? 'scale-110' : 'scale-100'}`}
+                ${justArrived ? 'scale-110' : 'scale-100'}
+                ${isDragging ? 'opacity-40' : ''}`}
               draggable={dark && piece.color === gameState.currentTurn}
               onDragStart={handleDragStart(pos, boardRow, boardCol)}
               onDragEnd={() => setDraggedFrom(null)}
