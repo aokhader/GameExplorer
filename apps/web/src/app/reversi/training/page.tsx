@@ -512,7 +512,7 @@ export default function ReversiTrainingPage() {
 
             {/* Board */}
             <div className="flex items-center justify-center min-h-0">
-              <div className="w-full max-w-[520px]">
+              <div className="w-full max-w-130">
                 <ReversiBoard
                   gameState={displayState}
                   onMove={handleMove}
