@@ -12,6 +12,8 @@ interface ReversiiBoardProps {
   showCoordinates?: boolean;
   /** Highlight a specific square (e.g. last-placed disc) */
   highlightPos?: string | null;
+  /** Show a hint ring on this square */
+  hintPos?: string | null;
 }
 
 function posFromCoords(row: number, col: number): string {
@@ -26,6 +28,7 @@ export function ReversiBoard({
   playerColor,
   showCoordinates = true,
   highlightPos,
+  hintPos,
 }: ReversiiBoardProps) {
   const [justFlipped, setJustFlipped] = useState<Set<string>>(new Set());
   const [justPlaced, setJustPlaced]   = useState<string | null>(null);
@@ -93,6 +96,11 @@ export function ReversiBoard({
           {/* Last-move ring on the most recently placed disc */}
           {isHighlighted && disc && (
             <div className="absolute inset-[4%] rounded-full ring-2 ring-yellow-300/80 pointer-events-none z-20" />
+          )}
+
+          {/* Hint ring — pulsing cyan circle on suggested empty square */}
+          {hintPos === pos && !disc && (
+            <div className="absolute inset-[10%] rounded-full ring-2 ring-cyan-400 animate-pulse pointer-events-none z-20" />
           )}
 
           {/* Valid move indicator (ghost dot) */}
