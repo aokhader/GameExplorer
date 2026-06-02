@@ -3,7 +3,7 @@
 declare module 'stockfish' {
   interface StockfishEngine {
     postMessage(command: string): void;
-    onmessage: ((event: any) => void) | null;
+    onmessage: ((event: MessageEvent) => void) | null;
     terminate?: () => void;
   }
 

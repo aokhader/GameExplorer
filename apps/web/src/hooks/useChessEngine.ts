@@ -74,6 +74,7 @@ export function useChessEngine(initialState?: ChessGameState): UseChessEngineRet
   // Returns a Promise that resolves when the worker sends back the bot move.
   const getBotMove = useCallback((elo: number): Promise<BotMoveResult> => {
     return new Promise((resolve, reject) => {
+      // eslint-disable-next-line prefer-const
       let unsub: (() => void) | undefined;
       const timer = setTimeout(() => {
         unsub?.();

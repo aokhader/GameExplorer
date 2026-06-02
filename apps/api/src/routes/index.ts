@@ -1,17 +1,14 @@
-// Route aggregator for the API server
-import { Router } from 'express';
-import type { Router as ExpressRouter } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
+import gameRoutes   from './game.routes';
+import userRoutes   from './user.routes';
 
 const router: ExpressRouter = Router();
 
-// TODO: Add route modules here
-// router.use('/auth', authRoutes);
-// router.use('/users', userRoutes);
-// router.use('/games', gameRoutes);
-
-// Health check route
-router.get('/health', (req, res) => {
+router.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+router.use('/games', gameRoutes);
+router.use('/users', userRoutes);
 
 export default router;

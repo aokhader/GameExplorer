@@ -1,19 +1,18 @@
 import { Socket } from 'socket.io';
+import jwt from 'jsonwebtoken';
 
 export async function verifySocketToken(socket: Socket, next: (err?: Error) => void) {
   try {
-    const token = socket.handshake.auth.token;
+    const token = socket.handshake.auth?.token as string | undefined;
+    if (!token) return next(new Error('Authentication required'));
 
-    if (!token) {
-      return next(new Error('Authentication required'));
-    }
+    const secret = process.env.SUPABASE_JWT_SECRET;
+    if (!secret) return next(new Error('Server misconfiguration'));
 
-    // TODO: Verify JWT token
-    // const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // socket.data.userId = decoded.userId;
-
+    const decoded = jwt.verify(token, secret) as { sub: string; email?: string };
+    socket.data.userId = decoded.sub;
     next();
-  } catch (error) {
-    next(new Error('Invalid token'));
+  } catch {
+    next(new Error('Invalid or expired token'));
   }
 }

@@ -8,3 +8,6 @@ export * from './utils/rating';
 // Checkers
 export * from './game-logic/checkers';
 export * from './game-logic/reversi';
+
+// Socket event protocol
+export * from './types/socket.types';

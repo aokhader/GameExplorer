@@ -32,9 +32,9 @@ export default function ReversiLandingPage() {
       title: 'Online Multiplayer',
       description: 'Play against other players around the world',
       icon: '🌐',
-      href: '/reversi/multiplayer',
+      href: '/reversi/play',
       gradient: 'from-purple-500 to-pink-500',
-      available: false,
+      available: true,
     },
   ];
 
@@ -137,7 +137,7 @@ export default function ReversiLandingPage() {
             <div>
               <div className="text-2xl mb-2">🎯</div>
               <div className="text-sm font-medium text-slate-900 dark:text-slate-50">Control the Corners</div>
-              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Corner squares can never be flipped — they're the key</div>
+              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Corner squares can never be flipped — they&apos;re the key</div>
             </div>
             <div>
               <div className="text-2xl mb-2">🏆</div>

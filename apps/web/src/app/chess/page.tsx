@@ -50,9 +50,9 @@ export default function ChessLandingPage() {
       title: 'Online Multiplayer',
       description: 'Play against other players around the world',
       icon: '🌐',
-      href: '/chess/multiplayer',
+      href: '/chess/play',
       gradient: 'from-purple-500 to-pink-500',
-      available: false,
+      available: true,
     },
     {
       id: 'local',

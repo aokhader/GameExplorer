@@ -51,7 +51,7 @@ class SocketClient {
     this.getSocket().emit('join_matchmaking', { gameType });
   }
 
-  makeMove(gameId: string, move: any) {
+  makeMove(gameId: string, move: unknown) {
     this.getSocket().emit('make_move', { gameId, move });
   }
 

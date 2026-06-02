@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel any in-progress run for the same branch/PR so rapid pushes don't queue up.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Type-check & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Turbo's typecheck task has `dependsOn: ["^build"]`, so it automatically
+      # builds packages/shared and packages/db first before type-checking apps/web
+      # and apps/api. No explicit build step required here.
+      - name: Type-check
+        run: pnpm typecheck
+
+      # Only apps/web has a lint script today; Turbo skips packages without one.
+      - name: Lint
+        run: pnpm lint
