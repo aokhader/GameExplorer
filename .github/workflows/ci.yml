@@ -30,6 +30,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # prisma generate creates the @prisma/client TypeScript types from the
+      # schema. The generated files are gitignored so this must run in CI.
+      # DATABASE_URL is not used by `prisma generate` itself (no db connection
+      # is made), but prisma.config.ts imports it so we provide a dummy value.
+      - name: Generate Prisma client
+        run: pnpm --filter @gameexplorer/api exec prisma generate
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
       # Turbo's typecheck task has `dependsOn: ["^build"]`, so it automatically
       # builds packages/shared and packages/db first before type-checking apps/web
       # and apps/api. No explicit build step required here.
