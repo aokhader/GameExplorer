@@ -1,11 +1,6 @@
 # Docker Compose Configuration for GameExplorer
 # This file defines all the infrastructure services needed for local development
 
-version: '3.8'
-# Version of Docker Compose file format
-# 3.8 is stable and widely supported
-# Determines which features are available
-
 services:
   # Services are the containers that will run
   # Each service is an isolated application/database

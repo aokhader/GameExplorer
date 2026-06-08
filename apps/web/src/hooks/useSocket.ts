@@ -78,6 +78,7 @@ export function useSocket() {
     [socket],
   );
 
-  const connected = useSocketStore(s => s.connected);
-  return { socket, connected, emit };
+  const connected       = useSocketStore(s => s.connected);
+  const connectionError = useSocketStore(s => s.connectionError);
+  return { socket, connected, connectionError, emit };
 }

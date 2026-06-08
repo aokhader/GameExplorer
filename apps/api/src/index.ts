@@ -1,12 +1,12 @@
 // Entry point for the API server
-import dotenv from 'dotenv';
+// NOTE: ./config/env must be imported FIRST so dotenv populates process.env
+// before modules like ./config/database (which read env at import time) load.
+import './config/env';
 import { createServer } from 'http';
 import app from './app';
 import { initializeWebSocket } from './websocket';
 import { checkDatabaseConnection, disconnectDatabase } from './config/database';
 import { logger } from './utils/logger';
-
-dotenv.config();
 
 const PORT = process.env.PORT || 4000;
 

@@ -30,7 +30,7 @@ function Clock({ ms, active }: { ms: number; active: boolean }) {
 
 export default function ReversiPlayPage() {
   const { user, loading } = useAuth();
-  const { emit, connected } = useSocket();
+  const { emit, connected, connectionError } = useSocket();
   const socket    = useSocketStore(s => s.socket);
   const gameStore = useGameStore();
 
@@ -168,8 +168,11 @@ export default function ReversiPlayPage() {
               </div>
               <button onClick={handleJoinQueue} disabled={!connected}
                 className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded-xl font-semibold transition-colors">
-                {connected ? 'Find Game' : 'Connecting…'}
+                {connected ? 'Find Game' : connectionError ? 'Connection failed' : 'Connecting…'}
               </button>
+              {connectionError && !connected && (
+                <p className="mt-3 text-sm text-red-400 text-center">{connectionError}</p>
+              )}
             </>
           ) : (
             <div className="text-center py-8">

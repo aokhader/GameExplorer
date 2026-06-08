@@ -7,6 +7,7 @@ type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 interface SocketStore {
   socket:    GameSocket | null;
   connected: boolean;
+  connectionError: string | null;
   connect:   (supabaseJwt: string) => void;
   disconnect: () => void;
 }
@@ -14,6 +15,7 @@ interface SocketStore {
 export const useSocketStore = create<SocketStore>((set, get) => ({
   socket:    null,
   connected: false,
+  connectionError: null,
 
   connect(supabaseJwt) {
     const existing = get().socket;
@@ -29,14 +31,20 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
       reconnectionAttempts: 10,
     }) as GameSocket;
 
-    socket.on('connect',    () => set({ connected: true }));
+    socket.on('connect',    () => set({ connected: true, connectionError: null }));
     socket.on('disconnect', () => set({ connected: false }));
+    // Surface handshake/auth failures (e.g. missing SUPABASE_JWT_SECRET on the
+    // server, invalid token, server down) instead of silently staying on "Connecting…".
+    socket.on('connect_error', (err) => {
+      console.error('WebSocket connect_error:', err.message);
+      set({ connected: false, connectionError: err.message });
+    });
 
-    set({ socket });
+    set({ socket, connectionError: null });
   },
 
   disconnect() {
     get().socket?.disconnect();
-    set({ socket: null, connected: false });
+    set({ socket: null, connected: false, connectionError: null });
   },
 }));

@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { verifySupabaseToken } from '../utils/verifyToken';
 
 export interface AuthRequest extends Request {
   userId?: string;
 }
 
-export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+export async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Authentication required' });
@@ -13,17 +13,16 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
   }
 
   const token = authHeader.slice(7);
-  const secret = process.env.SUPABASE_JWT_SECRET;
-  if (!secret) {
-    res.status(500).json({ error: 'Server misconfiguration' });
-    return;
-  }
 
   try {
-    const decoded = jwt.verify(token, secret) as { sub: string };
-    req.userId = decoded.sub;
+    const payload = await verifySupabaseToken(token);
+    req.userId = payload.sub;
     next();
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message === 'SUPABASE_URL is not set') {
+      res.status(500).json({ error: 'Server misconfiguration' });
+      return;
+    }
     res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
