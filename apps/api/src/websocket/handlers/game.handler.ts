@@ -92,6 +92,22 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'resign', ...ratings });
   });
 
+  // ── Abort (early, no rating change) ───────────────────────────────────────
+  socket.on('abort_game', async ({ gameId }: { gameId: string }) => {
+    const session = await gameSessionService.getGameSession(gameId);
+    if (!session || session.status !== 'active') return;
+    if (session.whiteId !== userId && session.blackId !== userId) return;
+
+    const { ABORT_MOVE_LIMIT } = await import('@gameexplorer/shared');
+    if (gameSessionService.getMoveCount(session) >= ABORT_MOVE_LIMIT) {
+      socket.emit('error', { code: 'ABORT_NOT_ALLOWED', message: `Cannot abort after ${ABORT_MOVE_LIMIT} moves` });
+      return;
+    }
+
+    await gameSessionService.abortGame(gameId);
+    io.to(`game:${gameId}`).emit('game_aborted', { gameId });
+  });
+
   // ── Draw offers ───────────────────────────────────────────────────────────
   socket.on('offer_draw', async ({ gameId }: { gameId: string }) => {
     const session = await gameSessionService.getGameSession(gameId);

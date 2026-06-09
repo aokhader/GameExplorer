@@ -14,7 +14,11 @@ export type EndReason =
 export type ErrorCode =
   | 'ILLEGAL_MOVE' | 'NOT_YOUR_TURN' | 'GAME_NOT_FOUND'
   | 'ALREADY_IN_GAME' | 'QUEUE_FULL' | 'INVITE_EXPIRED'
-  | 'RATE_LIMITED' | 'AUTH_REQUIRED';
+  | 'RATE_LIMITED' | 'AUTH_REQUIRED' | 'ABORT_NOT_ALLOWED';
+
+// A game may be aborted (no rating change) only while fewer than this many
+// moves have been played. Shared so client and server agree on the threshold.
+export const ABORT_MOVE_LIMIT = 5;
 
 export interface UserSummary {
   userId:    string;
@@ -62,6 +66,7 @@ export interface ClientToServerEvents {
   accept_draw:        (data: { gameId: string }) => void;
   decline_draw:       (data: { gameId: string }) => void;
   resign:             (data: { gameId: string }) => void;
+  abort_game:         (data: { gameId: string }) => void;
   send_chat:          (data: { gameId: string; text: string }) => void;
   invite_friend:      (data: { friendId: string; gameType: GameType; timeControl: TimeControl }) => void;
   create_invite_link: (data: { gameType: GameType; timeControl: TimeControl }) => void;
@@ -81,6 +86,7 @@ export interface ServerToClientEvents {
   draw_offered:          (data: { gameId: string }) => void;
   draw_declined:         (data: { gameId: string }) => void;
   game_ended:            (data: { gameId: string; result: GameResult; reason: EndReason; white: RatingInfo; black: RatingInfo }) => void;
+  game_aborted:          (data: { gameId: string }) => void;
   clock_sync:            (data: { gameId: string; clocks: ClockSnapshot }) => void;
   chat_message:          (data: { gameId: string; userId: string; username: string; text: string; createdAt: string }) => void;
   opponent_disconnected: (data: { gameId: string; graceMs: number }) => void;

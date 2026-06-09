@@ -27,11 +27,13 @@ interface GameStore {
   timeControlConfig: TimeControlConfig | null;
   status:            MultiplayerStatus;
   gameEndData:       GameEndData | null;
+  aborted:           boolean;
   drawOffered:       boolean;
   opponentGone:      boolean;
   opponentGraceMs:   number;
 
   setQueued:       (gameType: 'chess' | 'checkers' | 'reversi') => void;
+  markAborted:     () => void;
   setGame:         (gameId: string, gameType: 'chess' | 'checkers' | 'reversi', myColor: 'white' | 'black', initialState: AnyGameState, opponent: UserSummary, clocks: ClockSnapshot, timeControlConfig: TimeControlConfig) => void;
   applyMove:       (newState: AnyGameState, clocks: ClockSnapshot) => void;
   syncClocks:      (clocks: ClockSnapshot) => void;
@@ -52,6 +54,7 @@ const initial = {
   timeControlConfig: null,
   status:            'idle' as MultiplayerStatus,
   gameEndData:       null,
+  aborted:           false,
   drawOffered:       false,
   opponentGone:      false,
   opponentGraceMs:   0,
@@ -62,8 +65,10 @@ export const useGameStore = create<GameStore>((set) => ({
 
   setQueued: (gameType) => set({ status: 'queued', gameType }),
 
+  markAborted: () => set({ status: 'ended', aborted: true }),
+
   setGame: (gameId, gameType, myColor, initialState, opponent, clocks, timeControlConfig) =>
-    set({ gameId, gameType, myColor, gameState: initialState, opponent, clocks, clockSyncedAt: Date.now(), timeControlConfig, status: 'active', gameEndData: null, drawOffered: false, opponentGone: false }),
+    set({ gameId, gameType, myColor, gameState: initialState, opponent, clocks, clockSyncedAt: Date.now(), timeControlConfig, status: 'active', gameEndData: null, aborted: false, drawOffered: false, opponentGone: false }),
 
   applyMove: (newState, clocks) =>
     set({ gameState: newState, clocks, clockSyncedAt: Date.now() }),

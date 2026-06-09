@@ -1,6 +1,5 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
 import { matchmakingService } from '../../services/matchmaking.service';
-import { logger } from '../../utils/logger';
 import type { GameType, TimeControl } from '@gameexplorer/shared';
 
 export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) {
@@ -13,8 +12,6 @@ export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) 
     username:    string;
     rating:      number;
   }) => {
-    logger.info(`join_queue received: user=${userId} username=${data.username} ${data.gameType}/${data.timeControl} rated=${data.rated}`);
-
     // Store username/rating on socket for later use
     socket.data.username = data.username;
     socket.data.rating   = data.rating;

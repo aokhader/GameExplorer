@@ -10,6 +10,7 @@ import { useAuth }      from '@/hooks/useAuth';
 import { useGameStore } from '@/stores/gameStore';
 import { useSocketStore } from '@/stores/socketStore';
 import type { Position, PieceType, TimeControl, GameOutcome } from '@gameexplorer/shared';
+import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 import { upsertUserRating, saveGame } from '@gameexplorer/db';
 
 const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
@@ -131,6 +132,10 @@ export default function ChessPlayPage() {
 
   const handleResign = useCallback(() => {
     if (gameStore.gameId) emit('resign', { gameId: gameStore.gameId });
+  }, [gameStore.gameId, emit]);
+
+  const handleAbort = useCallback(() => {
+    if (gameStore.gameId) emit('abort_game', { gameId: gameStore.gameId });
   }, [gameStore.gameId, emit]);
 
   const handleOfferDraw = useCallback(() => {
@@ -267,7 +272,11 @@ export default function ChessPlayPage() {
             {gameStore.status === 'active' && (
               <div className="flex gap-2 justify-end">
                 <button onClick={handleOfferDraw} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">½ Draw</button>
-                <button onClick={handleResign}    className="px-4 py-2 bg-red-800 hover:bg-red-700 rounded-lg text-sm">Resign</button>
+                {chessState.moveHistory.length < ABORT_MOVE_LIMIT ? (
+                  <button onClick={handleAbort} className="px-4 py-2 bg-amber-700 hover:bg-amber-600 rounded-lg text-sm">Abort</button>
+                ) : (
+                  <button onClick={handleResign} className="px-4 py-2 bg-red-800 hover:bg-red-700 rounded-lg text-sm">Resign</button>
+                )}
               </div>
             )}
           </div>
@@ -325,6 +334,21 @@ export default function ChessPlayPage() {
                 </span>
               </p>
             </div>
+            <div className="flex gap-3">
+              <button onClick={handlePlayAgain} className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-semibold">Play Again</button>
+              <Link href="/chess" className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-semibold text-center">Exit</Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Game aborted overlay ──────────────────────────────────────────── */}
+      {gameStore.status === 'ended' && gameStore.aborted && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-2xl p-8 text-center max-w-sm w-full mx-4 shadow-2xl">
+            <div className="text-5xl mb-4">🛑</div>
+            <h2 className="text-3xl font-bold mb-1">Game Aborted</h2>
+            <p className="text-slate-400 mb-6">No rating change.</p>
             <div className="flex gap-3">
               <button onClick={handlePlayAgain} className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-semibold">Play Again</button>
               <Link href="/chess" className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-semibold text-center">Exit</Link>

@@ -90,6 +90,34 @@ export const gameSessionService = {
     return redis.get(activeKey(userId));
   },
 
+  /** Number of moves played so far (works for all three game states). */
+  getMoveCount(session: GameSession): number {
+    try {
+      const state = JSON.parse(session.state) as { moveHistory?: unknown[] };
+      return state.moveHistory?.length ?? 0;
+    } catch {
+      return 0;
+    }
+  },
+
+  /**
+   * Aborts a game with no result and no rating change (early-abort / no-contest).
+   * Tears down all Redis state but, unlike endGame, persists nothing and does
+   * not touch ratings.
+   */
+  async abortGame(gameId: string): Promise<void> {
+    const session = await this.getGameSession(gameId);
+    if (!session) return;
+
+    await redis.hset(gameKey(gameId), 'status', 'aborted');
+    await clockService.pauseClock(gameId);
+
+    await redis.del(gameKey(gameId));
+    await redis.del(`clock:${gameId}`);
+    await redis.del(activeKey(session.whiteId));
+    await redis.del(activeKey(session.blackId));
+  },
+
   async applyMove(gameId: string, userId: string, move: MovePayload): Promise<ApplyMoveResult> {
     const session = await this.getGameSession(gameId);
     if (!session || session.status !== 'active') {

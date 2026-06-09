@@ -28,12 +28,6 @@ export function initializeWebSocket(httpServer: HTTPServer) {
     const userId = socket.data.userId as string;
     logger.info(`Client connected: ${socket.id} (user ${userId})`);
 
-    // TEMP DEBUG: log EVERY inbound event from this socket, to confirm whether
-    // client emits (e.g. join_queue) are actually reaching the server.
-    socket.onAny((event, ...args) => {
-      logger.info(`[onAny] socket=${socket.id} user=${userId} event=${event} args=${JSON.stringify(args)}`);
-    });
-
     // Join personal room for direct messages
     socket.join(`user:${userId}`);
 

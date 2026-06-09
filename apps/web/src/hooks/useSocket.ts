@@ -53,6 +53,10 @@ export function useSocket() {
       gameStore.endGame({ result: data.result, reason: data.reason, white: data.white, black: data.black });
     });
 
+    socket.on('game_aborted', () => {
+      gameStore.markAborted();
+    });
+
     socket.on('draw_offered', () => {
       gameStore.setDrawOffered(true);
     });
@@ -78,6 +82,7 @@ export function useSocket() {
       socket.off('move_made');
       socket.off('clock_sync');
       socket.off('game_ended');
+      socket.off('game_aborted');
       socket.off('draw_offered');
       socket.off('draw_declined');
       socket.off('opponent_disconnected');
@@ -87,11 +92,7 @@ export function useSocket() {
   }, [socket]);
 
   const emit = useCallback(
-    (event: string, data?: unknown) => {
-      // TEMP DEBUG: trace emit path to diagnose join_queue not reaching server
-      console.log('[useSocket.emit]', event, { hasSocket: !!socket, socketConnected: socket?.connected, socketId: socket?.id }, data);
-      socket?.emit(event as any, data as any);
-    },
+    (event: string, data?: unknown) => socket?.emit(event as any, data as any),
     [socket],
   );
 
