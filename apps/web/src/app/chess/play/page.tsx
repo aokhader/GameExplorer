@@ -51,12 +51,6 @@ export default function ChessPlayPage() {
   const [displayClocks, setDisplayClocks] = useState({ white: 0, black: 0 });
   const clockRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Derive gameType from store so setGame can receive it correctly
-  useEffect(() => {
-    if (gameStore.status === 'idle') gameStore.setQueued('chess');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Auth guard
   useEffect(() => {
     if (!loading && !user) redirect('/auth/signin?next=/chess/play');

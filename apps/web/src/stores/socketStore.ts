@@ -19,7 +19,14 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
 
   connect(supabaseJwt) {
     const existing = get().socket;
-    if (existing?.connected) return;
+    // Idempotent: reuse a socket that is already connected OR still in the
+    // middle of (re)connecting (`active`). Without this, React's double-invoke
+    // of effects (StrictMode) tears down a mid-handshake socket and creates a
+    // second one — the first socket's later 'connect' event then sets
+    // connected:true while the store points at the second socket, so emits go
+    // nowhere even though the UI thinks it's connected.
+    if (existing && (existing.connected || existing.active)) return;
+    existing?.removeAllListeners();
     existing?.disconnect();
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -31,16 +38,19 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
       reconnectionAttempts: 10,
     }) as GameSocket;
 
-    socket.on('connect',    () => set({ connected: true, connectionError: null }));
-    socket.on('disconnect', () => set({ connected: false }));
-    // Surface handshake/auth failures (e.g. missing SUPABASE_JWT_SECRET on the
+    // Only mutate the store for events from the socket that is still current,
+    // so a stale socket's late events can't corrupt connection state.
+    const isCurrent = () => get().socket === socket;
+    socket.on('connect',    () => { if (isCurrent()) set({ connected: true, connectionError: null }); });
+    socket.on('disconnect', () => { if (isCurrent()) set({ connected: false }); });
+    // Surface handshake/auth failures (e.g. missing SUPABASE_URL on the
     // server, invalid token, server down) instead of silently staying on "Connecting…".
     socket.on('connect_error', (err) => {
       console.error('WebSocket connect_error:', err.message);
-      set({ connected: false, connectionError: err.message });
+      if (isCurrent()) set({ connected: false, connectionError: err.message });
     });
 
-    set({ socket, connectionError: null });
+    set({ socket, connected: socket.connected, connectionError: null });
   },
 
   disconnect() {

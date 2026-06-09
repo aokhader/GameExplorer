@@ -69,12 +69,29 @@ export function useSocket() {
       gameStore.setOpponentGone(false);
     });
 
-    return () => { socket.removeAllListeners(); };
+    // Remove ONLY the game-event listeners registered above. Calling
+    // socket.removeAllListeners() here would also strip the connect/disconnect/
+    // connect_error listeners that socketStore.connect registered on this same
+    // socket, breaking connection-state tracking.
+    return () => {
+      socket.off('game_started');
+      socket.off('move_made');
+      socket.off('clock_sync');
+      socket.off('game_ended');
+      socket.off('draw_offered');
+      socket.off('draw_declined');
+      socket.off('opponent_disconnected');
+      socket.off('opponent_reconnected');
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket]);
 
   const emit = useCallback(
-    (event: string, data?: unknown) => socket?.emit(event as any, data as any),
+    (event: string, data?: unknown) => {
+      // TEMP DEBUG: trace emit path to diagnose join_queue not reaching server
+      console.log('[useSocket.emit]', event, { hasSocket: !!socket, socketConnected: socket?.connected, socketId: socket?.id }, data);
+      socket?.emit(event as any, data as any);
+    },
     [socket],
   );
 
