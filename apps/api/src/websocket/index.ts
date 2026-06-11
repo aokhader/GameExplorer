@@ -4,7 +4,7 @@ import { logger }                   from '../utils/logger';
 import { verifySocketToken }        from './middleware/auth.middleware';
 import { registerGameHandlers }     from './handlers/game.handler';
 import { registerMatchmakingHandlers } from './handlers/matchmaking.handler';
-import { gameSessionService }       from '../services/gameSession.service';
+import { gameSessionService, TIME_CONTROL_CONFIGS } from '../services/gameSession.service';
 import { clockService }             from '../services/clock.service';
 import { matchmakingService }       from '../services/matchmaking.service';
 import { redis, scanKeys }          from '../config/redis';
@@ -43,7 +43,6 @@ export function initializeWebSocket(httpServer: HTTPServer) {
           const oppUsername = myColor === 'white' ? session.blackUsername : session.whiteUsername;
           const oppRating   = myColor === 'white' ? Number(session.blackRating) : Number(session.whiteRating);
           const clocks      = await clockService.getSnapshot(activeGameId);
-          const { TIME_CONTROL_CONFIGS } = await import('../services/gameSession.service');
 
           socket.emit('game_started', {
             gameId:           activeGameId,
@@ -114,7 +113,6 @@ function startMatchmakingLoop() {
           a.gameType, a.timeControl,
           a.rated,
         );
-        const { TIME_CONTROL_CONFIGS } = await import('../services/gameSession.service');
         const tcConfig = TIME_CONTROL_CONFIGS[a.timeControl];
         const clocks   = await clockService.getSnapshot(gameId);
         const { ChessEngine, CheckersEngine, ReversiEngine } = await import('@gameexplorer/shared');

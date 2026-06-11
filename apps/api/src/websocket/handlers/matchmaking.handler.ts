@@ -1,6 +1,7 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
 import { matchmakingService } from '../../services/matchmaking.service';
 import { persistenceService } from '../../services/persistence.service';
+import { gameSessionService } from '../../services/gameSession.service';
 import type { GameType, TimeControl } from '@gameexplorer/shared';
 
 export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) {
@@ -21,7 +22,7 @@ export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) 
     socket.data.username = data.username;
     socket.data.rating   = rating;
 
-    const existingGameId = await (await import('../../services/gameSession.service')).gameSessionService.getActiveGameId(userId);
+    const existingGameId = await gameSessionService.getActiveGameId(userId);
     if (existingGameId) {
       socket.emit('error', { code: 'ALREADY_IN_GAME', message: 'You are already in a game' });
       return;

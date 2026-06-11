@@ -1,6 +1,8 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
-import { gameSessionService } from '../../services/gameSession.service';
+import { gameSessionService, TIME_CONTROL_CONFIGS } from '../../services/gameSession.service';
 import { clockService }       from '../../services/clock.service';
+import { persistenceService } from '../../services/persistence.service';
+import { inviteService }      from '../../services/invite.service';
 import { redis, RedisService } from '../../config/redis';
 import { logger }             from '../../utils/logger';
 
@@ -27,7 +29,6 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     const oppUsername  = myColor === 'white' ? session.blackUsername : session.whiteUsername;
     const oppRating    = myColor === 'white' ? Number(session.blackRating) : Number(session.whiteRating);
     const clocks       = await clockService.getSnapshot(gameId);
-    const { TIME_CONTROL_CONFIGS } = await import('../../services/gameSession.service');
     const tcConfig     = TIME_CONTROL_CONFIGS[session.timeControl];
 
     socket.emit('game_started', {
@@ -159,7 +160,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
       myColor:          'white', // spectators get white perspective
       opponent:         { userId: session.blackId, username: session.blackUsername, rating: Number(session.blackRating) },
       clocks,
-      timeControlConfig: (await import('../../services/gameSession.service')).TIME_CONTROL_CONFIGS[session.timeControl],
+      timeControlConfig: TIME_CONTROL_CONFIGS[session.timeControl],
     });
   });
 
@@ -171,25 +172,21 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
   // ── Invites ───────────────────────────────────────────────────────────────
   socket.on('create_invite_link', async ({ gameType, timeControl, username }: { gameType: import('@gameexplorer/shared').GameType; timeControl: import('@gameexplorer/shared').TimeControl; username: string; rating?: number }) => {
     // Rating is server-authoritative — fetched from Supabase, not the client.
-    const { persistenceService } = await import('../../services/persistence.service');
     const rating = await persistenceService.getRating(userId, gameType);
     // Persist identity on the socket so a later same-socket flow can reuse it.
     socket.data.username = username;
     socket.data.rating   = rating;
-    const { inviteService } = await import('../../services/invite.service');
     const inviteId = await inviteService.createInvite(userId, username ?? 'Anonymous', rating, gameType, timeControl);
     const baseUrl  = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
     socket.emit('invite_link_created', { inviteId, url: `${baseUrl}/${gameType}/play?invite=${inviteId}` });
   });
 
   socket.on('accept_invite', async ({ inviteId, username }: { inviteId: string; username: string; rating?: number }) => {
-    const { inviteService } = await import('../../services/invite.service');
     const res = await inviteService.acceptInvite(inviteId, userId);
     if ('error' in res) { socket.emit('error', { code: 'INVITE_EXPIRED', message: res.error }); return; }
 
     const invite  = res.invite;
     // Rating is server-authoritative — fetched from Supabase, not the client.
-    const { persistenceService } = await import('../../services/persistence.service');
     const rating = await persistenceService.getRating(userId, invite.gameType);
 
     socket.data.username = username;
@@ -205,7 +202,6 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
       false,
     );
 
-    const { TIME_CONTROL_CONFIGS } = await import('../../services/gameSession.service');
     const tcConfig     = TIME_CONTROL_CONFIGS[invite.timeControl];
     const clocks       = await clockService.getSnapshot(gameId);
     // Both players start from the same authoritative initial state. (Previously

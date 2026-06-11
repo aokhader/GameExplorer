@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    // CommonJS so `node dist/index.js` works directly. `module: esnext` emitted
+    // nodenext emits CommonJS here (package.json has no "type": "module"), so
+    // `node dist/index.js` works directly. The old `module: esnext` emitted
     // extensionless ESM imports that only tsx/bundlers can resolve — plain Node
-    // crashed with ERR_MODULE_NOT_FOUND in production. Node 22 can require()
-    // ESM-only deps (jose), so CJS output is safe here.
-    "module": "commonjs",
+    // crashed with ERR_MODULE_NOT_FOUND in production. ESM-only deps (jose) are
+    // fine: TS 5.8+/Node 22 support require() of ESM.
+    "module": "nodenext",
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
@@ -14,12 +15,14 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "allowSyntheticDefaultImports": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  // Tests are excluded so `tsc` doesn't emit them to dist (same convention as
+  // packages/shared) — Vitest runs them from source.
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/**/__tests__"]
 }

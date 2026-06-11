@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { prisma }         from '../config/database';
+import { getIO }          from '../websocket';
 import type { AuthRequest } from '../middleware/auth';
 
 export const userController = {
@@ -30,7 +31,6 @@ export const userController = {
 
     // Emit socket notification to target user
     try {
-      const { getIO } = await import('../websocket');
       getIO().to(`user:${targetUserId}`).emit('game_invite' as any, {
         type: 'friend_request', from: { userId },
       });
