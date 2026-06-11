@@ -32,7 +32,7 @@ export function useSocket() {
     socket.on('game_started', (data) => {
       gameStore.setGame(
         data.gameId,
-        gameStore.gameType ?? (data.gameId as any),
+        data.gameType,
         data.myColor,
         data.initialState as any,
         data.opponent,

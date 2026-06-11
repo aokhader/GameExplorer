@@ -6,6 +6,8 @@ import type {
 } from '@gameexplorer/shared';
 import { calculateNewRating } from '@gameexplorer/shared';
 import { clockService } from './clock.service';
+import { persistenceService } from './persistence.service';
+import { logger } from '../utils/logger';
 
 const GAME_TTL = 86_400; // 24h safety net
 
@@ -28,6 +30,7 @@ export interface GameSession {
   blackRating:     string;
   state:           string; // JSON
   timeControl:     TimeControl;
+  rated:           string; // '1' or '0'
   drawOfferedBy:   string; // userId or ''
 }
 
@@ -49,6 +52,7 @@ export const gameSessionService = {
     whiteUsername: string, blackUsername: string,
     whiteRating: number, blackRating: number,
     gameType: GameType, timeControl: TimeControl,
+    rated: boolean,
   ): Promise<string> {
     const gameId  = crypto.randomUUID();
     const config  = TIME_CONTROL_CONFIGS[timeControl];
@@ -68,6 +72,7 @@ export const gameSessionService = {
       blackRating:   String(blackRating),
       state:         JSON.stringify(initial),
       timeControl,
+      rated:         rated ? '1' : '0',
       drawOfferedBy: '',
     });
     await redis.expire(gameKey(gameId), GAME_TTL);
@@ -189,17 +194,32 @@ export const gameSessionService = {
     const session = await this.getGameSession(gameId);
     if (!session) return { white: { ratingBefore: 1200, ratingAfter: 1200, ratingDelta: 0 }, black: { ratingBefore: 1200, ratingAfter: 1200, ratingDelta: 0 } };
 
+    const rated = session.rated !== '0'; // default rated for legacy sessions
     const whiteRatingBefore = Number(session.whiteRating);
     const blackRatingBefore = Number(session.blackRating);
     const whiteOutcome = result === 'white_wins' ? 'win' : result === 'draw' ? 'draw' : 'loss';
     const blackOutcome = result === 'black_wins' ? 'win' : result === 'draw' ? 'draw' : 'loss';
 
-    const whiteRatingAfter = calculateNewRating(whiteRatingBefore, blackRatingBefore, whiteOutcome, 0);
-    const blackRatingAfter = calculateNewRating(blackRatingBefore, whiteRatingBefore, blackOutcome, 0);
+    // Unrated games end with no rating change
+    const whiteRatingAfter = rated ? calculateNewRating(whiteRatingBefore, blackRatingBefore, whiteOutcome, 0) : whiteRatingBefore;
+    const blackRatingAfter = rated ? calculateNewRating(blackRatingBefore, whiteRatingBefore, blackOutcome, 0) : blackRatingBefore;
 
     // Mark status in Redis before cleanup (so concurrent calls are safe)
     await redis.hset(gameKey(gameId), 'status', 'ended');
     await clockService.pauseClock(gameId);
+
+    // Server-authoritative persistence (ratings + game records for BOTH
+    // players) — must not depend on either client still being connected.
+    // Failures are logged but never block Redis teardown.
+    try {
+      await persistenceService.persistGameResult({
+        session, result, rated,
+        white: { ratingBefore: whiteRatingBefore, ratingAfter: whiteRatingAfter },
+        black: { ratingBefore: blackRatingBefore, ratingAfter: blackRatingAfter },
+      });
+    } catch (err) {
+      logger.error(`Failed to persist game ${gameId}:`, err);
+    }
 
     // Clean up Redis
     await redis.del(gameKey(gameId));

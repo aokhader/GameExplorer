@@ -1,5 +1,6 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
 import { matchmakingService } from '../../services/matchmaking.service';
+import { persistenceService } from '../../services/persistence.service';
 import type { GameType, TimeControl } from '@gameexplorer/shared';
 
 export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) {
@@ -10,11 +11,15 @@ export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) 
     timeControl: TimeControl;
     rated:       boolean;
     username:    string;
-    rating:      number;
+    rating:      number; // ignored — rating is fetched server-side
   }) => {
+    // Rating is server-authoritative: fetched from Supabase, never trusted
+    // from the client (which previously hardcoded 1200).
+    const rating = await persistenceService.getRating(userId, data.gameType);
+
     // Store username/rating on socket for later use
     socket.data.username = data.username;
-    socket.data.rating   = data.rating;
+    socket.data.rating   = rating;
 
     const existingGameId = await (await import('../../services/gameSession.service')).gameSessionService.getActiveGameId(userId);
     if (existingGameId) {
@@ -25,7 +30,7 @@ export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) 
     await matchmakingService.addToQueue({
       userId,
       username:    data.username,
-      rating:      data.rating,
+      rating,
       gameType:    data.gameType,
       timeControl: data.timeControl,
       rated:       data.rated,

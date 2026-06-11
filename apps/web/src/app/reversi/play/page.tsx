@@ -5,12 +5,12 @@ import { redirect }          from 'next/navigation';
 import Link                  from 'next/link';
 import { ReversiBoard }      from '@/components/reversi/ReversiBoard';
 import { useSocket }         from '@/hooks/useSocket';
+import { useInvite }         from '@/hooks/useInvite';
 import { useAuth }           from '@/hooks/useAuth';
 import { useGameStore }      from '@/stores/gameStore';
 import { useSocketStore }    from '@/stores/socketStore';
-import type { ReversiGameState, ReversiColor, TimeControl, GameOutcome } from '@gameexplorer/shared';
+import type { ReversiGameState, ReversiColor, TimeControl } from '@gameexplorer/shared';
 import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
-import { upsertUserRating, saveReversiGame } from '@gameexplorer/db';
 
 const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
   { id: 'movetime', label: 'Normal', desc: '30s per move' },
@@ -42,9 +42,27 @@ export default function ReversiPlayPage() {
   const [displayClocks, setDisplayClocks] = useState({ white: 30_000, black: 30_000 });
   const clockRef = useRef<NodeJS.Timeout | null>(null);
 
+  const { inviteUrl, inviteError, creating, createInvite, acceptInvite, reset: resetInvite } = useInvite();
+  const [accepting, setAccepting] = useState(false);
+  const acceptedRef = useRef(false);
+  const username = user?.email?.split('@')[0] ?? 'Player';
+
   useEffect(() => {
     if (!loading && !user) redirect('/auth/signin?next=/reversi/play');
   }, [user, loading]);
+
+  useEffect(() => {
+    if (!connected || acceptedRef.current) return;
+    const inviteId = new URLSearchParams(window.location.search).get('invite');
+    if (!inviteId) return;
+    acceptedRef.current = true;
+    setAccepting(true);
+    acceptInvite(inviteId, username, 1200);
+  }, [connected, acceptInvite, username]);
+
+  useEffect(() => {
+    if (gameStore.status === 'active' || inviteError) setAccepting(false);
+  }, [gameStore.status, inviteError]);
 
   useEffect(() => {
     if (!socket) return;
@@ -71,26 +89,8 @@ export default function ReversiPlayPage() {
     return () => { if (clockRef.current) clearInterval(clockRef.current); };
   }, [gameStore.clocks, gameStore.clockSyncedAt, gameStore.status]);
 
-  useEffect(() => {
-    if (gameStore.status !== 'ended' || !gameStore.gameEndData || !user) return;
-    const { result, white, black } = gameStore.gameEndData;
-    const isWhite  = gameStore.myColor === 'white';
-    const myRating = isWhite ? white : black;
-
-    const gameOutcome: GameOutcome = result === 'white_wins' ? (isWhite ? 'win' : 'loss') : result === 'black_wins' ? (isWhite ? 'loss' : 'win') : 'draw';
-    const dbResult: 'white' | 'black' | 'draw' = gameOutcome === 'win' ? (isWhite ? 'white' : 'black') : gameOutcome === 'loss' ? (isWhite ? 'black' : 'white') : 'draw';
-    upsertUserRating(user.id, myRating.ratingAfter, gameOutcome, 'reversi').catch(console.error);
-
-    const state = gameStore.gameState as ReversiGameState | null;
-    if (state) {
-      saveReversiGame(state, isWhite ? 'white' : 'black', dbResult, undefined, user.id, {
-        mode:          'rated',
-        rating_before: myRating.ratingBefore,
-        rating_after:  myRating.ratingAfter,
-      }).catch(console.error);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameStore.status]);
+  // Game results (ratings + game records) are persisted server-side by the
+  // API on game_ended — the client only displays the deltas it receives.
 
   const handleJoinQueue = useCallback(() => {
     if (!user || !connected) return;
@@ -144,6 +144,15 @@ export default function ReversiPlayPage() {
   return (
     <div className="min-h-screen bg-slate-900 text-white pt-16 flex flex-col items-center justify-center px-4 py-6">
 
+      {accepting && gameStore.status !== 'active' && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-lg font-semibold">Joining game…</p>
+          </div>
+        </div>
+      )}
+
       {(gameStore.status === 'idle' || gameStore.status === 'queued') && (
         <div className="w-full max-w-md bg-slate-800 rounded-2xl p-8 shadow-2xl">
           <div className="flex items-center justify-between mb-6">
@@ -178,6 +187,28 @@ export default function ReversiPlayPage() {
               {connectionError && !connected && (
                 <p className="mt-3 text-sm text-red-400 text-center">{connectionError}</p>
               )}
+
+              {/* Challenge a friend */}
+              <div className="mt-6 pt-6 border-t border-slate-700">
+                {!inviteUrl ? (
+                  <button onClick={() => createInvite('reversi', timeControl, username, 1200)} disabled={!connected || creating}
+                    className="w-full py-3 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded-xl font-semibold transition-colors">
+                    {creating ? 'Creating link…' : 'Play a Friend'}
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-slate-400">Share this link with a friend:</p>
+                    <div className="flex gap-2">
+                      <input readOnly value={inviteUrl} onFocus={e => e.currentTarget.select()}
+                        className="flex-1 bg-slate-700 rounded px-2 py-2 text-xs outline-none" />
+                      <button onClick={() => navigator.clipboard?.writeText(inviteUrl)}
+                        className="px-3 py-2 bg-green-600 hover:bg-green-500 rounded text-sm">Copy</button>
+                    </div>
+                    <p className="text-xs text-slate-500">Waiting for your friend to join… (link expires in 10 min)</p>
+                  </div>
+                )}
+                {inviteError && <p className="mt-3 text-sm text-red-400 text-center">{inviteError}</p>}
+              </div>
             </>
           ) : (
             <div className="text-center py-8">
@@ -279,7 +310,7 @@ export default function ReversiPlayPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => gameStore.reset()} className="flex-1 py-3 bg-green-600 hover:bg-green-500 rounded-xl font-semibold">Play Again</button>
+              <button onClick={() => { gameStore.reset(); resetInvite(); acceptedRef.current = false; }} className="flex-1 py-3 bg-green-600 hover:bg-green-500 rounded-xl font-semibold">Play Again</button>
               <Link href="/reversi" className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-semibold text-center">Exit</Link>
             </div>
           </div>
@@ -293,7 +324,7 @@ export default function ReversiPlayPage() {
             <h2 className="text-3xl font-bold mb-1">Game Aborted</h2>
             <p className="text-slate-400 mb-6">No rating change.</p>
             <div className="flex gap-3">
-              <button onClick={() => gameStore.reset()} className="flex-1 py-3 bg-green-600 hover:bg-green-500 rounded-xl font-semibold">Play Again</button>
+              <button onClick={() => { gameStore.reset(); resetInvite(); acceptedRef.current = false; }} className="flex-1 py-3 bg-green-600 hover:bg-green-500 rounded-xl font-semibold">Play Again</button>
               <Link href="/reversi" className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-semibold text-center">Exit</Link>
             </div>
           </div>

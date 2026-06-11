@@ -7,7 +7,7 @@ import { registerMatchmakingHandlers } from './handlers/matchmaking.handler';
 import { gameSessionService }       from '../services/gameSession.service';
 import { clockService }             from '../services/clock.service';
 import { matchmakingService }       from '../services/matchmaking.service';
-import { redis }                    from '../config/redis';
+import { redis, scanKeys }          from '../config/redis';
 import type { ClientToServerEvents, ServerToClientEvents } from '@gameexplorer/shared';
 
 let io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>;
@@ -47,6 +47,7 @@ export function initializeWebSocket(httpServer: HTTPServer) {
 
           socket.emit('game_started', {
             gameId:           activeGameId,
+            gameType:         session.gameType,
             initialState:     JSON.parse(session.state),
             myColor,
             opponent:         { userId: oppId, username: oppUsername, rating: oppRating },
@@ -111,6 +112,7 @@ function startMatchmakingLoop() {
           a.username, b.username,
           a.rating, b.rating,
           a.gameType, a.timeControl,
+          a.rated,
         );
         const { TIME_CONTROL_CONFIGS } = await import('../services/gameSession.service');
         const tcConfig = TIME_CONTROL_CONFIGS[a.timeControl];
@@ -130,8 +132,8 @@ function startMatchmakingLoop() {
         io.to(`user:${b.userId}`).socketsJoin(`game:${gameId}`);
         await clockService.startClock(gameId);
 
-        io.to(`user:${a.userId}`).emit('game_started', { gameId, initialState: initial, myColor: 'white', opponent: { userId: b.userId, username: b.username, rating: b.rating }, clocks, timeControlConfig: tcConfig });
-        io.to(`user:${b.userId}`).emit('game_started', { gameId, initialState: initial, myColor: 'black', opponent: { userId: a.userId, username: a.username, rating: a.rating }, clocks, timeControlConfig: tcConfig });
+        io.to(`user:${a.userId}`).emit('game_started', { gameId, gameType: a.gameType, initialState: initial, myColor: 'white', opponent: { userId: b.userId, username: b.username, rating: b.rating }, clocks, timeControlConfig: tcConfig });
+        io.to(`user:${b.userId}`).emit('game_started', { gameId, gameType: a.gameType, initialState: initial, myColor: 'black', opponent: { userId: a.userId, username: a.username, rating: a.rating }, clocks, timeControlConfig: tcConfig });
 
         logger.info(`Match created: ${gameId} (${a.username} vs ${b.username})`);
       }
@@ -146,7 +148,7 @@ function startMatchmakingLoop() {
 function startClockLoop() {
   setInterval(async () => {
     try {
-      const keys = await redis.keys('clock:*');
+      const keys = await scanKeys('clock:*');
       for (const key of keys) {
         const gameId  = key.slice(6);
         const running = await clockService.isRunning(gameId);

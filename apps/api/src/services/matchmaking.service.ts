@@ -1,4 +1,4 @@
-import { redis } from '../config/redis';
+import { redis, scanKeys } from '../config/redis';
 import type { GameType, TimeControl, UserSummary } from '@gameexplorer/shared';
 
 const GRACE_EXPAND_EVERY_MS  = 15_000; // expand ELO window every 15s
@@ -81,7 +81,7 @@ export const matchmakingService = {
 
   /** Scans all active queue keys and returns pairs ready to be matched. */
   async scanForPairs(): Promise<Array<{ a: QueueEntry; b: QueueEntry }>> {
-    const keys = await redis.keys('matchmaking:*');
+    const keys = await scanKeys('matchmaking:*');
     const pairs: Array<{ a: QueueEntry; b: QueueEntry }> = [];
     const matched = new Set<string>();
 

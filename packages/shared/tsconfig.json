@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    // CommonJS so the API can require() this package under plain Node.
+    // ESNext emitted import/export with extensionless + directory specifiers,
+    // which Node's ESM loader rejects (ERR_UNSUPPORTED_DIR_IMPORT). Web (Next)
+    // and Vitest are bundler-based and consume CJS without issue.
+    "module": "commonjs",
     "lib": ["ES2022"],
     "declaration": true,
     "declarationMap": true,
@@ -11,7 +15,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],

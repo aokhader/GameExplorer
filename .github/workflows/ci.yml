@@ -48,3 +48,9 @@ jobs:
       # Only apps/web has a lint script today; Turbo skips packages without one.
       - name: Lint
         run: pnpm lint
+
+      # Engine unit tests (packages/shared, Vitest) + API service tests
+      # (apps/api, Vitest with in-memory Redis mock). Turbo skips packages
+      # without a test script.
+      - name: Test
+        run: pnpm test

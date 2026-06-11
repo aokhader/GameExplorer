@@ -69,8 +69,8 @@ export interface ClientToServerEvents {
   abort_game:         (data: { gameId: string }) => void;
   send_chat:          (data: { gameId: string; text: string }) => void;
   invite_friend:      (data: { friendId: string; gameType: GameType; timeControl: TimeControl }) => void;
-  create_invite_link: (data: { gameType: GameType; timeControl: TimeControl }) => void;
-  accept_invite:      (data: { inviteId: string }) => void;
+  create_invite_link: (data: { gameType: GameType; timeControl: TimeControl; username: string; rating: number }) => void;
+  accept_invite:      (data: { inviteId: string; username: string; rating: number }) => void;
   decline_invite:     (data: { inviteId: string }) => void;
   spectate:           (data: { gameId: string }) => void;
   leave_spectate:     (data: { gameId: string }) => void;
@@ -81,7 +81,7 @@ export interface ClientToServerEvents {
 export interface ServerToClientEvents {
   queue_joined:          (data: { estimatedWait: number }) => void;
   match_found:           (data: { gameId: string; opponent: UserSummary; color: PlayerColor; timeControlConfig: TimeControlConfig }) => void;
-  game_started:          (data: { gameId: string; initialState: unknown; myColor: PlayerColor; opponent: UserSummary; clocks: ClockSnapshot; timeControlConfig: TimeControlConfig }) => void;
+  game_started:          (data: { gameId: string; gameType: GameType; initialState: unknown; myColor: PlayerColor; opponent: UserSummary; clocks: ClockSnapshot; timeControlConfig: TimeControlConfig }) => void;
   move_made:             (data: { gameId: string; move: MovePayload; newState: unknown; clocks: ClockSnapshot }) => void;
   draw_offered:          (data: { gameId: string }) => void;
   draw_declined:         (data: { gameId: string }) => void;

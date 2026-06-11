@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "esnext",
+    // CommonJS so `node dist/index.js` works directly. `module: esnext` emitted
+    // extensionless ESM imports that only tsx/bundlers can resolve — plain Node
+    // crashed with ERR_MODULE_NOT_FOUND in production. Node 22 can require()
+    // ESM-only deps (jose), so CJS output is safe here.
+    "module": "commonjs",
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
@@ -10,7 +14,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "declaration": true,
     "declarationMap": true,

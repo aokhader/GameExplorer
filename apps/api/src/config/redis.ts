@@ -45,6 +45,23 @@ redis.on('reconnecting', () => {
   logger.info('Redis reconnecting...');
 });
 
+/**
+ * Non-blocking replacement for `redis.keys(pattern)`. KEYS is O(N) and blocks
+ * the Redis event loop while it scans the whole keyspace; SCAN iterates in
+ * small batches instead, which keeps the polling loops safe as the number of
+ * live games/queues grows.
+ */
+export async function scanKeys(pattern: string, count = 100): Promise<string[]> {
+  const keys: string[] = [];
+  let cursor = '0';
+  do {
+    const [next, batch] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', count);
+    cursor = next;
+    keys.push(...batch);
+  } while (cursor !== '0');
+  return keys;
+}
+
 // Health check
 export async function checkRedisConnection(): Promise<boolean> {
   try {

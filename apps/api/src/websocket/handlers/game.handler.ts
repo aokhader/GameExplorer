@@ -32,6 +32,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
 
     socket.emit('game_started', {
       gameId,
+      gameType:         session.gameType,
       initialState:     JSON.parse(session.state),
       myColor,
       opponent:         { userId: oppId, username: oppUsername, rating: oppRating },
@@ -153,6 +154,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     const clocks = await clockService.getSnapshot(gameId);
     socket.emit('game_started', {
       gameId,
+      gameType:         session.gameType,
       initialState:     JSON.parse(session.state),
       myColor:          'white', // spectators get white perspective
       opponent:         { userId: session.blackId, username: session.blackUsername, rating: Number(session.blackRating) },
@@ -167,35 +169,53 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
   });
 
   // ── Invites ───────────────────────────────────────────────────────────────
-  socket.on('create_invite_link', async ({ gameType, timeControl }: { gameType: import('@gameexplorer/shared').GameType; timeControl: import('@gameexplorer/shared').TimeControl }) => {
+  socket.on('create_invite_link', async ({ gameType, timeControl, username }: { gameType: import('@gameexplorer/shared').GameType; timeControl: import('@gameexplorer/shared').TimeControl; username: string; rating?: number }) => {
+    // Rating is server-authoritative — fetched from Supabase, not the client.
+    const { persistenceService } = await import('../../services/persistence.service');
+    const rating = await persistenceService.getRating(userId, gameType);
+    // Persist identity on the socket so a later same-socket flow can reuse it.
+    socket.data.username = username;
+    socket.data.rating   = rating;
     const { inviteService } = await import('../../services/invite.service');
-    const meta = socket.data as { userId: string; username?: string; rating?: number };
-    const inviteId = await inviteService.createInvite(meta.userId, meta.username ?? 'Anonymous', meta.rating ?? 1200, gameType, timeControl);
+    const inviteId = await inviteService.createInvite(userId, username ?? 'Anonymous', rating, gameType, timeControl);
     const baseUrl  = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
     socket.emit('invite_link_created', { inviteId, url: `${baseUrl}/${gameType}/play?invite=${inviteId}` });
   });
 
-  socket.on('accept_invite', async ({ inviteId }: { inviteId: string }) => {
+  socket.on('accept_invite', async ({ inviteId, username }: { inviteId: string; username: string; rating?: number }) => {
     const { inviteService } = await import('../../services/invite.service');
     const res = await inviteService.acceptInvite(inviteId, userId);
     if ('error' in res) { socket.emit('error', { code: 'INVITE_EXPIRED', message: res.error }); return; }
 
     const invite  = res.invite;
+    // Rating is server-authoritative — fetched from Supabase, not the client.
+    const { persistenceService } = await import('../../services/persistence.service');
+    const rating = await persistenceService.getRating(userId, invite.gameType);
+
+    socket.data.username = username;
+    socket.data.rating   = rating;
+
+    // Invite-by-link games are casual: there is no rated toggle in this flow,
+    // so they never move ratings.
     const gameId  = await gameSessionService.createGame(
       invite.fromId, userId,
-      invite.fromUsername, socket.data.username ?? 'Anonymous',
-      Number(invite.fromRating), socket.data.rating ?? 1200,
+      invite.fromUsername, username ?? 'Anonymous',
+      Number(invite.fromRating), rating,
       invite.gameType, invite.timeControl,
+      false,
     );
 
     const { TIME_CONTROL_CONFIGS } = await import('../../services/gameSession.service');
-    const tcConfig  = TIME_CONTROL_CONFIGS[invite.timeControl];
-    const clocks    = await clockService.getSnapshot(gameId);
+    const tcConfig     = TIME_CONTROL_CONFIGS[invite.timeControl];
+    const clocks       = await clockService.getSnapshot(gameId);
+    // Both players start from the same authoritative initial state. (Previously
+    // the inviter was sent `initialState: null`, leaving their board empty.)
+    const initialState = ChessEngine_newGame_for_type(invite.gameType);
 
     socket.join(`game:${gameId}`);
-    socket.emit('game_started', { gameId, initialState: ChessEngine_newGame_for_type(invite.gameType), myColor: 'black', opponent: { userId: invite.fromId, username: invite.fromUsername, rating: Number(invite.fromRating) }, clocks, timeControlConfig: tcConfig });
+    socket.emit('game_started', { gameId, gameType: invite.gameType, initialState, myColor: 'black', opponent: { userId: invite.fromId, username: invite.fromUsername, rating: Number(invite.fromRating) }, clocks, timeControlConfig: tcConfig });
 
-    io.to(`user:${invite.fromId}`).emit('game_started', { gameId, initialState: null, myColor: 'white', opponent: { userId, username: socket.data.username ?? 'Anonymous', rating: socket.data.rating ?? 1200 }, clocks, timeControlConfig: tcConfig });
+    io.to(`user:${invite.fromId}`).emit('game_started', { gameId, gameType: invite.gameType, initialState, myColor: 'white', opponent: { userId, username: username ?? 'Anonymous', rating: rating ?? 1200 }, clocks, timeControlConfig: tcConfig });
     io.to(`user:${invite.fromId}`).socketsJoin(`game:${gameId}`);
 
     await clockService.startClock(gameId);

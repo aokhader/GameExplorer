@@ -1,0 +1,15 @@
+# Keep the API image build context small (built from repo root)
+.git
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+apps/web/public/stockfish
+**/*.log
+logs
+.env
+**/.env
+**/.env.local
+project-docs
+.github
+.claude
