@@ -1,6 +1,6 @@
 # Express API container — build from the REPO ROOT (workspace deps live there):
 #   docker build -f apps/api/Dockerfile -t gameexplorer-api .
-# Runtime env: PORT, CORS_ORIGIN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+# Runtime env: PORT, CORS_ORIGIN, SUPABASE_URL, SUPABASE_SECRET_KEY,
 #              DATABASE_URL, REDIS_URL (see apps/api/.env.example)
 
 FROM node:22-alpine AS base
