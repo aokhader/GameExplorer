@@ -4,7 +4,7 @@
 import './config/env';
 import { createServer } from 'http';
 import app from './app';
-import { initializeWebSocket } from './websocket';
+import { initializeWebSocket, shutdownWebSocket } from './websocket';
 import { checkDatabaseConnection, disconnectDatabase } from './config/database';
 import { logger } from './utils/logger';
 
@@ -36,9 +36,11 @@ async function startServer() {
     const shutdown = async (signal: string) => {
       logger.info(`${signal} signal received: closing HTTP server`);
       
+      await shutdownWebSocket();
+
       httpServer.close(async () => {
         logger.info('HTTP server closed');
-        
+
         // Disconnect from database
         await disconnectDatabase();
         logger.info('Database disconnected');

@@ -1,4 +1,5 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
+import { ChessEngine, CheckersEngine, ReversiEngine } from '@gameexplorer/shared';
 import { gameSessionService, TIME_CONTROL_CONFIGS } from '../../services/gameSession.service';
 import { clockService }       from '../../services/clock.service';
 import { persistenceService } from '../../services/persistence.service';
@@ -206,7 +207,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     const clocks       = await clockService.getSnapshot(gameId);
     // Both players start from the same authoritative initial state. (Previously
     // the inviter was sent `initialState: null`, leaving their board empty.)
-    const initialState = ChessEngine_newGame_for_type(invite.gameType);
+    const initialState = newGameStateFor(invite.gameType);
 
     socket.join(`game:${gameId}`);
     socket.emit('game_started', { gameId, gameType: invite.gameType, initialState, myColor: 'black', opponent: { userId: invite.fromId, username: invite.fromUsername, rating: Number(invite.fromRating) }, clocks, timeControlConfig: tcConfig });
@@ -218,9 +219,8 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
   });
 }
 
-// Helper to avoid re-importing engines just for initial state
-function ChessEngine_newGame_for_type(gameType: import('@gameexplorer/shared').GameType) {
-  if (gameType === 'chess')    { const { ChessEngine }    = require('@gameexplorer/shared'); return ChessEngine.newGame(); }
-  if (gameType === 'checkers') { const { CheckersEngine } = require('@gameexplorer/shared'); return CheckersEngine.newGame(); }
-  const { ReversiEngine } = require('@gameexplorer/shared'); return ReversiEngine.newGame();
+function newGameStateFor(gameType: import('@gameexplorer/shared').GameType) {
+  return gameType === 'chess'    ? ChessEngine.newGame()
+       : gameType === 'checkers' ? CheckersEngine.newGame()
+       :                           ReversiEngine.newGame();
 }

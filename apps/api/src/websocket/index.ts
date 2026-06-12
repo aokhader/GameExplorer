@@ -11,6 +11,8 @@ import { redis, scanKeys }          from '../config/redis';
 import type { ClientToServerEvents, ServerToClientEvents } from '@gameexplorer/shared';
 
 let io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>;
+let matchmakingTimer: NodeJS.Timeout | undefined;
+let clockTimer: NodeJS.Timeout | undefined;
 
 const DISCONNECT_GRACE_TTL = 60;
 
@@ -99,10 +101,18 @@ export function getIO() {
   return io;
 }
 
+/** Stops the polling loops and closes the Socket.io server (graceful shutdown + tests). */
+export async function shutdownWebSocket(): Promise<void> {
+  if (matchmakingTimer) clearInterval(matchmakingTimer);
+  if (clockTimer)       clearInterval(clockTimer);
+  matchmakingTimer = clockTimer = undefined;
+  if (io) await new Promise<void>(resolve => io.close(() => resolve()));
+}
+
 // ── Matchmaking loop ──────────────────────────────────────────────────────────
 
 function startMatchmakingLoop() {
-  setInterval(async () => {
+  matchmakingTimer = setInterval(async () => {
     try {
       const pairs = await matchmakingService.scanForPairs();
       for (const { a, b } of pairs) {
@@ -144,7 +154,7 @@ function startMatchmakingLoop() {
 // ── Clock sync loop ───────────────────────────────────────────────────────────
 
 function startClockLoop() {
-  setInterval(async () => {
+  clockTimer = setInterval(async () => {
     try {
       const keys = await scanKeys('clock:*');
       for (const key of keys) {

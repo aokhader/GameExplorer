@@ -49,8 +49,46 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      # Engine unit tests (packages/shared, Vitest) + API service tests
-      # (apps/api, Vitest with in-memory Redis mock). Turbo skips packages
-      # without a test script.
+      # Engine unit tests (packages/shared, Vitest) + API service tests +
+      # API WebSocket E2E tests (apps/api, Vitest — real Socket.io server with
+      # in-memory Redis/Supabase fakes, so no service containers are needed).
+      # Turbo skips packages without a test script.
       - name: Test
         run: pnpm test
+
+  # Frontend E2E (Playwright). Builds and boots the real Next.js app, so it
+  # needs the public Supabase env; configure NEXT_PUBLIC_SUPABASE_URL and
+  # NEXT_PUBLIC_SUPABASE_ANON_KEY as repository *Variables* (they are public
+  # values, not secrets) to enable this job — it is skipped otherwise.
+  e2e-web:
+    name: Web E2E (Playwright)
+    runs-on: ubuntu-latest
+    if: ${{ vars.NEXT_PUBLIC_SUPABASE_URL != '' }}
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm --filter @gameexplorer/web exec playwright install --with-deps chromium
+
+      # Turbo builds the workspace deps (shared/db/ui) first via ^build, then
+      # playwright.config.ts builds + starts the Next.js app itself (CI mode).
+      - name: Web E2E tests
+        run: pnpm test:e2e
+        env:
+          CI: 'true'

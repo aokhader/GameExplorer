@@ -73,6 +73,9 @@ export function ReversiBoard({
       squares.push(
         <div
           key={pos}
+          data-pos={pos}
+          data-legal={isLegal || undefined}
+          data-disc={disc?.color}
           style={{
             backgroundColor: '#3d8b40',
             border: '1px solid rgba(0,0,0,0.18)',
