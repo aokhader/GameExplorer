@@ -37,7 +37,15 @@ RUN pnpm --filter @gameexplorer/shared build \
 # size matters; correctness first.
 FROM base AS runtime
 ENV NODE_ENV=production
+
+# Colocated Redis: keeps the whole multiplayer backend in one free container
+# (no separate managed Redis service). docker-entrypoint.sh starts it before the
+# API. Redis holds only ephemeral live-game state, so a single container is fine.
+RUN apk add --no-cache redis
+
 COPY --from=build /repo /repo
 
+# REDIS_URL defaults to redis://localhost:6379 (config/redis.ts), which is the
+# colocated instance. Override only if you point at an external Redis.
 EXPOSE 4000
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["sh", "apps/api/docker-entrypoint.sh"]

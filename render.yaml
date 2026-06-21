@@ -1,0 +1,41 @@
+# Render Blueprint — deploys the GameExplorer multiplayer API as a single FREE
+# Docker web service, with Redis colocated inside the container (see
+# apps/api/Dockerfile + apps/api/docker-entrypoint.sh). No separate Redis service.
+#
+# The four `sync: false` vars below are NOT stored here (they are secret or
+# instance-specific) — set them once in the Render dashboard after the first
+# deploy. Full step-by-step: project-docs/deploy-render.md
+#
+# PORT is intentionally NOT set: Render injects its own PORT and the server
+# binds process.env.PORT (apps/api/src/index.ts).
+services:
+  - type: web
+    name: gameexplorer-api
+    runtime: docker
+    repo: https://github.com/aokhader/GameExplorer
+    branch: main
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Colocated Redis inside the container.
+      - key: REDIS_URL
+        value: redis://127.0.0.1:6379
+      # ── Set these in the dashboard (Environment tab) ──
+      # Your Vercel web app origin, e.g. https://gameexplorer.vercel.app
+      - key: CORS_ORIGIN
+        sync: false
+      # Supabase project URL, e.g. https://anygsfoltjxhklnpxpiu.supabase.co
+      - key: SUPABASE_URL
+        sync: false
+      # Supabase SECRET key (sb_secret_...) — server-side persistence, bypasses RLS.
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      # Supabase Postgres SESSION POOLER connection string (Dashboard → Connect).
+      - key: DATABASE_URL
+        sync: false
