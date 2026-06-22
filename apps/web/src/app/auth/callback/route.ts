@@ -50,20 +50,28 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (!existingProfile && user.email) {
-    const emailEncrypted = await encryptEmail(user.email);
-    const emailHash = await hashEmail(user.email);
+    // Profile creation is best-effort: the session is already established above,
+    // so a failure here (e.g. a missing PROFILES_ENCRYPTION_KEY or a transient
+    // Supabase error) must not 500 the whole login. Log and continue — the
+    // profile can be created on a later request.
+    try {
+      const emailEncrypted = await encryptEmail(user.email);
+      const emailHash = await hashEmail(user.email);
 
-    // Derive a default username from the OAuth display name or email
-    const defaultUsername =
-      user.user_metadata?.full_name?.replace(/\s+/g, '').toLowerCase() ??
-      user.email.split('@')[0];
+      // Derive a default username from the OAuth display name or email
+      const defaultUsername =
+        user.user_metadata?.full_name?.replace(/\s+/g, '').toLowerCase() ??
+        user.email.split('@')[0];
 
-    await supabase.from('profiles').insert({
-      id: user.id,
-      username: defaultUsername,
-      email_encrypted: emailEncrypted,
-      email_hash: emailHash,
-    });
+      await supabase.from('profiles').insert({
+        id: user.id,
+        username: defaultUsername,
+        email_encrypted: emailEncrypted,
+        email_hash: emailHash,
+      });
+    } catch (profileError) {
+      console.error('Failed to create profile on OAuth callback:', profileError);
+    }
   }
 
   return NextResponse.redirect(`${origin}${next}`);

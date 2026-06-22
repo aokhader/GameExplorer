@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import type { JWTPayload } from 'jose';
 
 // Supabase signs access tokens with an asymmetric (ECC / ES256) key. We verify
 // against the project's public JWKS endpoint, which `createRemoteJWKSet` fetches
@@ -8,10 +8,23 @@ import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 // attacker from supplying a token signed with a different algorithm (e.g. an
 // HS256 token whose HMAC secret is the public key — the classic algorithm-
 // confusion attack).
+//
+// jose@6 is ESM-only. This package compiles to CommonJS, and not every runtime
+// supports `require()` of an ESM module — Node < 20.19 and some serverless
+// runtimes (e.g. Vercel) throw ERR_REQUIRE_ESM. A dynamic `import()` works from
+// CommonJS on every Node version, so we load jose lazily and cache the module.
 
-let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+type Jose = typeof import('jose');
 
-function getJwks() {
+let josePromise: Promise<Jose> | null = null;
+function loadJose(): Promise<Jose> {
+  josePromise ??= import('jose');
+  return josePromise;
+}
+
+let jwks: ReturnType<Jose['createRemoteJWKSet']> | null = null;
+
+async function getJwks() {
   if (jwks) return jwks;
 
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -19,6 +32,7 @@ function getJwks() {
     throw new Error('SUPABASE_URL is not set');
   }
 
+  const { createRemoteJWKSet } = await loadJose();
   jwks = createRemoteJWKSet(
     new URL(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/.well-known/jwks.json`),
   );
@@ -31,6 +45,7 @@ function getJwks() {
  * is not configured.
  */
 export async function verifySupabaseToken(token: string): Promise<JWTPayload> {
-  const { payload } = await jwtVerify(token, getJwks(), { algorithms: ['ES256'] });
+  const { jwtVerify } = await loadJose();
+  const { payload } = await jwtVerify(token, await getJwks(), { algorithms: ['ES256'] });
   return payload;
 }
