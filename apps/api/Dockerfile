@@ -18,17 +18,19 @@ COPY packages/shared/package.json packages/shared/
 COPY packages/db/package.json packages/db/
 COPY packages/ui/package.json packages/ui/
 
-# api + its workspace dependencies (@gameexplorer/shared)
+# The apps/api `postinstall` runs `prisma generate`, which needs the schema and
+# prisma.config.ts present during install — so copy them before installing.
+COPY apps/api/prisma.config.ts apps/api/
+COPY apps/api/prisma apps/api/prisma
+
+# api + its workspace dependencies (@gameexplorer/shared). The postinstall
+# generates the Prisma client (no DB connection is made, so no DATABASE_URL).
 RUN pnpm install --frozen-lockfile --filter @gameexplorer/api...
 
 COPY packages/shared packages/shared
 COPY apps/api apps/api
 
-# prisma generate makes no DB connection but prisma.config.ts requires
-# DATABASE_URL to be set, so provide a dummy value (same trick as CI).
 RUN pnpm --filter @gameexplorer/shared build \
- && DATABASE_URL="postgresql://build:build@localhost:5432/build" \
-    pnpm --filter @gameexplorer/api exec prisma generate \
  && pnpm --filter @gameexplorer/api build
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
