@@ -39,7 +39,7 @@ services:
       # The superuser username for PostgreSQL
       # This is what you'll use to connect
       
-      POSTGRES_PASSWORD: 5_game_explorer_dev_password_7
+      POSTGRES_PASSWORD: GameExplorerAdminDevPassword
       # The superuser password
       # 📝 CHANGE THIS for security (even in dev)
       # In production, use strong random passwords
