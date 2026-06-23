@@ -4,7 +4,7 @@ import { gameSessionService, TIME_CONTROL_CONFIGS } from '../../services/gameSes
 import { clockService }       from '../../services/clock.service';
 import { persistenceService } from '../../services/persistence.service';
 import { inviteService }      from '../../services/invite.service';
-import { redis, RedisService } from '../../config/redis';
+import { RedisService } from '../../config/redis';
 import { logger }             from '../../utils/logger';
 
 const DISCONNECT_GRACE_TTL = 60; // seconds
@@ -42,8 +42,8 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
       timeControlConfig: tcConfig,
     });
 
-    // Clear disconnect grace and notify opponent
-    await redis.del(`disconnect_grace:${gameId}:${userId}`);
+    // Notify opponent of the reconnect. (The disconnect-forfeit timer is
+    // cancelled in the connection handler, which always runs before join_game.)
     socket.to(`game:${gameId}`).emit('opponent_reconnected', { gameId });
 
     // Resume clock if it was paused due to disconnect

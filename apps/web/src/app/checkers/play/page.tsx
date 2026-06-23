@@ -236,27 +236,29 @@ export default function CheckersPlayPage() {
               <span className="font-semibold">{gameStore.opponent?.username} ({gameStore.opponent?.rating})</span>
               <Clock ms={oppClockMs} active={activeColor !== gameStore.myColor} />
             </div>
+            {gameStore.opponentGone && (
+              <div className="bg-amber-600 text-white text-sm rounded px-3 py-2 text-center">
+                Opponent disconnected — waiting {Math.ceil(gameStore.opponentGraceMs / 1000)}s
+              </div>
+            )}
+
             <div className="relative">
               <CheckersBoard
                 gameState={checkersState}
                 onMove={handleMove}
                 playerColor={gameStore.myColor ?? 'white'}
               />
-              {gameStore.opponentGone && (
-                <div className="absolute top-2 left-2 right-2 bg-amber-600 text-white text-sm rounded px-3 py-2 text-center">
-                  Opponent disconnected — waiting {Math.ceil(gameStore.opponentGraceMs / 1000)}s
-                </div>
-              )}
-              {gameStore.drawOffered && (
-                <div className="absolute bottom-2 left-2 right-2 bg-slate-700 border border-slate-500 rounded-lg px-4 py-3 flex items-center justify-between gap-2">
-                  <span className="text-sm">Opponent offers a draw</span>
-                  <div className="flex gap-2">
-                    <button onClick={handleAcceptDraw}  className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-sm">Accept</button>
-                    <button onClick={handleDeclineDraw} className="px-3 py-1 bg-red-700 hover:bg-red-600 rounded text-sm">Decline</button>
-                  </div>
-                </div>
-              )}
             </div>
+
+            {gameStore.drawOffered && (
+              <div className="bg-slate-700 border border-slate-500 rounded-lg px-4 py-3 flex items-center justify-between gap-2">
+                <span className="text-sm">Opponent offers a draw</span>
+                <div className="flex gap-2">
+                  <button onClick={handleAcceptDraw}  className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-sm">Accept</button>
+                  <button onClick={handleDeclineDraw} className="px-3 py-1 bg-red-700 hover:bg-red-600 rounded text-sm">Decline</button>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-2">
               <span className="font-semibold">You ({user.email?.split('@')[0]})</span>
               <Clock ms={myClockMs} active={activeColor === gameStore.myColor} />

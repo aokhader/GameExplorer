@@ -7,14 +7,44 @@ import { registerMatchmakingHandlers } from './handlers/matchmaking.handler';
 import { gameSessionService, TIME_CONTROL_CONFIGS } from '../services/gameSession.service';
 import { clockService }             from '../services/clock.service';
 import { matchmakingService }       from '../services/matchmaking.service';
-import { redis, scanKeys }          from '../config/redis';
-import type { ClientToServerEvents, ServerToClientEvents } from '@gameexplorer/shared';
+import { scanKeys }                 from '../config/redis';
+import type { ClientToServerEvents, ServerToClientEvents, GameResult } from '@gameexplorer/shared';
 
 let io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>;
 let matchmakingTimer: NodeJS.Timeout | undefined;
 let clockTimer: NodeJS.Timeout | undefined;
 
 const DISCONNECT_GRACE_TTL = 60;
+
+// Pending disconnect-forfeit timers, keyed by `${gameId}:${userId}`. When a
+// player drops mid-game they have DISCONNECT_GRACE_TTL seconds to reconnect
+// before the timer fires and forfeits the game; reconnecting cancels it.
+// In-memory is correct here: this is a single-instance deployment and
+// in-progress games live only in (ephemeral) Redis, so a restart wipes both.
+const forfeitTimers = new Map<string, NodeJS.Timeout>();
+
+function cancelForfeit(gameId: string, userId: string): void {
+  const key = `${gameId}:${userId}`;
+  const t = forfeitTimers.get(key);
+  if (t) { clearTimeout(t); forfeitTimers.delete(key); }
+}
+
+function scheduleForfeit(gameId: string, userId: string): void {
+  cancelForfeit(gameId, userId);
+  forfeitTimers.set(`${gameId}:${userId}`, setTimeout(() => { void runForfeit(gameId, userId); }, DISCONNECT_GRACE_TTL * 1000));
+}
+
+async function runForfeit(gameId: string, userId: string): Promise<void> {
+  forfeitTimers.delete(`${gameId}:${userId}`);
+  // Did the player reconnect (any live socket in their personal room)? If so, no forfeit.
+  const sockets = await io.in(`user:${userId}`).fetchSockets();
+  if (sockets.length > 0) return;
+  const session = await gameSessionService.getGameSession(gameId);
+  if (!session || session.status !== 'active') return;
+  const result: GameResult = session.whiteId === userId ? 'black_wins' : 'white_wins';
+  const ratings = await gameSessionService.endGame(gameId, result, 'disconnect');
+  io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'disconnect', ...ratings });
+}
 
 export function initializeWebSocket(httpServer: HTTPServer) {
   io = new SocketIOServer(httpServer, {
@@ -56,7 +86,7 @@ export function initializeWebSocket(httpServer: HTTPServer) {
             timeControlConfig: TIME_CONTROL_CONFIGS[session.timeControl],
           });
 
-          await redis.del(`disconnect_grace:${activeGameId}:${userId}`);
+          cancelForfeit(activeGameId, userId);
           socket.to(`game:${activeGameId}`).emit('opponent_reconnected', { gameId: activeGameId });
 
           if (!(await clockService.isRunning(activeGameId))) {
@@ -76,13 +106,17 @@ export function initializeWebSocket(httpServer: HTTPServer) {
 
       try {
         const activeGameId = await gameSessionService.getActiveGameId(userId);
-        if (activeGameId) {
-          const session = await gameSessionService.getGameSession(activeGameId);
-          if (session && session.status === 'active') {
-            await clockService.pauseClock(activeGameId);
-            await redis.set(`disconnect_grace:${activeGameId}:${userId}`, '', 'EX', DISCONNECT_GRACE_TTL);
-            socket.to(`game:${activeGameId}`).emit('opponent_disconnected', { gameId: activeGameId, graceMs: DISCONNECT_GRACE_TTL * 1000 });
-          }
+        if (!activeGameId) return;
+        // If the user still has another live socket (they already reconnected, or
+        // have the game open in another tab), this disconnect is a no-op — don't
+        // pause/forfeit. Excludes the socket that is currently disconnecting.
+        const remaining = (await io.in(`user:${userId}`).fetchSockets()).filter(s => s.id !== socket.id);
+        if (remaining.length > 0) return;
+        const session = await gameSessionService.getGameSession(activeGameId);
+        if (session && session.status === 'active') {
+          await clockService.pauseClock(activeGameId);
+          socket.to(`game:${activeGameId}`).emit('opponent_disconnected', { gameId: activeGameId, graceMs: DISCONNECT_GRACE_TTL * 1000 });
+          scheduleForfeit(activeGameId, userId);
         }
       } catch (err) {
         logger.error('Disconnect handler error:', err);
@@ -106,6 +140,8 @@ export async function shutdownWebSocket(): Promise<void> {
   if (matchmakingTimer) clearInterval(matchmakingTimer);
   if (clockTimer)       clearInterval(clockTimer);
   matchmakingTimer = clockTimer = undefined;
+  for (const t of forfeitTimers.values()) clearTimeout(t);
+  forfeitTimers.clear();
   if (io) await new Promise<void>(resolve => io.close(() => resolve()));
 }
 
@@ -176,27 +212,8 @@ function startClockLoop() {
           const ratings = await gameSessionService.endGame(gameId, result, 'flag');
           io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'flag', ...ratings });
         }
-
-        // Check disconnect expiry
-        const sessions = await gameSessionService.getGameSession(gameId);
-        if (!sessions) continue;
-        for (const pid of [sessions.whiteId, sessions.blackId]) {
-          const graceKey = `disconnect_grace:${gameId}:${pid}`;
-          const exists   = await redis.exists(graceKey);
-          if (!exists) {
-            const graceSet = await redis.get(`disconnect_tracked:${gameId}:${pid}`);
-            if (graceSet) {
-              // Grace expired — forfeit
-              await redis.del(`disconnect_tracked:${gameId}:${pid}`);
-              const forfeitResult: import('@gameexplorer/shared').GameResult =
-                sessions.whiteId === pid ? 'black_wins' : 'white_wins';
-              const ratings = await gameSessionService.endGame(gameId, forfeitResult, 'disconnect');
-              io.to(`game:${gameId}`).emit('game_ended', { gameId, result: forfeitResult, reason: 'disconnect', ...ratings });
-            }
-          } else {
-            await redis.set(`disconnect_tracked:${gameId}:${pid}`, '1', 'EX', 120);
-          }
-        }
+        // Disconnect grace/forfeit is handled by reconnect-aware timers
+        // (scheduleForfeit / cancelForfeit), not this loop.
       }
     } catch (err) {
       logger.error('Clock loop error:', err);

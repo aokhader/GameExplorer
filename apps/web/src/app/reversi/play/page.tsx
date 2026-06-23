@@ -236,6 +236,12 @@ export default function ReversiPlayPage() {
               <span className="font-semibold">{gameStore.opponent?.username} ({gameStore.opponent?.rating})</span>
               <Clock ms={oppClockMs} active={activeColor !== gameStore.myColor} />
             </div>
+            {gameStore.opponentGone && (
+              <div className="bg-amber-600 text-white text-sm rounded px-3 py-2 text-center">
+                Opponent disconnected — waiting {Math.ceil(gameStore.opponentGraceMs / 1000)}s
+              </div>
+            )}
+
             <div className="relative">
               <ReversiBoard
                 gameState={reversiState}
@@ -243,11 +249,6 @@ export default function ReversiPlayPage() {
                 playerColor={(gameStore.myColor ?? 'black') as ReversiColor}
                 highlightPos={reversiState.moveHistory.length > 0 ? reversiState.moveHistory[reversiState.moveHistory.length - 1].position ?? undefined : undefined}
               />
-              {gameStore.opponentGone && (
-                <div className="absolute top-2 left-2 right-2 bg-amber-600 text-white text-sm rounded px-3 py-2 text-center">
-                  Opponent disconnected — waiting {Math.ceil(gameStore.opponentGraceMs / 1000)}s
-                </div>
-              )}
             </div>
             <div className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-2">
               <span className="font-semibold">You ({user.email?.split('@')[0]})</span>
