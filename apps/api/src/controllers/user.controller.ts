@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma }         from '../config/database';
 import { getIO }          from '../websocket';
+import { blockService }   from '../services/block.service';
 import type { AuthRequest } from '../middleware/auth';
 
 export const userController = {
@@ -19,6 +20,11 @@ export const userController = {
     const userId   = req.userId!;
     const { targetUserId } = req.body as { targetUserId: string };
     if (userId === targetUserId) { res.status(400).json({ error: 'Cannot friend yourself' }); return; }
+
+    if (await blockService.isBlockedBetween(userId, targetUserId)) {
+      res.status(403).json({ error: 'Cannot send a friend request to this user' });
+      return;
+    }
 
     const existing = await prisma.friendship.findFirst({
       where: { OR: [{ userId, friendId: targetUserId }, { userId: targetUserId, friendId: userId }] },
@@ -65,6 +71,53 @@ export const userController = {
         id: Number(id),
         OR: [{ userId }, { friendId: userId }],
       },
+    });
+    res.json({ ok: true });
+  },
+
+  // ── Blocking ────────────────────────────────────────────────────────────
+  async getBlocked(req: AuthRequest, res: Response) {
+    const userId = req.userId!;
+    const blocked = await blockService.listBlocked(userId);
+    res.json({ blocked });
+  },
+
+  async blockUser(req: AuthRequest, res: Response) {
+    const userId = req.userId!;
+    const { targetUserId, targetUsername } = req.body as { targetUserId?: string; targetUsername?: string };
+    if (!targetUserId)             { res.status(400).json({ error: 'targetUserId is required' }); return; }
+    if (userId === targetUserId)   { res.status(400).json({ error: 'Cannot block yourself' }); return; }
+
+    await blockService.block(userId, targetUserId, targetUsername);
+    res.json({ ok: true });
+  },
+
+  async unblockUser(req: AuthRequest, res: Response) {
+    const userId = req.userId!;
+    const { targetUserId } = req.params as { targetUserId: string };
+    await blockService.unblock(userId, targetUserId);
+    res.json({ ok: true });
+  },
+
+  // ── Reporting ───────────────────────────────────────────────────────────
+  async reportUser(req: AuthRequest, res: Response) {
+    const userId = req.userId!;
+    const { targetUserId, reason, context, gameId } =
+      req.body as { targetUserId?: string; reason?: string; context?: string; gameId?: string };
+
+    if (!targetUserId)               { res.status(400).json({ error: 'targetUserId is required' }); return; }
+    if (userId === targetUserId)     { res.status(400).json({ error: 'Cannot report yourself' }); return; }
+    if (!reason || !blockService.isValidReason(reason)) {
+      res.status(400).json({ error: 'A valid reason is required' });
+      return;
+    }
+
+    await blockService.report({
+      reporterId: userId,
+      reportedId: targetUserId,
+      reason,
+      context: context ? String(context).slice(0, 1000) : undefined,
+      gameId,
     });
     res.json({ ok: true });
   },

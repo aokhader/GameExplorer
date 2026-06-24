@@ -31,6 +31,11 @@ export const gameController = {
     });
   },
 
+  async getLiveGames(_req: AuthRequest, res: Response) {
+    const games = await gameSessionService.listActiveGames();
+    res.json({ games });
+  },
+
   async getGame(req: AuthRequest, res: Response) {
     const { gameId } = req.params as { gameId: string };
     const session = await gameSessionService.getGameSession(gameId);

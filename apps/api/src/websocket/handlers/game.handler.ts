@@ -4,6 +4,7 @@ import { gameSessionService, TIME_CONTROL_CONFIGS } from '../../services/gameSes
 import { clockService }       from '../../services/clock.service';
 import { persistenceService } from '../../services/persistence.service';
 import { inviteService }      from '../../services/invite.service';
+import { blockService }        from '../../services/block.service';
 import { RedisService } from '../../config/redis';
 import { logger }             from '../../utils/logger';
 
@@ -146,6 +147,26 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     io.to(`game:${gameId}`).emit('chat_message', msg);
   });
 
+  // ── Emotes / reactions ─────────────────────────────────────────────────────
+  socket.on('send_emote', async ({ gameId, emote }: { gameId: string; emote: import('@gameexplorer/shared').Emote }) => {
+    // Throttle: 1 emote per second per socket (spam guard).
+    try {
+      const rl = await RedisService.checkRateLimit(`emote:${socket.id}`, 1, 1000);
+      if (!rl.allowed) return;
+    } catch { /* non-fatal */ }
+
+    const { EMOTES } = await import('@gameexplorer/shared');
+    if (!EMOTES.includes(emote)) return; // reject anything outside the allowed set
+
+    const session = await gameSessionService.getGameSession(gameId);
+    if (!session) return;
+    // Only participants may broadcast emotes (spectators receive, never send).
+    if (session.whiteId !== userId && session.blackId !== userId) return;
+
+    const username = session.whiteId === userId ? session.whiteUsername : session.blackUsername;
+    io.to(`game:${gameId}`).emit('emote_received', { gameId, userId, username, emote });
+  });
+
   // ── Spectate ──────────────────────────────────────────────────────────────
   socket.on('spectate', async ({ gameId }: { gameId: string }) => {
     const session = await gameSessionService.getGameSession(gameId);
@@ -187,6 +208,13 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     if ('error' in res) { socket.emit('error', { code: 'INVITE_EXPIRED', message: res.error }); return; }
 
     const invite  = res.invite;
+
+    // Don't start a game between users who have blocked each other.
+    if (await blockService.isBlockedBetween(userId, invite.fromId)) {
+      socket.emit('error', { code: 'INVITE_EXPIRED', message: 'This invite is no longer available' });
+      return;
+    }
+
     // Rating is server-authoritative — fetched from Supabase, not the client.
     const rating = await persistenceService.getRating(userId, invite.gameType);
 

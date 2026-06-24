@@ -1,4 +1,4 @@
-import { redis } from '../config/redis';
+import { redis, scanKeys } from '../config/redis';
 import { ChessEngine, CheckersEngine, ReversiEngine } from '@gameexplorer/shared';
 import type {
   GameType, TimeControl, TimeControlConfig, MovePayload,
@@ -93,6 +93,51 @@ export const gameSessionService = {
 
   async getActiveGameId(userId: string): Promise<string | null> {
     return redis.get(activeKey(userId));
+  },
+
+  /**
+   * Lists currently-active games so spectators can discover something to watch.
+   * Scans the `game:*` keyspace (SCAN, non-blocking) and returns a lightweight
+   * summary per live game — never the full board state.
+   */
+  async listActiveGames(limit = 50): Promise<Array<{
+    gameId:      string;
+    gameType:    GameType;
+    timeControl: TimeControl;
+    white:       { username: string; rating: number };
+    black:       { username: string; rating: number };
+    moveCount:   number;
+  }>> {
+    const keys = await scanKeys('game:*');
+    const games: Array<{
+      gameId: string; gameType: GameType; timeControl: TimeControl;
+      white: { username: string; rating: number };
+      black: { username: string; rating: number };
+      moveCount: number;
+    }> = [];
+
+    for (const key of keys) {
+      if (games.length >= limit) break;
+      let data: Record<string, string>;
+      try {
+        data = await redis.hgetall(key); // skips non-hash keys via the catch below
+      } catch {
+        continue; // not a game hash (e.g. a cached JSON string under game:*)
+      }
+      if (data?.status !== 'active') continue;
+
+      const session = data as unknown as GameSession;
+      games.push({
+        gameId:      key.slice('game:'.length),
+        gameType:    session.gameType,
+        timeControl: session.timeControl,
+        white:       { username: session.whiteUsername, rating: Number(session.whiteRating) },
+        black:       { username: session.blackUsername, rating: Number(session.blackRating) },
+        moveCount:   this.getMoveCount(session),
+      });
+    }
+
+    return games;
   },
 
   /** Number of moves played so far (works for all three game states). */

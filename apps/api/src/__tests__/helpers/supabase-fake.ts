@@ -42,6 +42,11 @@ export function createSupabaseFakeModule() {
             const data = matches()[0] ?? null;
             return { data, error: data ? null : { code: 'PGRST116', message: 'No rows found' } };
           },
+          // Awaiting the chain directly (no .single()/.order()) resolves to all
+          // matching rows — e.g. block.service's `select(...).eq(...)`.
+          then(resolve: (v: { data: Row[]; error: null }) => void) {
+            resolve({ data: matches(), error: null });
+          },
         };
         return chain;
       },

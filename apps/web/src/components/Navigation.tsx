@@ -47,6 +47,7 @@ export function Navigation() {
             <NavLink href="/chess" active={pathname === '/chess'}>Chess</NavLink>
             <NavLink href="/checkers" active={pathname === '/checkers'}>Checkers</NavLink>
             <NavLink href="/reversi" active={pathname === '/reversi'}>Reversi</NavLink>
+            <NavLink href="/spectate" active={pathname.startsWith('/spectate')}>Watch</NavLink>
           </div>
 
           {/* Auth area */}

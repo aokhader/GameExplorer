@@ -2,6 +2,7 @@ import type { Server as SocketIOServer, Socket } from 'socket.io';
 import { matchmakingService } from '../../services/matchmaking.service';
 import { persistenceService } from '../../services/persistence.service';
 import { gameSessionService } from '../../services/gameSession.service';
+import { blockService }       from '../../services/block.service';
 import type { GameType, TimeControl } from '@gameexplorer/shared';
 
 export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) {
@@ -27,6 +28,10 @@ export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) 
       socket.emit('error', { code: 'ALREADY_IN_GAME', message: 'You are already in a game' });
       return;
     }
+
+    // Cache this user's block set in Redis so the matchmaking loop can exclude
+    // blocked users without a Supabase round-trip per pairing attempt.
+    await blockService.cacheBlockSet(userId);
 
     await matchmakingService.addToQueue({
       userId,

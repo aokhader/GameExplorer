@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getPublicProfile, getGames, getUserRating, supabase } from '@gameexplorer/db';
 import type { AuthUser, Profile, SavedGame, UserRating, GameType } from '@gameexplorer/db';
 import { useRouter } from 'next/navigation';
+import { BlockedPlayers } from '@/components/multiplayer/BlockedPlayers';
 
 type Tab = 'all' | GameType;
 
@@ -319,6 +320,9 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Blocked players management */}
+        <BlockedPlayers />
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ export function createRedisFakeModule() {
   const strings = new Map<string, string>();
   const hashes  = new Map<string, Map<string, string>>();
   const zsets   = new Map<string, Map<string, number>>();
+  const sets    = new Map<string, Set<string>>();
 
   const globToRe = (pat: string) =>
     new RegExp('^' + pat.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$');
@@ -46,11 +47,12 @@ export function createRedisFakeModule() {
         if (strings.delete(key)) n++;
         if (hashes.delete(key)) n++;
         if (zsets.delete(key)) n++;
+        if (sets.delete(key)) n++;
       }
       return n;
     },
     async exists(key: string) {
-      return (strings.has(key) || hashes.has(key) || zsets.has(key)) ? 1 : 0;
+      return (strings.has(key) || hashes.has(key) || zsets.has(key) || sets.has(key)) ? 1 : 0;
     },
     async expire() { return 1; },
     async pexpire() { return 1; },
@@ -67,6 +69,21 @@ export function createRedisFakeModule() {
       return isNew ? 1 : 0;
     },
     async zrem(key: string, member: string) { return zsets.get(key)?.delete(member) ? 1 : 0; },
+    async sadd(key: string, ...members: string[]) {
+      let s = sets.get(key);
+      if (!s) { s = new Set(); sets.set(key, s); }
+      let added = 0;
+      for (const m of members) { if (!s.has(m)) { s.add(m); added++; } }
+      return added;
+    },
+    async srem(key: string, ...members: string[]) {
+      const s = sets.get(key);
+      if (!s) return 0;
+      let removed = 0;
+      for (const m of members) { if (s.delete(m)) removed++; }
+      return removed;
+    },
+    async smembers(key: string) { return [...(sets.get(key) ?? [])]; },
     async zrangebyscore(key: string, min: number, max: number) {
       const z = zsets.get(key);
       if (!z) return [];
@@ -88,10 +105,10 @@ export function createRedisFakeModule() {
     },
     async keys(pattern: string) {
       const re = globToRe(pattern);
-      const all = new Set<string>([...strings.keys(), ...hashes.keys(), ...zsets.keys()]);
+      const all = new Set<string>([...strings.keys(), ...hashes.keys(), ...zsets.keys(), ...sets.keys()]);
       return [...all].filter(k => re.test(k));
     },
-    async flushall() { strings.clear(); hashes.clear(); zsets.clear(); return 'OK'; },
+    async flushall() { strings.clear(); hashes.clear(); zsets.clear(); sets.clear(); return 'OK'; },
   };
 
   return {

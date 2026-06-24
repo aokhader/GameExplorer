@@ -9,6 +9,9 @@ import { useInvite }         from '@/hooks/useInvite';
 import { useAuth }           from '@/hooks/useAuth';
 import { useGameStore }      from '@/stores/gameStore';
 import { useSocketStore }    from '@/stores/socketStore';
+import { SpectateLinkButton } from '@/components/multiplayer/SpectateLinkButton';
+import { EmoteBar } from '@/components/multiplayer/EmoteBar';
+import { OpponentMenu } from '@/components/multiplayer/OpponentMenu';
 import type { ReversiGameState, ReversiColor, TimeControl } from '@gameexplorer/shared';
 import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 
@@ -256,10 +259,14 @@ export default function ReversiPlayPage() {
             </div>
             {gameStore.status === 'active' && (
               <div className="flex gap-2 justify-end">
+                <SpectateLinkButton gameId={gameStore.gameId!} />
                 {reversiState.moveHistory.length < ABORT_MOVE_LIMIT ? (
                   <button onClick={handleAbort} className="px-4 py-2 bg-amber-700 hover:bg-amber-600 rounded-lg text-sm">Abort</button>
                 ) : (
                   <button onClick={handleResign} className="px-4 py-2 bg-red-800 hover:bg-red-700 rounded-lg text-sm">Resign</button>
+                )}
+                {gameStore.opponent?.userId && (
+                  <OpponentMenu opponentId={gameStore.opponent.userId} opponentName={gameStore.opponent.username ?? 'Opponent'} gameId={gameStore.gameId!} />
                 )}
               </div>
             )}
@@ -276,6 +283,9 @@ export default function ReversiPlayPage() {
                 ))}
               </div>
             </div>
+            {gameStore.status === 'active' && (
+              <EmoteBar gameId={gameStore.gameId!} myUserId={user.id} emit={emit} socket={socket} />
+            )}
             <div className="bg-slate-800 rounded-xl p-4 flex flex-col gap-2 h-48">
               <h3 className="text-sm font-semibold text-slate-400">Chat</h3>
               <div className="flex-1 overflow-y-auto text-sm space-y-1">

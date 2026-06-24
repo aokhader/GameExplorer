@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* In-game emote reactions (multiplayer) */
+@keyframes emoteFloat {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.6); }
+  15%  { opacity: 1; transform: translateY(0)    scale(1.1); }
+  30%  { transform: translateY(0) scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+
 /* Custom animations */
 @keyframes fade-in {
   from {

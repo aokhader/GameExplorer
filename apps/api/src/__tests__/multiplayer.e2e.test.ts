@@ -97,6 +97,14 @@ async function connected(socket: ClientSocket): Promise<void> {
   await once(socket, 'connect');
 }
 
+/** Resolves if `event` does NOT fire within `ms`; rejects if it does. */
+function expectNoEvent(socket: ClientSocket, event: string, ms: number): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const t = setTimeout(resolve, ms);
+    socket.once(event, () => { clearTimeout(t); reject(new Error(`unexpected "${event}"`)); });
+  });
+}
+
 /**
  * Creates an active rated game directly via the session service (skipping the
  * matchmaking wait) and has both players join over their sockets. White = `aId`.
@@ -180,6 +188,36 @@ describe('matchmaking', () => {
     a.emit('join_queue', { gameType: 'chess', timeControl: 'blitz', rated: true, username: 'A', rating: 1200 });
     expect((await err).code).toBe('ALREADY_IN_GAME');
   });
+
+  it('does not pair users who have blocked each other', async () => {
+    const now = new Date().toISOString();
+    const rating = (id: string) => ({ user_id: id, game_type: 'chess', rating: 1200, games_played: 10, wins: 5, losses: 5, draws: 0, peak_rating: 1200, updated_at: now });
+    supa.__tables.user_ratings.push(rating('blk-a'), rating('blk-b'), rating('blk-c'));
+    // blk-a has blocked blk-b (block is treated as mutual in matchmaking).
+    (supa.__tables as Record<string, unknown[]>).user_blocks = [{ blocker_id: 'blk-a', blocked_id: 'blk-b' }];
+
+    const a = client('blk-a');
+    const b = client('blk-b');
+    await Promise.all([connected(a), connected(b)]);
+
+    // A and B have identical ratings but must NOT be matched to each other.
+    const noMatchA = expectNoEvent(a, 'match_found', 1500);
+    const qa = once(a, 'queue_joined');
+    a.emit('join_queue', { gameType: 'chess', timeControl: 'blitz', rated: true, username: 'A', rating: 1200 });
+    await qa;
+    const qb = once(b, 'queue_joined');
+    b.emit('join_queue', { gameType: 'chess', timeControl: 'blitz', rated: true, username: 'B', rating: 1200 });
+    await qb;
+    await noMatchA;
+
+    // An unblocked third player matches normally with one of them.
+    const c = client('blk-c');
+    await connected(c);
+    const matchC = once<any>(c, 'match_found');
+    c.emit('join_queue', { gameType: 'chess', timeControl: 'blitz', rated: true, username: 'C', rating: 1200 });
+    const mc = await matchC;
+    expect(['blk-a', 'blk-b']).toContain(mc.opponent.userId);
+  }, 15000);
 });
 
 // ── Moves ─────────────────────────────────────────────────────────────────────

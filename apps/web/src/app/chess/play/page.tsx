@@ -10,6 +10,9 @@ import { useInvite }    from '@/hooks/useInvite';
 import { useAuth }      from '@/hooks/useAuth';
 import { useGameStore } from '@/stores/gameStore';
 import { useSocketStore } from '@/stores/socketStore';
+import { SpectateLinkButton } from '@/components/multiplayer/SpectateLinkButton';
+import { EmoteBar } from '@/components/multiplayer/EmoteBar';
+import { OpponentMenu } from '@/components/multiplayer/OpponentMenu';
 import type { Position, PieceType, TimeControl } from '@gameexplorer/shared';
 import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 
@@ -309,11 +312,15 @@ export default function ChessPlayPage() {
             {/* Action buttons */}
             {gameStore.status === 'active' && (
               <div className="flex gap-2 justify-end">
+                <SpectateLinkButton gameId={gameStore.gameId!} />
                 <button onClick={handleOfferDraw} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">½ Draw</button>
                 {chessState.moveHistory.length < ABORT_MOVE_LIMIT ? (
                   <button onClick={handleAbort} className="px-4 py-2 bg-amber-700 hover:bg-amber-600 rounded-lg text-sm">Abort</button>
                 ) : (
                   <button onClick={handleResign} className="px-4 py-2 bg-red-800 hover:bg-red-700 rounded-lg text-sm">Resign</button>
+                )}
+                {gameStore.opponent?.userId && (
+                  <OpponentMenu opponentId={gameStore.opponent.userId} opponentName={oppName} gameId={gameStore.gameId!} />
                 )}
               </div>
             )}
@@ -332,6 +339,11 @@ export default function ChessPlayPage() {
                 ))}
               </div>
             </div>
+
+            {/* Emotes */}
+            {gameStore.status === 'active' && (
+              <EmoteBar gameId={gameStore.gameId!} myUserId={user.id} emit={emit} socket={socket} />
+            )}
 
             {/* Chat */}
             <div className="bg-slate-800 rounded-xl p-4 flex flex-col gap-2 h-48">

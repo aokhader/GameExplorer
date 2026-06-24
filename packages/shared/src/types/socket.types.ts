@@ -20,6 +20,11 @@ export type ErrorCode =
 // moves have been played. Shared so client and server agree on the threshold.
 export const ABORT_MOVE_LIMIT = 5;
 
+// In-game emotes/reactions. The allowed set is shared so the server can reject
+// anything outside it (clients never send arbitrary text through this channel).
+export const EMOTES = ['👍', '👏', '😂', '😮', '😢', '🤝', '🎉', '🤯'] as const;
+export type Emote = (typeof EMOTES)[number];
+
 export interface UserSummary {
   userId:    string;
   username:  string;
@@ -68,6 +73,7 @@ export interface ClientToServerEvents {
   resign:             (data: { gameId: string }) => void;
   abort_game:         (data: { gameId: string }) => void;
   send_chat:          (data: { gameId: string; text: string }) => void;
+  send_emote:         (data: { gameId: string; emote: Emote }) => void;
   invite_friend:      (data: { friendId: string; gameType: GameType; timeControl: TimeControl }) => void;
   create_invite_link: (data: { gameType: GameType; timeControl: TimeControl; username: string; rating: number }) => void;
   accept_invite:      (data: { inviteId: string; username: string; rating: number }) => void;
@@ -89,6 +95,7 @@ export interface ServerToClientEvents {
   game_aborted:          (data: { gameId: string }) => void;
   clock_sync:            (data: { gameId: string; clocks: ClockSnapshot }) => void;
   chat_message:          (data: { gameId: string; userId: string; username: string; text: string; createdAt: string }) => void;
+  emote_received:        (data: { gameId: string; userId: string; username: string; emote: Emote }) => void;
   opponent_disconnected: (data: { gameId: string; graceMs: number }) => void;
   opponent_reconnected:  (data: { gameId: string }) => void;
   game_invite:           (data: { inviteId: string; from: UserSummary; gameType: GameType; timeControl: TimeControl }) => void;

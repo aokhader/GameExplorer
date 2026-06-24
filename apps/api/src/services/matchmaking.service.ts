@@ -59,8 +59,14 @@ export const matchmakingService = {
       entry.rating + window,
     );
 
+    // Exclude blocked users (either direction). The set is cached in Redis when
+    // a user joins the queue (blockService.cacheBlockSet) and holds every user
+    // in a block relationship with `entry.userId`.
+    const blocked = new Set(await redis.smembers(`blockset:${entry.userId}`));
+
     for (const candidateId of candidates) {
       if (candidateId === entry.userId) continue;
+      if (blocked.has(candidateId)) continue;
 
       const meta = await this.getQueueMeta(candidateId, entry.gameType);
       if (!meta) continue;

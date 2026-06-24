@@ -5,6 +5,7 @@ import { gameController } from '../controllers/game.controller';
 const router: ExpressRouter = Router();
 
 router.get('/active',         requireAuth, gameController.getActiveGame);
+router.get('/live',           requireAuth, gameController.getLiveGames);
 router.get('/:gameId',        requireAuth, gameController.getGame);
 router.post('/invite',        requireAuth, gameController.createInviteLink);
 

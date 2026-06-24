@@ -9,4 +9,9 @@ router.post('/friends/request',    requireAuth, userController.sendFriendRequest
 router.put('/friends/:id/respond', requireAuth, userController.respondToFriendRequest);
 router.delete('/friends/:id',      requireAuth, userController.removeFriend);
 
+router.get('/blocks',                requireAuth, userController.getBlocked);
+router.post('/blocks',               requireAuth, userController.blockUser);
+router.delete('/blocks/:targetUserId', requireAuth, userController.unblockUser);
+router.post('/reports',              requireAuth, userController.reportUser);
+
 export default router;
