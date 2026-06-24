@@ -42,6 +42,7 @@ export async function saveGame(
   options?: SaveGameOptions,
 ): Promise<SavedGame | null> {
   const newGame: NewGame = {
+    game_type: 'chess',
     player_color: playerColor,
     opponent: 'stockfish',
     result,
