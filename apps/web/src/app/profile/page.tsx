@@ -14,6 +14,15 @@ function formatDate(iso: string) {
   });
 }
 
+// Human-readable label for how a game ended. Set on multiplayer games; bot/legacy
+// rows have no end_reason and simply omit it.
+const END_REASON_LABELS: Record<string, string> = {
+  checkmate: 'checkmate', stalemate: 'stalemate', flag: 'on time',
+  resign: 'resignation', draw_agreement: 'agreement', fifty_move: 'fifty-move rule',
+  repetition: 'repetition', disconnect: 'disconnection', board_full: 'board full',
+  no_moves: 'no moves',
+};
+
 function ResultBadge({ game, userId }: { game: SavedGame; userId: string }) {
   const playerWon = game.result === game.player_color;
   const isDraw = game.result === 'draw';
@@ -270,6 +279,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                         {formatDate(game.created_at)} · {game.moves.length} moves
+                        {game.end_reason && ` · ${END_REASON_LABELS[game.end_reason] ?? game.end_reason}`}
                       </div>
                     </div>
 

@@ -261,6 +261,7 @@ describe('checkmate ends the game and persists results server-side', () => {
     for (const row of games as any[]) {
       expect(row.game_type).toBe('chess');
       expect(row.result).toBe('black');
+      expect(row.end_reason).toBe('checkmate');
       expect(row.mode).toBe('rated');
       expect(row.moves).toHaveLength(4);
       expect(row.rating_before).toBe(1200);

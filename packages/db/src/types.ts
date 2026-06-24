@@ -1,4 +1,4 @@
-import type { Move, Color } from '@gameexplorer/shared';
+import type { Move, Color, EndReason } from '@gameexplorer/shared';
 
 // What we store per chess move
 export interface StoredMove {
@@ -47,6 +47,8 @@ export interface SavedGame {
   mode?: 'casual' | 'rated';
   rating_before?: number;
   rating_after?: number;
+  // How the game ended. Set for multiplayer games; NULL for legacy/bot rows.
+  end_reason?: EndReason;
 }
 
 // What we send to Supabase on insert (no id/created_at, those are auto-generated)

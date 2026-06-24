@@ -213,7 +213,7 @@ export const gameSessionService = {
     // Failures are logged but never block Redis teardown.
     try {
       await persistenceService.persistGameResult({
-        session, result, rated,
+        session, result, reason, rated,
         white: { ratingBefore: whiteRatingBefore, ratingAfter: whiteRatingAfter },
         black: { ratingBefore: blackRatingBefore, ratingAfter: blackRatingAfter },
       });

@@ -6,7 +6,7 @@
 // still open when the game ends.
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
-import type { GameType, GameResult, GameOutcome } from '@gameexplorer/shared';
+import type { GameType, GameResult, GameOutcome, EndReason } from '@gameexplorer/shared';
 import type { GameSession } from './gameSession.service';
 
 const DEFAULT_RATING  = 1200;
@@ -129,12 +129,13 @@ export const persistenceService = {
   async persistGameResult(opts: {
     session: GameSession;
     result: GameResult;
+    reason: EndReason;
     rated: boolean;
     white: { ratingBefore: number; ratingAfter: number };
     black: { ratingBefore: number; ratingAfter: number };
   }): Promise<void> {
     if (!supabaseAdmin) return;
-    const { session, result, rated, white, black } = opts;
+    const { session, result, reason, rated, white, black } = opts;
 
     let state: unknown = null;
     try { state = JSON.parse(session.state); } catch { /* keep null */ }
@@ -158,6 +159,7 @@ export const persistenceService = {
       player_color: p.color,
       opponent: p.opponent,
       result: winnerColor,
+      end_reason: reason,
       user_id: p.id,
       mode: rated ? 'rated' : 'casual',
       ...(rated ? { rating_before: p.ratings.ratingBefore, rating_after: p.ratings.ratingAfter } : {}),
