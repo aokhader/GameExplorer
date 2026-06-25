@@ -16,8 +16,10 @@
   border-radius: 4px;
   overflow: hidden;
   aspect-ratio: 1 / 1;
-  /* Self-contained size so the board never collapses when the board is empty */
-  width: min(90vh, 600px);
+  /* Self-contained size so the board never collapses when the board is empty.
+     The 100% term caps the board to its container width so it never overflows a
+     padded page (prevents horizontal scroll on phones). */
+  width: min(90vh, 600px, 100%);
   height: auto;
   /* Prevent browser from hijacking touch-drag for scroll/zoom */
   touch-action: none;
@@ -26,7 +28,7 @@
 
 /* Compact mode for better layout */
 .chess-board-wrapper.compact .chess-board {
-  width: min(70vh, 520px);
+  width: min(70vh, 520px, 100%);
 }
 
 /* Square */
@@ -39,16 +41,17 @@
   transition: background-color 0.15s ease;
 }
 
-/* Board palette mirrors BOARD_COLORS in @gameexplorer/ui (chess/tokens.ts) —
-   GameExplorer's steel-blue + gold identity. Keep these in sync; the TS token is
-   the canonical source the mobile app reads. (A later polish pass can drive these
-   from CSS variables to remove the duplication.) */
+/* Board palette is driven by BOARD_COLORS in @gameexplorer/ui (chess/tokens.ts) —
+   GameExplorer's steel-blue + gold identity. ChessBoard.tsx injects those token
+   values as the --gx-board-* CSS variables on .chess-board-wrapper, so the TS
+   token is the single source of truth (the mobile app reads the same token).
+   The hex literals below are only fallbacks if the vars are ever absent. */
 .square.light {
-  background-color: #dfe6ee;
+  background-color: var(--gx-board-light, #dfe6ee);
 }
 
 .square.dark {
-  background-color: #6f88a8;
+  background-color: var(--gx-board-dark, #6f88a8);
 }
 
 .square:hover {
@@ -56,7 +59,7 @@
 }
 
 .square.selected {
-  background-color: #cda43f !important;
+  background-color: var(--gx-board-selected, #cda43f) !important;
   box-shadow: inset 0 0 0 3px #9a7a26;
 }
 
@@ -66,15 +69,15 @@
 
 /* Last move highlighting */
 .square.last-move {
-  background-color: rgba(205, 164, 63, 0.40) !important;
+  background-color: var(--gx-board-lastmove-light, rgba(205, 164, 63, 0.40)) !important;
 }
 
 .square.last-move.light {
-  background-color: rgba(205, 164, 63, 0.40) !important;
+  background-color: var(--gx-board-lastmove-light, rgba(205, 164, 63, 0.40)) !important;
 }
 
 .square.last-move.dark {
-  background-color: rgba(205, 164, 63, 0.50) !important;
+  background-color: var(--gx-board-lastmove-dark, rgba(205, 164, 63, 0.50)) !important;
 }
 
 /* Coordinates */
@@ -100,12 +103,12 @@
 
 .square.light .rank-label,
 .square.light .file-label {
-  color: #6f88a8;
+  color: var(--gx-board-dark, #6f88a8);
 }
 
 .square.dark .rank-label,
 .square.dark .file-label {
-  color: #dfe6ee;
+  color: var(--gx-board-light, #dfe6ee);
 }
 
 /* Valid Move Indicators */
@@ -184,13 +187,13 @@
 /* Responsive sizing */
 @media (max-width: 1024px) {
   .chess-board {
-    width: min(85vh, 500px);
+    width: min(85vh, 500px, 100%);
   }
 }
 
 @media (max-width: 768px) {
   .chess-board {
-    width: min(90vw, 450px);
+    width: min(90vw, 450px, 100%);
   }
 
   .rank-label,
@@ -201,7 +204,7 @@
 
 @media (max-width: 480px) {
   .chess-board {
-    width: 95vw;
+    width: min(95vw, 100%);
   }
 
   .rank-label,

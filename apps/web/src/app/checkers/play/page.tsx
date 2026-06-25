@@ -44,9 +44,12 @@ export default function CheckersPlayPage() {
 
   const checkersState = s.gameState as CheckersGameState | null;
   const endData       = s.endData;
+  // Center the short matchmaking panel; anchor in-game content to the top so the
+  // taller stacked mobile layout scrolls from the top instead of being clipped.
+  const inGame        = s.status === 'active' || s.status === 'ended';
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white pt-16 flex flex-col items-center justify-center px-4 py-6">
+    <div className={`min-h-screen bg-slate-900 text-white pt-16 flex flex-col items-center px-4 py-6 ${inGame ? 'justify-start' : 'justify-center'}`}>
 
       {s.accepting && s.status !== 'active' && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">

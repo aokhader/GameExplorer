@@ -2,7 +2,18 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ChessEngine, ChessGameState, Position, Piece, PieceType } from '@gameexplorer/shared';
-import { ChessPiece } from '@gameexplorer/ui';
+import { ChessPiece, BOARD_COLORS } from '@gameexplorer/ui';
+
+// Drive ChessBoard.css from the shared token so BOARD_COLORS is the single source
+// of truth across web + mobile. The CSS references these vars (with the hex as a
+// fallback); changing the token here recolors the board everywhere.
+const BOARD_CSS_VARS = {
+  '--gx-board-light': BOARD_COLORS.lightSquare,
+  '--gx-board-dark': BOARD_COLORS.darkSquare,
+  '--gx-board-selected': BOARD_COLORS.selectedSquare,
+  '--gx-board-lastmove-light': BOARD_COLORS.lastMoveLight,
+  '--gx-board-lastmove-dark': BOARD_COLORS.lastMoveDark,
+} as React.CSSProperties;
 
 export interface BoardArrow {
   from: Position;
@@ -433,7 +444,7 @@ export function ChessBoard({
   };
 
   return (
-    <div className={`chess-board-wrapper ${compact ? 'compact' : ''}`}>
+    <div className={`chess-board-wrapper ${compact ? 'compact' : ''}`} style={BOARD_CSS_VARS}>
       <div className="relative">
         <div
           className="chess-board"

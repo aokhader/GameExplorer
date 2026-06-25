@@ -52,9 +52,12 @@ export default function ChessPlayPage() {
   const chessState = s.gameState as ChessGameState | null;
   const oppName    = s.opponent?.username ?? '…';
   const endData    = s.endData;
+  // Center the short matchmaking panel; anchor in-game content to the top so the
+  // taller stacked mobile layout scrolls from the top instead of being clipped.
+  const inGame     = s.status === 'active' || s.status === 'ended';
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white pt-16 flex flex-col items-center justify-center px-4 py-6">
+    <div className={`min-h-screen bg-slate-900 text-white pt-16 flex flex-col items-center px-4 py-6 ${inGame ? 'justify-start' : 'justify-center'}`}>
 
       {/* ── Joining via invite link ───────────────────────────────────────── */}
       {s.accepting && s.status !== 'active' && (
