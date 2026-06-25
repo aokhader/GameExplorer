@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckersEngine } from '@gameexplorer/shared';
 import type { CheckersGameState } from '@gameexplorer/shared';
-import { CheckersPiece } from '@gameexplorer/ui';
+import { CheckersPiece, CHECKERS_BOARD_COLORS } from '@gameexplorer/ui';
 
 export interface BoardArrow {
   from: string;
@@ -179,15 +179,15 @@ export function CheckersBoard({
       const justArrived     = lastMoveTo === pos;
       const isDragging      = draggedFrom === pos;
 
-      let bg = dark ? '#b58863' : '#f0d9b5';
-      if (isSelected) bg = '#baca44';
-      else if (isLastMoveSquare && dark)  bg = 'rgba(155,199,0,0.51)';
-      else if (isLastMoveSquare && !dark) bg = 'rgba(155,199,0,0.41)';
+      let bg = dark ? CHECKERS_BOARD_COLORS.darkSquare : CHECKERS_BOARD_COLORS.lightSquare;
+      if (isSelected) bg = CHECKERS_BOARD_COLORS.selectedSquare;
+      else if (isLastMoveSquare && dark)  bg = CHECKERS_BOARD_COLORS.lastMoveDark;
+      else if (isLastMoveSquare && !dark) bg = CHECKERS_BOARD_COLORS.lastMoveLight;
 
       // For coord labels: rank on leftmost screen column, file on bottommost screen row
       const showRank = showCoordinates && screenCol === 0;
       const showFile = showCoordinates && screenRow === 7;
-      const labelColor = dark ? '#f0d9b5' : '#b58863';
+      const labelColor = dark ? CHECKERS_BOARD_COLORS.lightSquare : CHECKERS_BOARD_COLORS.darkSquare;
 
       squares.push(
         <div
@@ -221,14 +221,14 @@ export function CheckersBoard({
           {/* Move indicator dot (empty dark square) */}
           {dark && isValidDest && !piece && (
             <div className="absolute w-[28%] h-[28%] rounded-full pointer-events-none z-10"
-              style={{ backgroundColor: 'rgba(0,0,0,0.18)' }} />
+              style={{ backgroundColor: CHECKERS_BOARD_COLORS.moveIndicator }} />
           )}
 
           {/* Capture ring (valid dest that has an enemy piece) — shouldn't normally show
               since in checkers you land on empty squares, but guard anyway */}
           {dark && isValidDest && piece && (
             <div className="absolute inset-1 rounded-full border-4 pointer-events-none z-10"
-              style={{ borderColor: 'rgba(0,0,0,0.30)' }} />
+              style={{ borderColor: CHECKERS_BOARD_COLORS.captureIndicator }} />
           )}
 
           {/* Piece — always rendered so onDragEnd fires on the still-in-DOM

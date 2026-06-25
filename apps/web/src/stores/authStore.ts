@@ -1,16 +1,3 @@
-import { create } from 'zustand';
-import type { AuthUser } from '@gameexplorer/db';
-
-interface AuthState {
-  user: AuthUser | null;
-  loading: boolean;
-  setUser: (user: AuthUser | null) => void;
-  setLoading: (loading: boolean) => void;
-}
-
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  loading: true,
-  setUser: (user) => set({ user }),
-  setLoading: (loading) => set({ loading }),
-}));
+// Moved to @gameexplorer/client (shared web + mobile). Re-exported here so the
+// existing `@/stores/authStore` import paths keep working.
+export { useAuthStore } from '@gameexplorer/client';

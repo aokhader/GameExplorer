@@ -11,6 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@gameexplorer/client": "workspace:*",
     "@gameexplorer/db": "workspace:*",
     "@gameexplorer/shared": "workspace:*",
     "@gameexplorer/ui": "workspace:*",

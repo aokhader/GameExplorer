@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ReversiEngine } from '@gameexplorer/shared';
 import type { ReversiGameState, ReversiColor } from '@gameexplorer/shared';
-import { ReversiDisc } from '@gameexplorer/ui';
+import { ReversiDisc, REVERSI_BOARD_COLORS } from '@gameexplorer/ui';
 
 interface ReversiiBoardProps {
   gameState: ReversiGameState;
@@ -77,8 +77,8 @@ export function ReversiBoard({
           data-legal={isLegal || undefined}
           data-disc={disc?.color}
           style={{
-            backgroundColor: '#3d8b40',
-            border: '1px solid rgba(0,0,0,0.18)',
+            backgroundColor: REVERSI_BOARD_COLORS.cell,
+            border: `1px solid ${REVERSI_BOARD_COLORS.cellBorder}`,
             aspectRatio: '1 / 1',
           }}
           className={`relative flex items-center justify-center ${isLegal ? 'cursor-pointer' : 'cursor-default'}`}
@@ -112,8 +112,8 @@ export function ReversiBoard({
               className="absolute w-[28%] h-[28%] rounded-full pointer-events-none z-10"
               style={{
                 backgroundColor: gameState.currentTurn === 'black'
-                  ? 'rgba(0,0,0,0.35)'
-                  : 'rgba(255,255,255,0.35)',
+                  ? REVERSI_BOARD_COLORS.validMoveBlack
+                  : REVERSI_BOARD_COLORS.validMoveWhite,
               }}
             />
           )}
@@ -137,7 +137,7 @@ export function ReversiBoard({
     <div className="w-full max-w-[560px] mx-auto select-none">
       <div
         className="relative grid grid-cols-8 rounded-sm overflow-hidden shadow-xl"
-        style={{ border: '3px solid #2a6030' }}
+        style={{ border: `3px solid ${REVERSI_BOARD_COLORS.boardBorder}` }}
       >
         {squares}
       </div>

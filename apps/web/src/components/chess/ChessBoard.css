@@ -39,12 +39,16 @@
   transition: background-color 0.15s ease;
 }
 
+/* Board palette mirrors BOARD_COLORS in @gameexplorer/ui (chess/tokens.ts) —
+   GameExplorer's steel-blue + gold identity. Keep these in sync; the TS token is
+   the canonical source the mobile app reads. (A later polish pass can drive these
+   from CSS variables to remove the duplication.) */
 .square.light {
-  background-color: #f0d9b5;
+  background-color: #dfe6ee;
 }
 
 .square.dark {
-  background-color: #b58863;
+  background-color: #6f88a8;
 }
 
 .square:hover {
@@ -52,8 +56,8 @@
 }
 
 .square.selected {
-  background-color: #baca44 !important;
-  box-shadow: inset 0 0 0 3px #829769;
+  background-color: #cda43f !important;
+  box-shadow: inset 0 0 0 3px #9a7a26;
 }
 
 .square.dragging {
@@ -62,15 +66,15 @@
 
 /* Last move highlighting */
 .square.last-move {
-  background-color: rgba(155, 199, 0, 0.41) !important;
+  background-color: rgba(205, 164, 63, 0.40) !important;
 }
 
 .square.last-move.light {
-  background-color: rgba(155, 199, 0, 0.41) !important;
+  background-color: rgba(205, 164, 63, 0.40) !important;
 }
 
 .square.last-move.dark {
-  background-color: rgba(155, 199, 0, 0.51) !important;
+  background-color: rgba(205, 164, 63, 0.50) !important;
 }
 
 /* Coordinates */
@@ -96,12 +100,12 @@
 
 .square.light .rank-label,
 .square.light .file-label {
-  color: #b58863;
+  color: #6f88a8;
 }
 
 .square.dark .rank-label,
 .square.dark .file-label {
-  color: #f0d9b5;
+  color: #dfe6ee;
 }
 
 /* Valid Move Indicators */

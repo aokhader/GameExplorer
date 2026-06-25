@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   
   // For monorepo setup - transpile shared packages
-  transpilePackages: ['@gameexplorer/shared', '@gameexplorer/ui'],
+  transpilePackages: ['@gameexplorer/client', '@gameexplorer/shared', '@gameexplorer/ui'],
   
   // API proxy to backend (development only)
   async rewrites() {

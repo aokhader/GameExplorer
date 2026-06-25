@@ -114,6 +114,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@gameexplorer/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       '@gameexplorer/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -186,6 +189,31 @@ importers:
         version: 4.2.2
       typescript:
         specifier: ^5
+        version: 5.9.2
+
+  packages/client:
+    dependencies:
+      '@gameexplorer/db':
+        specifier: workspace:*
+        version: link:../db
+      '@gameexplorer/shared':
+        specifier: workspace:*
+        version: link:../shared
+      react:
+        specifier: '>=18'
+        version: 19.2.4
+      socket.io-client:
+        specifier: ^4.8.3
+        version: 4.8.3
+      zustand:
+        specifier: ^5.0.12
+        version: 5.0.12(@types/react@19.2.2)(react@19.2.4)
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.2.2
+      typescript:
+        specifier: ^5.3.3
         version: 5.9.2
 
   packages/db:
