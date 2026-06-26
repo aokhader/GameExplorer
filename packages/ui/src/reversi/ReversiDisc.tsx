@@ -1,4 +1,5 @@
 import React from 'react';
+import { REVERSI_DISC_COLORS } from './tokens';
 
 export type ReversiDiscColor = 'black' | 'white';
 
@@ -10,11 +11,9 @@ export interface ReversiDiscProps {
 }
 
 export function ReversiDisc({ color, size = 40, className, style }: ReversiDiscProps) {
-  const isWhite = color === 'white';
-  const fill      = isWhite ? '#f5f0e8' : '#1a1a1a';
-  const stroke    = isWhite ? '#aaaaaa' : '#555555';
-  const highlight = isWhite ? '#ffffff' : '#444444';
-  const shadow    = isWhite ? '#cccccc' : '#000000';
+  // Consume the shared token so web + the native primitive (ReversiDisc.native.tsx)
+  // draw identical discs from one source of truth.
+  const { fill, stroke, highlight, shadow } = REVERSI_DISC_COLORS[color];
 
   return (
     <svg

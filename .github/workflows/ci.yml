@@ -51,7 +51,9 @@ jobs:
 
       # Engine unit tests (packages/shared, Vitest) + API service tests +
       # API WebSocket E2E tests (apps/api, Vitest — real Socket.io server with
-      # in-memory Redis/Supabase fakes, so no service containers are needed).
+      # in-memory Redis/Supabase fakes, so no service containers are needed) +
+      # the packages/client import-boundary test (proves the shared client layer
+      # stays free of next/* and DOM globals so the future RN app can reuse it).
       # Turbo skips packages without a test script.
       - name: Test
         run: pnpm test

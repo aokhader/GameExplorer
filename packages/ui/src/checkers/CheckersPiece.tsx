@@ -1,4 +1,5 @@
 import React from 'react';
+import { CHECKERS_PIECE_COLORS } from './tokens';
 
 export type CheckersPieceType = 'man' | 'king';
 export type CheckersColor = 'white' | 'black';
@@ -18,12 +19,9 @@ export function CheckersPiece({
   className,
   style,
 }: CheckersPieceProps) {
-  const isWhite = color === 'white';
-
-  const fill      = isWhite ? '#faf0e0' : '#2c1b08';
-  const stroke    = isWhite ? '#5c3d1e' : '#e8d5b7';
-  const highlight = isWhite ? '#ffffff' : '#5c4033';
-  const shadow    = isWhite ? '#c8b49a' : '#1a0f08';
+  // Consume the shared token so web + the native primitive (CheckersPiece.native.tsx)
+  // draw identical pieces from one source of truth.
+  const { fill, stroke, highlight, shadow } = CHECKERS_PIECE_COLORS[color];
 
   return (
     <svg
