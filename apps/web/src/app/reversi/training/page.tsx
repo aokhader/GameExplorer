@@ -410,7 +410,7 @@ export default function ReversiTrainingPage() {
     : null;
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden pt-16">
+    <div className="min-h-screen lg:h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 lg:overflow-hidden pt-16">
 
       {/* Rating result overlay */}
       {ratingResult && (
@@ -506,9 +506,9 @@ export default function ReversiTrainingPage() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <div className="container mx-auto h-full px-4 py-4">
-          <div className="grid grid-cols-1 grid-rows-[auto_1fr] lg:grid-cols-[1fr_300px] lg:grid-rows-1 gap-4 h-full max-h-full">
+      <div className="flex-1 min-h-0 lg:overflow-hidden">
+        <div className="container mx-auto lg:h-full px-4 py-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] lg:grid-rows-1 gap-4 lg:h-full lg:max-h-full">
 
             {/* Board */}
             <div className="flex items-center justify-center min-h-0">
