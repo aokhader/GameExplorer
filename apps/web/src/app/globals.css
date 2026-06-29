@@ -1,5 +1,83 @@
 @import "tailwindcss";
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * Design tokens — GameExplorer steel-blue + gold identity.
+ *
+ * These mirror `packages/ui/src/tokens.ts` (the canonical source mobile reads).
+ * A `--color-*` entry here and its `Theme` key there are a PAIR — change both.
+ *
+ * Mechanism: `@theme` maps semantic utilities (bg-surface, text-fg, bg-accent,
+ * ring-accent…) onto `--c-*` runtime variables. Theme = a set of `--c-*` values.
+ * `:root` holds the active dark theme; a future light mode is just an additional
+ * `[data-theme="light"]` block overriding the same `--c-*` vars — no page edits.
+ * ──────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-surface:        var(--c-surface);
+  --color-surface-alt:    var(--c-surface-alt);
+  --color-surface-muted:  var(--c-surface-muted);
+  --color-surface-hover:  var(--c-surface-hover);
+  --color-border:         var(--c-border);
+  --color-border-strong:  var(--c-border-strong);
+
+  --color-accent:         var(--c-accent);
+  --color-accent-hover:   var(--c-accent-hover);
+  --color-accent-muted:   var(--c-accent-muted);
+  --color-on-accent:      var(--c-on-accent);
+
+  --color-info:           var(--c-info);
+  --color-info-hover:     var(--c-info-hover);
+  --color-info-muted:     var(--c-info-muted);
+
+  --color-danger:         var(--c-danger);
+  --color-danger-hover:   var(--c-danger-hover);
+  --color-danger-muted:   var(--c-danger-muted);
+  --color-warning:        var(--c-warning);
+  --color-warning-hover:  var(--c-warning-hover);
+  --color-success:        var(--c-success);
+  --color-success-hover:  var(--c-success-hover);
+
+  --color-fg:             var(--c-fg);
+  --color-fg-muted:       var(--c-fg-muted);
+  --color-fg-subtle:      var(--c-fg-subtle);
+  --color-fg-inverse:     var(--c-fg-inverse);
+
+  --color-focus:          var(--c-focus-ring);
+}
+
+/* Active theme: dark (steel-blue + gold). Values pair with THEMES.dark in tokens.ts. */
+:root {
+  --c-surface:        #0f172a;
+  --c-surface-alt:    #1e293b;
+  --c-surface-muted:  #334155;
+  --c-surface-hover:  #283548;
+  --c-border:         #334155;
+  --c-border-strong:  #475569;
+
+  --c-accent:         #cda43f;
+  --c-accent-hover:   #dcb456;
+  --c-accent-muted:   rgba(205, 164, 63, 0.15);
+  --c-on-accent:      #1a1206;
+
+  --c-info:           #6f88a8;
+  --c-info-hover:     #87a0bf;
+  --c-info-muted:     rgba(111, 136, 168, 0.18);
+
+  --c-danger:         #dc2626;
+  --c-danger-hover:   #ef4444;
+  --c-danger-muted:   rgba(220, 38, 38, 0.15);
+  --c-warning:        #d97706;
+  --c-warning-hover:  #f59e0b;
+  --c-success:        #16a34a;
+  --c-success-hover:  #22c55e;
+
+  --c-fg:             #f1f5f9;
+  --c-fg-muted:       #94a3b8;
+  --c-fg-subtle:      #64748b;
+  --c-fg-inverse:     #0f172a;
+
+  --c-focus-ring:     #cda43f;
+}
+
 /* In-game emote reactions (multiplayer) */
 @keyframes emoteFloat {
   0%   { opacity: 0; transform: translateY(20px) scale(0.6); }
@@ -41,22 +119,22 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: var(--c-surface-alt);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: var(--c-border-strong);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: var(--c-fg-subtle);
 }
 
 /* Dark mode base styles */
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-100;
+    @apply bg-surface text-fg;
   }
 }
 

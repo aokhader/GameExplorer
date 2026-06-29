@@ -1,4 +1,14 @@
-export { COLORS, SPACING, RADIUS, FONT_SIZES } from './tokens';
+export {
+  COLORS,
+  THEMES,
+  SPACING,
+  RADIUS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  SHADOWS,
+  Z_INDEX,
+} from './tokens';
+export type { Theme, ThemeName } from './tokens';
 
 export { ChessPiece } from './chess/ChessPiece';
 export type { ChessPieceProps, PieceType, PieceColor } from './chess/ChessPiece';
