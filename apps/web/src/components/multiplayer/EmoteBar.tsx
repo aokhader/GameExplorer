@@ -49,24 +49,27 @@ export function EmoteBar({ gameId, myUserId, emit, socket }: EmoteBarProps) {
 
   return (
     <>
-      <div className="flex flex-wrap gap-1 justify-center bg-slate-800 rounded-lg px-2 py-1.5">
+      <div className="flex flex-wrap gap-1 justify-center bg-surface-alt border border-border rounded-lg px-2 py-1.5">
         {EMOTES.map(e => (
           <button key={e} onClick={() => send(e)} disabled={cooldown}
-            className="text-xl px-1.5 rounded hover:bg-slate-700 disabled:opacity-40 transition-colors"
+            className="min-w-[44px] min-h-[44px] text-2xl rounded-lg hover:bg-surface-hover disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             aria-label={`Send ${e}`}>
             {e}
           </button>
         ))}
       </div>
 
-      {/* Transient floating reactions (bottom-right stack) */}
-      <div className="fixed bottom-6 right-6 flex flex-col-reverse gap-2 pointer-events-none z-40">
+      {/* Transient floating reactions (bottom-right stack, safe-area aware) */}
+      <div
+        className="fixed right-4 flex flex-col-reverse gap-2 pointer-events-none z-40"
+        style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+      >
         {reactions.map(r => (
           <div key={r.id}
             className={`flex items-center gap-2 ${r.mine ? 'self-end' : ''}`}
             style={{ animation: 'emoteFloat 3s ease-out forwards' }}>
             <span className="text-4xl drop-shadow-lg">{r.emote}</span>
-            <span className="text-xs bg-slate-900/80 rounded px-1.5 py-0.5">{r.username}</span>
+            <span className="text-xs bg-surface/80 border border-border rounded px-1.5 py-0.5">{r.username}</span>
           </div>
         ))}
       </div>

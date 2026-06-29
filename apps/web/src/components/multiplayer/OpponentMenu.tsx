@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/apiFetch';
+import { Button, IconButton, Modal, Select, useToast } from '@/components/ui';
 
 const REPORT_REASONS = [
   { value: 'harassment',         label: 'Harassment' },
@@ -28,8 +29,8 @@ export function OpponentMenu({ opponentId, opponentName, gameId }: OpponentMenuP
   const [reason, setReason]         = useState<string>(REPORT_REASONS[0].value);
   const [context, setContext]       = useState('');
   const [busy, setBusy]             = useState(false);
-  const [toast, setToast]           = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -39,8 +40,6 @@ export function OpponentMenu({ opponentId, opponentName, gameId }: OpponentMenuP
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  const flash = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
-
   const handleBlock = async () => {
     setBusy(true);
     try {
@@ -48,9 +47,9 @@ export function OpponentMenu({ opponentId, opponentName, gameId }: OpponentMenuP
         method: 'POST',
         body: JSON.stringify({ targetUserId: opponentId, targetUsername: opponentName }),
       });
-      flash(`Blocked ${opponentName}. You won't be matched again.`);
+      toast(`Blocked ${opponentName}. You won't be matched again.`, 'success');
     } catch {
-      flash('Could not block — please try again.');
+      toast('Could not block — please try again.', 'danger');
     } finally {
       setBusy(false);
       setOpen(false);
@@ -64,11 +63,11 @@ export function OpponentMenu({ opponentId, opponentName, gameId }: OpponentMenuP
         method: 'POST',
         body: JSON.stringify({ targetUserId: opponentId, reason, context: context.trim() || undefined, gameId }),
       });
-      flash('Report submitted. Thank you.');
+      toast('Report submitted. Thank you.', 'success');
       setShowReport(false);
       setContext('');
     } catch {
-      flash('Could not submit report — please try again.');
+      toast('Could not submit report — please try again.', 'danger');
     } finally {
       setBusy(false);
     }
@@ -76,55 +75,73 @@ export function OpponentMenu({ opponentId, opponentName, gameId }: OpponentMenuP
 
   return (
     <div className="relative" ref={menuRef}>
-      <button onClick={() => setOpen(o => !o)}
-        className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm"
-        aria-label="Opponent options" title="Opponent options">
-        ⋯
-      </button>
+      <IconButton
+        variant="secondary"
+        size="md"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Opponent options"
+        title="Opponent options"
+      >
+        <span className="text-lg leading-none">⋯</span>
+      </IconButton>
 
       {open && (
-        <div className="absolute right-0 bottom-full mb-2 w-44 bg-slate-800 rounded-lg shadow-xl ring-1 ring-white/10 py-1 z-50">
-          <button onClick={() => { setShowReport(true); setOpen(false); }}
-            className="w-full text-left px-4 py-2 text-sm hover:bg-slate-700">🚩 Report player</button>
-          <button onClick={handleBlock} disabled={busy}
-            className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 disabled:opacity-50">🚫 Block player</button>
+        <div className="absolute right-0 bottom-full mb-2 w-48 bg-surface-alt border border-border rounded-lg shadow-xl py-1 z-50">
+          <button
+            onClick={() => { setShowReport(true); setOpen(false); }}
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-surface-hover transition-colors"
+          >
+            🚩 Report player
+          </button>
+          <button
+            onClick={handleBlock}
+            disabled={busy}
+            className="w-full text-left px-4 py-2.5 text-sm text-danger-hover hover:bg-surface-hover disabled:opacity-50 transition-colors"
+          >
+            🚫 Block player
+          </button>
         </div>
       )}
 
-      {showReport && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
-          <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h3 className="text-lg font-bold mb-1">Report {opponentName}</h3>
-            <p className="text-sm text-slate-400 mb-4">Help us keep games fair and friendly.</p>
-
-            <label className="block text-sm text-slate-300 mb-1">Reason</label>
-            <select value={reason} onChange={e => setReason(e.target.value)}
-              className="w-full bg-slate-700 rounded px-3 py-2 mb-4 outline-none text-sm">
-              {REPORT_REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-            </select>
-
-            <label className="block text-sm text-slate-300 mb-1">Details (optional)</label>
-            <textarea value={context} onChange={e => setContext(e.target.value)} maxLength={1000} rows={3}
-              placeholder="What happened?"
-              className="w-full bg-slate-700 rounded px-3 py-2 mb-4 outline-none text-sm resize-none" />
-
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowReport(false)} disabled={busy}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">Cancel</button>
-              <button onClick={handleReport} disabled={busy}
-                className="px-4 py-2 bg-red-700 hover:bg-red-600 disabled:opacity-50 rounded-lg text-sm font-semibold">
-                {busy ? 'Submitting…' : 'Submit report'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 ring-1 ring-white/10 rounded-lg px-4 py-2 text-sm shadow-xl z-[70]">
-          {toast}
-        </div>
-      )}
+      <Modal
+        open={showReport}
+        onClose={() => setShowReport(false)}
+        title={`Report ${opponentName}`}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowReport(false)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleReport} loading={busy}>
+              Submit report
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-muted mb-4">Help us keep games fair and friendly.</p>
+        <Select
+          label="Reason"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="mb-4"
+        >
+          {REPORT_REASONS.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </Select>
+        <label className="block text-sm font-medium text-fg-muted mb-1.5">Details (optional)</label>
+        <textarea
+          value={context}
+          onChange={(e) => setContext(e.target.value)}
+          maxLength={1000}
+          rows={3}
+          placeholder="What happened?"
+          className="w-full px-3 py-2 rounded-lg bg-surface-muted text-fg placeholder:text-fg-subtle text-sm border border-border focus:outline-none focus:ring-2 focus:ring-focus focus:border-transparent resize-none"
+        />
+      </Modal>
     </div>
   );
 }

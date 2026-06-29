@@ -48,24 +48,24 @@ export function BlockedPlayers() {
   if (!loading && !error && blocked.length === 0) return null;
 
   return (
-    <div className="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow p-5">
-      <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+    <div className="mt-6 bg-surface-alt border border-border rounded-xl p-5">
+      <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wide mb-3">
         Blocked players
       </h2>
 
       {loading ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <p className="text-sm text-fg-muted">Loading…</p>
       ) : error ? (
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-sm text-danger-hover">{error}</p>
       ) : (
-        <ul className="divide-y divide-slate-100 dark:divide-slate-700">
+        <ul className="divide-y divide-border">
           {blocked.map(b => (
             <li key={b.blockedId} className="flex items-center justify-between py-2">
-              <span className="text-sm text-slate-700 dark:text-slate-200">
+              <span className="text-sm text-fg">
                 {b.username ?? 'Unknown player'}
               </span>
               <button onClick={() => unblock(b.blockedId)} disabled={busyId === b.blockedId}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50">
+                className="text-sm text-accent hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus rounded">
                 {busyId === b.blockedId ? 'Unblocking…' : 'Unblock'}
               </button>
             </li>

@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { Navigation } from '@/components/Navigation';
 import { ClientConfig } from '@/components/ClientConfig';
+import { ToastProvider } from '@/components/ui';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,9 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body className={inter.className}>
-        <ClientConfig />
-        <Navigation />
-        {children}
+        <ToastProvider>
+          <ClientConfig />
+          <Navigation />
+          {children}
+        </ToastProvider>
         <Analytics />
         <SpeedInsights />
       </body>
