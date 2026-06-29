@@ -369,7 +369,7 @@ export default function CheckersTrainingPage() {
           <button
             onClick={handleStartGame}
             disabled={ratingLoading}
-            className="w-full px-8 py-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-lg rounded-lg shadow-lg transition-colors"
+            className="w-full px-8 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-on-accent font-bold text-lg rounded-lg shadow-lg transition-colors"
           >
             Start Rated Game
           </button>
@@ -424,7 +424,7 @@ export default function CheckersTrainingPage() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleNewGame}
-                className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                className="w-full px-4 py-2.5 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
               >
                 Play Again
               </button>

@@ -243,7 +243,7 @@ export default function ChessBotPage() {
               <div className="text-6xl font-bold tabular-nums text-slate-800 dark:text-slate-100 leading-none mb-1">
                 {targetElo}
               </div>
-              <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+              <div className="text-lg font-semibold text-accent dark:text-accent">
                 {eloLabel(targetElo)}
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -278,7 +278,7 @@ export default function ChessBotPage() {
                   onClick={() => setTargetElo(elo)}
                   className={`py-2 px-1 rounded-lg text-center text-sm transition-all ${
                     targetElo === elo
-                      ? 'bg-blue-600 text-white font-semibold shadow-md scale-105'
+                      ? 'bg-accent text-on-accent font-semibold shadow-md scale-105'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                   }`}
                 >
@@ -299,13 +299,13 @@ export default function ChessBotPage() {
                 onClick={() => setPlayerColor('white')}
                 className={`p-6 rounded-lg transition-all ${
                   playerColor === 'white'
-                    ? 'bg-blue-600 text-white shadow-lg scale-105'
+                    ? 'bg-accent text-on-accent shadow-lg scale-105'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 <div className="text-4xl mb-2">♔</div>
                 <div className="font-semibold">White</div>
-                <div className={`text-sm ${playerColor === 'white' ? 'text-blue-100' : 'text-slate-600 dark:text-slate-400'}`}>
+                <div className={`text-sm ${playerColor === 'white' ? 'text-accent' : 'text-slate-600 dark:text-slate-400'}`}>
                   You move first
                 </div>
               </button>
@@ -313,13 +313,13 @@ export default function ChessBotPage() {
                 onClick={() => setPlayerColor('black')}
                 className={`p-6 rounded-lg transition-all ${
                   playerColor === 'black'
-                    ? 'bg-blue-600 text-white shadow-lg scale-105'
+                    ? 'bg-accent text-on-accent shadow-lg scale-105'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 <div className="text-4xl mb-2">♚</div>
                 <div className="font-semibold">Black</div>
-                <div className={`text-sm ${playerColor === 'black' ? 'text-blue-100' : 'text-slate-600 dark:text-slate-400'}`}>
+                <div className={`text-sm ${playerColor === 'black' ? 'text-accent' : 'text-slate-600 dark:text-slate-400'}`}>
                   Bot moves first
                 </div>
               </button>
@@ -328,7 +328,7 @@ export default function ChessBotPage() {
 
           <button
             onClick={handleStartGame}
-            className="w-full px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-lg shadow-lg transition-colors"
+            className="w-full px-8 py-4 bg-accent hover:bg-accent-hover text-on-accent font-bold text-lg rounded-lg shadow-lg transition-colors"
           >
             Start Game
           </button>
@@ -375,7 +375,7 @@ export default function ChessBotPage() {
             )}
             <button
               onClick={handleNewGame}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
             >
               New Game
             </button>

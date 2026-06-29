@@ -51,7 +51,7 @@ export default function HomePage() {
           <div className="flex justify-center gap-4">
             <Link
               href="/chess"
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
+              className="px-8 py-3 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
             >
               Play Now
             </Link>

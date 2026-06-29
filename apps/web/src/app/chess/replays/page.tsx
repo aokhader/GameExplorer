@@ -76,7 +76,7 @@ export default function ReplaysPage() {
             <p className="text-slate-500 dark:text-slate-400 text-lg">No games yet</p>
             <Link
               href="/chess/bot"
-              className="mt-6 inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+              className="mt-6 inline-block px-6 py-3 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors"
             >
               Play your first game
             </Link>

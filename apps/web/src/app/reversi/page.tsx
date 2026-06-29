@@ -94,7 +94,7 @@ export default function ReversiLandingPage() {
                           {mode.title}
                         </h2>
                         <p className="text-slate-600 dark:text-slate-400 mb-4 text-sm">{mode.description}</p>
-                        <div className="flex items-center text-blue-600 dark:text-blue-400 font-medium text-sm">
+                        <div className="flex items-center text-accent dark:text-accent font-medium text-sm">
                           <span className="group-hover:mr-2 transition-all">Start Playing</span>
                           <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />

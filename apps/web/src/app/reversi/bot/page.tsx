@@ -230,17 +230,17 @@ export default function ReversiBotPage() {
                     onClick={() => setTargetElo(level.elo)}
                     className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                       selected
-                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 shadow-md scale-[1.02]'
+                        ? 'border-accent bg-accent-muted dark:bg-accent-muted shadow-md scale-[1.02]'
                         : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-white dark:hover:bg-slate-700'
                     }`}
                   >
                     <div className="text-2xl mb-2">{level.icon}</div>
-                    <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'}`}>
+                    <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent dark:text-accent' : 'text-slate-800 dark:text-slate-100'}`}>
                       {level.label}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 leading-snug">{level.description}</div>
                     {selected && (
-                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
+                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-accent flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
@@ -262,7 +262,7 @@ export default function ReversiBotPage() {
                   onClick={() => setPlayerColor(color)}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
-                      ? 'bg-blue-600 text-white shadow-lg scale-105'
+                      ? 'bg-accent text-on-accent shadow-lg scale-105'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
                   }`}
                 >
@@ -274,7 +274,7 @@ export default function ReversiBotPage() {
                     </svg>
                   </div>
                   <div className="font-semibold capitalize">{color}</div>
-                  <div className={`text-sm ${playerColor === color ? 'text-blue-100' : 'text-slate-600 dark:text-slate-400'}`}>
+                  <div className={`text-sm ${playerColor === color ? 'text-accent' : 'text-slate-600 dark:text-slate-400'}`}>
                     {color === 'black' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
@@ -284,7 +284,7 @@ export default function ReversiBotPage() {
 
           <button
             onClick={handleStartGame}
-            className="w-full px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-lg shadow-lg transition-colors"
+            className="w-full px-8 py-4 bg-accent hover:bg-accent-hover text-on-accent font-bold text-lg rounded-lg shadow-lg transition-colors"
           >
             Start Game
           </button>
@@ -332,7 +332,7 @@ export default function ReversiBotPage() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleNewGame}
-                className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                className="w-full px-4 py-2.5 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
               >
                 Play Again
               </button>
@@ -373,7 +373,7 @@ export default function ReversiBotPage() {
                 Live ⇥
               </button>
             )}
-            <button onClick={handleNewGame} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm">
+            <button onClick={handleNewGame} className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm">
               New Game
             </button>
           </div>
@@ -503,7 +503,7 @@ export default function ReversiBotPage() {
                               onClick={() => setViewIndex(stateIdx)}
                               className={`flex-1 text-left px-2 py-0.5 rounded transition-colors text-xs ${
                                 isActive
-                                  ? 'bg-blue-600 text-white font-semibold'
+                                  ? 'bg-accent text-on-accent font-semibold'
                                   : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                               }`}
                             >

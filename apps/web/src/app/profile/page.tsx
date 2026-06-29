@@ -140,7 +140,7 @@ export default function ProfilePage() {
 
         {/* Avatar + username */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold shrink-0">
+          <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center text-on-accent text-2xl font-bold shrink-0">
             {profile.username[0].toUpperCase()}
           </div>
           <div>
@@ -208,7 +208,7 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
                   activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                    ? 'border-accent text-accent dark:text-accent'
                     : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
@@ -216,7 +216,7 @@ export default function ProfilePage() {
                 {tab.count > 0 && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                     activeTab === tab.id
-                      ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                      ? 'bg-accent-muted dark:bg-accent-muted text-accent dark:text-accent'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                   }`}>
                     {tab.count}
@@ -237,7 +237,7 @@ export default function ProfilePage() {
               </p>
               <Link
                 href={activeTab === 'checkers' ? '/checkers/bot' : activeTab === 'reversi' ? '/reversi/bot' : '/chess/bot'}
-                className="mt-3 inline-block text-blue-500 hover:underline text-sm"
+                className="mt-3 inline-block text-accent hover:underline text-sm"
               >
                 Play your first {activeTab === 'all' ? '' : activeTab + ' '}game
               </Link>

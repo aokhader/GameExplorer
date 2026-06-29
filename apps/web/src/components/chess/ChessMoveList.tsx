@@ -117,7 +117,7 @@ export function ChessMoveList({
                     data-active={currentIndex === white.idx}
                     className={`flex-1 text-left px-2 py-0.5 rounded transition-colors ${
                       currentIndex === white.idx
-                        ? 'bg-blue-500 text-white font-semibold'
+                        ? 'bg-accent text-on-accent font-semibold'
                         : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
                     }`}
                   >
@@ -130,7 +130,7 @@ export function ChessMoveList({
                     data-active={currentIndex === black.idx}
                     className={`flex-1 text-left px-2 py-0.5 rounded transition-colors ${
                       currentIndex === black.idx
-                        ? 'bg-blue-500 text-white font-semibold'
+                        ? 'bg-accent text-on-accent font-semibold'
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                     }`}
                   >

@@ -77,7 +77,7 @@ function SignInForm() {
           placeholder="Email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <input
           type="password"
@@ -85,7 +85,7 @@ function SignInForm() {
           value={password}
           onChange={e => setPassword(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSignIn()}
-          className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
 
@@ -96,14 +96,14 @@ function SignInForm() {
       <button
         onClick={handleSignIn}
         disabled={loading || !email || !password}
-        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors text-sm"
+        className="w-full py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-on-accent font-semibold rounded-lg transition-colors text-sm"
       >
         {loading ? 'Signing in...' : 'Sign in'}
       </button>
 
       <p className="text-center text-sm text-slate-500 dark:text-slate-400">
         No account?{' '}
-        <Link href="/auth/signup" className="text-blue-500 hover:underline">
+        <Link href="/auth/signup" className="text-accent hover:underline">
           Sign up
         </Link>
       </p>

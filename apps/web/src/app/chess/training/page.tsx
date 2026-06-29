@@ -324,7 +324,7 @@ export default function ChessTrainingPage() {
                 <div className="text-7xl font-bold tabular-nums text-slate-800 dark:text-slate-100 leading-none mb-2">
                   {userRating?.rating ?? 1200}
                 </div>
-                <div className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                <div className="text-lg font-semibold text-accent dark:text-accent mb-1">
                   {eloLabel(userRating?.rating ?? 1200)}
                 </div>
                 <div className="flex justify-center gap-6 text-sm text-slate-500 dark:text-slate-400 mt-3">
@@ -352,7 +352,7 @@ export default function ChessTrainingPage() {
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{botElo}</div>
-                <div className="text-sm text-blue-600 dark:text-blue-400">{eloLabel(botElo)}</div>
+                <div className="text-sm text-accent dark:text-accent">{eloLabel(botElo)}</div>
               </div>
             </div>
           </div>
@@ -375,13 +375,13 @@ export default function ChessTrainingPage() {
                   onClick={() => setPlayerColor(color)}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
-                      ? 'bg-blue-600 text-white shadow-lg scale-105'
+                      ? 'bg-accent text-on-accent shadow-lg scale-105'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
                   }`}
                 >
                   <div className="text-4xl mb-2">{color === 'white' ? '♔' : '♚'}</div>
                   <div className="font-semibold capitalize">{color}</div>
-                  <div className={`text-sm ${playerColor === color ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                  <div className={`text-sm ${playerColor === color ? 'text-accent' : 'text-slate-500 dark:text-slate-400'}`}>
                     {color === 'white' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
@@ -392,7 +392,7 @@ export default function ChessTrainingPage() {
           <button
             onClick={handleStartGame}
             disabled={ratingLoading}
-            className="w-full px-8 py-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-lg rounded-lg shadow-lg transition-colors"
+            className="w-full px-8 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-on-accent font-bold text-lg rounded-lg shadow-lg transition-colors"
           >
             Start Rated Game
           </button>
@@ -451,14 +451,14 @@ export default function ChessTrainingPage() {
               {savedGameId && (
                 <Link
                   href={`/chess/analysis?gameId=${savedGameId}`}
-                  className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                  className="w-full px-4 py-2.5 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
                 >
                   Analyze Game
                 </Link>
               )}
               <button
                 onClick={handleNewGame}
-                className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                className="w-full px-4 py-2.5 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
               >
                 Play Again
               </button>
@@ -508,7 +508,7 @@ export default function ChessTrainingPage() {
             )}
             <button
               onClick={handleNewGame}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
             >
               New Game
             </button>

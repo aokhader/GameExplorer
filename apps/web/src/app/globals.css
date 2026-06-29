@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Dark-only (locked decision): force every `dark:` utility to always apply, so
+ * the legacy OS-driven `light dark:dark` page classes render their dark value
+ * consistently regardless of the user's OS theme. A future light mode flips this
+ * back to a class/attribute strategy and fills the [data-theme] token block. */
+@custom-variant dark (&);
+
 /* ────────────────────────────────────────────────────────────────────────────
  * Design tokens — GameExplorer steel-blue + gold identity.
  *

@@ -134,7 +134,7 @@ export default function ChessLandingPage() {
                         <p className="text-slate-600 dark:text-slate-400 mb-4">
                           {mode.description}
                         </p>
-                        <div className="flex items-center text-blue-600 dark:text-blue-400 font-medium">
+                        <div className="flex items-center text-accent dark:text-accent font-medium">
                           <span className="group-hover:mr-2 transition-all">Start Playing</span>
                           <svg
                             className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1"

@@ -78,7 +78,7 @@ export default function SpectateLobby() {
                       <div className="text-xs text-slate-400 capitalize">{g.gameType} · {g.timeControl} · {g.moveCount} moves</div>
                     </div>
                   </div>
-                  <span className="px-3 py-1 bg-blue-600 rounded text-sm font-semibold shrink-0 ml-2">Watch</span>
+                  <span className="px-3 py-1 bg-accent rounded text-sm font-semibold shrink-0 ml-2">Watch</span>
                 </button>
               ))}
             </div>
@@ -94,7 +94,7 @@ export default function SpectateLobby() {
               placeholder="game id…"
               className="flex-1 bg-slate-700 rounded px-3 py-2 outline-none" />
             <button onClick={() => gameId && router.push(`/spectate/${gameId}`)} disabled={!gameId}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded font-semibold">Watch</button>
+              className="px-4 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded font-semibold">Watch</button>
           </div>
         </div>
       </div>
