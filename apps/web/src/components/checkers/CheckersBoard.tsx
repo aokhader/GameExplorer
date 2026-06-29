@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { CheckersEngine } from '@gameexplorer/shared';
 import type { CheckersGameState } from '@gameexplorer/shared';
 import { CheckersPiece, CHECKERS_BOARD_COLORS } from '@gameexplorer/ui';
+import { BoardFrame } from '@/components/board/BoardFrame';
 
 export interface BoardArrow {
   from: string;
@@ -254,16 +255,16 @@ export function CheckersBoard({
   }
 
   return (
-    <div className="w-full max-w-[600px] mx-auto select-none">
+    <BoardFrame className="select-none">
       <div
-        className="relative grid grid-cols-8 rounded-sm overflow-hidden shadow-lg"
-        style={{ border: '2px solid rgba(0,0,0,0.25)' }}
+        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg"
+        style={{ border: '2px solid var(--c-border-strong)' }}
       >
         {squares}
         {arrows && arrows.length > 0 && (
           <ArrowOverlay arrows={arrows} isFlipped={isFlipped} />
         )}
       </div>
-    </div>
+    </BoardFrame>
   );
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ReversiEngine } from '@gameexplorer/shared';
 import type { ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 import { ReversiDisc, REVERSI_BOARD_COLORS } from '@gameexplorer/ui';
+import { BoardFrame } from '@/components/board/BoardFrame';
 
 interface ReversiiBoardProps {
   gameState: ReversiGameState;
@@ -86,12 +87,12 @@ export function ReversiBoard({
         >
           {/* Coordinate labels */}
           {showRank && (
-            <span className="absolute top-0.5 left-0.5 text-[9px] font-semibold leading-none select-none pointer-events-none z-10 text-white/50">
+            <span className="absolute top-0.5 left-1 text-[10px] font-semibold leading-none select-none pointer-events-none z-10 text-white/70">
               {boardRow + 1}
             </span>
           )}
           {showFile && (
-            <span className="absolute bottom-0.5 right-0.5 text-[9px] font-semibold leading-none select-none pointer-events-none z-10 text-white/50">
+            <span className="absolute bottom-0.5 right-1 text-[10px] font-semibold leading-none select-none pointer-events-none z-10 text-white/70">
               {String.fromCharCode(97 + boardCol)}
             </span>
           )}
@@ -134,13 +135,13 @@ export function ReversiBoard({
   }
 
   return (
-    <div className="w-full max-w-[560px] mx-auto select-none">
+    <BoardFrame className="select-none">
       <div
-        className="relative grid grid-cols-8 rounded-sm overflow-hidden shadow-xl"
-        style={{ border: `3px solid ${REVERSI_BOARD_COLORS.boardBorder}` }}
+        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg"
+        style={{ border: `2px solid ${REVERSI_BOARD_COLORS.boardBorder}` }}
       >
         {squares}
       </div>
-    </div>
+    </BoardFrame>
   );
 }

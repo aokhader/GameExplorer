@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChessEngine, ChessGameState, Position, Piece, PieceType } from '@gameexplorer/shared';
 import { ChessPiece, BOARD_COLORS } from '@gameexplorer/ui';
+import { BoardFrame } from '@/components/board/BoardFrame';
 
 // Drive ChessBoard.css from the shared token so BOARD_COLORS is the single source
 // of truth across web + mobile. The CSS references these vars (with the hex as a
@@ -58,9 +59,9 @@ function PromotionPicker({
   const pieces: PieceType[] = ['queen', 'rook', 'bishop', 'knight'];
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 rounded-lg">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4">
-        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 text-center mb-3">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 rounded-lg">
+      <div className="bg-surface-alt border border-border rounded-xl shadow-2xl p-4">
+        <p className="text-sm font-semibold text-fg text-center mb-3">
           Promote pawn to:
         </p>
         <div className="flex gap-2">
@@ -68,7 +69,7 @@ function PromotionPicker({
             <button
               key={type}
               onClick={() => onSelect(type)}
-              className="w-14 h-14 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900 hover:scale-110 transition-all shadow-sm"
+              className="w-14 h-14 flex items-center justify-center rounded-lg bg-surface-muted hover:bg-accent-muted hover:scale-110 transition-all shadow-sm"
               title={type.charAt(0).toUpperCase() + type.slice(1)}
             >
               <ChessPiece type={type} color={color} size={48} />
@@ -444,8 +445,9 @@ export function ChessBoard({
   };
 
   return (
-    <div className={`chess-board-wrapper ${compact ? 'compact' : ''}`} style={BOARD_CSS_VARS}>
-      <div className="relative">
+    <div className="chess-board-wrapper" style={BOARD_CSS_VARS}>
+      <BoardFrame maxPx={compact ? 520 : 600} vhCap={compact ? 70 : 80}>
+        <div className="relative w-full h-full">
         <div
           className="chess-board"
           ref={boardRef}
@@ -490,7 +492,8 @@ export function ChessBoard({
             onSelect={handlePromotionSelect}
           />
         )}
-      </div>
+        </div>
+      </BoardFrame>
     </div>
   );
 }
