@@ -15,7 +15,7 @@ export default function ChessLandingPage() {
       description: 'Challenge AI opponents at different skill levels',
       icon: '🤖',
       href: '/chess/bot',
-      gradient: 'from-blue-500 to-cyan-500',
+      gradient: 'from-info to-info-hover',
       available: true,
     },
     {
@@ -24,7 +24,7 @@ export default function ChessLandingPage() {
       description: 'Play rated games against a bot matched to your skill level',
       icon: '🎯',
       href: '/chess/training',
-      gradient: 'from-green-500 to-teal-500',
+      gradient: 'from-success to-success-hover',
       available: true,
     },
     {
@@ -33,7 +33,7 @@ export default function ChessLandingPage() {
       description: 'Review and replay your past games',
       icon: '📼',
       href: '/chess/replays',
-      gradient: 'from-amber-500 to-orange-500',
+      gradient: 'from-accent to-accent-hover',
       available: true,
     },
     {
@@ -42,7 +42,7 @@ export default function ChessLandingPage() {
       description: 'Build any position and get Stockfish engine analysis',
       icon: '🔍',
       href: '/chess/analysis',
-      gradient: 'from-orange-500 to-red-500',
+      gradient: 'from-warning to-danger',
       available: true,
     },
     {
@@ -51,7 +51,7 @@ export default function ChessLandingPage() {
       description: 'Play against other players around the world',
       icon: '🌐',
       href: '/chess/play',
-      gradient: 'from-purple-500 to-pink-500',
+      gradient: 'from-accent to-info',
       available: true,
     },
     {
@@ -60,18 +60,18 @@ export default function ChessLandingPage() {
       description: 'Play with a friend on the same device',
       icon: '👥',
       href: '/chess/local',
-      gradient: 'from-green-500 to-emerald-500',
+      gradient: 'from-success to-success-hover',
       available: false,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 pt-16">
+    <div className="min-h-screen bg-linear-to-br from-surface-hover via-surface-hover to-surface-hover dark:from-surface dark:via-surface dark:to-surface-alt pt-16">
       {/* Header */}
       <div className="container mx-auto px-4 pt-8">
         <Link
           href="/"
-          className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors group"
+          className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors group"
         >
           <svg className="w-5 h-5 mr-2 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -84,13 +84,13 @@ export default function ChessLandingPage() {
       <div className="container mx-auto px-4 py-12 md:py-20">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 mb-6 shadow-lg">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface-muted dark:to-surface-alt mb-6 shadow-lg">
             <span className="text-5xl">♔</span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-slate-900 dark:text-slate-50 mb-4">
+          <h1 className="text-5xl md:text-6xl font-bold text-fg-subtle dark:text-fg mb-4">
             Play Chess
           </h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+          <p className="text-xl text-fg-subtle dark:text-fg-muted max-w-2xl mx-auto">
             Choose your preferred game mode and start playing
           </p>
         </div>
@@ -109,8 +109,8 @@ export default function ChessLandingPage() {
                   <Link href={mode.href}>
                     <div className={`
                       relative overflow-hidden rounded-2xl p-8 h-full
-                      bg-white dark:bg-slate-800
-                      border-2 border-slate-200 dark:border-slate-700
+                      bg-white dark:bg-surface-alt
+                      border-2 border-border-strong dark:border-border
                       shadow-lg hover:shadow-2xl
                       transition-all duration-300
                       ${hoveredMode === mode.id ? 'scale-105 border-transparent' : ''}
@@ -128,10 +128,10 @@ export default function ChessLandingPage() {
                         `}>
                           <span className="text-4xl">{mode.icon}</span>
                         </div>
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-blue-600 group-hover:to-cyan-600 dark:group-hover:from-blue-400 dark:group-hover:to-cyan-400 transition-all">
+                        <h2 className="text-2xl font-bold text-fg-subtle dark:text-fg mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-accent group-hover:to-accent-hover transition-all">
                           {mode.title}
                         </h2>
-                        <p className="text-slate-600 dark:text-slate-400 mb-4">
+                        <p className="text-fg-subtle dark:text-fg-muted mb-4">
                           {mode.description}
                         </p>
                         <div className="flex items-center text-accent dark:text-accent font-medium">
@@ -151,8 +151,8 @@ export default function ChessLandingPage() {
                 ) : (
                   <div className={`
                     relative overflow-hidden rounded-2xl p-8 h-full
-                    bg-white dark:bg-slate-800
-                    border-2 border-slate-200 dark:border-slate-700
+                    bg-white dark:bg-surface-alt
+                    border-2 border-border-strong dark:border-border
                     shadow-lg opacity-60
                     cursor-not-allowed
                   `}>
@@ -163,13 +163,13 @@ export default function ChessLandingPage() {
                       `}>
                         <span className="text-4xl">{mode.icon}</span>
                       </div>
-                      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 mb-2">
+                      <h2 className="text-2xl font-bold text-fg-subtle dark:text-fg mb-2">
                         {mode.title}
                       </h2>
-                      <p className="text-slate-600 dark:text-slate-400 mb-4">
+                      <p className="text-fg-subtle dark:text-fg-muted mb-4">
                         {mode.description}
                       </p>
-                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium">
+                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg-muted text-sm font-medium">
                         <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -186,39 +186,39 @@ export default function ChessLandingPage() {
         {/* Stats Section */}
         <div className="max-w-4xl mx-auto mt-16 grid grid-cols-3 gap-8">
           <div className="text-center">
-            <div className="text-3xl font-bold text-slate-900 dark:text-slate-50 mb-1">3</div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">Difficulty Levels</div>
+            <div className="text-3xl font-bold text-fg-subtle dark:text-fg mb-1">3</div>
+            <div className="text-sm text-fg-subtle dark:text-fg-muted">Difficulty Levels</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-slate-900 dark:text-slate-50 mb-1">2500+</div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">Bot ELO Rating</div>
+            <div className="text-3xl font-bold text-fg-subtle dark:text-fg mb-1">2500+</div>
+            <div className="text-sm text-fg-subtle dark:text-fg-muted">Bot ELO Rating</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-slate-900 dark:text-slate-50 mb-1">∞</div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">Games to Play</div>
+            <div className="text-3xl font-bold text-fg-subtle dark:text-fg mb-1">∞</div>
+            <div className="text-sm text-fg-subtle dark:text-fg-muted">Games to Play</div>
           </div>
         </div>
 
         {/* Features */}
-        <div className="max-w-4xl mx-auto mt-16 p-8 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50 mb-4 text-center">
+        <div className="max-w-4xl mx-auto mt-16 p-8 rounded-2xl bg-white/50 dark:bg-surface-alt/50 backdrop-blur-sm border border-border-strong dark:border-border">
+          <h3 className="text-xl font-semibold text-fg-subtle dark:text-fg mb-4 text-center">
             Features
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
               <div className="text-2xl mb-2">⚡</div>
-              <div className="text-sm font-medium text-slate-900 dark:text-slate-50">Fast & Responsive</div>
-              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Instant move validation</div>
+              <div className="text-sm font-medium text-fg-subtle dark:text-fg">Fast & Responsive</div>
+              <div className="text-xs text-fg-subtle dark:text-fg-muted mt-1">Instant move validation</div>
             </div>
             <div>
               <div className="text-2xl mb-2">🎨</div>
-              <div className="text-sm font-medium text-slate-900 dark:text-slate-50">Beautiful Interface</div>
-              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Clean, modern design</div>
+              <div className="text-sm font-medium text-fg-subtle dark:text-fg">Beautiful Interface</div>
+              <div className="text-xs text-fg-subtle dark:text-fg-muted mt-1">Clean, modern design</div>
             </div>
             <div>
               <div className="text-2xl mb-2">📱</div>
-              <div className="text-sm font-medium text-slate-900 dark:text-slate-50">Mobile Friendly</div>
-              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Play on any device</div>
+              <div className="text-sm font-medium text-fg-subtle dark:text-fg">Mobile Friendly</div>
+              <div className="text-xs text-fg-subtle dark:text-fg-muted mt-1">Play on any device</div>
             </div>
           </div>
         </div>

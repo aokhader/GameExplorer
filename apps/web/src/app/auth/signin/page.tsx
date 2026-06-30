@@ -39,11 +39,11 @@ function SignInForm() {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 space-y-4">
+    <div className="bg-white dark:bg-surface-alt rounded-2xl shadow-lg p-6 space-y-4">
       {/* OAuth buttons */}
       <button
         onClick={() => handleOAuth('google')}
-        className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium text-slate-700 dark:text-slate-200"
+        className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-border-strong dark:border-border-strong rounded-lg hover:bg-surface-hover dark:hover:bg-surface-muted transition-colors text-sm font-medium text-fg-subtle dark:text-fg"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -65,9 +65,9 @@ function SignInForm() {
       </button>
 
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-600" />
-        <span className="text-xs text-slate-400 dark:text-slate-500">or</span>
-        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-600" />
+        <div className="flex-1 h-px bg-surface-hover dark:bg-surface-hover" />
+        <span className="text-xs text-fg-muted dark:text-fg-subtle">or</span>
+        <div className="flex-1 h-px bg-surface-hover dark:bg-surface-hover" />
       </div>
 
       {/* Email + password */}
@@ -77,7 +77,7 @@ function SignInForm() {
           placeholder="Email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+          className="w-full px-3 py-2.5 rounded-lg border border-border-strong dark:border-border-strong bg-white dark:bg-surface-muted text-fg-subtle dark:text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <input
           type="password"
@@ -85,7 +85,7 @@ function SignInForm() {
           value={password}
           onChange={e => setPassword(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSignIn()}
-          className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+          className="w-full px-3 py-2.5 rounded-lg border border-border-strong dark:border-border-strong bg-white dark:bg-surface-muted text-fg-subtle dark:text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
 
@@ -101,7 +101,7 @@ function SignInForm() {
         {loading ? 'Signing in...' : 'Sign in'}
       </button>
 
-      <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-center text-sm text-fg-subtle dark:text-fg-muted">
         No account?{' '}
         <Link href="/auth/signup" className="text-accent hover:underline">
           Sign up
@@ -113,12 +113,12 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center px-4 pt-16">
+    <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt flex items-center justify-center px-4 pt-16">
       <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 text-center mb-8">
+        <h1 className="text-3xl font-bold text-fg-subtle dark:text-fg text-center mb-8">
           Sign in
         </h1>
-        <Suspense fallback={<div className="text-center text-slate-400">Loading…</div>}>
+        <Suspense fallback={<div className="text-center text-fg-muted">Loading…</div>}>
           <SignInForm />
         </Suspense>
       </div>

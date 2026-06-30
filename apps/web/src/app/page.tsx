@@ -37,15 +37,15 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 pt-16">
+    <div className="min-h-screen bg-linear-to-br from-surface via-surface-alt to-surface pt-16">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="text-6xl md:text-8xl font-bold text-white mb-4 animate-fade-in">
+          <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold text-fg mb-4 animate-fade-in break-words">
             GameExplorer
           </h1>
-          <p className="text-xl md:text-2xl text-slate-300 mb-8">
+          <p className="text-xl md:text-2xl text-fg-muted mb-8">
             Classic board games, reimagined for the modern web
           </p>
           <div className="flex justify-center gap-4">
@@ -57,7 +57,7 @@ export default function HomePage() {
             </Link>
             <a
               href="#games"
-              className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
+              className="px-8 py-3 bg-surface-muted hover:bg-surface-hover text-fg font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
             >
               Browse Games
             </a>
@@ -66,7 +66,7 @@ export default function HomePage() {
 
         {/* Game Cards */}
         <div id="games" className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-white text-center mb-12">
+          <h2 className="text-4xl font-bold text-fg text-center mb-12">
             Choose Your Game
           </h2>
           
@@ -94,7 +94,7 @@ export default function HomePage() {
 
         {/* Features Section */}
         <div className="max-w-6xl mx-auto mt-24">
-          <h2 className="text-4xl font-bold text-white text-center mb-12">
+          <h2 className="text-4xl font-bold text-fg text-center mb-12">
             Features
           </h2>
           
@@ -135,7 +135,7 @@ export default function HomePage() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-24 text-center text-slate-400">
+        <footer className="mt-24 text-center text-fg-muted">
           <p className="mb-4">Built with Next.js, TypeScript, and React</p>
           <p className="text-sm">© 2024 GameExplorer. All rights reserved.</p>
         </footer>
@@ -179,15 +179,15 @@ function GameCard({
           {game.icon}
         </div>
 
-        {/* Text */}
+        {/* Text — static light on the saturated per-game card, not theme-flipped */}
         <div className="text-white">
           <h3 className="text-2xl font-bold mb-2">{game.name}</h3>
-          <p className="text-slate-100 text-sm">{game.description}</p>
+          <p className="text-white/80 text-sm">{game.description}</p>
         </div>
 
         {/* Status Badge */}
         {!game.available && (
-          <div className="absolute top-4 right-4 bg-slate-900 text-white px-3 py-1 rounded-full text-xs font-semibold">
+          <div className="absolute top-4 right-4 bg-surface text-fg px-3 py-1 rounded-full text-xs font-semibold">
             Coming Soon
           </div>
         )}
@@ -220,17 +220,17 @@ function FeatureCard({
   comingSoon?: boolean;
 }) {
   return (
-    <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-6 border border-slate-700 hover:border-slate-500 transition-colors">
+    <div className="bg-surface-alt/50 backdrop-blur-sm rounded-lg p-6 border border-border hover:border-border-strong transition-colors">
       <div className="text-4xl mb-4">{icon}</div>
-      <h3 className="text-xl font-semibold text-white mb-2">
+      <h3 className="text-xl font-semibold text-fg mb-2">
         {title}
         {comingSoon && (
-          <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-1 rounded-full">
+          <span className="ml-2 text-xs bg-info text-white px-2 py-1 rounded-full">
             Soon
           </span>
         )}
       </h3>
-      <p className="text-slate-300">{description}</p>
+      <p className="text-fg-muted">{description}</p>
     </div>
   );
 }

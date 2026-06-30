@@ -32,9 +32,9 @@ function EvalBar({ cp, mate, turn }: { cp: number | null; mate: number | null; t
     blackPct = 50 - Math.max(-45, Math.min(45, (cp * sign) / 22.2));
   }
   return (
-    <div className="w-5 self-stretch rounded overflow-hidden shadow-inner border border-slate-400 dark:border-slate-600 relative bg-white">
+    <div className="w-5 self-stretch rounded overflow-hidden shadow-inner border border-border-strong dark:border-border-strong relative bg-white">
       <div
-        className="absolute top-0 left-0 right-0 bg-slate-900 dark:bg-slate-950"
+        className="absolute top-0 left-0 right-0 bg-surface dark:bg-surface"
         style={{ height: `${blackPct}%`, transition: 'height 0.45s ease-out' }}
       />
     </div>
@@ -250,14 +250,14 @@ function AnalysisPageInner() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 overflow-hidden pt-16">
+    <div className="h-screen flex flex-col bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface overflow-hidden pt-16">
 
       {/* Header */}
-      <div className="shrink-0 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+      <div className="shrink-0 px-4 py-2.5 border-b border-border-strong dark:border-border bg-white/80 dark:bg-surface-alt/80 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-between gap-3">
           <Link
             href={gameId ? '/chess/replays' : '/chess'}
-            className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors text-sm"
+            className="inline-flex items-center gap-1 text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -266,7 +266,7 @@ function AnalysisPageInner() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Analysis Board</span>
+            <span className="text-sm font-semibold text-fg-subtle dark:text-fg">Analysis Board</span>
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
               mode === 'edit'
                 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
@@ -279,7 +279,7 @@ function AnalysisPageInner() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setFlipBoard(f => !f)}
-              className="px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="px-3 py-1.5 text-sm text-fg-subtle dark:text-fg-muted border border-border-strong dark:border-border-strong rounded-lg hover:bg-surface-hover dark:hover:bg-surface-muted transition-colors"
               title="Flip board"
             >
               ⇅
@@ -337,8 +337,8 @@ function AnalysisPageInner() {
               {mode === 'edit' ? (
                 <>
                   {/* ── Piece palette ── */}
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
+                    <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide mb-3">
                       {isInPlacementMode
                         ? (eraserMode ? 'Eraser active — click a square to remove' : `Placing: ${selectedPiece?.color} ${selectedPiece?.type}`)
                         : 'Click a piece to place it, or click on the board to preview moves'}
@@ -358,7 +358,7 @@ function AnalysisPageInner() {
                             className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-11 min-h-11 ${
                               active
                                 ? 'border-accent bg-accent-muted dark:bg-accent-muted scale-110 shadow-md'
-                                : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                : 'border-border-strong dark:border-border-strong bg-surface-hover dark:bg-surface-muted/50 hover:border-border-strong hover:bg-surface-hover dark:hover:bg-surface-muted'
                             }`}
                             title={`white ${type}`}
                           >
@@ -382,7 +382,7 @@ function AnalysisPageInner() {
                             className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-11 min-h-11 ${
                               active
                                 ? 'border-accent bg-accent-muted dark:bg-accent-muted scale-110 shadow-md'
-                                : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 hover:border-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                : 'border-border-strong dark:border-border-strong bg-surface-hover dark:bg-surface-muted/50 hover:border-border-strong hover:bg-surface-hover dark:hover:bg-surface-muted'
                             }`}
                             title={`black ${type}`}
                           >
@@ -397,7 +397,7 @@ function AnalysisPageInner() {
                       className={`w-full py-2 rounded-lg text-sm font-medium transition-all border-2 ${
                         eraserMode
                           ? 'border-red-400 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                          : 'border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-red-300 hover:text-red-500'
+                          : 'border-border-strong dark:border-border-strong text-fg-subtle dark:text-fg-muted hover:border-red-300 hover:text-red-500'
                       }`}
                     >
                       {eraserMode ? '✕ Cancel Eraser' : '⌫ Eraser'}
@@ -405,10 +405,10 @@ function AnalysisPageInner() {
                   </div>
 
                   {/* ── Position settings ── */}
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">Position Settings</p>
+                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
+                    <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide mb-3">Position Settings</p>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1.5">Side to move</p>
+                    <p className="text-xs text-fg-subtle dark:text-fg-muted mb-1.5">Side to move</p>
                     <div className="flex gap-2 mb-3">
                       {(['white', 'black'] as Color[]).map(c => (
                         <button
@@ -417,7 +417,7 @@ function AnalysisPageInner() {
                           className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 ${
                             editState.currentTurn === c
                               ? 'border-accent bg-accent-muted dark:bg-accent-muted text-accent dark:text-accent'
-                              : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300'
+                              : 'border-border-strong dark:border-border-strong text-fg-subtle dark:text-fg-muted hover:border-border-strong'
                           }`}
                         >
                           {c === 'white' ? '⬜ White' : '⬛ Black'}
@@ -425,7 +425,7 @@ function AnalysisPageInner() {
                       ))}
                     </div>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1.5">Castling rights</p>
+                    <p className="text-xs text-fg-subtle dark:text-fg-muted mb-1.5">Castling rights</p>
                     <div className="grid grid-cols-2 gap-1">
                       {([
                         ['whiteKingSide', 'White O-O'],
@@ -433,7 +433,7 @@ function AnalysisPageInner() {
                         ['blackKingSide', 'Black O-O'],
                         ['blackQueenSide', 'Black O-O-O'],
                       ] as [keyof ChessGameState['castlingRights'], string][]).map(([key, label]) => (
-                        <label key={key} className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 cursor-pointer select-none py-0.5">
+                        <label key={key} className="flex items-center gap-1.5 text-xs text-fg-subtle dark:text-fg-muted cursor-pointer select-none py-0.5">
                           <input
                             type="checkbox"
                             checked={editState.castlingRights[key]}
@@ -447,13 +447,13 @@ function AnalysisPageInner() {
                   </div>
 
                   {/* ── FEN ── */}
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">FEN String</p>
+                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
+                    <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide mb-2">FEN String</p>
                     <textarea
                       value={fenInput}
                       onChange={e => handleFenInput(e.target.value)}
-                      className={`w-full text-xs font-mono rounded-lg px-2.5 py-2 border resize-none focus:outline-none focus:ring-2 focus:ring-accent bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 ${
-                        fenError ? 'border-red-400 dark:border-red-600' : 'border-slate-200 dark:border-slate-600'
+                      className={`w-full text-xs font-mono rounded-lg px-2.5 py-2 border resize-none focus:outline-none focus:ring-2 focus:ring-accent bg-surface-hover dark:bg-surface text-fg-subtle dark:text-fg ${
+                        fenError ? 'border-red-400 dark:border-red-600' : 'border-border-strong dark:border-border-strong'
                       }`}
                       rows={3}
                       spellCheck={false}
@@ -463,10 +463,10 @@ function AnalysisPageInner() {
 
                   {/* ── Actions ── */}
                   <div className="flex gap-2">
-                    <button onClick={handleResetToStart} className="flex-1 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                    <button onClick={handleResetToStart} className="flex-1 py-2 text-xs font-medium rounded-lg border border-border-strong dark:border-border-strong text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-muted transition-colors">
                       Reset to Start
                     </button>
-                    <button onClick={handleClearBoard} className="flex-1 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                    <button onClick={handleClearBoard} className="flex-1 py-2 text-xs font-medium rounded-lg border border-border-strong dark:border-border-strong text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-muted transition-colors">
                       Clear Board
                     </button>
                   </div>
@@ -474,15 +474,15 @@ function AnalysisPageInner() {
               ) : (
                 <>
                   {/* ── Stockfish eval ── */}
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700">
+                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Stockfish</p>
+                      <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide">Stockfish</p>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium tabular-nums ${
                           !stockfish.isReady
-                            ? 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                            ? 'bg-surface-hover text-fg-subtle dark:bg-surface-muted dark:text-fg-muted'
                             : !analysisEnabled
-                              ? 'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500'
+                              ? 'bg-surface-hover text-fg-muted dark:bg-surface-muted dark:text-fg-subtle'
                               : stockfish.isAnalyzing
                                 ? 'bg-accent-muted text-accent dark:bg-accent-muted dark:text-accent'
                                 : 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400'
@@ -496,7 +496,7 @@ function AnalysisPageInner() {
                           aria-label="Toggle Stockfish analysis"
                           onClick={() => setAnalysisEnabled(v => !v)}
                           className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 ${
-                            analysisEnabled ? 'bg-accent' : 'bg-slate-300 dark:bg-slate-600'
+                            analysisEnabled ? 'bg-accent' : 'bg-surface-hover dark:bg-surface-hover'
                           }`}
                         >
                           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
@@ -505,17 +505,17 @@ function AnalysisPageInner() {
                         </button>
                       </div>
                     </div>
-                    <div className="text-3xl font-bold tabular-nums text-slate-800 dark:text-slate-100 mb-1">{evalText}</div>
+                    <div className="text-3xl font-bold tabular-nums text-fg-subtle dark:text-fg mb-1">{evalText}</div>
                     {/* Always rendered so height stays stable during analysis */}
-                    <div className={`text-sm text-slate-600 dark:text-slate-400 ${activeBestMove ? '' : 'invisible'}`}>
+                    <div className={`text-sm text-fg-subtle dark:text-fg-muted ${activeBestMove ? '' : 'invisible'}`}>
                       Best:{' '}
-                      <span className="font-mono font-semibold text-slate-800 dark:text-slate-100">
+                      <span className="font-mono font-semibold text-fg-subtle dark:text-fg">
                         {activeBestMove
                           ? `${activeBestMove.from}–${activeBestMove.to}${activeBestMove.promotion ? `=${activeBestMove.promotion[0].toUpperCase()}` : ''}`
                           : '—'}
                       </span>
                     </div>
-                    <p className={`mt-1.5 text-xs font-mono truncate ${activePv.length > 1 ? 'text-slate-400 dark:text-slate-500' : 'invisible'}`}>
+                    <p className={`mt-1.5 text-xs font-mono truncate ${activePv.length > 1 ? 'text-fg-muted dark:text-fg-subtle' : 'invisible'}`}>
                       {activePv.length > 1 ? activePv.slice(1, 7).join(' ') : '—'}
                     </p>
                   </div>
@@ -536,17 +536,17 @@ function AnalysisPageInner() {
                   />
 
                   {/* ── FEN ── */}
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700">
+                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
                     <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">FEN</p>
+                      <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide">FEN</p>
                       <button
                         onClick={handleCopyFen}
-                        className="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                        className="text-xs px-2 py-0.5 rounded bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors"
                       >
                         {copied ? '✓ Copied' : 'Copy'}
                       </button>
                     </div>
-                    <p className="text-xs font-mono text-slate-500 dark:text-slate-400 break-all select-all leading-relaxed">
+                    <p className="text-xs font-mono text-fg-subtle dark:text-fg-muted break-all select-all leading-relaxed">
                       {stateToFen(activeState)}
                     </p>
                   </div>
@@ -570,8 +570,8 @@ function AnalysisPageInner() {
 export default function AnalysisPage() {
   return (
     <Suspense fallback={
-      <div className="h-screen pt-16 flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-        <div className="text-slate-400 dark:text-slate-500">Loading…</div>
+      <div className="h-screen pt-16 flex items-center justify-center bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface">
+        <div className="text-fg-muted dark:text-fg-subtle">Loading…</div>
       </div>
     }>
       <AnalysisPageInner />

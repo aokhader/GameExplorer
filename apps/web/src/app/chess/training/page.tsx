@@ -281,8 +281,8 @@ export default function ChessTrainingPage() {
 
   if (authLoading || (!user && !authLoading)) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 pt-16 flex items-center justify-center">
-        <div className="text-slate-600 dark:text-slate-400">Loading…</div>
+      <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt pt-16 flex items-center justify-center">
+        <div className="text-fg-subtle dark:text-fg-muted">Loading…</div>
       </div>
     );
   }
@@ -291,11 +291,11 @@ export default function ChessTrainingPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 pt-16">
+      <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt pt-16">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/chess"
-            className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+            className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -305,29 +305,29 @@ export default function ChessTrainingPage() {
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-2 text-center">
+          <h1 className="text-4xl font-bold text-fg-subtle dark:text-fg mb-2 text-center">
             Training Mode
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-center mb-8">
+          <p className="text-fg-subtle dark:text-fg-muted text-center mb-8">
             Play rated games against a bot matched to your skill level
           </p>
 
           {/* Rating card */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-lg font-semibold text-slate-600 dark:text-slate-400 mb-4 uppercase tracking-wide text-center">
+          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
+            <h2 className="text-lg font-semibold text-fg-subtle dark:text-fg-muted mb-4 uppercase tracking-wide text-center">
               Your Rating
             </h2>
             {ratingLoading ? (
-              <div className="text-center text-slate-400 animate-pulse py-4">Loading…</div>
+              <div className="text-center text-fg-muted animate-pulse py-4">Loading…</div>
             ) : (
               <div className="text-center">
-                <div className="text-7xl font-bold tabular-nums text-slate-800 dark:text-slate-100 leading-none mb-2">
+                <div className="text-7xl font-bold tabular-nums text-fg-subtle dark:text-fg leading-none mb-2">
                   {userRating?.rating ?? 1200}
                 </div>
                 <div className="text-lg font-semibold text-accent dark:text-accent mb-1">
                   {eloLabel(userRating?.rating ?? 1200)}
                 </div>
-                <div className="flex justify-center gap-6 text-sm text-slate-500 dark:text-slate-400 mt-3">
+                <div className="flex justify-center gap-6 text-sm text-fg-subtle dark:text-fg-muted mt-3">
                   <span>{userRating?.games_played ?? 0} games</span>
                   <span>{userRating?.wins ?? 0}W / {userRating?.losses ?? 0}L / {userRating?.draws ?? 0}D</span>
                   <span>Peak: {userRating?.peak_rating ?? 1200}</span>
@@ -342,16 +342,16 @@ export default function ChessTrainingPage() {
           </div>
 
           {/* Bot info */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 mb-6">
+          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-6 mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Bot Strength</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                <h2 className="text-lg font-semibold text-fg-subtle dark:text-fg">Bot Strength</h2>
+                <p className="text-sm text-fg-subtle dark:text-fg-muted mt-0.5">
                   Automatically matched to your rating
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{botElo}</div>
+                <div className="text-2xl font-bold text-fg-subtle dark:text-fg">{botElo}</div>
                 <div className="text-sm text-accent dark:text-accent">{eloLabel(botElo)}</div>
               </div>
             </div>
@@ -364,8 +364,8 @@ export default function ChessTrainingPage() {
           </div>
 
           {/* Color selector */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
+          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
+            <h2 className="text-xl font-semibold text-fg-subtle dark:text-fg mb-4">
               Choose Your Color
             </h2>
             <div className="grid grid-cols-2 gap-4">
@@ -376,12 +376,12 @@ export default function ChessTrainingPage() {
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
                       ? 'bg-accent text-on-accent shadow-lg scale-105'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      : 'bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-hover'
                   }`}
                 >
                   <div className="text-4xl mb-2">{color === 'white' ? '♔' : '♚'}</div>
                   <div className="font-semibold capitalize">{color}</div>
-                  <div className={`text-sm ${playerColor === color ? 'text-accent' : 'text-slate-500 dark:text-slate-400'}`}>
+                  <div className={`text-sm ${playerColor === color ? 'text-accent' : 'text-fg-subtle dark:text-fg-muted'}`}>
                     {color === 'white' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
@@ -412,29 +412,29 @@ export default function ChessTrainingPage() {
   const isPlayerTurn = isAtLive && !isThinking && liveState.currentTurn === playerColor;
 
   return (
-    <div className="min-h-screen lg:h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 lg:overflow-hidden pt-16">
+    <div className="min-h-screen lg:h-screen flex flex-col bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt lg:overflow-hidden pt-16">
 
       {/* Rating result overlay */}
       {ratingResult && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pt-16">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+          <div className="bg-white dark:bg-surface-alt rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
             {/* Outcome */}
             <div className="text-5xl mb-3">
               {ratingResult.delta > 0 ? '🏆' : ratingResult.delta < 0 ? '😞' : '🤝'}
             </div>
-            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-1">
+            <div className="text-2xl font-bold text-fg-subtle dark:text-fg mb-1">
               {gameOverMsg}
             </div>
 
             {/* Rating change */}
-            <div className="mt-5 mb-5 p-4 rounded-xl bg-slate-50 dark:bg-slate-700">
+            <div className="mt-5 mb-5 p-4 rounded-xl bg-surface-hover dark:bg-surface-muted">
               <div className="flex items-center justify-center gap-3">
-                <span className="text-slate-500 dark:text-slate-400 text-sm">Rating</span>
-                <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{ratingResult.before}</span>
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-fg-subtle dark:text-fg-muted text-sm">Rating</span>
+                <span className="text-xl font-bold text-fg-subtle dark:text-fg">{ratingResult.before}</span>
+                <svg className="w-5 h-5 text-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-                <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{ratingResult.after}</span>
+                <span className="text-xl font-bold text-fg-subtle dark:text-fg">{ratingResult.after}</span>
                 <span className={`text-lg font-bold ${ratingResult.delta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {ratingResult.delta >= 0 ? '+' : ''}{ratingResult.delta}
                 </span>
@@ -464,7 +464,7 @@ export default function ChessTrainingPage() {
               </button>
               <Link
                 href="/chess"
-                className="w-full px-4 py-2.5 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-800 dark:text-slate-100 font-semibold rounded-lg transition-colors text-sm"
+                className="w-full px-4 py-2.5 bg-surface-hover dark:bg-surface-hover hover:bg-surface-hover dark:hover:bg-surface-hover text-fg-subtle dark:text-fg font-semibold rounded-lg transition-colors text-sm"
               >
                 Back to Chess
               </Link>
@@ -474,11 +474,11 @@ export default function ChessTrainingPage() {
       )}
 
       {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
+      <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border bg-white/50 dark:bg-surface-alt/50">
         <div className="container mx-auto flex items-center justify-between">
           <Link
             href="/chess"
-            className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+            className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -487,21 +487,21 @@ export default function ChessTrainingPage() {
           </Link>
 
           {/* Rating badge */}
-          <div className="flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-700 rounded-full shadow-sm border border-slate-200 dark:border-slate-600">
-            <span className="text-xs text-slate-500 dark:text-slate-400">Rating</span>
-            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{userRating?.rating ?? 1200}</span>
+          <div className="flex items-center gap-2 px-3 py-1 bg-white dark:bg-surface-muted rounded-full shadow-sm border border-border-strong dark:border-border-strong">
+            <span className="text-xs text-fg-subtle dark:text-fg-muted">Rating</span>
+            <span className="text-sm font-bold text-fg-subtle dark:text-fg">{userRating?.rating ?? 1200}</span>
           </div>
 
           <div className="flex items-center gap-3">
             {isThinking && (
-              <span className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">
+              <span className="text-sm text-fg-subtle dark:text-fg-muted animate-pulse">
                 Bot thinking…
               </span>
             )}
             {!isAtLive && (
               <button
                 onClick={() => setViewIndex(timeline.length - 1)}
-                className="text-xs px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium"
+                className="text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg transition-colors font-medium"
               >
                 Live ⇥
               </button>
@@ -537,28 +537,28 @@ export default function ChessTrainingPage() {
             {/* Sidebar */}
             <div className="flex flex-col gap-3 min-h-0">
               {/* Info card */}
-              <div className="shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3">
+              <div className="shrink-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border p-3">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                   <div className="flex gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400">Bot:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100">
+                    <span className="text-fg-subtle dark:text-fg-muted">Bot:</span>
+                    <span className="font-semibold text-fg-subtle dark:text-fg">
                       {botElo}
-                      <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
+                      <span className="text-xs font-normal text-fg-subtle dark:text-fg-muted ml-1">
                         ({eloLabel(botElo)})
                       </span>
                     </span>
                   </div>
                   <div className="flex gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400">Playing:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 capitalize">{playerColor}</span>
+                    <span className="text-fg-subtle dark:text-fg-muted">Playing:</span>
+                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">{playerColor}</span>
                   </div>
                   <div className="flex gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400">Turn:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 capitalize">{liveState.currentTurn}</span>
+                    <span className="text-fg-subtle dark:text-fg-muted">Turn:</span>
+                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">{liveState.currentTurn}</span>
                   </div>
                   <div className="flex gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400">Hints:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100">
+                    <span className="text-fg-subtle dark:text-fg-muted">Hints:</span>
+                    <span className="font-semibold text-fg-subtle dark:text-fg">
                       {hintsUsed}
                       {hintsUsed > 0 && (
                         <span className="text-xs font-normal text-amber-500 ml-1">(−{hintsUsed * 2} pts)</span>
@@ -567,7 +567,7 @@ export default function ChessTrainingPage() {
                   </div>
                 </div>
                 {gameOverMsg && (
-                  <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600 text-sm font-semibold text-center text-amber-700 dark:text-amber-300">
+                  <div className="mt-2 pt-2 border-t border-border-strong dark:border-border-strong text-sm font-semibold text-center text-amber-700 dark:text-amber-300">
                     {gameOverMsg}
                   </div>
                 )}
@@ -581,7 +581,7 @@ export default function ChessTrainingPage() {
                   className={`shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
                     isPlayerTurn && !isHinting
                       ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40'
-                      : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                      : 'bg-surface-hover dark:bg-surface-muted border-border-strong dark:border-border-strong text-fg-muted dark:text-fg-subtle cursor-not-allowed'
                   }`}
                 >
                   <span>💡</span>

@@ -205,9 +205,9 @@ export default function ReversiBotPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 pt-16">
+      <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt pt-16">
         <div className="container mx-auto px-4 pt-8">
-          <Link href="/reversi" className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+          <Link href="/reversi" className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
@@ -216,11 +216,11 @@ export default function ReversiBotPage() {
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-8 text-center">Play vs Bot</h1>
+          <h1 className="text-4xl font-bold text-fg-subtle dark:text-fg mb-8 text-center">Play vs Bot</h1>
 
           {/* Difficulty selector */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-6">Bot Strength</h2>
+          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
+            <h2 className="text-2xl font-semibold text-fg-subtle dark:text-fg mb-6">Bot Strength</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {DIFFICULTY_LEVELS.map((level) => {
                 const selected = targetElo === level.elo;
@@ -231,14 +231,14 @@ export default function ReversiBotPage() {
                     className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                       selected
                         ? 'border-accent bg-accent-muted dark:bg-accent-muted shadow-md scale-[1.02]'
-                        : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-white dark:hover:bg-slate-700'
+                        : 'border-border-strong dark:border-border-strong bg-surface-hover dark:bg-surface-muted/50 hover:border-border-strong dark:hover:border-border-strong hover:bg-white dark:hover:bg-surface-muted'
                     }`}
                   >
                     <div className="text-2xl mb-2">{level.icon}</div>
-                    <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent dark:text-accent' : 'text-slate-800 dark:text-slate-100'}`}>
+                    <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent dark:text-accent' : 'text-fg-subtle dark:text-fg'}`}>
                       {level.label}
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 leading-snug">{level.description}</div>
+                    <div className="text-xs text-fg-subtle dark:text-fg-muted leading-snug">{level.description}</div>
                     {selected && (
                       <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-accent flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -253,8 +253,8 @@ export default function ReversiBotPage() {
           </div>
 
           {/* Color selector */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-6">Choose Your Colour</h2>
+          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
+            <h2 className="text-2xl font-semibold text-fg-subtle dark:text-fg mb-6">Choose Your Colour</h2>
             <div className="grid grid-cols-2 gap-4">
               {(['black', 'white'] as const).map(color => (
                 <button
@@ -263,7 +263,7 @@ export default function ReversiBotPage() {
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
                       ? 'bg-accent text-on-accent shadow-lg scale-105'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      : 'bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-hover'
                   }`}
                 >
                   <div className="flex justify-center mb-2">
@@ -274,7 +274,7 @@ export default function ReversiBotPage() {
                     </svg>
                   </div>
                   <div className="font-semibold capitalize">{color}</div>
-                  <div className={`text-sm ${playerColor === color ? 'text-accent' : 'text-slate-600 dark:text-slate-400'}`}>
+                  <div className={`text-sm ${playerColor === color ? 'text-accent' : 'text-fg-subtle dark:text-fg-muted'}`}>
                     {color === 'black' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
@@ -304,26 +304,26 @@ export default function ReversiBotPage() {
     : null;
 
   return (
-    <div className="min-h-screen lg:h-screen flex flex-col bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 lg:overflow-hidden pt-16">
+    <div className="min-h-screen lg:h-screen flex flex-col bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt lg:overflow-hidden pt-16">
 
       {/* Rating result overlay */}
       {ratingResult && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pt-16">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+          <div className="bg-white dark:bg-surface-alt rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
             <div className="text-5xl mb-3">
               {ratingResult.delta > 0 ? '🏆' : ratingResult.delta < 0 ? '😞' : '🤝'}
             </div>
-            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-1">
+            <div className="text-2xl font-bold text-fg-subtle dark:text-fg mb-1">
               {gameOverMsg}
             </div>
-            <div className="mt-5 mb-5 p-4 rounded-xl bg-slate-50 dark:bg-slate-700">
+            <div className="mt-5 mb-5 p-4 rounded-xl bg-surface-hover dark:bg-surface-muted">
               <div className="flex items-center justify-center gap-3">
-                <span className="text-slate-500 dark:text-slate-400 text-sm">Rating</span>
-                <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{ratingResult.before}</span>
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-fg-subtle dark:text-fg-muted text-sm">Rating</span>
+                <span className="text-xl font-bold text-fg-subtle dark:text-fg">{ratingResult.before}</span>
+                <svg className="w-5 h-5 text-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-                <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{ratingResult.after}</span>
+                <span className="text-xl font-bold text-fg-subtle dark:text-fg">{ratingResult.after}</span>
                 <span className={`text-lg font-bold ${ratingResult.delta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {ratingResult.delta >= 0 ? '+' : ''}{ratingResult.delta}
                 </span>
@@ -338,7 +338,7 @@ export default function ReversiBotPage() {
               </button>
               <Link
                 href="/reversi"
-                className="w-full px-4 py-2.5 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-800 dark:text-slate-100 font-semibold rounded-lg transition-colors text-sm block"
+                className="w-full px-4 py-2.5 bg-surface-hover dark:bg-surface-hover hover:bg-surface-hover dark:hover:bg-surface-hover text-fg-subtle dark:text-fg font-semibold rounded-lg transition-colors text-sm block"
               >
                 Back to Reversi
               </Link>
@@ -348,9 +348,9 @@ export default function ReversiBotPage() {
       )}
 
       {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
+      <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border bg-white/50 dark:bg-surface-alt/50">
         <div className="container mx-auto flex items-center justify-between">
-          <Link href="/reversi" className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+          <Link href="/reversi" className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
@@ -363,12 +363,12 @@ export default function ReversiBotPage() {
               </span>
             )}
             {isThinking && !passMsg && (
-              <span className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">Bot thinking…</span>
+              <span className="text-sm text-fg-subtle dark:text-fg-muted animate-pulse">Bot thinking…</span>
             )}
             {!isAtLive && (
               <button
                 onClick={() => setViewIndex(timeline.length - 1)}
-                className="text-xs px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium"
+                className="text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg transition-colors font-medium"
               >
                 Live ⇥
               </button>
@@ -401,7 +401,7 @@ export default function ReversiBotPage() {
             {/* Sidebar */}
             <div className="flex flex-col gap-3 min-h-0">
               {/* Score card */}
-              <div className="shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+              <div className="shrink-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border p-4">
                 {/* Disc counts — prominent */}
                 <div className="flex items-center justify-around mb-3">
                   <div className="text-center">
@@ -410,61 +410,61 @@ export default function ReversiBotPage() {
                         <circle cx="20" cy="20" r="16" fill="#1a1a1a" stroke="#555" strokeWidth="1" />
                         <ellipse cx="15" cy="14.5" rx="5" ry="3.5" fill="#444" opacity="0.35" />
                       </svg>
-                      <span className="text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">{counts.black}</span>
+                      <span className="text-2xl font-bold text-fg-subtle dark:text-fg tabular-nums">{counts.black}</span>
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">Black</div>
+                    <div className="text-xs text-fg-subtle dark:text-fg-muted">Black</div>
                   </div>
-                  <div className="text-slate-300 dark:text-slate-600 text-lg font-light">vs</div>
+                  <div className="text-fg-muted dark:text-fg-subtle text-lg font-light">vs</div>
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2 mb-1">
                       <svg width="20" height="20" viewBox="0 0 40 40">
                         <circle cx="20" cy="20" r="16" fill="#f5f0e8" stroke="#aaa" strokeWidth="1" />
                         <ellipse cx="15" cy="14.5" rx="5" ry="3.5" fill="#fff" opacity="0.35" />
                       </svg>
-                      <span className="text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">{counts.white}</span>
+                      <span className="text-2xl font-bold text-fg-subtle dark:text-fg tabular-nums">{counts.white}</span>
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">White</div>
+                    <div className="text-xs text-fg-subtle dark:text-fg-muted">White</div>
                   </div>
                 </div>
 
                 {/* Score bar */}
-                <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden mb-3">
+                <div className="h-1.5 rounded-full bg-surface-hover dark:bg-surface-hover overflow-hidden mb-3">
                   <div
-                    className="h-full rounded-full bg-slate-800 dark:bg-slate-100 transition-all duration-300"
+                    className="h-full rounded-full bg-surface-alt dark:bg-surface-hover transition-all duration-300"
                     style={{ width: `${(counts.black / (counts.black + counts.white || 1)) * 100}%` }}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                   <div className="flex gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400">Bot:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100">
+                    <span className="text-fg-subtle dark:text-fg-muted">Bot:</span>
+                    <span className="font-semibold text-fg-subtle dark:text-fg">
                       {DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label}
                     </span>
                   </div>
                   <div className="flex gap-1.5">
-                    <span className="text-slate-500 dark:text-slate-400">Playing:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 capitalize">{playerColor}</span>
+                    <span className="text-fg-subtle dark:text-fg-muted">Playing:</span>
+                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">{playerColor}</span>
                   </div>
                   <div className="flex gap-1.5 col-span-2">
-                    <span className="text-slate-500 dark:text-slate-400">Turn:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 capitalize">
+                    <span className="text-fg-subtle dark:text-fg-muted">Turn:</span>
+                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">
                       {liveState.isGameOver ? '—' : liveState.currentTurn}
                     </span>
                   </div>
                 </div>
 
                 {gameOverMsg && (
-                  <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600 text-sm font-semibold text-center text-amber-700 dark:text-amber-300">
+                  <div className="mt-2 pt-2 border-t border-border-strong dark:border-border-strong text-sm font-semibold text-center text-amber-700 dark:text-amber-300">
                     {gameOverMsg}
                   </div>
                 )}
               </div>
 
               {/* Move history */}
-              <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-600">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Moves</span>
+              <div className="flex-1 min-h-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border flex flex-col">
+                <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border-strong dark:border-border-strong">
+                  <span className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide">Moves</span>
                   <div className="flex gap-1">
                     {[
                       { label: '⇤', action: () => setViewIndex(0),                                      disabled: !canGoBack },
@@ -473,7 +473,7 @@ export default function ReversiBotPage() {
                       { label: '⇥', action: () => setViewIndex(timeline.length - 1),                   disabled: !canGoForward },
                     ].map(({ label, action, disabled }) => (
                       <button key={label} onClick={action} disabled={disabled}
-                        className="w-7 h-7 flex items-center justify-center rounded text-xs font-mono bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                        className="w-7 h-7 flex items-center justify-center rounded text-xs font-mono bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg-muted hover:bg-surface-hover dark:hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                         {label}
                       </button>
                     ))}
@@ -482,7 +482,7 @@ export default function ReversiBotPage() {
 
                 <div className="flex-1 overflow-y-auto p-3 text-sm font-mono">
                   {liveState.moveHistory.length === 0 ? (
-                    <p className="text-slate-400 dark:text-slate-500 text-xs text-center py-4">
+                    <p className="text-fg-muted dark:text-fg-subtle text-xs text-center py-4">
                       No moves yet
                     </p>
                   ) : (
@@ -496,7 +496,7 @@ export default function ReversiBotPage() {
                         return (
                           <div key={i} className="flex items-center gap-1">
                             {isBlack && (
-                              <span className="text-slate-400 dark:text-slate-500 w-6 shrink-0 text-right pr-0.5 text-xs">{moveNum}.</span>
+                              <span className="text-fg-muted dark:text-fg-subtle w-6 shrink-0 text-right pr-0.5 text-xs">{moveNum}.</span>
                             )}
                             {!isBlack && <span className="w-6 shrink-0" />}
                             <button
@@ -504,7 +504,7 @@ export default function ReversiBotPage() {
                               className={`flex-1 text-left px-2 py-0.5 rounded transition-colors text-xs ${
                                 isActive
                                   ? 'bg-accent text-on-accent font-semibold'
-                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                  : 'text-fg-subtle dark:text-fg-muted hover:bg-surface-hover dark:hover:bg-surface-muted'
                               }`}
                             >
                               <span className="mr-1 opacity-60">{colorDot}</span>

@@ -78,23 +78,23 @@ export default function SpectatePage() {
   const endData     = gameStore.gameEndData;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white pt-16 flex flex-col items-center px-4 py-6">
+    <div className="min-h-screen bg-surface text-white pt-16 flex flex-col items-center px-4 py-6">
       <div className="w-full max-w-2xl">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold">👁 Spectating</h1>
-          <Link href="/spectate" className="text-slate-400 hover:text-white text-sm">← Leave</Link>
+          <Link href="/spectate" className="text-fg-muted hover:text-white text-sm">← Leave</Link>
         </div>
 
         {!state ? (
-          <div className="text-center py-20 text-slate-400">
+          <div className="text-center py-20 text-fg-muted">
             {connected ? 'Loading game…' : 'Connecting…'}
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             {/* Black player (top) */}
-            <div className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-2">
+            <div className="flex items-center justify-between bg-surface-alt rounded-lg px-4 py-2">
               <span className="font-semibold">⚫ {gameStore.opponent?.username ?? 'Black'} ({gameStore.opponent?.rating ?? '—'})</span>
-              <span className={`px-3 py-1 rounded font-mono text-lg ${activeColor === 'black' ? 'bg-white text-slate-900' : 'bg-slate-700 text-slate-300'}`}>{formatMs(displayClocks.black)}</span>
+              <span className={`px-3 py-1 rounded font-mono text-lg ${activeColor === 'black' ? 'bg-white text-fg-subtle' : 'bg-surface-muted text-fg-muted'}`}>{formatMs(displayClocks.black)}</span>
             </div>
 
             {/* Read-only board (pointer-events disabled) */}
@@ -105,19 +105,19 @@ export default function SpectatePage() {
             </div>
 
             {/* White player (bottom) */}
-            <div className="flex items-center justify-between bg-slate-800 rounded-lg px-4 py-2">
+            <div className="flex items-center justify-between bg-surface-alt rounded-lg px-4 py-2">
               <span className="font-semibold">⚪ White</span>
-              <span className={`px-3 py-1 rounded font-mono text-lg ${activeColor === 'white' ? 'bg-white text-slate-900' : 'bg-slate-700 text-slate-300'}`}>{formatMs(displayClocks.white)}</span>
+              <span className={`px-3 py-1 rounded font-mono text-lg ${activeColor === 'white' ? 'bg-white text-fg-subtle' : 'bg-surface-muted text-fg-muted'}`}>{formatMs(displayClocks.white)}</span>
             </div>
           </div>
         )}
 
         {ended && endData && (
-          <div className="mt-4 bg-slate-800 rounded-xl p-4 text-center">
+          <div className="mt-4 bg-surface-alt rounded-xl p-4 text-center">
             <p className="text-lg font-semibold">
               {endData.result === 'draw' ? 'Draw' : endData.result === 'white_wins' ? '⚪ White wins' : '⚫ Black wins'}
             </p>
-            <p className="text-sm text-slate-400 capitalize">{endData.reason.replace(/_/g, ' ')}</p>
+            <p className="text-sm text-fg-muted capitalize">{endData.reason.replace(/_/g, ' ')}</p>
           </div>
         )}
       </div>
