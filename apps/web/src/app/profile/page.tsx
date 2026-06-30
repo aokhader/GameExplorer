@@ -6,6 +6,7 @@ import { getPublicProfile, getGames, getUserRating, supabase } from '@gameexplor
 import type { AuthUser, Profile, SavedGame, UserRating, GameType } from '@gameexplorer/db';
 import { useRouter } from 'next/navigation';
 import { BlockedPlayers } from '@/components/multiplayer/BlockedPlayers';
+import { Skeleton } from '@/components/ui';
 
 type Tab = 'all' | GameType;
 
@@ -90,8 +91,36 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="relative min-h-screen flex items-center justify-center">
-        <div className="text-fg-muted">Loading profile...</div>
+      <div className="relative min-h-screen pt-16">
+        <div className="container mx-auto px-4 pt-8 pb-8 max-w-3xl">
+          {/* Avatar + username */}
+          <div className="flex items-center gap-4 mb-8 mt-8">
+            <Skeleton circle className="w-16 h-16 shrink-0" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+          {/* Rating cards */}
+          <div className="space-y-3 mb-6">
+            {[0, 1].map((i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-xl" />
+            ))}
+          </div>
+          {/* Stat tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-20 rounded-xl" />
+            ))}
+          </div>
+          {/* History rows */}
+          <Skeleton className="h-9 w-48 mb-4" />
+          <div className="space-y-2">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-14 w-full rounded-xl" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

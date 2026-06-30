@@ -26,3 +26,6 @@ export type { ModalProps } from './Modal';
 
 export { ToastProvider, useToast } from './Toast';
 export type { ToastVariant } from './Toast';
+
+export { Skeleton } from './Skeleton';
+export type { SkeletonProps } from './Skeleton';

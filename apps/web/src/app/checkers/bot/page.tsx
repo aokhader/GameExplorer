@@ -346,7 +346,7 @@ export default function CheckersBotPage() {
     liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
 
   return (
-    <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
+    <div className="reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
 
       <GameResultScreen
         open={!!ratingResult}

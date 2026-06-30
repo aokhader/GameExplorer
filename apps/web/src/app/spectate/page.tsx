@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/apiFetch';
+import { Skeleton } from '@/components/ui';
 
 interface LiveGame {
   gameId:      string;
@@ -59,11 +60,21 @@ export default function SpectateLobby() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-fg-muted py-8 text-center">Loading…</p>
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-[58px] w-full rounded-lg" />
+              ))}
+            </div>
           ) : error ? (
             <p className="text-sm text-red-400 py-8 text-center">{error}</p>
           ) : games.length === 0 ? (
-            <p className="text-sm text-fg-muted py-8 text-center">No live games right now. Check back soon!</p>
+            <div className="py-10 text-center">
+              <div className="text-4xl mb-3">🍿</div>
+              <p className="text-sm text-fg-muted">No live games right now.</p>
+              <Link href="/chess/play" className="mt-3 inline-block text-sm text-accent hover:underline">
+                Start one yourself
+              </Link>
+            </div>
           ) : (
             <div className="space-y-2">
               {games.map(g => (

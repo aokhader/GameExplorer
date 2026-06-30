@@ -5,3 +5,4 @@ export { GradientText } from './GradientText';
 export type { GradientTextProps } from './GradientText';
 export { Reveal } from './Reveal';
 export type { RevealProps } from './Reveal';
+export { PageTransition } from './PageTransition';

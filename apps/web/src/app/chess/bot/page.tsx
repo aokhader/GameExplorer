@@ -351,7 +351,7 @@ export default function ChessBotPage() {
     : null;
 
   return (
-    <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
+    <div className="reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
       {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border bg-white/50 dark:bg-surface-alt/50">
         <div className="container mx-auto flex items-center justify-between">
