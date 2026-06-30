@@ -49,16 +49,19 @@ export function Navigation() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-surface/70 backdrop-blur-xl backdrop-saturate-150 border-b border-border shadow-[0_1px_0_0_rgba(255,255,255,0.04)]">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        {/* 3-column grid: equal-width outer columns keep the center nav truly
+            viewport-centered regardless of how wide the logo / auth area are
+            (a plain justify-between would let the side widths shift it off-center). */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group">
+          <Link href="/" className="flex items-center space-x-2 group justify-self-start">
             <span className="text-2xl font-bold text-fg group-hover:text-accent transition-colors">
               GameExplorer
             </span>
           </Link>
 
           {/* Navigation Links (desktop) */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-8 justify-self-center">
             {NAV_ITEMS.map((item) => (
               <NavLink key={item.href} href={item.href} active={isActive(item.href)}>
                 {item.label}
@@ -67,7 +70,7 @@ export function Navigation() {
           </div>
 
           {/* Auth area + mobile toggle */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 justify-self-end">
             {!loading && (
               user ? (
                 /* Avatar + dropdown */
