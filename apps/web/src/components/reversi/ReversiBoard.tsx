@@ -5,6 +5,8 @@ import { ReversiEngine } from '@gameexplorer/shared';
 import type { ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 import { ReversiDisc, REVERSI_BOARD_COLORS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
+import { useGameSfx } from '@/hooks/useGameSfx';
+import { useSettings } from '@/components/providers/SettingsProvider';
 
 interface ReversiiBoardProps {
   gameState: ReversiGameState;
@@ -33,8 +35,11 @@ export function ReversiBoard({
 }: ReversiiBoardProps) {
   const [justFlipped, setJustFlipped] = useState<Set<string>>(new Set());
   const [justPlaced, setJustPlaced]   = useState<string | null>(null);
+  const sfx = useGameSfx();
+  const { settings } = useSettings();
+  const coordsOn = showCoordinates && settings.showCoordinates;
 
-  // Animate the most recent move
+  // Animate + sound the most recent move
   useEffect(() => {
     const history = gameState.moveHistory;
     if (history.length === 0) return;
@@ -43,12 +48,15 @@ export function ReversiBoard({
 
     setJustPlaced(latest.position);
     setJustFlipped(new Set(latest.flipped));
+    // A placement always flips at least one disc — the flip is the moment.
+    sfx.play(latest.flipped.length > 0 ? 'flip' : 'move');
 
     const t = setTimeout(() => {
       setJustFlipped(new Set());
       setJustPlaced(null);
     }, 350);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.moveHistory.length]);
 
   const legalMoves = ReversiEngine.getAllLegalMoves(gameState);
@@ -68,8 +76,8 @@ export function ReversiBoard({
       const isFlipped    = justFlipped.has(pos);
       const isHighlighted = highlightPos === pos;
 
-      const showRank = showCoordinates && screenCol === 0;
-      const showFile = showCoordinates && screenRow === 7;
+      const showRank = coordsOn && screenCol === 0;
+      const showFile = coordsOn && screenRow === 7;
 
       squares.push(
         <div
@@ -137,8 +145,13 @@ export function ReversiBoard({
   return (
     <BoardFrame className="select-none">
       <div
-        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg"
-        style={{ border: `2px solid ${REVERSI_BOARD_COLORS.boardBorder}` }}
+        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg transition-shadow duration-300"
+        style={{
+          border: `2px solid ${REVERSI_BOARD_COLORS.boardBorder}`,
+          boxShadow: isPlayerTurn
+            ? '0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(90,158,134,0.65), 0 0 26px -2px rgba(90,158,134,0.5)'
+            : undefined,
+        }}
       >
         {squares}
       </div>

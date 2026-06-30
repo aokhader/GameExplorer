@@ -8,9 +8,10 @@ import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useChessEngine } from '@/hooks/useChessEngine';
 import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
-import { useChessAudio } from '@/hooks/useChessAudio';
 import { useAuth } from '@/hooks/useAuth';
 import { saveGame } from '@gameexplorer/db';
+import { GameResultScreen, type GameResult } from '@/components/game/GameResultScreen';
+import { Button } from '@/components/ui';
 
 // ── ELO helpers ────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,6 @@ export default function ChessBotPage() {
   // Worker owns the canonical game state; all move validation runs off main thread.
   const { gameState: liveState, legalMoves: legalMovesMap, isReady: engineReady, makeMove, getBotMove, reset } = useChessEngine();
   const stockfish = useStockfish();
-  const { playCheck, playCheckmate } = useChessAudio();
   const { user } = useAuth();
 
   // Timeline for replay — grows as the worker confirms each move.
@@ -104,9 +104,8 @@ export default function ChessBotPage() {
           setIsThinking(false);
         }
 
-        // Audio cues.
-        if (liveState.isCheckmate) playCheckmate();
-        else if (liveState.isCheck) playCheck();
+        // Per-move sound is handled by the board; the terminal win/loss chime
+        // is owned by the result celebration screen.
 
         return [...prev, liveState];
       }
@@ -345,6 +344,12 @@ export default function ChessBotPage() {
     : liveState.isDraw ? 'Draw'
     : null;
 
+  // Player-relative result for the celebration screen.
+  const myResult: GameResult | null = liveState.isCheckmate
+    ? ((liveState.currentTurn === 'white' ? 'black' : 'white') === playerColor ? 'win' : 'loss')
+    : liveState.isStalemate || liveState.isDraw ? 'draw'
+    : null;
+
   return (
     <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
       {/* Header */}
@@ -453,6 +458,25 @@ export default function ChessBotPage() {
           </div>
         </div>
       </div>
+
+      <GameResultScreen
+        open={!!myResult}
+        result={myResult ?? 'draw'}
+        subtitle={gameOverMsg ?? undefined}
+        actions={
+          <>
+            <Button size="lg" fullWidth onClick={handleNewGame}>
+              Play Again
+            </Button>
+            <Link
+              href="/chess"
+              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
+            >
+              Back to Chess
+            </Link>
+          </>
+        }
+      />
     </div>
   );
 }

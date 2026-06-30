@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChessEngine, ChessGameState, Position, Piece, PieceType } from '@gameexplorer/shared';
 import { ChessPiece, BOARD_COLORS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
+import { useGameSfx } from '@/hooks/useGameSfx';
+import { useSettings } from '@/components/providers/SettingsProvider';
 
 // Drive ChessBoard.css from the shared token so BOARD_COLORS is the single source
 // of truth across web + mobile. The CSS references these vars (with the hex as a
@@ -182,6 +184,25 @@ export function ChessBoard({
   // lastMoveTo only drives the 300 ms pop animation; one frame of lag is fine.
   const [lastMoveTo, setLastMoveTo] = useState<Position | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
+  // Square that briefly shakes after an illegal drop (visceral "no" feedback).
+  const [shakeSquare, setShakeSquare] = useState<Position | null>(null);
+  // Destination square of the latest capture — drives a quick impact flash.
+  const [captureFlash, setCaptureFlash] = useState<Position | null>(null);
+
+  const sfx = useGameSfx();
+  const { settings } = useSettings();
+  // The page can force coordinates off; the user setting can also hide them.
+  const coordsOn = showCoordinates && settings.showCoordinates;
+
+  // Whose-turn signifier + check highlight. Computed each render (cheap).
+  const gameOver =
+    effectiveState.isCheckmate || effectiveState.isStalemate || effectiveState.isDraw;
+  const myTurn =
+    !editMode && !allowSelectAnyColor && !gameOver &&
+    effectiveState.currentTurn === playerColor;
+  const kingInCheckPos = effectiveState.isCheck
+    ? findKing(effectiveState.board, effectiveState.currentTurn)
+    : null;
 
   const boardRef  = useRef<HTMLDivElement>(null);
   const ghostRef  = useRef<HTMLDivElement>(null);
@@ -191,12 +212,24 @@ export function ChessBoard({
   const dragMovesRef = useRef<Position[]>([]);
   const isFlipped = playerColor === 'black';
 
-  // Trigger the arrival pop-animation whenever the move list grows.
+  // Trigger the arrival pop-animation + sound whenever the move list grows.
+  // Covers both the player's optimistic move and the opponent/bot's move.
   useEffect(() => {
     const latest = effectiveState.moveHistory.at(-1);
     if (!latest) return;
     setLastMoveTo(latest.to);
-    const t = setTimeout(() => setLastMoveTo(null), 300);
+    // Per-move feedback. Checkmate's terminal chime is owned by the page /
+    // result screen, so we stay quiet on mate to avoid doubling up.
+    if (!effectiveState.isCheckmate) {
+      if (effectiveState.isCheck) sfx.play('check');
+      else if (latest.capturedPiece) sfx.play('capture');
+      else sfx.play('move');
+    }
+    if (latest.capturedPiece) setCaptureFlash(latest.to);
+    const t = setTimeout(() => {
+      setLastMoveTo(null);
+      setCaptureFlash(null);
+    }, 320);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveState.moveHistory.length]);
@@ -365,6 +398,12 @@ export function ChessBoard({
       setValidMoves([]);
     } else if (target !== drag.from) {
       // Dropped on invalid square or off-board — clear selection.
+      // If it landed on a real (but illegal) square, shake + buzz as feedback.
+      if (target) {
+        setShakeSquare(drag.from);
+        sfx.play('illegal');
+        setTimeout(() => setShakeSquare(null), 350);
+      }
       setSelectedSquare(null);
       setValidMoves([]);
       dragMovesRef.current = [];
@@ -399,6 +438,8 @@ export function ChessBoard({
         const isDragging = dragging?.from === position;
         const isLastMoveSquare = lastMove && (lastMove.from === position || lastMove.to === position);
         const justArrived = lastMoveTo === position;
+        const isCheckKing = kingInCheckPos === position;
+        const isShaking = shakeSquare === position;
 
         squares.push(
           <div
@@ -413,10 +454,10 @@ export function ChessBoard({
             `}
             onClick={() => handleSquareClick(position)}
           >
-            {showCoordinates && col === (isFlipped ? 7 : 0) && (
+            {coordsOn && col === (isFlipped ? 7 : 0) && (
               <div className="rank-label">{displayRow + 1}</div>
             )}
-            {showCoordinates && row === (isFlipped ? 7 : 0) && (
+            {coordsOn && row === (isFlipped ? 7 : 0) && (
               <div className="file-label">{String.fromCharCode(97 + displayCol)}</div>
             )}
 
@@ -424,9 +465,12 @@ export function ChessBoard({
               <div className={`move-indicator ${piece ? 'capture' : 'empty'}`} />
             )}
 
+            {isCheckKing && <div className="check-ring" />}
+            {captureFlash === position && <div className="capture-flash" />}
+
             {piece && (
               <div
-                className={`piece${justArrived ? ' just-arrived' : ''}`}
+                className={`piece${justArrived ? ' just-arrived' : ''}${isShaking ? ' shake' : ''}`}
                 onPointerDown={
                   !editMode && piece.color === effectiveState.currentTurn
                     ? handlePiecePointerDown(position, piece)
@@ -449,7 +493,7 @@ export function ChessBoard({
       <BoardFrame maxPx={compact ? 520 : 600} vhCap={compact ? 70 : 80}>
         <div className="relative w-full h-full">
         <div
-          className="chess-board"
+          className={`chess-board${myTurn ? ' my-turn' : ''}`}
           ref={boardRef}
           style={{ touchAction: 'none' }}
           onPointerMove={handleBoardPointerMove}
@@ -508,4 +552,17 @@ function getCol(position: Position): number {
 
 function getPositionFromCoords(row: number, col: number): Position {
   return (String.fromCharCode(97 + col) + (row + 1)) as Position;
+}
+
+/** Find the square of the given color's king, or null. O(64), called only on check. */
+function findKing(board: ChessGameState['board'], color: 'white' | 'black'): Position | null {
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const p = board[row][col];
+      if (p && p.type === 'king' && p.color === color) {
+        return getPositionFromCoords(row, col);
+      }
+    }
+  }
+  return null;
 }

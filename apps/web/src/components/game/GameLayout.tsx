@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { useGameSession } from '@gameexplorer/client';
 import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 import type { TimeControl } from '@gameexplorer/shared';
-import { Button, Card, Modal, Input, useToast } from '@/components/ui';
+import { Button, Card, Input, useToast } from '@/components/ui';
 import { GradientText } from '@/components/visual';
 import { cn } from '@/lib/utils';
 import { SpectateLinkButton } from '@/components/multiplayer/SpectateLinkButton';
 import { EmoteBar } from '@/components/multiplayer/EmoteBar';
 import { OpponentMenu } from '@/components/multiplayer/OpponentMenu';
+import { GameResultScreen, type GameResult } from '@/components/game/GameResultScreen';
 
 type GameSession = ReturnType<typeof useGameSession>;
 
@@ -235,7 +236,7 @@ function Spinner() {
   );
 }
 
-// ── Game-over / aborted modal ────────────────────────────────────────────────
+// ── Game-over / aborted celebration ──────────────────────────────────────────
 function GameOverModal({
   session: s,
   backHref,
@@ -245,64 +246,48 @@ function GameOverModal({
   const aborted = s.aborted && !endData;
 
   const exitClasses =
-    'inline-flex items-center justify-center h-12 px-6 flex-1 rounded-lg text-base font-semibold ' +
+    'inline-flex items-center justify-center h-12 px-6 rounded-lg text-base font-semibold ' +
     'bg-info-muted text-info-hover border border-info/30 hover:bg-info/25 transition-colors ' +
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info focus-visible:ring-offset-2 focus-visible:ring-offset-surface-alt';
 
+  const result: GameResult = aborted
+    ? 'aborted'
+    : s.myResult === 'win'
+      ? 'win'
+      : s.myResult === 'loss'
+        ? 'loss'
+        : 'draw';
+
+  const me = endData ? (s.isWhite ? endData.white : endData.black) : null;
+  const rating =
+    me && !aborted
+      ? {
+          // Derive `before` from after − delta (no separate field needed).
+          before: me.ratingAfter - me.ratingDelta,
+          after: me.ratingAfter,
+          delta: me.ratingDelta,
+        }
+      : undefined;
+
   return (
-    <Modal
+    <GameResultScreen
       open={open}
-      onClose={() => {}}
-      dismissable={false}
-      size="sm"
-      footer={
+      result={result}
+      subtitle={
+        aborted ? 'No rating change' : endData ? endData.reason.replace(/_/g, ' ') : undefined
+      }
+      rating={rating}
+      actions={
         <div className="flex gap-3 w-full">
           <Button size="lg" fullWidth onClick={s.playAgain}>
             Play Again
           </Button>
-          <Link href={backHref} className={exitClasses}>
+          <Link href={backHref} className={cn(exitClasses, 'flex-1')}>
             Exit
           </Link>
         </div>
       }
-    >
-      <div className="text-center">
-        {aborted ? (
-          <>
-            <div className="text-5xl mb-4">🛑</div>
-            <h2 className="text-3xl font-bold mb-1">Game Aborted</h2>
-            <p className="text-fg-muted">No rating change.</p>
-          </>
-        ) : endData ? (
-          <>
-            <div className="text-5xl mb-4">
-              {s.myResult === 'win' ? '🏆' : s.myResult === 'loss' ? '😞' : '🤝'}
-            </div>
-            <h2 className="text-3xl font-bold mb-1">
-              {s.myResult === 'win' ? 'You Won!' : s.myResult === 'loss' ? 'You Lost' : 'Draw'}
-            </h2>
-            <p className="text-fg-muted mb-4 capitalize">{endData.reason.replace(/_/g, ' ')}</p>
-            <div className="bg-surface-muted rounded-xl p-4">
-              <p className="text-sm text-fg-muted mb-1">Rating change</p>
-              <p className="text-2xl font-bold">
-                {s.isWhite ? endData.white.ratingAfter : endData.black.ratingAfter}
-                <span
-                  className={cn(
-                    'ml-2 text-lg',
-                    (s.isWhite ? endData.white.ratingDelta : endData.black.ratingDelta) >= 0
-                      ? 'text-success'
-                      : 'text-danger-hover',
-                  )}
-                >
-                  {(s.isWhite ? endData.white.ratingDelta : endData.black.ratingDelta) >= 0 ? '+' : ''}
-                  {s.isWhite ? endData.white.ratingDelta : endData.black.ratingDelta}
-                </span>
-              </p>
-            </div>
-          </>
-        ) : null}
-      </div>
-    </Modal>
+    />
   );
 }
 

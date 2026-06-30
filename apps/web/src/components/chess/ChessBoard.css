@@ -176,6 +176,87 @@
   transform: scale(0.95);
 }
 
+/* Illegal-drop shake — a short "no" wobble on the source piece. */
+.piece.shake {
+  animation: piece-shake 0.34s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes piece-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-22%); }
+  40%      { transform: translateX(18%); }
+  60%      { transform: translateX(-12%); }
+  80%      { transform: translateX(8%); }
+}
+
+/* Capture impact — a quick gold burst on the captured square. Motion-safe;
+   under reduced motion it simply doesn't play (the sound still fires). */
+.capture-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  border-radius: 2px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .capture-flash {
+    animation: capture-burst 0.32s ease-out forwards;
+    background: radial-gradient(
+      circle,
+      rgba(205, 164, 63, 0.75) 0%,
+      rgba(205, 164, 63, 0.35) 45%,
+      transparent 70%
+    );
+  }
+}
+@keyframes capture-burst {
+  0%   { opacity: 0; transform: scale(0.4); }
+  35%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+/* Check highlight — a red ring + glow on the king under attack. The ring is
+   always visible (signifier); the pulse is motion-safe only. */
+.check-ring {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow:
+    0 0 0 3px rgba(220, 38, 38, 0.9),
+    0 0 18px 4px rgba(220, 38, 38, 0.65);
+}
+
+/* Whose-turn signifier — the player's board edge lifts with a steel-blue glow
+   when it's their move. Calm; reinforces "your move" without nagging. */
+.chess-board {
+  transition: box-shadow 0.3s ease;
+}
+.chess-board.my-turn {
+  box-shadow:
+    0 12px 28px -6px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(111, 136, 168, 0.55),
+    0 0 26px -2px rgba(111, 136, 168, 0.5);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .check-ring { animation: check-pulse 1s ease-in-out infinite; }
+}
+
+@keyframes check-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(220, 38, 38, 0.9),
+      0 0 18px 4px rgba(220, 38, 38, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(220, 38, 38, 1),
+      0 0 26px 8px rgba(220, 38, 38, 0.8);
+  }
+}
+
 /* Responsive label/indicator tuning (board size itself is handled by BoardFrame) */
 @media (max-width: 768px) {
   .rank-label,

@@ -5,6 +5,8 @@ import { CheckersEngine } from '@gameexplorer/shared';
 import type { CheckersGameState } from '@gameexplorer/shared';
 import { CheckersPiece, CHECKERS_BOARD_COLORS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
+import { useGameSfx } from '@/hooks/useGameSfx';
+import { useSettings } from '@/components/providers/SettingsProvider';
 
 export interface BoardArrow {
   from: string;
@@ -85,6 +87,9 @@ export function CheckersBoard({
   const [lastMove, setLastMove]             = useState<{ from: string; to: string } | null>(null);
   const [lastMoveTo, setLastMoveTo]         = useState<string | null>(null);
   const [draggedFrom, setDraggedFrom]       = useState<string | null>(null);
+  const sfx = useGameSfx();
+  const { settings } = useSettings();
+  const coordsOn = showCoordinates && settings.showCoordinates;
 
   const isFlipped = playerColor === 'black';
 
@@ -93,9 +98,13 @@ export function CheckersBoard({
       const latest = gameState.moveHistory[gameState.moveHistory.length - 1];
       setLastMove({ from: latest.from, to: latest.to });
       setLastMoveTo(latest.to);
+      // A 2-rank jump is a capture; a single diagonal step is a plain move.
+      const isJump = Math.abs(rowOf(latest.to) - rowOf(latest.from)) >= 2;
+      sfx.play(isJump ? 'jump' : 'move');
       const t = setTimeout(() => setLastMoveTo(null), 300);
       return () => clearTimeout(t);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.moveHistory.length]);
 
   // Reset selection whenever the game state changes (e.g. after bot moves)
@@ -105,6 +114,8 @@ export function CheckersBoard({
   }, [gameState.currentTurn]);
 
   const legalMoves = CheckersEngine.getAllLegalMoves(gameState);
+  // Whose-turn signifier — the board lifts with an ember glow on the player's move.
+  const isMyTurn = !gameState.isGameOver && gameState.currentTurn === playerColor;
 
   const selectSquare = (pos: string) => {
     setSelectedSquare(pos);
@@ -186,8 +197,8 @@ export function CheckersBoard({
       else if (isLastMoveSquare && !dark) bg = CHECKERS_BOARD_COLORS.lastMoveLight;
 
       // For coord labels: rank on leftmost screen column, file on bottommost screen row
-      const showRank = showCoordinates && screenCol === 0;
-      const showFile = showCoordinates && screenRow === 7;
+      const showRank = coordsOn && screenCol === 0;
+      const showFile = coordsOn && screenRow === 7;
       const labelColor = dark ? CHECKERS_BOARD_COLORS.lightSquare : CHECKERS_BOARD_COLORS.darkSquare;
 
       squares.push(
@@ -257,8 +268,13 @@ export function CheckersBoard({
   return (
     <BoardFrame className="select-none">
       <div
-        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg"
-        style={{ border: '2px solid var(--c-border-strong)' }}
+        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg transition-shadow duration-300"
+        style={{
+          border: '2px solid var(--c-border-strong)',
+          boxShadow: isMyTurn
+            ? '0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(196,106,74,0.6), 0 0 26px -2px rgba(196,106,74,0.5)'
+            : undefined,
+        }}
       >
         {squares}
         {arrows && arrows.length > 0 && (

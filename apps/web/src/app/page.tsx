@@ -104,12 +104,12 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { icon: '🎮', title: 'Play vs AI', description: 'Challenge our intelligent bot with adjustable difficulty levels' },
-              { icon: '🌐', title: 'Online Multiplayer', description: 'Play against friends or random opponents worldwide', comingSoon: true },
-              { icon: '📱', title: 'Mobile Friendly', description: 'Play seamlessly on any device - desktop, tablet, or phone' },
-              { icon: '📊', title: 'Track Progress', description: 'View your game history, ratings, and statistics', comingSoon: true },
-              { icon: '⚡', title: 'Real-time', description: 'Lightning-fast gameplay with instant move validation' },
-              { icon: '🎨', title: 'Beautiful UI', description: 'Clean, modern interface with smooth animations' },
+              { icon: '🎮', title: 'Play vs AI', description: 'Challenge our adaptive bot across a wide range of difficulty levels' },
+              { icon: '🌐', title: 'Online Multiplayer', description: 'Match with players worldwide or invite a friend by link — live and real-time' },
+              { icon: '📱', title: 'Mobile Friendly', description: 'Play seamlessly on any device — desktop, tablet, or phone' },
+              { icon: '📊', title: 'Track Progress', description: 'Per-game ratings, full match history, and stats on your profile' },
+              { icon: '🎓', title: 'Training Mode', description: 'Rated games against a bot matched to your skill, with in-game hints' },
+              { icon: '🎨', title: 'Built to Delight', description: 'A clean, vibrant interface with satisfying, responsive feedback' },
             ].map((f, i) => (
               <Reveal key={f.title} delay={i * 70}>
                 <FeatureCard {...f} />
@@ -120,8 +120,8 @@ export default function HomePage() {
 
         {/* Footer */}
         <footer className="mt-24 text-center text-fg-muted">
-          <p className="mb-4">Built with Next.js, TypeScript, and React</p>
-          <p className="text-sm">© 2024 GameExplorer. All rights reserved.</p>
+          <p className="mb-4">Three games. One board. Endless rematches.</p>
+          <p className="text-sm">© 2026 GameExplorer</p>
         </footer>
       </div>
     </div>

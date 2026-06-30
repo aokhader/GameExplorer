@@ -15,10 +15,11 @@ import { ChessBoard, BoardArrow } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
-import { useChessAudio } from '@/hooks/useChessAudio';
 import { useAuth } from '@/hooks/useAuth';
 import { saveGame, getUserRating, upsertUserRating } from '@gameexplorer/db';
 import type { UserRating } from '@gameexplorer/db';
+import { GameResultScreen, type GameResult } from '@/components/game/GameResultScreen';
+import { Button } from '@/components/ui';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,6 @@ export default function ChessTrainingPage() {
   const [gameSaved, setGameSaved] = useState(false);
 
   const stockfish = useStockfish();
-  const { playCheck, playCheckmate } = useChessAudio();
 
   // Stable refs for async callbacks
   const timelineRef = useRef(timeline);
@@ -199,8 +199,6 @@ export default function ChessTrainingPage() {
           const newLength = currentTimeline.length + 1;
           setTimeline(prev => [...prev, next]);
           if (wasAtLive) setViewIndex(newLength - 1);
-          if (next.isCheckmate) playCheckmate();
-          else if (next.isCheck) playCheck();
         }
       }
     } catch (err) {
@@ -223,8 +221,6 @@ export default function ChessTrainingPage() {
       const newIdx = timeline.length;
       setTimeline(prev => [...prev, next]);
       setViewIndex(newIdx);
-      if (next.isCheckmate) playCheckmate();
-      else if (next.isCheck) playCheck();
     }
   };
 
@@ -411,67 +407,46 @@ export default function ChessTrainingPage() {
 
   const isPlayerTurn = isAtLive && !isThinking && liveState.currentTurn === playerColor;
 
+  // Player-relative result for the celebration screen.
+  const myResult: GameResult = liveState.isCheckmate
+    ? ((liveState.currentTurn === 'white' ? 'black' : 'white') === playerColor ? 'win' : 'loss')
+    : 'draw';
+
   return (
     <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
 
-      {/* Rating result overlay */}
-      {ratingResult && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pt-16">
-          <div className="bg-white dark:bg-surface-alt rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
-            {/* Outcome */}
-            <div className="text-5xl mb-3">
-              {ratingResult.delta > 0 ? '🏆' : ratingResult.delta < 0 ? '😞' : '🤝'}
-            </div>
-            <div className="text-2xl font-bold text-fg-subtle dark:text-fg mb-1">
-              {gameOverMsg}
-            </div>
-
-            {/* Rating change */}
-            <div className="mt-5 mb-5 p-4 rounded-xl bg-surface-hover dark:bg-surface-muted">
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-fg-subtle dark:text-fg-muted text-sm">Rating</span>
-                <span className="text-xl font-bold text-fg-subtle dark:text-fg">{ratingResult.before}</span>
-                <svg className="w-5 h-5 text-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-                <span className="text-xl font-bold text-fg-subtle dark:text-fg">{ratingResult.after}</span>
-                <span className={`text-lg font-bold ${ratingResult.delta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {ratingResult.delta >= 0 ? '+' : ''}{ratingResult.delta}
-                </span>
-              </div>
-              {ratingResult.hintsUsed > 0 && (
-                <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                  💡 {ratingResult.hintsUsed} hint{ratingResult.hintsUsed > 1 ? 's' : ''} used (−{ratingResult.hintsUsed * 2} pts)
-                </div>
-              )}
-            </div>
-
-            {/* Buttons */}
-            <div className="flex flex-col gap-2">
-              {savedGameId && (
-                <Link
-                  href={`/chess/analysis?gameId=${savedGameId}`}
-                  className="w-full px-4 py-2.5 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
-                >
-                  Analyze Game
-                </Link>
-              )}
-              <button
-                onClick={handleNewGame}
-                className="w-full px-4 py-2.5 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
-              >
-                Play Again
-              </button>
+      <GameResultScreen
+        open={!!ratingResult}
+        result={myResult}
+        title={gameOverMsg ?? undefined}
+        rating={
+          ratingResult
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            : undefined
+        }
+        hintsUsed={ratingResult?.hintsUsed}
+        actions={
+          <>
+            {savedGameId && (
               <Link
-                href="/chess"
-                className="w-full px-4 py-2.5 bg-surface-hover dark:bg-surface-hover hover:bg-surface-hover dark:hover:bg-surface-hover text-fg-subtle dark:text-fg font-semibold rounded-lg transition-colors text-sm"
+                href={`/chess/analysis?gameId=${savedGameId}`}
+                className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-accent [background-image:var(--gradient-accent)] text-on-accent hover:[box-shadow:var(--shadow-glow-accent)] transition-shadow"
               >
-                Back to Chess
+                Analyze Game
               </Link>
-            </div>
-          </div>
-        </div>
-      )}
+            )}
+            <Button size="lg" fullWidth onClick={handleNewGame}>
+              Play Again
+            </Button>
+            <Link
+              href="/chess"
+              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
+            >
+              Back to Chess
+            </Link>
+          </>
+        }
+      />
 
       {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border bg-white/50 dark:bg-surface-alt/50">

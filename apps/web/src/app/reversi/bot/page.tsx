@@ -7,6 +7,8 @@ import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { useAuth } from '@/hooks/useAuth';
 import { saveReversiGame, getUserRating, upsertUserRating } from '@gameexplorer/db';
 import type { UserRating } from '@gameexplorer/db';
+import { GameResultScreen, type GameResult } from '@/components/game/GameResultScreen';
+import { Button } from '@/components/ui';
 
 // ── Difficulty levels ─────────────────────────────────────────────────────────
 
@@ -303,49 +305,36 @@ export default function ReversiBotPage() {
         : `Bot wins. ${counts[playerColor === 'black' ? 'white' : 'black']}–${counts[playerColor]}`
     : null;
 
+  // Player-relative result for the celebration screen.
+  const myResult: GameResult =
+    liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
+
   return (
     <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
 
-      {/* Rating result overlay */}
-      {ratingResult && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pt-16">
-          <div className="bg-white dark:bg-surface-alt rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
-            <div className="text-5xl mb-3">
-              {ratingResult.delta > 0 ? '🏆' : ratingResult.delta < 0 ? '😞' : '🤝'}
-            </div>
-            <div className="text-2xl font-bold text-fg-subtle dark:text-fg mb-1">
-              {gameOverMsg}
-            </div>
-            <div className="mt-5 mb-5 p-4 rounded-xl bg-surface-hover dark:bg-surface-muted">
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-fg-subtle dark:text-fg-muted text-sm">Rating</span>
-                <span className="text-xl font-bold text-fg-subtle dark:text-fg">{ratingResult.before}</span>
-                <svg className="w-5 h-5 text-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-                <span className="text-xl font-bold text-fg-subtle dark:text-fg">{ratingResult.after}</span>
-                <span className={`text-lg font-bold ${ratingResult.delta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {ratingResult.delta >= 0 ? '+' : ''}{ratingResult.delta}
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleNewGame}
-                className="w-full px-4 py-2.5 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
-              >
-                Play Again
-              </button>
-              <Link
-                href="/reversi"
-                className="w-full px-4 py-2.5 bg-surface-hover dark:bg-surface-hover hover:bg-surface-hover dark:hover:bg-surface-hover text-fg-subtle dark:text-fg font-semibold rounded-lg transition-colors text-sm block"
-              >
-                Back to Reversi
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      <GameResultScreen
+        open={!!ratingResult}
+        result={myResult}
+        subtitle={gameOverMsg ?? undefined}
+        rating={
+          ratingResult
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            : undefined
+        }
+        actions={
+          <>
+            <Button size="lg" fullWidth onClick={handleNewGame}>
+              Play Again
+            </Button>
+            <Link
+              href="/reversi"
+              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
+            >
+              Back to Reversi
+            </Link>
+          </>
+        }
+      />
 
       {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border bg-white/50 dark:bg-surface-alt/50">

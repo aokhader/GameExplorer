@@ -7,6 +7,7 @@ import { Navigation } from '@/components/Navigation';
 import { ClientConfig } from '@/components/ClientConfig';
 import { ToastProvider } from '@/components/ui';
 import { RouteAmbient } from '@/components/visual';
+import { SettingsProvider } from '@/components/providers/SettingsProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,12 +25,14 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body className={inter.className}>
-        <ToastProvider>
-          <ClientConfig />
-          <RouteAmbient />
-          <Navigation />
-          {children}
-        </ToastProvider>
+        <SettingsProvider>
+          <ToastProvider>
+            <ClientConfig />
+            <RouteAmbient />
+            <Navigation />
+            {children}
+          </ToastProvider>
+        </SettingsProvider>
         <Analytics />
         <SpeedInsights />
       </body>
