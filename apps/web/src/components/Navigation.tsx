@@ -47,7 +47,7 @@ export function Navigation() {
     href === '/spectate' ? pathname.startsWith('/spectate') : pathname === href;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-md border-b border-border">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-surface/70 backdrop-blur-xl backdrop-saturate-150 border-b border-border shadow-[0_1px_0_0_rgba(255,255,255,0.04)]">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -192,11 +192,14 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`text-sm font-medium transition-colors ${
+      className={`relative text-sm font-medium transition-colors ${
         active ? 'text-accent' : 'text-fg-muted hover:text-fg'
       }`}
     >
       {children}
+      {active && (
+        <span className="absolute -bottom-1.5 left-0 right-0 h-0.5 rounded-full bg-accent shadow-[0_0_8px_var(--c-accent)]" />
+      )}
     </Link>
   );
 }

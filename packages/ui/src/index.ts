@@ -1,6 +1,8 @@
 export {
   COLORS,
   THEMES,
+  GAME_ACCENTS,
+  GRADIENTS,
   SPACING,
   RADIUS,
   FONT_SIZES,
@@ -8,7 +10,7 @@ export {
   SHADOWS,
   Z_INDEX,
 } from './tokens';
-export type { Theme, ThemeName } from './tokens';
+export type { Theme, ThemeName, GameAccent } from './tokens';
 
 export { ChessPiece } from './chess/ChessPiece';
 export type { ChessPieceProps, PieceType, PieceColor } from './chess/ChessPiece';

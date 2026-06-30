@@ -6,6 +6,7 @@ import { useGameSession } from '@gameexplorer/client';
 import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 import type { TimeControl } from '@gameexplorer/shared';
 import { Button, Card, Modal, Input, useToast } from '@/components/ui';
+import { GradientText } from '@/components/visual';
 import { cn } from '@/lib/utils';
 import { SpectateLinkButton } from '@/components/multiplayer/SpectateLinkButton';
 import { EmoteBar } from '@/components/multiplayer/EmoteBar';
@@ -55,9 +56,9 @@ function Clock({
       className={cn(
         'flex items-center gap-1.5 px-4 py-2 rounded-lg font-mono text-2xl font-bold tabular-nums transition-colors',
         danger
-          ? 'bg-danger text-white'
+          ? 'bg-danger text-white shadow-[0_0_0_1px_rgba(220,38,38,0.3),0_8px_28px_-6px_rgba(220,38,38,0.5)]'
           : active
-            ? 'bg-accent text-on-accent shadow-md'
+            ? 'bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)]'
             : 'bg-surface-muted text-fg-muted',
       )}
     >
@@ -87,7 +88,7 @@ function PlayerBar({
   clock: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 bg-surface-alt border border-border rounded-lg px-4 py-2">
+    <div className="flex items-center justify-between gap-3 glass rounded-lg px-4 py-2">
       <span className="font-semibold truncate">
         {name}
         {rating != null && <span className="text-fg-muted font-normal"> ({rating})</span>}
@@ -113,9 +114,9 @@ function MatchmakingPanel({
   };
 
   return (
-    <Card elevation="raised" className="w-full max-w-md p-6 sm:p-8">
+    <Card elevation="raised" className="w-full max-w-md p-6 sm:p-8 [box-shadow:var(--shadow-glow-accent)]">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight"><GradientText>{title}</GradientText></h1>
         <Link href={backHref} className="text-fg-muted hover:text-fg text-sm transition-colors">
           ← Back
         </Link>
@@ -326,7 +327,7 @@ export function GameLayout({
   return (
     <div
       className={cn(
-        'min-h-dvh bg-surface text-fg pt-16 flex flex-col items-center px-3 sm:px-4 py-6',
+        'relative min-h-dvh text-fg pt-16 flex flex-col items-center px-3 sm:px-4 py-6',
         inGame ? 'justify-start' : 'justify-center',
       )}
     >
@@ -430,7 +431,7 @@ export function GameLayout({
 
           {/* Sidebar */}
           <div className="w-full lg:w-80 flex flex-col gap-4">
-            <Card>
+            <Card elevation="raised">
               <h3 className="text-sm font-semibold text-fg-muted mb-2 uppercase tracking-wide">Moves</h3>
               <div className="overflow-y-auto max-h-[28svh] lg:max-h-72 text-sm font-mono">{moveList}</div>
             </Card>
@@ -439,7 +440,7 @@ export function GameLayout({
               <EmoteBar gameId={s.gameId!} myUserId={s.user.id} emit={s.emit} socket={s.socket} />
             )}
 
-            <Card className="flex flex-col gap-2 h-[40svh] lg:h-72">
+            <Card elevation="raised" className="flex flex-col gap-2 h-[40svh] lg:h-72">
               <h3 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">Chat</h3>
               <div className="flex-1 min-h-0 overflow-y-auto text-sm space-y-1">
                 {s.chatLog.map((m, i) => (

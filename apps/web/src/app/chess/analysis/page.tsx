@@ -250,7 +250,7 @@ function AnalysisPageInner() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface overflow-hidden pt-16">
+    <div className="h-screen flex flex-col overflow-hidden pt-16">
 
       {/* Header */}
       <div className="shrink-0 px-4 py-2.5 border-b border-border-strong dark:border-border bg-white/80 dark:bg-surface-alt/80 backdrop-blur-sm">

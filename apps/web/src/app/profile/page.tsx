@@ -42,9 +42,9 @@ function ResultBadge({ game, userId }: { game: SavedGame; userId: string }) {
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-white dark:bg-surface-alt rounded-xl p-4 shadow-sm text-center">
-      <div className="text-2xl font-bold text-fg-subtle dark:text-fg">{value}</div>
-      <div className="text-xs text-fg-subtle dark:text-fg-muted mt-0.5">{label}</div>
+    <div className="glass rounded-xl p-4 text-center">
+      <div className="text-2xl font-bold text-fg">{value}</div>
+      <div className="text-xs text-fg-muted mt-0.5">{label}</div>
     </div>
   );
 }
@@ -90,8 +90,8 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt flex items-center justify-center">
-        <div className="text-fg-muted dark:text-fg-subtle">Loading profile...</div>
+      <div className="relative min-h-screen flex items-center justify-center">
+        <div className="text-fg-muted">Loading profile...</div>
       </div>
     );
   }
@@ -126,7 +126,7 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt pt-16">
+    <div className="relative min-h-screen pt-16">
       <div className="container mx-auto px-4 pt-8 pb-8 max-w-3xl">
         <Link
           href="/"
@@ -140,7 +140,7 @@ export default function ProfilePage() {
 
         {/* Avatar + username */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center text-on-accent text-2xl font-bold shrink-0">
+          <div className="w-16 h-16 rounded-full bg-accent [background-image:var(--gradient-accent)] [box-shadow:var(--shadow-glow-accent)] flex items-center justify-center text-on-accent text-2xl font-bold shrink-0">
             {profile.username[0].toUpperCase()}
           </div>
           <div>
@@ -162,7 +162,7 @@ export default function ProfilePage() {
           ].map(({ label, rating }) => {
             if (!rating || rating.games_played === 0) return null;
             return (
-              <div key={label} className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-5 flex items-center justify-between">
+              <div key={label} className="glass rounded-xl p-5 flex items-center justify-between">
                 <div>
                   <div className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide mb-1">
                     {label}
@@ -199,7 +199,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Game history with tabs */}
-        <div className="bg-white dark:bg-surface-alt rounded-xl shadow overflow-hidden">
+        <div className="glass rounded-xl overflow-hidden">
           {/* Tab bar */}
           <div className="flex border-b border-border-strong dark:border-border">
             {TABS.map(tab => (

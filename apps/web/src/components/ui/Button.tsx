@@ -14,9 +14,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  // Gold — the single primary action per screen.
+  // Gold — the single primary action per screen. Gradient fill + glow-on-hover
+  // + a small lift give it real presence (the flat pass had none).
   primary:
-    'bg-accent text-on-accent hover:bg-accent-hover active:bg-accent ' +
+    'text-on-accent bg-accent [background-image:var(--gradient-accent)] shadow-sm ' +
+    'hover:[box-shadow:var(--shadow-glow-accent)] motion-safe:hover:-translate-y-0.5 ' +
     'focus-visible:ring-focus',
   // Steel-blue, tonal — secondary actions.
   secondary:
@@ -65,7 +67,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       aria-busy={loading || undefined}
       className={cn(
         'inline-flex items-center justify-center font-semibold select-none',
-        'transition-colors duration-150',
+        'transition-[transform,box-shadow,background-color,border-color] duration-200',
+        'motion-safe:active:scale-[0.98]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
         'disabled:opacity-50 disabled:pointer-events-none',
         fullWidth && 'w-full',

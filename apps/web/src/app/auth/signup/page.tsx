@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@gameexplorer/db';
+import { GradientText } from '@/components/visual';
 
 
 export default function SignUpPage() {
@@ -49,13 +50,13 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt flex items-center justify-center px-4 pt-16">
+    <div className="relative min-h-screen flex items-center justify-center px-4 pt-16">
       <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-bold text-fg-subtle dark:text-fg text-center mb-8">
-          Create account
+        <h1 className="text-3xl font-bold text-center mb-8 tracking-tight">
+          <GradientText>Create account</GradientText>
         </h1>
 
-        <div className="bg-white dark:bg-surface-alt rounded-2xl shadow-lg p-6 space-y-4">
+        <div className="glass rounded-2xl p-6 space-y-4">
           {/* OAuth buttons */}
           <button
             onClick={() => handleOAuth('google')}

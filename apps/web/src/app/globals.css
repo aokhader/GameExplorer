@@ -34,6 +34,11 @@
   --color-info-hover:     var(--c-info-hover);
   --color-info-muted:     var(--c-info-muted);
 
+  /* Per-game signature hues (mirror GAME_ACCENTS in tokens.ts). */
+  --color-game-chess:     var(--c-game-chess);
+  --color-game-checkers:  var(--c-game-checkers);
+  --color-game-reversi:   var(--c-game-reversi);
+
   --color-danger:         var(--c-danger);
   --color-danger-hover:   var(--c-danger-hover);
   --color-danger-muted:   var(--c-danger-muted);
@@ -68,6 +73,18 @@
   --c-info-hover:     #87a0bf;
   --c-info-muted:     rgba(111, 136, 168, 0.18);
 
+  /* Translucent brand glows for ambient blooms (gold + steel chrome). */
+  --c-accent-glow:    rgba(205, 164, 63, 0.30);
+  --c-info-glow:      rgba(111, 136, 168, 0.30);
+
+  /* Per-game signature hues + translucent glow (pair: GAME_ACCENTS in tokens.ts). */
+  --c-game-chess:          #6f88a8;
+  --c-game-chess-glow:     rgba(111, 136, 168, 0.45);
+  --c-game-checkers:       #c46a4a;
+  --c-game-checkers-glow:  rgba(196, 106, 74, 0.45);
+  --c-game-reversi:        #5a9e86;
+  --c-game-reversi-glow:   rgba(90, 158, 134, 0.45);
+
   --c-danger:         #dc2626;
   --c-danger-hover:   #ef4444;
   --c-danger-muted:   rgba(220, 38, 38, 0.15);
@@ -82,6 +99,18 @@
   --c-fg-inverse:     #0f172a;
 
   --c-focus-ring:     #cda43f;
+
+  /* Elevation + glow shadows (pair: SHADOWS in tokens.ts). */
+  --shadow-elevation:     inset 0 1px 0 0 rgba(255,255,255,0.06), 0 10px 30px -10px rgba(0,0,0,0.55);
+  --shadow-elevation-lg:  inset 0 1px 0 0 rgba(255,255,255,0.07), 0 24px 60px -16px rgba(0,0,0,0.65);
+  --shadow-glow-accent:   0 0 0 1px rgba(205,164,63,0.25), 0 8px 32px -6px rgba(205,164,63,0.45);
+  --shadow-glow-chess:    0 0 0 1px rgba(111,136,168,0.30), 0 12px 36px -8px rgba(111,136,168,0.45);
+  --shadow-glow-checkers: 0 0 0 1px rgba(196,106,74,0.30), 0 12px 36px -8px rgba(196,106,74,0.45);
+  --shadow-glow-reversi:  0 0 0 1px rgba(90,158,134,0.30), 0 12px 36px -8px rgba(90,158,134,0.45);
+
+  /* Gradients (pair: GRADIENTS in tokens.ts). */
+  --gradient-accent:  linear-gradient(180deg, #dcb456 0%, #cda43f 55%, #b8923a 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 40%);
 }
 
 /* In-game emote reactions (multiplayer) */
@@ -151,9 +180,99 @@ html {
   }
 }
 
-/* Glassmorphism effect */
+/* ────────────────────────────────────────────────────────────────────────────
+ * Richness layer — the "expression" of the tokens (depth, glass, glow, motion).
+ * All ambient/continuous animation is gated behind prefers-reduced-motion.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/* Real glass — blur + saturate, top-edge highlight, faint gradient. For nav,
+ * overlays, and floating panels (scope to panels, not full-page, for perf). */
 .glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%),
+    color-mix(in srgb, var(--c-surface-alt) 72%, transparent);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-elevation);
+}
+
+/* Raised surface — top-lit gradient sheen + inset highlight + elevation. The
+ * default premium card body (compose over bg-surface-alt). */
+.surface-raised {
+  background-image: var(--gradient-surface);
+  box-shadow: var(--shadow-elevation);
+}
+.surface-raised-lg {
+  background-image: var(--gradient-surface);
+  box-shadow: var(--shadow-elevation-lg);
+}
+
+/* Per-game / accent glow halos (compose on hover or for focal elements). */
+.glow-accent   { box-shadow: var(--shadow-glow-accent); }
+.glow-chess    { box-shadow: var(--shadow-glow-chess); }
+.glow-checkers { box-shadow: var(--shadow-glow-checkers); }
+.glow-reversi  { box-shadow: var(--shadow-glow-reversi); }
+
+/* Two-tone gradient display text. Pair with a base text color for fallback. */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #f0d589 0%, #cda43f 55%, #b8923a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Faint grain overlay — kills banding on the ambient gradients, adds tactile
+ * texture. Apply to a fixed full-bleed layer (see AmbientBackground). */
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Hover-lift — a small spring on interactive cards (motion-safe only). */
+.hover-lift {
+  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 250ms ease, border-color 250ms ease;
+  will-change: transform;
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────────── */
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(4%, -3%, 0) scale(1.08); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+@keyframes shimmer {
+  0%   { background-position: -150% 0; }
+  100% { background-position: 250% 0; }
+}
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+/* Entrance reveal — graceful on first paint; near-instant under reduced-motion. */
+.reveal-up { animation: reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .hover-lift:hover    { transform: translateY(-4px); }
+  .animate-aurora      { animation: aurora-drift 18s ease-in-out infinite; }
+  .animate-glow-pulse  { animation: glow-pulse 4s ease-in-out infinite; }
+  .animate-float       { animation: float 6s ease-in-out infinite; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up { animation-duration: 0.01ms; }
 }

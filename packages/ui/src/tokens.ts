@@ -34,6 +34,10 @@ const PALETTE = {
   // Steel-blue (secondary / informational, the board's dark square)
   steel:      '#6f88a8',
   steelLight: '#87a0bf',
+  // Per-game signature hues — jewel tones re-toned to coexist with steel+gold
+  // on dark slate (distinct identity without the old saturated rainbow).
+  ember:      '#c46a4a', // checkers — warm terracotta beside gold
+  sage:       '#5a9e86', // reversi — desaturated emerald that lives on slate
   // Status
   red600:   '#dc2626',
   red500:   '#ef4444',
@@ -121,6 +125,23 @@ export const THEMES = {
   dark: DARK,
 } as const;
 
+/**
+ * Per-game signature accent — a base hue + a translucent glow used for ambient
+ * blooms, hovered cards, and hero gradients. Gold stays the shared brand/CTA;
+ * these add per-game identity. Chess reuses the steel `info` hue (it's literally
+ * the board's dark square). Mirrored on web as `--c-game-*` / `--c-game-*-glow`.
+ */
+export interface GameAccent {
+  base: string;
+  glow: string; // translucent, for radial blooms / glow rings
+}
+
+export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi', GameAccent> = {
+  chess:    { base: PALETTE.steel, glow: 'rgba(111,136,168,0.45)' },
+  checkers: { base: PALETTE.ember, glow: 'rgba(196,106,74,0.45)' },
+  reversi:  { base: PALETTE.sage,  glow: 'rgba(90,158,134,0.45)' },
+} as const;
+
 export type ThemeName = keyof typeof THEMES;
 
 /** The active semantic palette. UI code imports this. */
@@ -167,6 +188,32 @@ export const SHADOWS = {
   md: '0 4px 12px -2px rgba(0,0,0,0.40)',
   lg: '0 12px 28px -6px rgba(0,0,0,0.50)',
   xl: '0 25px 50px -12px rgba(0,0,0,0.55)',
+  // Elevation: layered depth + a 1px top-edge highlight (the Apple "lit from
+  // above" surface). Inset highlight first, drop shadow after.
+  elevation: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 10px 30px -10px rgba(0,0,0,0.55)',
+  elevationLg: 'inset 0 1px 0 0 rgba(255,255,255,0.07), 0 24px 60px -16px rgba(0,0,0,0.65)',
+  // Glow: a colored halo for primary actions / focal elements at rest+hover.
+  glowAccent:   '0 0 0 1px rgba(205,164,63,0.25), 0 8px 32px -6px rgba(205,164,63,0.45)',
+  glowInfo:     '0 0 0 1px rgba(111,136,168,0.25), 0 8px 32px -6px rgba(111,136,168,0.40)',
+  glowChess:    '0 0 0 1px rgba(111,136,168,0.30), 0 12px 36px -8px rgba(111,136,168,0.45)',
+  glowCheckers: '0 0 0 1px rgba(196,106,74,0.30), 0 12px 36px -8px rgba(196,106,74,0.45)',
+  glowReversi:  '0 0 0 1px rgba(90,158,134,0.30), 0 12px 36px -8px rgba(90,158,134,0.45)',
+} as const;
+
+/**
+ * Gradient strings (hero/per-game/surface sheen). Shared so RN can read the same
+ * stops. Web also expresses these as `--gradient-*` vars in globals.css.
+ */
+export const GRADIENTS = {
+  // Primary CTA fill — gold with a lit top edge.
+  accent:  'linear-gradient(180deg, #dcb456 0%, #cda43f 55%, #b8923a 100%)',
+  // Subtle top-lit panel sheen layered over surfaceAlt.
+  surface: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 40%)',
+  // Per-game hero washes (used at low opacity behind hero content).
+  heroChess:    'linear-gradient(135deg, #6f88a8 0%, #cda43f 100%)',
+  heroCheckers: 'linear-gradient(135deg, #c46a4a 0%, #cda43f 100%)',
+  heroReversi:  'linear-gradient(135deg, #5a9e86 0%, #cda43f 100%)',
+  heroBrand:    'linear-gradient(135deg, #6f88a8 0%, #cda43f 100%)',
 } as const;
 
 export const Z_INDEX = {

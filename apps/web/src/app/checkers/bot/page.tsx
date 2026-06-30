@@ -233,7 +233,7 @@ export default function CheckersBotPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt pt-16">
+      <div className="min-h-screen pt-16">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/checkers"
@@ -340,7 +340,7 @@ export default function CheckersBotPage() {
     : null;
 
   return (
-    <div className="min-h-screen lg:h-screen flex flex-col bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt lg:overflow-hidden pt-16">
+    <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
 
       {/* Rating result overlay */}
       {ratingResult && (

@@ -214,7 +214,7 @@ export default function ChessBotPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt pt-16">
+      <div className="min-h-screen pt-16">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/chess"
@@ -346,7 +346,7 @@ export default function ChessBotPage() {
     : null;
 
   return (
-    <div className="min-h-screen lg:h-screen flex flex-col bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt lg:overflow-hidden pt-16">
+    <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
       {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border bg-white/50 dark:bg-surface-alt/50">
         <div className="container mx-auto flex items-center justify-between">

@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@gameexplorer/db';
+import { GradientText } from '@/components/visual';
 
 // useSearchParams() requires a Suspense boundary in Next.js App Router.
 // Split into an inner component so the boundary can wrap just what needs it.
@@ -39,7 +40,7 @@ function SignInForm() {
   };
 
   return (
-    <div className="bg-white dark:bg-surface-alt rounded-2xl shadow-lg p-6 space-y-4">
+    <div className="glass rounded-2xl p-6 space-y-4">
       {/* OAuth buttons */}
       <button
         onClick={() => handleOAuth('google')}
@@ -113,10 +114,10 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt flex items-center justify-center px-4 pt-16">
+    <div className="relative min-h-screen flex items-center justify-center px-4 pt-16">
       <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-bold text-fg-subtle dark:text-fg text-center mb-8">
-          Sign in
+        <h1 className="text-3xl font-bold text-center mb-8 tracking-tight">
+          <GradientText>Sign in</GradientText>
         </h1>
         <Suspense fallback={<div className="text-center text-fg-muted">Loading…</div>}>
           <SignInForm />

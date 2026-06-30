@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { GradientText, Reveal } from '@/components/visual';
 
 export default function ReversiLandingPage() {
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
@@ -39,11 +40,11 @@ export default function ReversiLandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-surface-hover via-surface-hover to-surface-hover dark:from-surface dark:via-surface dark:to-surface-alt pt-16">
+    <div className="relative min-h-screen pt-16">
       <div className="container mx-auto px-4 pt-8">
         <Link
           href="/"
-          className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors group"
+          className="inline-flex items-center text-fg-muted hover:text-fg transition-colors group"
         >
           <svg className="w-5 h-5 mr-2 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -55,46 +56,41 @@ export default function ReversiLandingPage() {
       <div className="container mx-auto px-4 py-12 md:py-20">
         {/* Hero */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800 mb-6 shadow-lg">
+          <Reveal className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-surface-alt border border-border mb-6 motion-safe:animate-float [box-shadow:var(--shadow-glow-reversi)]">
             <span className="text-4xl">⚫</span>
-          </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-fg-subtle dark:text-fg mb-4">
-            Play Reversi
-          </h1>
-          <p className="text-xl text-fg-subtle dark:text-fg-muted max-w-2xl mx-auto">
+          </Reveal>
+          <Reveal as="h1" delay={80} className="text-5xl md:text-6xl font-bold tracking-tight mb-4">
+            <GradientText>Play Reversi</GradientText>
+          </Reveal>
+          <Reveal as="p" delay={160} className="text-xl text-fg-muted max-w-2xl mx-auto">
             Classic Othello — outflank your opponent and fill the board with your colour
-          </p>
+          </Reveal>
         </div>
 
         {/* Game modes */}
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {gameModes.map((mode) => (
-              <div
+            {gameModes.map((mode, i) => (
+              <Reveal
                 key={mode.id}
+                delay={i * 80}
                 onMouseEnter={() => setHoveredMode(mode.id)}
                 onMouseLeave={() => setHoveredMode(null)}
                 className="group relative"
               >
                 {mode.available ? (
                   <Link href={mode.href}>
-                    <div className={`
-                      relative overflow-hidden rounded-2xl p-8 h-full
-                      bg-white dark:bg-surface-alt
-                      border-2 border-border-strong dark:border-border
-                      shadow-lg hover:shadow-2xl transition-all duration-300
-                      ${hoveredMode === mode.id ? 'scale-105 border-transparent' : ''}
-                    `}>
+                    <div className="relative overflow-hidden rounded-2xl p-8 h-full bg-surface-alt border border-border surface-raised hover-lift group-hover:[box-shadow:var(--shadow-glow-reversi)]">
                       <div className={`absolute inset-0 bg-linear-to-br ${mode.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
                       <div className="relative z-10">
-                        <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all duration-300`}>
+                        <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} shadow-md group-hover:scale-110 transition-transform duration-300`}>
                           <span className="text-4xl">{mode.icon}</span>
                         </div>
-                        <h2 className="text-2xl font-bold text-fg-subtle dark:text-fg mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-accent group-hover:to-accent-hover transition-all">
+                        <h2 className="text-2xl font-bold text-fg mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-accent group-hover:to-accent-hover transition-all">
                           {mode.title}
                         </h2>
-                        <p className="text-fg-subtle dark:text-fg-muted mb-4 text-sm">{mode.description}</p>
-                        <div className="flex items-center text-accent dark:text-accent font-medium text-sm">
+                        <p className="text-fg-muted mb-4 text-sm">{mode.description}</p>
+                        <div className="flex items-center text-accent font-medium text-sm">
                           <span className="group-hover:mr-2 transition-all">Start Playing</span>
                           <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -104,14 +100,14 @@ export default function ReversiLandingPage() {
                     </div>
                   </Link>
                 ) : (
-                  <div className="relative overflow-hidden rounded-2xl p-8 h-full bg-white dark:bg-surface-alt border-2 border-border-strong dark:border-border shadow-lg opacity-60 cursor-not-allowed">
+                  <div className="relative overflow-hidden rounded-2xl p-8 h-full bg-surface-alt border border-border shadow-lg opacity-60 cursor-not-allowed">
                     <div className="relative z-10">
                       <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} opacity-50`}>
                         <span className="text-4xl">{mode.icon}</span>
                       </div>
-                      <h2 className="text-2xl font-bold text-fg-subtle dark:text-fg mb-2">{mode.title}</h2>
-                      <p className="text-fg-subtle dark:text-fg-muted mb-4 text-sm">{mode.description}</p>
-                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg-muted text-sm font-medium">
+                      <h2 className="text-2xl font-bold text-fg mb-2">{mode.title}</h2>
+                      <p className="text-fg-muted mb-4 text-sm">{mode.description}</p>
+                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-surface-muted text-fg-muted text-sm font-medium">
                         <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -120,29 +116,29 @@ export default function ReversiLandingPage() {
                     </div>
                   </div>
                 )}
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
 
         {/* Rules callout */}
-        <div className="max-w-4xl mx-auto mt-16 p-8 rounded-2xl bg-white/50 dark:bg-surface-alt/50 backdrop-blur-sm border border-border-strong dark:border-border">
-          <h3 className="text-xl font-semibold text-fg-subtle dark:text-fg mb-4 text-center">How It Works</h3>
+        <div className="max-w-4xl mx-auto mt-16 p-8 rounded-2xl glass">
+          <h3 className="text-xl font-semibold text-fg mb-4 text-center">How It Works</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
               <div className="text-2xl mb-2">🔄</div>
-              <div className="text-sm font-medium text-fg-subtle dark:text-fg">Flip Your Opponent</div>
-              <div className="text-xs text-fg-subtle dark:text-fg-muted mt-1">Sandwich opponent discs to flip them to your colour</div>
+              <div className="text-sm font-medium text-fg">Flip Your Opponent</div>
+              <div className="text-xs text-fg-muted mt-1">Sandwich opponent discs to flip them to your colour</div>
             </div>
             <div>
               <div className="text-2xl mb-2">🎯</div>
-              <div className="text-sm font-medium text-fg-subtle dark:text-fg">Control the Corners</div>
-              <div className="text-xs text-fg-subtle dark:text-fg-muted mt-1">Corner squares can never be flipped — they&apos;re the key</div>
+              <div className="text-sm font-medium text-fg">Control the Corners</div>
+              <div className="text-xs text-fg-muted mt-1">Corner squares can never be flipped — they&apos;re the key</div>
             </div>
             <div>
               <div className="text-2xl mb-2">🏆</div>
-              <div className="text-sm font-medium text-fg-subtle dark:text-fg">Most Discs Wins</div>
-              <div className="text-xs text-fg-subtle dark:text-fg-muted mt-1">When the board fills up, the player with more discs wins</div>
+              <div className="text-sm font-medium text-fg">Most Discs Wins</div>
+              <div className="text-xs text-fg-muted mt-1">When the board fills up, the player with more discs wins</div>
             </div>
           </div>
         </div>

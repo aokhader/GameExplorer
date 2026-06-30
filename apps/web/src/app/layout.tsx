@@ -6,6 +6,7 @@ import './globals.css';
 import { Navigation } from '@/components/Navigation';
 import { ClientConfig } from '@/components/ClientConfig';
 import { ToastProvider } from '@/components/ui';
+import { RouteAmbient } from '@/components/visual';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ToastProvider>
           <ClientConfig />
+          <RouteAmbient />
           <Navigation />
           {children}
         </ToastProvider>

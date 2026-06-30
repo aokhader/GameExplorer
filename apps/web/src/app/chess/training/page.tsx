@@ -281,7 +281,7 @@ export default function ChessTrainingPage() {
 
   if (authLoading || (!user && !authLoading)) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt pt-16 flex items-center justify-center">
+      <div className="min-h-screen pt-16 flex items-center justify-center">
         <div className="text-fg-subtle dark:text-fg-muted">Loading…</div>
       </div>
     );
@@ -291,7 +291,7 @@ export default function ChessTrainingPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt pt-16">
+      <div className="min-h-screen pt-16">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/chess"
@@ -412,7 +412,7 @@ export default function ChessTrainingPage() {
   const isPlayerTurn = isAtLive && !isThinking && liveState.currentTurn === playerColor;
 
   return (
-    <div className="min-h-screen lg:h-screen flex flex-col bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt lg:overflow-hidden pt-16">
+    <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
 
       {/* Rating result overlay */}
       {ratingResult && (

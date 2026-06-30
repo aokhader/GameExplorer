@@ -49,7 +49,7 @@ export default function ReplaysPage() {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface-alt pt-16">
+    <div className="min-h-screen pt-16">
       <div className="container mx-auto px-4 pt-8 max-w-3xl">
         {/* Back link */}
         <Link
