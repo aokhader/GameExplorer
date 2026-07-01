@@ -87,7 +87,7 @@ export function GameResultScreen({
           spread: 70,
           startVelocity: 45,
           origin: { x: originX, y: 0.35 },
-          colors: ['#cda43f', '#dcb456', '#6f88a8', '#f1f5f9'],
+          colors: ['#cda43f', '#3b82f6', '#ec4899', '#a3e635'],
           disableForReducedMotion: true,
           scalar: 0.9,
         });

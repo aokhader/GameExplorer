@@ -55,8 +55,8 @@ export function Navigation() {
         <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group justify-self-start">
-            <span className="text-2xl font-bold text-fg group-hover:text-accent transition-colors">
-              GameExplorer
+            <span className="font-display text-2xl font-bold text-fg transition-colors">
+              Game<span className="text-accent group-hover:text-accent-hover transition-colors">Explorer</span>
             </span>
           </Link>
 

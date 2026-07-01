@@ -149,7 +149,7 @@ export function ReversiBoard({
         style={{
           border: `2px solid ${REVERSI_BOARD_COLORS.boardBorder}`,
           boxShadow: isPlayerTurn
-            ? '0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(90,158,134,0.65), 0 0 26px -2px rgba(90,158,134,0.5)'
+            ? '0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(163,230,53,0.6), 0 0 30px -2px rgba(163,230,53,0.5)'
             : undefined,
         }}
       >

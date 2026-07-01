@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { GradientText, Reveal } from '@/components/visual';
+import { Reveal } from '@/components/visual';
 
 type GameHue = 'chess' | 'checkers' | 'reversi';
 
@@ -46,7 +46,8 @@ export default function HomePage() {
         {/* Header */}
         <div className="text-center mb-16">
           <Reveal as="h1" className="text-4xl sm:text-6xl md:text-8xl font-bold tracking-tight mb-4 break-words">
-            <GradientText>GameExplorer</GradientText>
+            <span className="text-fg">Game</span>
+            <span className="text-gradient-brand text-info">Explorer</span>
           </Reveal>
           <Reveal as="p" delay={120} className="text-xl md:text-2xl text-fg-muted mb-8">
             Classic board games, reimagined for the modern web

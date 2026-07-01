@@ -1,28 +1,29 @@
 /**
- * Reversi board + disc tokens. The felt green is pushed vivid (energetic, classic
- * Othello table) so the game surface pops — distinct from chess (steel-blue) and
- * checkers (ember). Consumed by web + mobile.
+ * Reversi board + disc tokens. "Arcade Glow" reversi: a deep, dark felt table
+ * framed by the lime signature glow (see GAME_ACCENTS) — moodier than the old
+ * vivid green so the neon discs and lime bloom pop against it. Consumed by web +
+ * mobile.
  */
 export const REVERSI_BOARD_COLORS = {
-  cell:            '#1f9d55',       // vivid felt green
-  cellBorder:      'rgba(0,0,0,0.22)',
-  boardBorder:     '#0f6b39',
-  validMoveBlack:  'rgba(0,0,0,0.28)',
-  validMoveWhite:  'rgba(255,255,255,0.30)',
-  lastMoveRing:    'rgba(255,230,0,0.80)',
+  cell:            '#12503a',       // deep arcade felt
+  cellBorder:      'rgba(0,0,0,0.35)',
+  boardBorder:     '#0c3324',
+  validMoveBlack:  'rgba(0,0,0,0.35)',
+  validMoveWhite:  'rgba(255,255,255,0.32)',
+  lastMoveRing:    'rgba(190,242,100,0.85)', // lime last-move ring
 };
 
 export const REVERSI_DISC_COLORS = {
   black: {
-    fill:      '#1a1a1a',
-    stroke:    '#555555',
-    highlight: '#444444',
+    fill:      '#2b3448',          // slate-black, lifted so it reads on dark felt
+    stroke:    '#5c6a85',
+    highlight: '#4a5877',
     shadow:    '#000000',
   },
   white: {
     fill:      '#f5f0e8',
-    stroke:    '#aaaaaa',
+    stroke:    '#c7d2e0',
     highlight: '#ffffff',
-    shadow:    '#cccccc',
+    shadow:    '#0b0e17',
   },
 };

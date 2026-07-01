@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { DM_Sans, Space_Grotesk } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
@@ -9,7 +9,19 @@ import { ToastProvider } from '@/components/ui';
 import { RouteAmbient, PageTransition } from '@/components/visual';
 import { SettingsProvider } from '@/components/providers/SettingsProvider';
 
-const inter = Inter({ subsets: ['latin'] });
+// Body face — DM Sans; applied as the default font on <body>.
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+});
+
+// Display face — Space Grotesk; exposed as --font-space-grotesk and consumed by
+// the `--font-display` var (headings + `.font-display`) in globals.css.
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
+});
 
 export const metadata: Metadata = {
   title: 'GameExplorer - Classic Board Games',
@@ -23,8 +35,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
-      <body className={inter.className}>
+    <html lang="en" data-scroll-behavior="smooth" className={spaceGrotesk.variable}>
+      <body className={dmSans.className}>
         <SettingsProvider>
           <ToastProvider>
             <ClientConfig />

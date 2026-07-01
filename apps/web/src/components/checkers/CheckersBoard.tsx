@@ -272,7 +272,7 @@ export function CheckersBoard({
         style={{
           border: '2px solid var(--c-border-strong)',
           boxShadow: isMyTurn
-            ? '0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(196,106,74,0.6), 0 0 26px -2px rgba(196,106,74,0.5)'
+            ? '0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(236,72,153,0.6), 0 0 30px -2px rgba(236,72,153,0.5)'
             : undefined,
         }}
       >

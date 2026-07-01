@@ -1,8 +1,10 @@
 /**
  * Semantic app-level design tokens shared by web and mobile.
  *
- * This is the CANONICAL source of GameExplorer's visual identity — steel-blue +
- * gold on a dark slate base. Both platforms read these values:
+ * This is the CANONICAL source of GameExplorer's visual identity — the "Arcade
+ * Glow" system: a near-black arcade base with gold as the shared action color,
+ * neon per-game accents (chess blue, checkers pink, reversi lime), and strong
+ * glow/motion cues. Both platforms read these values:
  *   - mobile (React Native) imports the JS constants directly;
  *   - web mirrors them as CSS custom properties in `globals.css` (`@theme` +
  *     `--c-*` variables), so a key here and a `--c-*` var there are a PAIR.
@@ -16,35 +18,38 @@
 
 /** Raw palette primitives. Reference these from theme blocks, not from UI code. */
 const PALETTE = {
-  // Slate base (page + panel surfaces)
-  slate950: '#0b1120',
-  slate900: '#0f172a',
-  slate800: '#1e293b',
-  slate750: '#283548',
-  slate700: '#334155',
-  slate600: '#475569',
-  slate500: '#64748b',
-  slate400: '#94a3b8',
-  slate100: '#f1f5f9',
-  // Gold (brand accent / primary action)
+  // Arcade base — a near-black blue-slate ramp (page + panel surfaces + chrome).
+  ink950:  '#07090f', // deepest page void (radial-gradient base)
+  ink900:  '#0b0e17', // page background
+  ink850:  '#111726', // raised panels / browser chrome
+  ink800:  '#141b2d', // cards / panels
+  ink750:  '#1a2338', // hover surface
+  ink700:  '#212b45', // muted fills / inputs
+  ink600:  '#2b3652', // strong border / divider
+  ink500:  '#5c6a85', // subtle text / disabled
+  slate400: '#9aa6bd', // secondary text
+  slate100: '#e7ecf6', // primary text
+  // Gold (brand accent / primary action) — unchanged, the shared CTA color.
   gold:       '#cda43f',
   goldLight:  '#dcb456',
   goldDark:   '#b8923a',
   goldInk:    '#1a1206', // text/icon on a gold fill (AA on #cda43f)
-  // Steel-blue (secondary / informational, the board's dark square)
-  steel:      '#6f88a8',
-  steelLight: '#87a0bf',
-  // Per-game signature hues — jewel tones re-toned to coexist with steel+gold
-  // on dark slate (distinct identity without the old saturated rainbow).
-  ember:      '#c46a4a', // checkers — warm terracotta beside gold
-  sage:       '#5a9e86', // reversi — desaturated emerald that lives on slate
+  // Neon blue (secondary / informational, chess signature) — the arcade upgrade
+  // of the old steel. Bright electric blue with a lighter hover.
+  blue:      '#3b82f6',
+  blueLight: '#7db1ff',
+  // Per-game signature hues — saturated neon that glows on the near-black base.
+  pink:      '#ec4899', // checkers — hot magenta
+  pinkLight: '#ff8fc4',
+  lime:      '#a3e635', // reversi — acid lime
+  limeLight: '#bef264',
   // Status
-  red600:   '#dc2626',
-  red500:   '#ef4444',
+  rose600:  '#f43f5e', // danger — arcade rose
+  rose500:  '#fb7185',
   amber600: '#d97706',
   amber500: '#f59e0b',
-  green600: '#16a34a',
-  green500: '#22c55e',
+  emerald600: '#10b981', // success — neon teal-green ("live" pulse)
+  emerald500: '#22d3aa',
   white:    '#ffffff',
 } as const;
 
@@ -83,36 +88,36 @@ export interface Theme {
   focusRing: string;
 }
 
-/** Active dark theme (steel-blue + gold). */
+/** Active dark theme (Arcade Glow — neon on near-black + gold action). */
 const DARK: Theme = {
-  surface:      PALETTE.slate900,
-  surfaceAlt:   PALETTE.slate800,
-  surfaceMuted: PALETTE.slate700,
-  surfaceHover: PALETTE.slate750,
-  border:       PALETTE.slate700,
-  borderStrong: PALETTE.slate600,
+  surface:      PALETTE.ink900,
+  surfaceAlt:   PALETTE.ink800,
+  surfaceMuted: PALETTE.ink700,
+  surfaceHover: PALETTE.ink750,
+  border:       PALETTE.ink700,
+  borderStrong: PALETTE.ink600,
 
   accent:       PALETTE.gold,
   accentHover:  PALETTE.goldLight,
   accentMuted:  'rgba(205,164,63,0.15)',
   onAccent:     PALETTE.goldInk,
 
-  info:         PALETTE.steel,
-  infoHover:    PALETTE.steelLight,
-  infoMuted:    'rgba(111,136,168,0.18)',
+  info:         PALETTE.blue,
+  infoHover:    PALETTE.blueLight,
+  infoMuted:    'rgba(59,130,246,0.16)',
 
-  danger:       PALETTE.red600,
-  dangerHover:  PALETTE.red500,
-  dangerMuted:  'rgba(220,38,38,0.15)',
+  danger:       PALETTE.rose600,
+  dangerHover:  PALETTE.rose500,
+  dangerMuted:  'rgba(244,63,94,0.14)',
   warning:      PALETTE.amber600,
   warningHover: PALETTE.amber500,
-  success:      PALETTE.green600,
-  successHover: PALETTE.green500,
+  success:      PALETTE.emerald600,
+  successHover: PALETTE.emerald500,
 
   fg:           PALETTE.slate100,
   fgMuted:      PALETTE.slate400,
-  fgSubtle:     PALETTE.slate500,
-  fgInverse:    PALETTE.slate900,
+  fgSubtle:     PALETTE.ink500,
+  fgInverse:    PALETTE.ink900,
 
   focusRing:    PALETTE.gold,
 };
@@ -128,8 +133,8 @@ export const THEMES = {
 /**
  * Per-game signature accent — a base hue + a translucent glow used for ambient
  * blooms, hovered cards, and hero gradients. Gold stays the shared brand/CTA;
- * these add per-game identity. Chess reuses the steel `info` hue (it's literally
- * the board's dark square). Mirrored on web as `--c-game-*` / `--c-game-*-glow`.
+ * these add per-game identity. Chess shares the neon-blue `info` hue. Mirrored
+ * on web as `--c-game-*` / `--c-game-*-glow`.
  */
 export interface GameAccent {
   base: string;
@@ -137,9 +142,9 @@ export interface GameAccent {
 }
 
 export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi', GameAccent> = {
-  chess:    { base: PALETTE.steel, glow: 'rgba(111,136,168,0.45)' },
-  checkers: { base: PALETTE.ember, glow: 'rgba(196,106,74,0.45)' },
-  reversi:  { base: PALETTE.sage,  glow: 'rgba(90,158,134,0.45)' },
+  chess:    { base: PALETTE.blue, glow: 'rgba(59,130,246,0.45)' },
+  checkers: { base: PALETTE.pink, glow: 'rgba(236,72,153,0.45)' },
+  reversi:  { base: PALETTE.lime, glow: 'rgba(163,230,53,0.42)' },
 } as const;
 
 export type ThemeName = keyof typeof THEMES;
@@ -192,12 +197,12 @@ export const SHADOWS = {
   // above" surface). Inset highlight first, drop shadow after.
   elevation: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 10px 30px -10px rgba(0,0,0,0.55)',
   elevationLg: 'inset 0 1px 0 0 rgba(255,255,255,0.07), 0 24px 60px -16px rgba(0,0,0,0.65)',
-  // Glow: a colored halo for primary actions / focal elements at rest+hover.
-  glowAccent:   '0 0 0 1px rgba(205,164,63,0.25), 0 8px 32px -6px rgba(205,164,63,0.45)',
-  glowInfo:     '0 0 0 1px rgba(111,136,168,0.25), 0 8px 32px -6px rgba(111,136,168,0.40)',
-  glowChess:    '0 0 0 1px rgba(111,136,168,0.30), 0 12px 36px -8px rgba(111,136,168,0.45)',
-  glowCheckers: '0 0 0 1px rgba(196,106,74,0.30), 0 12px 36px -8px rgba(196,106,74,0.45)',
-  glowReversi:  '0 0 0 1px rgba(90,158,134,0.30), 0 12px 36px -8px rgba(90,158,134,0.45)',
+  // Glow: a colored neon halo for primary actions / focal elements at rest+hover.
+  glowAccent:   '0 0 0 1px rgba(205,164,63,0.30), 0 0 34px -4px rgba(205,164,63,0.65)',
+  glowInfo:     '0 0 0 1px rgba(59,130,246,0.30), 0 0 32px -4px rgba(59,130,246,0.55)',
+  glowChess:    '0 0 0 1px rgba(59,130,246,0.35), 0 0 40px -8px rgba(59,130,246,0.65)',
+  glowCheckers: '0 0 0 1px rgba(236,72,153,0.35), 0 0 40px -8px rgba(236,72,153,0.65)',
+  glowReversi:  '0 0 0 1px rgba(163,230,53,0.32), 0 0 40px -8px rgba(163,230,53,0.55)',
 } as const;
 
 /**
@@ -210,10 +215,10 @@ export const GRADIENTS = {
   // Subtle top-lit panel sheen layered over surfaceAlt.
   surface: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 40%)',
   // Per-game hero washes (used at low opacity behind hero content).
-  heroChess:    'linear-gradient(135deg, #6f88a8 0%, #cda43f 100%)',
-  heroCheckers: 'linear-gradient(135deg, #c46a4a 0%, #cda43f 100%)',
-  heroReversi:  'linear-gradient(135deg, #5a9e86 0%, #cda43f 100%)',
-  heroBrand:    'linear-gradient(135deg, #6f88a8 0%, #cda43f 100%)',
+  heroChess:    'linear-gradient(135deg, #3b82f6 0%, #ec4899 100%)',
+  heroCheckers: 'linear-gradient(135deg, #ec4899 0%, #cda43f 100%)',
+  heroReversi:  'linear-gradient(135deg, #a3e635 0%, #22d3aa 100%)',
+  heroBrand:    'linear-gradient(135deg, #3b82f6 0%, #ec4899 100%)',
 } as const;
 
 export const Z_INDEX = {

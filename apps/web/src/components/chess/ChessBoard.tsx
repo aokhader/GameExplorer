@@ -16,6 +16,8 @@ const BOARD_CSS_VARS = {
   '--gx-board-selected': BOARD_COLORS.selectedSquare,
   '--gx-board-lastmove-light': BOARD_COLORS.lastMoveLight,
   '--gx-board-lastmove-dark': BOARD_COLORS.lastMoveDark,
+  '--gx-board-move': BOARD_COLORS.moveIndicator,
+  '--gx-board-move-capture': BOARD_COLORS.moveIndicatorCapture,
 } as React.CSSProperties;
 
 export interface BoardArrow {

@@ -34,16 +34,16 @@
 }
 
 /* Board palette is driven by BOARD_COLORS in @gameexplorer/ui (chess/tokens.ts) —
-   GameExplorer's steel-blue + gold identity. ChessBoard.tsx injects those token
+   GameExplorer's "Arcade Glow" dark blue-slate board. ChessBoard.tsx injects those token
    values as the --gx-board-* CSS variables on .chess-board-wrapper, so the TS
    token is the single source of truth (the mobile app reads the same token).
    The hex literals below are only fallbacks if the vars are ever absent. */
 .square.light {
-  background-color: var(--gx-board-light, #dfe6ee);
+  background-color: var(--gx-board-light, #445576);
 }
 
 .square.dark {
-  background-color: var(--gx-board-dark, #6f88a8);
+  background-color: var(--gx-board-dark, #2a3550);
 }
 
 .square:hover {
@@ -95,12 +95,12 @@
 
 .square.light .rank-label,
 .square.light .file-label {
-  color: var(--gx-board-dark, #6f88a8);
+  color: var(--gx-board-dark, #2a3550);
 }
 
 .square.dark .rank-label,
 .square.dark .file-label {
-  color: var(--gx-board-light, #dfe6ee);
+  color: var(--gx-board-light, #445576);
 }
 
 /* Valid Move Indicators */
@@ -114,8 +114,9 @@
 .move-indicator.empty {
   width: 28%;
   height: 28%;
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: var(--gx-board-move, rgba(34, 211, 170, 0.85));
   border-radius: 50%;
+  box-shadow: 0 0 10px rgba(34, 211, 170, 0.6);
 }
 
 .move-indicator.capture {
@@ -124,8 +125,8 @@
   background: radial-gradient(
     circle,
     transparent 70%,
-    rgba(0, 0, 0, 0.15) 70%,
-    rgba(0, 0, 0, 0.15) 85%,
+    var(--gx-board-move-capture, rgba(34, 211, 170, 0.55)) 70%,
+    var(--gx-board-move-capture, rgba(34, 211, 170, 0.55)) 85%,
     transparent 85%
   );
 }
@@ -228,16 +229,16 @@
     0 0 18px 4px rgba(220, 38, 38, 0.65);
 }
 
-/* Whose-turn signifier — the player's board edge lifts with a steel-blue glow
-   when it's their move. Calm; reinforces "your move" without nagging. */
+/* Whose-turn signifier — the player's board edge lifts with a neon-blue glow
+   when it's their move. Reinforces "your move" without nagging. */
 .chess-board {
   transition: box-shadow 0.3s ease;
 }
 .chess-board.my-turn {
   box-shadow:
     0 12px 28px -6px rgba(0, 0, 0, 0.5),
-    0 0 0 2px rgba(111, 136, 168, 0.55),
-    0 0 26px -2px rgba(111, 136, 168, 0.5);
+    0 0 0 2px rgba(59, 130, 246, 0.6),
+    0 0 30px -2px rgba(59, 130, 246, 0.55);
 }
 
 @media (prefers-reduced-motion: no-preference) {

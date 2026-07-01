@@ -1,35 +1,35 @@
 /**
  * Shared design tokens for the checkers board and pieces.
  *
- * The board wears checkers' own warm "ember" identity (a wooden-draughts feel),
- * deliberately distinct from chess's cool steel-blue so the two games never look
- * alike — and original (not Lichess / chess.com). The dark squares tie to the
- * `ember` per-game accent in tokens.ts; gold stays the shared selection/last-move
- * brand colour. Pieces only ever sit on dark squares, so both piece fills read
- * with strong contrast on the ember tone. Import in web + mobile.
+ * "Arcade Glow" checkers: the same dark blue-slate arcade board as chess, but
+ * framed by checkers' hot-pink signature glow (see GAME_ACCENTS) so the two
+ * games never read alike. Discs are neon — warm gold vs electric blue — and jump
+ * hints glow pink. Gold stays the shared selection/last-move brand. Pieces only
+ * ever sit on dark squares, so both disc fills read with strong contrast on the
+ * dark tone. Import in web + mobile.
  */
 
 export const CHECKERS_BOARD_COLORS = {
-  lightSquare: '#ecd6b0',          // warm sand
-  darkSquare:  '#b25e3c',          // deepened ember / walnut
+  lightSquare: '#445576',          // arcade blue-slate (light)
+  darkSquare:  '#2a3550',          // arcade blue-slate (dark)
   selectedSquare: '#cda43f',       // gold (shared brand)
   lastMoveLight: 'rgba(205,164,63,0.42)',
   lastMoveDark:  'rgba(205,164,63,0.52)',
-  moveIndicator: 'rgba(0,0,0,0.22)',
-  captureIndicator: 'rgba(0,0,0,0.34)',
+  moveIndicator: 'rgba(236,72,153,0.85)',   // pink hint on the dark board
+  captureIndicator: 'rgba(236,72,153,0.75)',
 };
 
 export const CHECKERS_PIECE_COLORS = {
   white: {
-    fill:      '#faf0e0',
-    stroke:    '#5c3d1e',
-    highlight: '#ffffff',
-    shadow:    '#c8b49a',
+    fill:      '#f4d270',          // warm gold disc
+    stroke:    '#8a6a1f',
+    highlight: '#fff4d6',
+    shadow:    '#5a3f10',
   },
   black: {
-    fill:      '#2c1b08',
-    stroke:    '#e8d5b7',
-    highlight: '#5c4033',
-    shadow:    '#1a0f08',
+    fill:      '#3b82f6',          // electric blue disc
+    stroke:    '#1e40af',
+    highlight: '#bcd6ff',
+    shadow:    '#0b1120',
   },
 };
