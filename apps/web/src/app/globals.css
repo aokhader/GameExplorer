@@ -146,6 +146,11 @@
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+  /* Always reserve the scrollbar gutter so centered (`container mx-auto`)
+     content doesn't jump horizontally when a vertical scrollbar appears or
+     disappears — e.g. a short loading skeleton swapping to a taller page, or
+     navigating to a full-height game screen that sets `overflow-hidden`. */
+  scrollbar-gutter: stable;
 }
 
 /* Custom scrollbar */
