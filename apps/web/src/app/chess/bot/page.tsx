@@ -10,8 +10,17 @@ import { useChessEngine } from '@/hooks/useChessEngine';
 import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
 import { useAuth } from '@/hooks/useAuth';
 import { saveGame } from '@gameexplorer/db';
-import { GameResultScreen, type GameResult } from '@/components/game/GameResultScreen';
+import dynamic from 'next/dynamic';
+import type { GameResult } from '@/components/game/GameResultScreen';
 import { Button } from '@/components/ui';
+
+// GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
+// renders at game end — load it lazily so it stays out of the initial route
+// chunk (smaller first-load JS / faster first navigation to this page).
+const GameResultScreen = dynamic(
+  () => import('@/components/game/GameResultScreen').then(m => m.GameResultScreen),
+  { ssr: false },
+);
 
 // ── ELO helpers ────────────────────────────────────────────────────────────────
 
@@ -60,7 +69,6 @@ function eloDescription(elo: number): string {
 export default function ChessBotPage() {
   // Worker owns the canonical game state; all move validation runs off main thread.
   const { gameState: liveState, legalMoves: legalMovesMap, isReady: engineReady, makeMove, getBotMove, reset } = useChessEngine();
-  const stockfish = useStockfish();
   const { user } = useAuth();
 
   // Timeline for replay — grows as the worker confirms each move.
@@ -71,6 +79,11 @@ export default function ChessBotPage() {
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Defer Stockfish (and its ~7 MB WASM download) until the game actually
+  // starts — no need to load the engine while the user is still on the setup
+  // screen picking ELO / colour.
+  const stockfish = useStockfish({ enabled: gameStarted });
 
   // Tracks whether a bot MAKE_MOVE is in flight so we clear isThinking only
   // when the worker confirms, not when makeMove() posts the message.
@@ -116,7 +129,6 @@ export default function ChessBotPage() {
       }
       return prev;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engineReady, liveState]);
 
   const isAtLive    = viewIndex === timeline.length - 1;
@@ -126,13 +138,16 @@ export default function ChessBotPage() {
 
   // ── Trigger bot move when it's the bot's turn ───────────────────────────────
   useEffect(() => {
-    if (!gameStarted || !engineReady || !stockfish.isReady) return;
+    if (!gameStarted || !engineReady) return;
+    // Weak bots (< STOCKFISH_MIN_ELO) run in the chess-engine worker and don't
+    // need Stockfish; only wait on it when the selected ELO actually uses it.
+    if (targetElo >= STOCKFISH_MIN_ELO && !stockfish.isReady) return;
     if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw) return;
     if (liveState.currentTurn !== playerColor && !isThinking) {
       makeBotMove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady]);
+  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, targetElo]);
 
   // ── Save game when it ends ──────────────────────────────────────────────────
   useEffect(() => {

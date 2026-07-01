@@ -14,8 +14,17 @@ import { CheckersBoard, BoardArrow } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
 import { saveCheckersGame, getUserRating, upsertUserRating } from '@gameexplorer/db';
 import type { UserRating } from '@gameexplorer/db';
-import { GameResultScreen, type GameResult } from '@/components/game/GameResultScreen';
+import dynamic from 'next/dynamic';
+import type { GameResult } from '@/components/game/GameResultScreen';
 import { Button } from '@/components/ui';
+
+// GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
+// renders at game end — load it lazily so it stays out of the initial route
+// chunk (smaller first-load JS / faster first navigation to this page).
+const GameResultScreen = dynamic(
+  () => import('@/components/game/GameResultScreen').then(m => m.GameResultScreen),
+  { ssr: false },
+);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

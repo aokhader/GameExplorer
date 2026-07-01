@@ -31,13 +31,24 @@ export interface StockfishMove {
   promotion?: PieceType;
 }
 
-export function useStockfish() {
+export interface UseStockfishOptions {
+  /**
+   * When false, the Stockfish worker is not created and its ~7 MB WASM is not
+   * downloaded. Lets callers defer the heavy engine until the user actually
+   * starts a game instead of paying for it on a setup/browse screen.
+   * Defaults to true so existing callers keep their eager behaviour.
+   */
+  enabled?: boolean;
+}
+
+export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
   const workerRef = useRef<Worker | null>(null);
   const [isReady, setIsReady] = useState(false);
   const moveResolverRef = useRef<((move: StockfishMove) => void) | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!enabled) return;
 
     workerRef.current = new Worker('/stockfish/stockfish.js');
     workerRef.current.postMessage('uci');
@@ -64,8 +75,13 @@ export function useStockfish() {
       }
     };
 
-    return () => { workerRef.current?.terminate(); };
-  }, []);
+    return () => {
+      workerRef.current?.terminate();
+      workerRef.current = null;
+      moveResolverRef.current = null;
+      setIsReady(false);
+    };
+  }, [enabled]);
 
   const getBestMove = useCallback(
     (gameState: ChessGameState, targetElo: number): Promise<StockfishMove> => {
