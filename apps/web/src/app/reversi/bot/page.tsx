@@ -9,6 +9,8 @@ import { saveReversiGame, getUserRating, upsertUserRating } from '@gameexplorer/
 import type { UserRating } from '@gameexplorer/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
+import { GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -318,50 +320,19 @@ export default function ReversiBotPage() {
   const myResult: GameResult =
     liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
 
+  const botLabel = DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label ?? String(targetElo);
+  const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
+
   return (
-    <div className="reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
-
-      <GameResultScreen
-        open={!!ratingResult}
-        result={myResult}
-        subtitle={gameOverMsg ?? undefined}
-        rating={
-          ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
-            : undefined
-        }
-        actions={
+    <>
+      <GameScreenLayout
+        backHref="/reversi"
+        headerActions={
           <>
-            <Button size="lg" fullWidth onClick={handleNewGame}>
-              Play Again
-            </Button>
-            <Link
-              href="/reversi"
-              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
-            >
-              Back to Reversi
-            </Link>
-          </>
-        }
-      />
-
-      {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border bg-white/50 dark:bg-surface-alt/50">
-        <div className="container mx-auto flex items-center justify-between">
-          <Link href="/reversi" className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </Link>
-          <div className="flex items-center gap-3">
             {passMsg && (
-              <span className="text-xs px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 rounded-full border border-amber-300 dark:border-amber-700 animate-pulse">
+              <span className="text-xs px-3 py-1 bg-warning/15 text-warning-hover rounded-full border border-warning/40 animate-pulse">
                 {passMsg}
               </span>
-            )}
-            {isThinking && !passMsg && (
-              <span className="text-sm text-fg-subtle dark:text-fg-muted animate-pulse">Bot thinking…</span>
             )}
             {!isAtLive && (
               <button
@@ -374,30 +345,36 @@ export default function ReversiBotPage() {
             <button onClick={handleNewGame} className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm">
               New Game
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 min-h-0 lg:overflow-hidden">
-        <div className="container mx-auto lg:h-full px-4 py-4">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] lg:grid-rows-1 gap-4 lg:h-full lg:max-h-full">
-
-            {/* Board */}
-            <div className="flex items-center justify-center min-h-0">
-              <div className="w-full max-w-[520px]">
-                <ReversiBoard
-                  gameState={displayState}
-                  onMove={handleMove}
-                  playerColor={playerColor}
-                  showCoordinates
-                  highlightPos={isAtLive ? lastPlacedPos : null}
-                />
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="flex flex-col gap-3 min-h-0">
+          </>
+        }
+        topCard={
+          <PlayerCard
+            name="Bot"
+            initial="B"
+            active={isThinking}
+            subline={isThinking ? `${botLabel} · thinking…` : botLabel}
+          />
+        }
+        board={
+          <ReversiBoard
+            gameState={displayState}
+            onMove={handleMove}
+            playerColor={playerColor}
+            showCoordinates
+            highlightPos={isAtLive ? lastPlacedPos : null}
+          />
+        }
+        bottomCard={
+          <PlayerCard
+            name="You"
+            initial="Y"
+            isYou
+            active={yourTurn}
+            subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
+          />
+        }
+        sidebar={
+          <>
               {/* Score card */}
               <div className="shrink-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border p-4">
                 {/* Disc counts — prominent */}
@@ -405,8 +382,8 @@ export default function ReversiBotPage() {
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2 mb-1">
                       <svg width="20" height="20" viewBox="0 0 40 40">
-                        <circle cx="20" cy="20" r="16" fill="#1a1a1a" stroke="#555" strokeWidth="1" />
-                        <ellipse cx="15" cy="14.5" rx="5" ry="3.5" fill="#444" opacity="0.35" />
+                        <circle cx="20" cy="20" r="16" fill="#2b3448" stroke="#5c6a85" strokeWidth="1" />
+                        <ellipse cx="15" cy="14.5" rx="5" ry="3.5" fill="#4a5877" opacity="0.35" />
                       </svg>
                       <span className="text-2xl font-bold text-fg-subtle dark:text-fg tabular-nums">{counts.black}</span>
                     </div>
@@ -416,7 +393,7 @@ export default function ReversiBotPage() {
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2 mb-1">
                       <svg width="20" height="20" viewBox="0 0 40 40">
-                        <circle cx="20" cy="20" r="16" fill="#f5f0e8" stroke="#aaa" strokeWidth="1" />
+                        <circle cx="20" cy="20" r="16" fill="#f5f0e8" stroke="#c7d2e0" strokeWidth="1" />
                         <ellipse cx="15" cy="14.5" rx="5" ry="3.5" fill="#fff" opacity="0.35" />
                       </svg>
                       <span className="text-2xl font-bold text-fg-subtle dark:text-fg tabular-nums">{counts.white}</span>
@@ -518,11 +495,33 @@ export default function ReversiBotPage() {
                   )}
                 </div>
               </div>
-            </div>
+          </>
+        }
+      />
 
-          </div>
-        </div>
-      </div>
-    </div>
+      <GameResultScreen
+        open={!!ratingResult}
+        result={myResult}
+        subtitle={gameOverMsg ?? undefined}
+        rating={
+          ratingResult
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            : undefined
+        }
+        actions={
+          <>
+            <Button size="lg" fullWidth onClick={handleNewGame}>
+              Play Again
+            </Button>
+            <Link
+              href="/reversi"
+              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
+            >
+              Back to Reversi
+            </Link>
+          </>
+        }
+      />
+    </>
   );
 }

@@ -12,6 +12,7 @@ import { SpectateLinkButton } from '@/components/multiplayer/SpectateLinkButton'
 import { EmoteBar } from '@/components/multiplayer/EmoteBar';
 import { OpponentMenu } from '@/components/multiplayer/OpponentMenu';
 import { GameResultScreen, type GameResult } from '@/components/game/GameResultScreen';
+import { PlayerCard } from '@/components/game/PlayerCard';
 
 type GameSession = ReturnType<typeof useGameSession>;
 
@@ -74,27 +75,6 @@ function Clock({
       )}
       <span>{format(ms)}</span>
       {danger && <span className="sr-only">Low time</span>}
-    </div>
-  );
-}
-
-// ── Player bar ───────────────────────────────────────────────────────────────
-function PlayerBar({
-  name,
-  rating,
-  clock,
-}: {
-  name: string;
-  rating?: number;
-  clock: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 glass rounded-lg px-4 py-2">
-      <span className="font-semibold truncate">
-        {name}
-        {rating != null && <span className="text-fg-muted font-normal"> ({rating})</span>}
-      </span>
-      {clock}
     </div>
   );
 }
@@ -309,6 +289,19 @@ export function GameLayout({
   const moveCount = (s.gameState as any)?.moveHistory?.length ?? 0;
   const inGame = s.status === 'active' || s.status === 'ended';
 
+  const yourTurn = s.status === 'active' && s.activeColor === s.myColor;
+  const oppTurn = s.status === 'active' && s.activeColor !== s.myColor;
+  const oppInitial = (oppName.trim()[0] ?? 'O').toUpperCase();
+  const youInitial = (s.username?.trim()[0] ?? 'Y').toUpperCase();
+  const oppRating = s.opponent?.rating;
+  const oppSubline =
+    oppRating != null
+      ? `${oppRating}${oppTurn ? ' · thinking…' : ''}`
+      : oppTurn
+        ? 'thinking…'
+        : undefined;
+  const youSubline = yourTurn ? 'your move' : 'waiting…';
+
   return (
     <div
       className={cn(
@@ -331,17 +324,19 @@ export function GameLayout({
         <MatchmakingPanel session={s} title={title} backHref={backHref} timeControls={timeControls} />
       )}
 
-      {/* Game view */}
+      {/* Game view — board + player cards on the left, info/actions on the right,
+          matching the Arcade Glow in-game layout. */}
       {inGame && s.gameState && (
-        <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-4 items-start">
-          {/* Board column */}
-          <div className="flex flex-col gap-2 flex-1 min-w-0 w-full">
+        <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start">
+          {/* Board column (fixed on desktop; the sidebar takes the remaining width) */}
+          <div className="flex flex-col gap-3 w-full lg:w-[460px] lg:shrink-0">
             {topExtras}
 
-            <PlayerBar
+            <PlayerCard
               name={oppName}
-              rating={s.opponent?.rating}
-              clock={
+              initial={oppInitial}
+              subline={oppSubline}
+              right={
                 <Clock
                   ms={s.oppClockMs}
                   active={s.activeColor !== s.myColor}
@@ -359,23 +354,12 @@ export function GameLayout({
 
             {board}
 
-            {showDraw && s.drawOffered && (
-              <div className="bg-surface-alt border border-border rounded-lg px-4 py-3 flex items-center justify-between gap-2">
-                <span className="text-sm">Opponent offers a draw</span>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={s.acceptDraw}>
-                    Accept
-                  </Button>
-                  <Button size="sm" variant="danger" onClick={s.declineDraw}>
-                    Decline
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <PlayerBar
+            <PlayerCard
               name={`You (${s.username})`}
-              clock={
+              initial={youInitial}
+              subline={youSubline}
+              isYou
+              right={
                 <Clock
                   ms={s.myClockMs}
                   active={s.activeColor === s.myColor}
@@ -384,46 +368,14 @@ export function GameLayout({
                 />
               }
             />
-
-            {/* Action row — wraps on narrow widths so it never overflows */}
-            {s.status === 'active' && (
-              <div className="flex flex-wrap gap-2 justify-end">
-                <SpectateLinkButton gameId={s.gameId!} />
-                {showDraw && (
-                  <Button size="md" variant="secondary" onClick={s.offerDraw}>
-                    ½ Draw
-                  </Button>
-                )}
-                {moveCount < ABORT_MOVE_LIMIT ? (
-                  <Button size="md" variant="secondary" onClick={s.abort}>
-                    Abort
-                  </Button>
-                ) : (
-                  <Button size="md" variant="danger" onClick={s.resign}>
-                    Resign
-                  </Button>
-                )}
-                {s.opponent?.userId && (
-                  <OpponentMenu
-                    opponentId={s.opponent.userId}
-                    opponentName={oppName}
-                    gameId={s.gameId!}
-                  />
-                )}
-              </div>
-            )}
           </div>
 
           {/* Sidebar */}
-          <div className="w-full lg:w-80 flex flex-col gap-4">
+          <div className="w-full lg:flex-1 flex flex-col gap-4">
             <Card elevation="raised">
               <h3 className="text-sm font-semibold text-fg-muted mb-2 uppercase tracking-wide">Moves</h3>
-              <div className="overflow-y-auto max-h-[28svh] lg:max-h-72 text-sm font-mono">{moveList}</div>
+              <div className="overflow-y-auto max-h-[28svh] lg:max-h-64 text-sm font-mono">{moveList}</div>
             </Card>
-
-            {s.status === 'active' && s.user && (
-              <EmoteBar gameId={s.gameId!} myUserId={s.user.id} emit={s.emit} socket={s.socket} />
-            )}
 
             <Card elevation="raised" className="flex flex-col gap-2 h-[40svh] lg:h-72">
               <h3 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">Chat</h3>
@@ -434,6 +386,10 @@ export function GameLayout({
                   </p>
                 ))}
               </div>
+              {/* Reactions live at the bottom of the chat, as in the design. */}
+              {s.status === 'active' && s.user && (
+                <EmoteBar gameId={s.gameId!} myUserId={s.user.id} emit={s.emit} socket={s.socket} />
+              )}
               <div className="flex gap-2">
                 <input
                   value={s.chatText}
@@ -448,6 +404,53 @@ export function GameLayout({
                 </Button>
               </div>
             </Card>
+
+            {/* Draw offer prompt */}
+            {showDraw && s.drawOffered && (
+              <div className="bg-surface-alt border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-2">
+                <span className="text-sm">Opponent offers a draw</span>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={s.acceptDraw}>
+                    Accept
+                  </Button>
+                  <Button size="sm" variant="danger" onClick={s.declineDraw}>
+                    Decline
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Primary actions — split row, echoing the design's ½ Draw / Resign pair. */}
+            {s.status === 'active' && (
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  {showDraw && (
+                    <Button className="flex-1" variant="secondary" onClick={s.offerDraw}>
+                      ½ Draw
+                    </Button>
+                  )}
+                  {moveCount < ABORT_MOVE_LIMIT ? (
+                    <Button className="flex-1" variant="secondary" onClick={s.abort}>
+                      Abort
+                    </Button>
+                  ) : (
+                    <Button className="flex-1" variant="danger" onClick={s.resign}>
+                      Resign
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <SpectateLinkButton gameId={s.gameId!} />
+                  {s.opponent?.userId && (
+                    <OpponentMenu
+                      opponentId={s.opponent.userId}
+                      opponentName={oppName}
+                      gameId={s.gameId!}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

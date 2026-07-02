@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   ChessEngine, ChessGameState, Position, PieceType,
@@ -15,6 +14,7 @@ import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useStockfishAnalysis } from '@/hooks/useStockfishAnalysis';
 import { getGameById } from '@gameexplorer/db';
+import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 
 type Mode = 'edit' | 'analyze';
 
@@ -250,89 +250,70 @@ function AnalysisPageInner() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden pt-16">
-
-      {/* Header */}
-      <div className="shrink-0 px-4 py-2.5 border-b border-border-strong dark:border-border bg-white/80 dark:bg-surface-alt/80 backdrop-blur-sm">
-        <div className="container mx-auto flex items-center justify-between gap-3">
-          <Link
-            href={gameId ? '/chess/replays' : '/chess'}
-            className="inline-flex items-center gap-1 text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors text-sm"
+    <GameScreenLayout
+      backHref={gameId ? '/chess/replays' : '/chess'}
+      backLabel={gameId ? 'Replays' : 'Back'}
+      headerCenter={
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-fg">Analysis Board</span>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+            mode === 'edit'
+              ? 'bg-warning/20 text-warning-hover'
+              : 'bg-accent-muted text-accent'
+          }`}>
+            {mode === 'edit' ? 'Edit Position' : 'Stockfish Analysis'}
+          </span>
+        </div>
+      }
+      headerActions={
+        <>
+          <button
+            onClick={() => setFlipBoard(f => !f)}
+            className="px-3 py-1.5 text-sm text-fg-muted border border-border-strong rounded-lg hover:bg-surface-muted transition-colors"
+            title="Flip board"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            {gameId ? 'Replays' : 'Back'}
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-fg-subtle dark:text-fg">Analysis Board</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-              mode === 'edit'
-                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
-                : 'bg-accent-muted text-accent dark:bg-accent-muted dark:text-accent'
-            }`}>
-              {mode === 'edit' ? 'Edit Position' : 'Stockfish Analysis'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
+            ⇅
+          </button>
+          {mode === 'edit' ? (
             <button
-              onClick={() => setFlipBoard(f => !f)}
-              className="px-3 py-1.5 text-sm text-fg-subtle dark:text-fg-muted border border-border-strong dark:border-border-strong rounded-lg hover:bg-surface-hover dark:hover:bg-surface-muted transition-colors"
-              title="Flip board"
+              onClick={handleEnterAnalyze}
+              className="px-4 py-1.5 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg transition-colors shadow-sm"
             >
-              ⇅
+              Analyze
             </button>
-            {mode === 'edit' ? (
-              <button
-                onClick={handleEnterAnalyze}
-                className="px-4 py-1.5 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg transition-colors shadow-sm"
-              >
-                Analyze
-              </button>
-            ) : (
-              <button
-                onClick={handleEnterEdit}
-                className="px-4 py-1.5 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg transition-colors shadow-sm"
-              >
-                Edit Position
-              </button>
-            )}
+          ) : (
+            <button
+              onClick={handleEnterEdit}
+              className="px-4 py-1.5 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg transition-colors shadow-sm"
+            >
+              Edit Position
+            </button>
+          )}
+        </>
+      }
+      board={
+        <div className="flex items-stretch gap-2 justify-center">
+          {mode === 'analyze' && (
+            <EvalBar cp={activeCp} mate={activeMate} turn={activeState.currentTurn} />
+          )}
+          <div className="flex-1 min-w-0">
+            <ChessBoard
+              gameState={activeState}
+              onMove={mode === 'analyze' ? handleAnalyzeMove : () => {}}
+              playerColor={flipBoard ? 'black' : 'white'}
+              showCoordinates
+              // Placement/erase mode: clicks route through onSquareClick
+              editMode={mode === 'edit' && isInPlacementMode}
+              onSquareClick={handleEditSquareClick}
+              // Browse mode (nothing selected): show moves for any piece, no execution
+              allowSelectAnyColor={mode === 'edit' && !isInPlacementMode}
+              arrows={arrows}
+            />
           </div>
         </div>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
-        <div className="container mx-auto px-3 py-3 lg:h-full">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] lg:grid-rows-1 gap-3 lg:h-full">
-
-            {/* Board column */}
-            <div className="flex items-center justify-center lg:min-h-0">
-              <div className="flex items-stretch gap-2 justify-center">
-                {mode === 'analyze' && (
-                  <EvalBar cp={activeCp} mate={activeMate} turn={activeState.currentTurn} />
-                )}
-                <div>
-                  <ChessBoard
-                    gameState={activeState}
-                    onMove={mode === 'analyze' ? handleAnalyzeMove : () => {}}
-                    playerColor={flipBoard ? 'black' : 'white'}
-                    showCoordinates
-                    // Placement/erase mode: clicks route through onSquareClick
-                    editMode={mode === 'edit' && isInPlacementMode}
-                    onSquareClick={handleEditSquareClick}
-                    // Browse mode (nothing selected): show moves for any piece, no execution
-                    allowSelectAnyColor={mode === 'edit' && !isInPlacementMode}
-                    arrows={arrows}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Right panel */}
-            <div className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto pb-2">
+      }
+      sidebar={
+        <div className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto pb-2">
 
               {mode === 'edit' ? (
                 <>
@@ -559,11 +540,9 @@ function AnalysisPageInner() {
                   )}
                 </>
               )}
-            </div>
-          </div>
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }
 

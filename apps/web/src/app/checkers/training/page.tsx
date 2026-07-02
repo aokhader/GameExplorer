@@ -16,6 +16,8 @@ import { saveCheckersGame, getUserRating, upsertUserRating } from '@gameexplorer
 import type { UserRating } from '@gameexplorer/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
+import { GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -404,55 +406,17 @@ export default function CheckersTrainingPage() {
     liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
 
   return (
-    <div className="reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
-
-      <GameResultScreen
-        open={!!ratingResult}
-        result={myResult}
-        subtitle={myResult === 'win' ? undefined : gameOverMsg ?? undefined}
-        rating={
-          ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
-            : undefined
-        }
-        hintsUsed={ratingResult?.hintsUsed}
-        actions={
-          <>
-            <Button size="lg" fullWidth onClick={handleNewGame}>
-              Play Again
-            </Button>
-            <Link
-              href="/checkers"
-              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
-            >
-              Back to Checkers
-            </Link>
-          </>
-        }
-      />
-
-      {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border bg-white/50 dark:bg-surface-alt/50">
-        <div className="container mx-auto flex items-center justify-between">
-          <Link
-            href="/checkers"
-            className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </Link>
-
-          <div className="flex items-center gap-2 px-3 py-1 bg-white dark:bg-surface-muted rounded-full shadow-sm border border-border-strong dark:border-border-strong">
-            <span className="text-xs text-fg-subtle dark:text-fg-muted">Rating</span>
-            <span className="text-sm font-bold text-fg-subtle dark:text-fg">{userRating?.rating ?? 1200}</span>
+    <>
+      <GameScreenLayout
+        backHref="/checkers"
+        headerCenter={
+          <div className="flex items-center gap-2 px-3 py-1 bg-surface-muted rounded-full shadow-sm border border-border-strong">
+            <span className="text-xs text-fg-muted">Rating</span>
+            <span className="text-sm font-bold text-fg">{userRating?.rating ?? 1200}</span>
           </div>
-
-          <div className="flex items-center gap-3">
-            {isThinking && (
-              <span className="text-sm text-fg-subtle dark:text-fg-muted animate-pulse">Bot thinking…</span>
-            )}
+        }
+        headerActions={
+          <>
             {!isAtLive && (
               <button
                 onClick={() => setViewIndex(timeline.length - 1)}
@@ -463,34 +427,40 @@ export default function CheckersTrainingPage() {
             )}
             <button
               onClick={handleNewGame}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors text-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
             >
               New Game
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 min-h-0 lg:overflow-hidden">
-        <div className="container mx-auto lg:h-full px-4 py-4">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] lg:grid-rows-1 gap-4 lg:h-full lg:max-h-full">
-
-            {/* Board */}
-            <div className="flex items-center justify-center min-h-0">
-              <div className="w-full max-w-[560px]">
-                <CheckersBoard
-                  gameState={displayState}
-                  onMove={handleMove}
-                  playerColor={playerColor}
-                  showCoordinates
-                  arrows={hintArrow ? [hintArrow] : undefined}
-                />
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="flex flex-col gap-3 min-h-0">
+          </>
+        }
+        topCard={
+          <PlayerCard
+            name="Bot"
+            initial="B"
+            active={isThinking}
+            subline={isThinking ? `${botElo} · thinking…` : `${botElo} · ${eloLabel(botElo)}`}
+          />
+        }
+        board={
+          <CheckersBoard
+            gameState={displayState}
+            onMove={handleMove}
+            playerColor={playerColor}
+            showCoordinates
+            arrows={hintArrow ? [hintArrow] : undefined}
+          />
+        }
+        bottomCard={
+          <PlayerCard
+            name="You"
+            initial="Y"
+            isYou
+            active={isPlayerTurn}
+            subline={`Playing ${playerColor}${isPlayerTurn ? ' · your move' : ''}`}
+          />
+        }
+        sidebar={
+          <>
               {/* Info card */}
               <div className="shrink-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border p-3">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
@@ -526,14 +496,14 @@ export default function CheckersTrainingPage() {
                 <div className="mt-2 pt-2 border-t border-border-strong dark:border-border-strong flex justify-around text-xs">
                   <div className="flex items-center gap-1.5">
                     <svg width="14" height="14" viewBox="0 0 45 45">
-                      <circle cx="22.5" cy="22" r="17" fill="#faf0e0" stroke="#5c3d1e" strokeWidth="2" />
+                      <circle cx="22.5" cy="22" r="17" fill="#f4d270" stroke="#8a6a1f" strokeWidth="2" />
                     </svg>
                     <span className="font-semibold text-fg-subtle dark:text-fg">{counts.white}</span>
                   </div>
                   <div className="text-fg-muted">vs</div>
                   <div className="flex items-center gap-1.5">
                     <svg width="14" height="14" viewBox="0 0 45 45">
-                      <circle cx="22.5" cy="22" r="17" fill="#2c1b08" stroke="#e8d5b7" strokeWidth="2" />
+                      <circle cx="22.5" cy="22" r="17" fill="#3b82f6" stroke="#1e40af" strokeWidth="2" />
                     </svg>
                     <span className="font-semibold text-fg-subtle dark:text-fg">{counts.black}</span>
                   </div>
@@ -622,11 +592,34 @@ export default function CheckersTrainingPage() {
                   )}
                 </div>
               </div>
-            </div>
+          </>
+        }
+      />
 
-          </div>
-        </div>
-      </div>
-    </div>
+      <GameResultScreen
+        open={!!ratingResult}
+        result={myResult}
+        subtitle={myResult === 'win' ? undefined : gameOverMsg ?? undefined}
+        rating={
+          ratingResult
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            : undefined
+        }
+        hintsUsed={ratingResult?.hintsUsed}
+        actions={
+          <>
+            <Button size="lg" fullWidth onClick={handleNewGame}>
+              Play Again
+            </Button>
+            <Link
+              href="/checkers"
+              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
+            >
+              Back to Checkers
+            </Link>
+          </>
+        }
+      />
+    </>
   );
 }

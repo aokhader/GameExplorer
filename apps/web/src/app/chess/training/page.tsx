@@ -20,6 +20,8 @@ import { saveGame, getUserRating, upsertUserRating } from '@gameexplorer/db';
 import type { UserRating } from '@gameexplorer/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
+import { GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -422,7 +424,132 @@ export default function ChessTrainingPage() {
     : 'draw';
 
   return (
-    <div className="reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16">
+    <>
+      <GameScreenLayout
+        backHref="/chess"
+        headerCenter={
+          <div className="flex items-center gap-2 px-3 py-1 bg-surface-muted rounded-full shadow-sm border border-border-strong">
+            <span className="text-xs text-fg-muted">Rating</span>
+            <span className="text-sm font-bold text-fg">{userRating?.rating ?? 1200}</span>
+          </div>
+        }
+        headerActions={
+          <>
+            {!isAtLive && (
+              <button
+                onClick={() => setViewIndex(timeline.length - 1)}
+                className="text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg transition-colors font-medium"
+              >
+                Live ⇥
+              </button>
+            )}
+            <button
+              onClick={handleNewGame}
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
+            >
+              New Game
+            </button>
+          </>
+        }
+        topCard={
+          <PlayerCard
+            name="Bot"
+            initial="B"
+            active={isThinking}
+            subline={isThinking ? `${botElo} · thinking…` : `${botElo} · ${eloLabel(botElo)}`}
+          />
+        }
+        board={
+          <ChessBoard
+            gameState={displayState}
+            onMove={handleMove}
+            playerColor={playerColor}
+            showCoordinates={true}
+            arrows={hintArrow ? [hintArrow] : undefined}
+          />
+        }
+        bottomCard={
+          <PlayerCard
+            name="You"
+            initial="Y"
+            isYou
+            active={isPlayerTurn}
+            subline={`Playing ${playerColor}${isPlayerTurn ? ' · your move' : ''}`}
+          />
+        }
+        sidebar={
+          <>
+            {/* Info card */}
+            <div className="shrink-0 bg-surface-alt rounded-xl shadow-sm border border-border p-3">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                <div className="flex gap-1.5">
+                  <span className="text-fg-muted">Bot:</span>
+                  <span className="font-semibold text-fg">
+                    {botElo}
+                    <span className="text-xs font-normal text-fg-muted ml-1">
+                      ({eloLabel(botElo)})
+                    </span>
+                  </span>
+                </div>
+                <div className="flex gap-1.5">
+                  <span className="text-fg-muted">Playing:</span>
+                  <span className="font-semibold text-fg capitalize">{playerColor}</span>
+                </div>
+                <div className="flex gap-1.5">
+                  <span className="text-fg-muted">Turn:</span>
+                  <span className="font-semibold text-fg capitalize">{liveState.currentTurn}</span>
+                </div>
+                <div className="flex gap-1.5">
+                  <span className="text-fg-muted">Hints:</span>
+                  <span className="font-semibold text-fg">
+                    {hintsUsed}
+                    {hintsUsed > 0 && (
+                      <span className="text-xs font-normal text-warning-hover ml-1">(−{hintsUsed * 2} pts)</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+              {gameOverMsg && (
+                <div className="mt-2 pt-2 border-t border-border text-sm font-semibold text-center text-warning-hover">
+                  {gameOverMsg}
+                </div>
+              )}
+            </div>
+
+            {/* Hint button — only shown on player's turn, game not over */}
+            {!gameOverMsg && (
+              <button
+                onClick={handleHint}
+                disabled={!isPlayerTurn || isHinting}
+                className={`shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
+                  isPlayerTurn && !isHinting
+                    ? 'bg-warning/15 border-warning/40 text-warning-hover hover:bg-warning/25'
+                    : 'bg-surface-muted border-border text-fg-subtle cursor-not-allowed'
+                }`}
+              >
+                <span>💡</span>
+                <span>{isHinting ? 'Thinking…' : 'Show Hint'}</span>
+                <span className="text-xs opacity-70">−2 pts</span>
+              </button>
+            )}
+
+            {/* Move list */}
+            <ChessMoveList
+              className="flex-1 min-h-0"
+              movePairs={movePairs}
+              currentIndex={viewIndex}
+              onJump={setViewIndex}
+              onFirst={() => setViewIndex(0)}
+              onPrev={() => setViewIndex(i => Math.max(0, i - 1))}
+              onNext={() => setViewIndex(i => Math.min(timeline.length - 1, i + 1))}
+              onLast={() => setViewIndex(timeline.length - 1)}
+              canGoBack={canGoBack}
+              canGoForward={canGoForward}
+              emptyMessage="No moves yet — make your first move"
+            />
+          </>
+        }
+      />
 
       <GameResultScreen
         open={!!ratingResult}
@@ -456,142 +583,6 @@ export default function ChessTrainingPage() {
           </>
         }
       />
-
-      {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border bg-white/50 dark:bg-surface-alt/50">
-        <div className="container mx-auto flex items-center justify-between">
-          <Link
-            href="/chess"
-            className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </Link>
-
-          {/* Rating badge */}
-          <div className="flex items-center gap-2 px-3 py-1 bg-white dark:bg-surface-muted rounded-full shadow-sm border border-border-strong dark:border-border-strong">
-            <span className="text-xs text-fg-subtle dark:text-fg-muted">Rating</span>
-            <span className="text-sm font-bold text-fg-subtle dark:text-fg">{userRating?.rating ?? 1200}</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {isThinking && (
-              <span className="text-sm text-fg-subtle dark:text-fg-muted animate-pulse">
-                Bot thinking…
-              </span>
-            )}
-            {!isAtLive && (
-              <button
-                onClick={() => setViewIndex(timeline.length - 1)}
-                className="text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg transition-colors font-medium"
-              >
-                Live ⇥
-              </button>
-            )}
-            <button
-              onClick={handleNewGame}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
-            >
-              New Game
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 min-h-0 lg:overflow-hidden">
-        <div className="container mx-auto lg:h-full px-4 py-4">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] lg:grid-rows-1 gap-4 lg:h-full lg:max-h-full">
-
-            {/* Board */}
-            <div className="flex items-center justify-center min-h-0">
-              <div className="w-full max-w-150">
-                <ChessBoard
-                  gameState={displayState}
-                  onMove={handleMove}
-                  playerColor={playerColor}
-                  showCoordinates={true}
-                  arrows={hintArrow ? [hintArrow] : undefined}
-                />
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="flex flex-col gap-3 min-h-0">
-              {/* Info card */}
-              <div className="shrink-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border p-3">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                  <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Bot:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg">
-                      {botElo}
-                      <span className="text-xs font-normal text-fg-subtle dark:text-fg-muted ml-1">
-                        ({eloLabel(botElo)})
-                      </span>
-                    </span>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Playing:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">{playerColor}</span>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Turn:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">{liveState.currentTurn}</span>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Hints:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg">
-                      {hintsUsed}
-                      {hintsUsed > 0 && (
-                        <span className="text-xs font-normal text-amber-500 ml-1">(−{hintsUsed * 2} pts)</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-                {gameOverMsg && (
-                  <div className="mt-2 pt-2 border-t border-border-strong dark:border-border-strong text-sm font-semibold text-center text-amber-700 dark:text-amber-300">
-                    {gameOverMsg}
-                  </div>
-                )}
-              </div>
-
-              {/* Hint button — only shown on player's turn, game not over */}
-              {!gameOverMsg && (
-                <button
-                  onClick={handleHint}
-                  disabled={!isPlayerTurn || isHinting}
-                  className={`shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
-                    isPlayerTurn && !isHinting
-                      ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40'
-                      : 'bg-surface-hover dark:bg-surface-muted border-border-strong dark:border-border-strong text-fg-muted dark:text-fg-subtle cursor-not-allowed'
-                  }`}
-                >
-                  <span>💡</span>
-                  <span>{isHinting ? 'Thinking…' : 'Show Hint'}</span>
-                  <span className="text-xs opacity-70">−2 pts</span>
-                </button>
-              )}
-
-              {/* Move list */}
-              <ChessMoveList
-                className="flex-1 min-h-0"
-                movePairs={movePairs}
-                currentIndex={viewIndex}
-                onJump={setViewIndex}
-                onFirst={() => setViewIndex(0)}
-                onPrev={() => setViewIndex(i => Math.max(0, i - 1))}
-                onNext={() => setViewIndex(i => Math.min(timeline.length - 1, i + 1))}
-                onLast={() => setViewIndex(timeline.length - 1)}
-                canGoBack={canGoBack}
-                canGoForward={canGoForward}
-                emptyMessage="No moves yet — make your first move"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

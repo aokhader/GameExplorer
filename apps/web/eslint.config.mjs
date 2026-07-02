@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Third-party bundles served as static assets — not our code to lint
     "public/**",
+    // Pre-refactor layout snapshots kept for reference — not live code
+    "reference-layouts/**",
   ]),
   {
     rules: {
