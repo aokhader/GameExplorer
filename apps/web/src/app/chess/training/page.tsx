@@ -22,6 +22,8 @@ import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { GameActions } from '@/components/game/GameActions';
+import { StatusBanner } from '@/components/game/StatusBanner';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -72,6 +74,8 @@ export default function ChessTrainingPage() {
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  // Player-initiated end (½ Draw / Resign) — still applies the rated outcome.
+  const [manualEnd, setManualEnd] = useState<'resign' | 'draw' | null>(null);
 
   // Hint state
   const [hintArrow, setHintArrow] = useState<BoardArrow | null>(null);
@@ -94,6 +98,8 @@ export default function ChessTrainingPage() {
   userRatingRef.current = userRating;
   const hintsUsedRef = useRef(hintsUsed);
   hintsUsedRef.current = hintsUsed;
+  const manualEndRef = useRef(manualEnd);
+  manualEndRef.current = manualEnd;
 
   const liveState = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -123,13 +129,13 @@ export default function ChessTrainingPage() {
 
   useEffect(() => {
     if (!gameStarted) return;
-    if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw) return;
+    if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd) return;
     const isBotTurn = liveState.currentTurn !== playerColor;
     if (isBotTurn && !isThinking && stockfish.isReady) {
       makeBotMove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady]);
+  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, manualEnd]);
 
   // ── Save game + update rating when game ends ──────────────────────────────
 
@@ -137,7 +143,11 @@ export default function ChessTrainingPage() {
     if (!gameStarted || gameSaved) return;
 
     let outcome: GameOutcome | null = null;
-    if (liveState.isCheckmate) {
+    if (manualEnd === 'resign') {
+      outcome = 'loss';
+    } else if (manualEnd === 'draw') {
+      outcome = 'draw';
+    } else if (liveState.isCheckmate) {
       const winnerIsPlayer = liveState.currentTurn !== playerColor;
       outcome = winnerIsPlayer ? 'win' : 'loss';
     } else if (liveState.isStalemate || liveState.isDraw) {
@@ -157,7 +167,7 @@ export default function ChessTrainingPage() {
     const newRating = Math.max(100, current.rating + adjustedDelta);
 
     const result: 'white' | 'black' | 'draw' =
-      outcome === 'draw' ? 'draw' : liveState.currentTurn !== playerColor ? playerColor : (playerColor === 'white' ? 'black' : 'white');
+      outcome === 'draw' ? 'draw' : outcome === 'win' ? playerColor : (playerColor === 'white' ? 'black' : 'white');
 
     Promise.all([
       upsertUserRating(user.id, newRating, outcome, 'chess'),
@@ -180,7 +190,7 @@ export default function ChessTrainingPage() {
       });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState.isCheckmate, liveState.isStalemate, liveState.isDraw]);
+  }, [liveState.isCheckmate, liveState.isStalemate, liveState.isDraw, manualEnd]);
 
   // ── Bot move ──────────────────────────────────────────────────────────────
 
@@ -197,7 +207,8 @@ export default function ChessTrainingPage() {
         new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
       ]);
 
-      if (move) {
+      // Dropped if the player resigned / agreed a draw while the bot thought.
+      if (move && !manualEndRef.current) {
         const result = ChessEngine.validateMove(
           currentLiveState,
           move.from,
@@ -222,7 +233,7 @@ export default function ChessTrainingPage() {
   // ── Player move ───────────────────────────────────────────────────────────
 
   const handleMove = (from: Position, to: Position, promotionPiece?: PieceType) => {
-    if (!isAtLive || isThinking) return;
+    if (!isAtLive || isThinking || manualEnd) return;
     if (liveState.currentTurn !== playerColor) return;
     setHintArrow(null); // clear hint on move
 
@@ -261,11 +272,21 @@ export default function ChessTrainingPage() {
 
   // ── Game control ──────────────────────────────────────────────────────────
 
+  // Resign / agree a draw — ends the game now; the save effect applies the
+  // rated outcome exactly as it would for a checkmate or stalemate.
+  const endManually = (kind: 'resign' | 'draw') => {
+    if (manualEnd || liveState.isCheckmate || liveState.isStalemate || liveState.isDraw) return;
+    setManualEnd(kind);
+    setIsThinking(false);
+    setHintArrow(null);
+  };
+
   const handleNewGame = () => {
     setTimeline([ChessEngine.newGame()]);
     setViewIndex(0);
     setGameStarted(false);
     setIsThinking(false);
+    setManualEnd(null);
     setHintArrow(null);
     setHintsUsed(0);
     setRatingResult(null);
@@ -289,7 +310,7 @@ export default function ChessTrainingPage() {
   if (authLoading || (!user && !authLoading)) {
     return (
       <div className="min-h-screen pt-16 flex items-center justify-center">
-        <div className="text-fg-subtle dark:text-fg-muted">Loading…</div>
+        <div className="text-fg-muted">Loading…</div>
       </div>
     );
   }
@@ -298,11 +319,11 @@ export default function ChessTrainingPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen pt-16">
+      <div className="min-h-screen pt-16 page-glow-chess">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/chess"
-            className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors"
+            className="inline-flex items-center text-fg-muted hover:text-fg transition-colors"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -312,35 +333,35 @@ export default function ChessTrainingPage() {
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-fg-subtle dark:text-fg mb-2 text-center">
+          <h1 className="text-4xl font-bold text-fg mb-2 text-center">
             Training Mode
           </h1>
-          <p className="text-fg-subtle dark:text-fg-muted text-center mb-8">
+          <p className="text-fg-muted text-center mb-8">
             Play rated games against a bot matched to your skill level
           </p>
 
           {/* Rating card */}
-          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-lg font-semibold text-fg-subtle dark:text-fg-muted mb-4 uppercase tracking-wide text-center">
+          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+            <h2 className="text-lg font-semibold text-fg-muted mb-4 uppercase tracking-wide text-center">
               Your Rating
             </h2>
             {ratingLoading ? (
               <div className="text-center text-fg-muted animate-pulse py-4">Loading…</div>
             ) : (
               <div className="text-center">
-                <div className="text-7xl font-bold tabular-nums text-fg-subtle dark:text-fg leading-none mb-2">
+                <div className="font-display text-7xl font-bold tabular-nums text-fg leading-none mb-2">
                   {userRating?.rating ?? 1200}
                 </div>
-                <div className="text-lg font-semibold text-accent dark:text-accent mb-1">
+                <div className="text-lg font-semibold text-accent mb-1">
                   {eloLabel(userRating?.rating ?? 1200)}
                 </div>
-                <div className="flex justify-center gap-6 text-sm text-fg-subtle dark:text-fg-muted mt-3">
+                <div className="flex justify-center gap-6 text-sm text-fg-muted mt-3">
                   <span>{userRating?.games_played ?? 0} games</span>
                   <span>{userRating?.wins ?? 0}W / {userRating?.losses ?? 0}L / {userRating?.draws ?? 0}D</span>
                   <span>Peak: {userRating?.peak_rating ?? 1200}</span>
                 </div>
                 {(userRating?.games_played ?? 0) < 30 && (
-                  <div className="mt-3 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-1.5 inline-block">
+                  <div className="mt-3 text-xs text-warning-hover bg-warning/10 border border-warning/30 rounded-lg px-3 py-1.5 inline-block">
                     Provisional — higher K-factor until 30 games played ({30 - (userRating?.games_played ?? 0)} remaining)
                   </div>
                 )}
@@ -349,30 +370,30 @@ export default function ChessTrainingPage() {
           </div>
 
           {/* Bot info */}
-          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-6 mb-6">
+          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-6 mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-fg-subtle dark:text-fg">Bot Strength</h2>
-                <p className="text-sm text-fg-subtle dark:text-fg-muted mt-0.5">
+                <h2 className="text-lg font-semibold text-fg">Bot Strength</h2>
+                <p className="text-sm text-fg-muted mt-0.5">
                   Automatically matched to your rating
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-fg-subtle dark:text-fg">{botElo}</div>
-                <div className="text-sm text-accent dark:text-accent">{eloLabel(botElo)}</div>
+                <div className="text-2xl font-bold text-fg">{botElo}</div>
+                <div className="text-sm text-accent">{eloLabel(botElo)}</div>
               </div>
             </div>
           </div>
 
           {/* Hint penalty notice */}
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6 text-sm text-amber-800 dark:text-amber-300">
+          <div className="bg-warning/10 border border-warning/35 rounded-xl p-4 mb-6 text-sm text-warning-hover">
             <div className="font-semibold mb-1">💡 Hints available — with a cost</div>
             Each hint reveals the best move for 3 seconds but applies a <strong>−2 rating penalty</strong> to your result.
           </div>
 
           {/* Color selector */}
-          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-xl font-semibold text-fg-subtle dark:text-fg mb-4">
+          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+            <h2 className="text-xl font-semibold text-fg mb-4">
               Choose Your Color
             </h2>
             <div className="grid grid-cols-2 gap-4">
@@ -382,13 +403,13 @@ export default function ChessTrainingPage() {
                   onClick={() => setPlayerColor(color)}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
-                      ? 'bg-accent text-on-accent shadow-lg scale-105'
-                      : 'bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-hover'
+                      ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                      : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                   }`}
                 >
                   <div className="text-4xl mb-2">{color === 'white' ? '♔' : '♚'}</div>
                   <div className="font-semibold capitalize">{color}</div>
-                  <div className={`text-sm ${playerColor === color ? 'text-accent' : 'text-fg-subtle dark:text-fg-muted'}`}>
+                  <div className={`text-sm ${playerColor === color ? 'text-on-accent/80' : 'text-fg-muted'}`}>
                     {color === 'white' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
@@ -399,7 +420,7 @@ export default function ChessTrainingPage() {
           <button
             onClick={handleStartGame}
             disabled={ratingLoading}
-            className="w-full px-8 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-on-accent font-bold text-lg rounded-lg shadow-lg transition-colors"
+            className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             Start Rated Game
           </button>
@@ -410,25 +431,32 @@ export default function ChessTrainingPage() {
 
   // ── Game screen ───────────────────────────────────────────────────────────
 
-  const gameOverMsg = liveState.isCheckmate
+  const gameOverMsg = manualEnd === 'resign'
+    ? 'You resigned'
+    : manualEnd === 'draw' ? 'Draw by agreement'
+    : liveState.isCheckmate
     ? `Checkmate — ${liveState.currentTurn === 'white' ? 'Black' : 'White'} wins`
     : liveState.isStalemate ? 'Stalemate — Draw'
     : liveState.isDraw ? 'Draw'
     : null;
 
-  const isPlayerTurn = isAtLive && !isThinking && liveState.currentTurn === playerColor;
+  const isPlayerTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
 
   // Player-relative result for the celebration screen.
-  const myResult: GameResult = liveState.isCheckmate
+  const myResult: GameResult = manualEnd === 'resign'
+    ? 'loss'
+    : manualEnd === 'draw' ? 'draw'
+    : liveState.isCheckmate
     ? ((liveState.currentTurn === 'white' ? 'black' : 'white') === playerColor ? 'win' : 'loss')
     : 'draw';
 
   return (
     <>
       <GameScreenLayout
+        accent="chess"
         backHref="/chess"
         headerCenter={
-          <div className="flex items-center gap-2 px-3 py-1 bg-surface-muted rounded-full shadow-sm border border-border-strong">
+          <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
             <span className="text-xs text-fg-muted">Rating</span>
             <span className="text-sm font-bold text-fg">{userRating?.rating ?? 1200}</span>
           </div>
@@ -479,8 +507,17 @@ export default function ChessTrainingPage() {
         }
         sidebar={
           <>
-            {/* Info card */}
-            <div className="shrink-0 bg-surface-alt rounded-xl shadow-sm border border-border p-3">
+            {/* Turn / result status — the accent banner from the design. */}
+            <StatusBanner
+              accent="chess"
+              title={
+                gameOverMsg ?? (isThinking ? 'Bot is thinking…' : isPlayerTurn ? 'Your move' : 'Reviewing history')
+              }
+              description={gameOverMsg ? undefined : isPlayerTurn ? 'Rated game — hints cost 2 points each.' : undefined}
+            />
+
+            {/* Game facts */}
+            <div className="shrink-0 bg-white/[0.04] rounded-xl border border-white/10 p-3">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                 <div className="flex gap-1.5">
                   <span className="text-fg-muted">Bot:</span>
@@ -509,11 +546,6 @@ export default function ChessTrainingPage() {
                   </span>
                 </div>
               </div>
-              {gameOverMsg && (
-                <div className="mt-2 pt-2 border-t border-border text-sm font-semibold text-center text-warning-hover">
-                  {gameOverMsg}
-                </div>
-              )}
             </div>
 
             {/* Hint button — only shown on player's turn, game not over */}
@@ -524,7 +556,7 @@ export default function ChessTrainingPage() {
                 className={`shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
                   isPlayerTurn && !isHinting
                     ? 'bg-warning/15 border-warning/40 text-warning-hover hover:bg-warning/25'
-                    : 'bg-surface-muted border-border text-fg-subtle cursor-not-allowed'
+                    : 'bg-white/5 border-white/10 text-fg-subtle cursor-not-allowed'
                 }`}
               >
                 <span>💡</span>
@@ -546,6 +578,14 @@ export default function ChessTrainingPage() {
               canGoBack={canGoBack}
               canGoForward={canGoForward}
               emptyMessage="No moves yet — make your first move"
+            />
+
+            {/* ½ Draw / Resign — as in the design's in-game sidebar. */}
+            <GameActions
+              className="shrink-0"
+              onDraw={() => endManually('draw')}
+              onResign={() => endManually('resign')}
+              disabled={!!gameOverMsg}
             />
           </>
         }

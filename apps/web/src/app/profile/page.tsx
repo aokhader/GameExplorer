@@ -30,10 +30,10 @@ function ResultBadge({ game, userId }: { game: SavedGame; userId: string }) {
   const isDraw = game.result === 'draw';
   const label = isDraw ? 'Draw' : playerWon ? 'Win' : 'Loss';
   const colors = isDraw
-    ? 'bg-surface-hover text-fg-subtle dark:bg-surface-muted dark:text-fg-muted'
+    ? 'bg-white/10 text-fg-muted'
     : playerWon
-    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
-    : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400';
+    ? 'bg-success/15 text-success-hover'
+    : 'bg-danger/10 text-danger-hover';
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${colors}`}>
       {label}
@@ -44,7 +44,7 @@ function ResultBadge({ game, userId }: { game: SavedGame; userId: string }) {
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="glass rounded-xl p-4 text-center">
-      <div className="text-2xl font-bold text-fg">{value}</div>
+      <div className="font-display text-2xl font-bold text-fg">{value}</div>
       <div className="text-xs text-fg-muted mt-0.5">{label}</div>
     </div>
   );
@@ -91,7 +91,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="relative min-h-screen pt-16">
+      <div className="relative min-h-screen pt-16 page-glow-gold">
         <div className="container mx-auto px-4 pt-8 pb-8 max-w-3xl">
           {/* Avatar + username */}
           <div className="flex items-center gap-4 mb-8 mt-8">
@@ -155,11 +155,11 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="relative min-h-screen pt-16">
+    <div className="relative min-h-screen pt-16 page-glow-gold">
       <div className="container mx-auto px-4 pt-8 pb-8 max-w-3xl">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors text-sm mb-8"
+          className="inline-flex items-center gap-2 text-fg-muted hover:text-fg transition-colors text-sm mb-8"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -173,10 +173,10 @@ export default function ProfilePage() {
             {profile.username[0].toUpperCase()}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-fg-subtle dark:text-fg">
+            <h1 className="text-2xl font-bold text-fg">
               {profile.username}
             </h1>
-            <p className="text-sm text-fg-subtle dark:text-fg-muted">
+            <p className="text-sm text-fg-muted">
               Member since {formatDate(profile.created_at)}
             </p>
           </div>
@@ -193,23 +193,23 @@ export default function ProfilePage() {
             return (
               <div key={label} className="glass rounded-xl p-5 flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide mb-1">
+                  <div className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-1">
                     {label}
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-fg-subtle dark:text-fg">
+                    <span className="font-display text-4xl font-bold text-fg tabular-nums">
                       {rating.rating}
                     </span>
-                    <span className="text-sm text-fg-subtle dark:text-fg-muted">
+                    <span className="text-sm text-fg-muted">
                       Peak: {rating.peak_rating}
                     </span>
                   </div>
                 </div>
-                <div className="text-right text-sm text-fg-subtle dark:text-fg-muted space-y-0.5">
+                <div className="text-right text-sm text-fg-muted space-y-0.5">
                   <div>{rating.games_played} rated game{rating.games_played !== 1 ? 's' : ''}</div>
                   <div>{rating.wins}W / {rating.losses}L / {rating.draws}D</div>
                   {rating.games_played < 30 && (
-                    <div className="text-xs text-amber-600 dark:text-amber-400">
+                    <div className="text-xs text-warning-hover">
                       Provisional ({30 - rating.games_played} left)
                     </div>
                   )}
@@ -230,23 +230,23 @@ export default function ProfilePage() {
         {/* Game history with tabs */}
         <div className="glass rounded-xl overflow-hidden">
           {/* Tab bar */}
-          <div className="flex border-b border-border-strong dark:border-border">
+          <div className="flex border-b border-white/10">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
                   activeTab === tab.id
-                    ? 'border-accent text-accent dark:text-accent'
-                    : 'border-transparent text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg'
+                    ? 'border-accent text-accent'
+                    : 'border-transparent text-fg-muted hover:text-fg'
                 }`}
               >
                 {tab.label}
                 {tab.count > 0 && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                     activeTab === tab.id
-                      ? 'bg-accent-muted dark:bg-accent-muted text-accent dark:text-accent'
-                      : 'bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg-muted'
+                      ? 'bg-accent-muted text-accent'
+                      : 'bg-white/10 text-fg-muted'
                   }`}>
                     {tab.count}
                   </span>
@@ -261,7 +261,7 @@ export default function ProfilePage() {
               <div className="text-3xl mb-2">
                 {activeTab === 'checkers' ? '⛀' : activeTab === 'reversi' ? '⬤' : '♟'}
               </div>
-              <p className="text-fg-subtle dark:text-fg-muted text-sm">
+              <p className="text-fg-muted text-sm">
                 {activeTab === 'all' ? 'No games played yet' : `No ${activeTab} games yet`}
               </p>
               <Link
@@ -272,7 +272,7 @@ export default function ProfilePage() {
               </Link>
             </div>
           ) : (
-            <div className="divide-y divide-border-strong dark:divide-border">
+            <div className="divide-y divide-white/10">
               {visibleGames.map((game) => {
                 const gameType = game.game_type ?? 'chess';
                 const isChess = gameType === 'chess';
@@ -291,7 +291,7 @@ export default function ProfilePage() {
                 const inner = (
                   <>
                     {/* Game-type icon in a neutral pill */}
-                    <div className="w-9 h-9 rounded-lg bg-surface-hover dark:bg-surface-muted flex items-center justify-center text-lg shrink-0 select-none text-fg-subtle dark:text-fg">
+                    <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-lg shrink-0 select-none text-fg">
                       {gameIcon}
                     </div>
 
@@ -299,15 +299,15 @@ export default function ProfilePage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {activeTab === 'all' && (
-                          <span className="text-xs text-fg-muted dark:text-fg-subtle">{gameLabel} ·</span>
+                          <span className="text-xs text-fg-subtle">{gameLabel} ·</span>
                         )}
-                        <span className="text-sm font-medium text-fg-subtle dark:text-fg capitalize">
+                        <span className="text-sm font-medium text-fg capitalize">
                           vs {game.opponent}
                         </span>
-                        <span className="text-fg-muted dark:text-fg-subtle text-xs">·</span>
-                        <span className="text-xs text-fg-muted dark:text-fg-subtle capitalize">{game.difficulty}</span>
+                        <span className="text-fg-subtle text-xs">·</span>
+                        <span className="text-xs text-fg-subtle capitalize">{game.difficulty}</span>
                       </div>
-                      <div className="text-xs text-fg-muted dark:text-fg-subtle mt-0.5">
+                      <div className="text-xs text-fg-subtle mt-0.5">
                         {formatDate(game.created_at)} · {game.moves.length} moves
                         {game.end_reason && ` · ${END_REASON_LABELS[game.end_reason] ?? game.end_reason}`}
                       </div>
@@ -316,8 +316,8 @@ export default function ProfilePage() {
                     {/* Color badge */}
                     <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full border ${
                       colorIsWhite
-                        ? 'bg-white dark:bg-surface-hover text-fg-subtle border-border-strong'
-                        : 'bg-surface-alt dark:bg-surface text-fg border-border-strong'
+                        ? 'bg-[#e7ecf6] text-[#0b0e17] border-transparent'
+                        : 'bg-[#0b0e17] text-fg border-white/15'
                     }`}>
                       {colorIsWhite ? 'White' : 'Black'}
                     </span>
@@ -325,7 +325,7 @@ export default function ProfilePage() {
                     <ResultBadge game={game} userId={user.id} />
 
                     {replayHref && (
-                      <svg className="w-4 h-4 text-fg-muted dark:text-fg-subtle shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-fg-subtle shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     )}
@@ -336,7 +336,7 @@ export default function ProfilePage() {
                   <Link
                     key={game.id}
                     href={replayHref}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-surface-hover dark:hover:bg-surface-muted/50 transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors"
                   >
                     {inner}
                   </Link>

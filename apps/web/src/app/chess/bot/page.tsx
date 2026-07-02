@@ -14,6 +14,8 @@ import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { GameActions } from '@/components/game/GameActions';
+import { StatusBanner } from '@/components/game/StatusBanner';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -81,6 +83,9 @@ export default function ChessBotPage() {
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  // Player-initiated end (design's ½ Draw / Resign pair) — the engine state
+  // stays live, but the game is over from the UI's point of view.
+  const [manualEnd, setManualEnd] = useState<'resign' | 'draw' | null>(null);
 
   // Defer Stockfish (and its ~7 MB WASM download) until the game actually
   // starts — no need to load the engine while the user is still on the setup
@@ -98,6 +103,8 @@ export default function ChessBotPage() {
   playerColorRef.current = playerColor;
   const liveStateRef    = useRef(liveState);
   liveStateRef.current  = liveState;
+  const manualEndRef    = useRef(manualEnd);
+  manualEndRef.current  = manualEnd;
 
   // ── Sync confirmed worker state → timeline ──────────────────────────────────
   useEffect(() => {
@@ -144,12 +151,12 @@ export default function ChessBotPage() {
     // Weak bots (< STOCKFISH_MIN_ELO) run in the chess-engine worker and don't
     // need Stockfish; only wait on it when the selected ELO actually uses it.
     if (targetElo >= STOCKFISH_MIN_ELO && !stockfish.isReady) return;
-    if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw) return;
+    if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd) return;
     if (liveState.currentTurn !== playerColor && !isThinking) {
       makeBotMove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, targetElo]);
+  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, targetElo, manualEnd]);
 
   // ── Save game when it ends ──────────────────────────────────────────────────
   useEffect(() => {
@@ -191,6 +198,14 @@ export default function ChessBotPage() {
         from = move.from; to = move.to; promotion = move.promotion;
       }
 
+      // The player may have resigned / agreed a draw while the bot was
+      // thinking — drop the move instead of playing on a finished game.
+      if (manualEndRef.current) {
+        botMovePendingRef.current = false;
+        setIsThinking(false);
+        return;
+      }
+
       // Post the move to the chess engine worker for validation + state update.
       // isThinking is cleared in the timeline sync effect when the worker confirms.
       makeMove(from as Position, to as Position, promotion);
@@ -203,10 +218,20 @@ export default function ChessBotPage() {
 
   // ── Player move ─────────────────────────────────────────────────────────────
   const handleMove = (from: Position, to: Position, promotionPiece?: PieceType) => {
-    if (!isAtLive || isThinking || !engineReady) return;
+    if (!isAtLive || isThinking || !engineReady || manualEnd) return;
     if (liveState.currentTurn !== playerColor) return;
     // Post to worker — returns immediately; validation runs off main thread.
     makeMove(from, to, promotionPiece);
+  };
+
+  // ── Resign / draw (vs the bot, both end the game immediately) ──────────────
+  const endManually = (kind: 'resign' | 'draw') => {
+    if (manualEnd || liveState.isCheckmate || liveState.isStalemate || liveState.isDraw) return;
+    setManualEnd(kind);
+    setIsThinking(false);
+    botMovePendingRef.current = false;
+    const result = kind === 'draw' ? 'draw' : playerColor === 'white' ? 'black' : 'white';
+    saveGame(liveState, playerColor, result, `elo-${targetEloRef.current}`, userId ?? undefined);
   };
 
   const handleNewGame = () => {
@@ -214,6 +239,7 @@ export default function ChessBotPage() {
     setViewIndex(0);
     setGameStarted(false);
     setIsThinking(false);
+    setManualEnd(null);
     botMovePendingRef.current = false;
     reset(); // worker resets to newGame() and broadcasts STATE_UPDATE
   };
@@ -230,11 +256,11 @@ export default function ChessBotPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen pt-16">
+      <div className="min-h-screen pt-16 page-glow-chess">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/chess"
-            className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors"
+            className="inline-flex items-center text-fg-muted hover:text-fg transition-colors"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -244,25 +270,25 @@ export default function ChessBotPage() {
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-fg-subtle dark:text-fg mb-8 text-center">
+          <h1 className="text-4xl font-bold text-fg mb-8 text-center">
             Play vs Bot
           </h1>
 
           {/* ELO selector */}
-          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-fg-subtle dark:text-fg mb-6">
+          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+            <h2 className="text-2xl font-semibold text-fg mb-6">
               Bot Strength
             </h2>
 
             {/* ELO display */}
             <div className="text-center mb-6">
-              <div className="text-6xl font-bold tabular-nums text-fg-subtle dark:text-fg leading-none mb-1">
+              <div className="font-display text-6xl font-bold tabular-nums text-fg leading-none mb-1">
                 {targetElo}
               </div>
-              <div className="text-lg font-semibold text-accent dark:text-accent">
+              <div className="text-lg font-semibold text-accent">
                 {eloLabel(targetElo)}
               </div>
-              <div className="text-sm text-fg-subtle dark:text-fg-muted mt-1">
+              <div className="text-sm text-fg-muted mt-1">
                 {eloDescription(targetElo)}
               </div>
             </div>
@@ -276,9 +302,9 @@ export default function ChessBotPage() {
                 step={25}
                 value={targetElo}
                 onChange={e => setTargetElo(Number(e.target.value))}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-blue-600 bg-surface-hover dark:bg-surface-hover"
+                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-accent bg-white/10"
               />
-              <div className="flex justify-between text-xs text-fg-muted dark:text-fg-subtle mt-1.5 px-0.5">
+              <div className="flex justify-between text-xs text-fg-subtle mt-1.5 px-0.5">
                 <span>400</span>
                 <span>1200</span>
                 <span>2000</span>
@@ -294,8 +320,8 @@ export default function ChessBotPage() {
                   onClick={() => setTargetElo(elo)}
                   className={`py-2 px-1 rounded-lg text-center text-sm transition-all ${
                     targetElo === elo
-                      ? 'bg-accent text-on-accent font-semibold shadow-md scale-105'
-                      : 'bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg-muted hover:bg-surface-hover dark:hover:bg-surface-hover'
+                      ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent font-semibold [box-shadow:var(--shadow-glow-accent)] scale-105'
+                      : 'bg-white/5 border border-white/10 text-fg-muted hover:bg-white/10 hover:text-fg'
                   }`}
                 >
                   <div className="font-bold">{elo}</div>
@@ -306,8 +332,8 @@ export default function ChessBotPage() {
           </div>
 
           {/* Color selector */}
-          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-fg-subtle dark:text-fg mb-6">
+          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+            <h2 className="text-2xl font-semibold text-fg mb-6">
               Choose Your Color
             </h2>
             <div className="grid grid-cols-2 gap-4">
@@ -315,13 +341,13 @@ export default function ChessBotPage() {
                 onClick={() => setPlayerColor('white')}
                 className={`p-6 rounded-lg transition-all ${
                   playerColor === 'white'
-                    ? 'bg-accent text-on-accent shadow-lg scale-105'
-                    : 'bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-hover'
+                    ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                    : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                 }`}
               >
                 <div className="text-4xl mb-2">♔</div>
                 <div className="font-semibold">White</div>
-                <div className={`text-sm ${playerColor === 'white' ? 'text-accent' : 'text-fg-subtle dark:text-fg-muted'}`}>
+                <div className={`text-sm ${playerColor === 'white' ? 'text-on-accent/80' : 'text-fg-muted'}`}>
                   You move first
                 </div>
               </button>
@@ -329,13 +355,13 @@ export default function ChessBotPage() {
                 onClick={() => setPlayerColor('black')}
                 className={`p-6 rounded-lg transition-all ${
                   playerColor === 'black'
-                    ? 'bg-accent text-on-accent shadow-lg scale-105'
-                    : 'bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-hover'
+                    ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                    : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                 }`}
               >
                 <div className="text-4xl mb-2">♚</div>
                 <div className="font-semibold">Black</div>
-                <div className={`text-sm ${playerColor === 'black' ? 'text-accent' : 'text-fg-subtle dark:text-fg-muted'}`}>
+                <div className={`text-sm ${playerColor === 'black' ? 'text-on-accent/80' : 'text-fg-muted'}`}>
                   Bot moves first
                 </div>
               </button>
@@ -344,7 +370,7 @@ export default function ChessBotPage() {
 
           <button
             onClick={handleStartGame}
-            className="w-full px-8 py-4 bg-accent hover:bg-accent-hover text-on-accent font-bold text-lg rounded-lg shadow-lg transition-colors"
+            className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
           >
             Start Game
           </button>
@@ -355,14 +381,20 @@ export default function ChessBotPage() {
 
   // ── Game screen ───────────────────────────────────────────────────────────────
 
-  const gameOverMsg = liveState.isCheckmate
+  const gameOverMsg = manualEnd === 'resign'
+    ? 'You resigned'
+    : manualEnd === 'draw' ? 'Draw by agreement'
+    : liveState.isCheckmate
     ? `Checkmate — ${liveState.currentTurn === 'white' ? 'Black' : 'White'} wins`
     : liveState.isStalemate ? 'Stalemate — Draw'
     : liveState.isDraw ? 'Draw'
     : null;
 
   // Player-relative result for the celebration screen.
-  const myResult: GameResult | null = liveState.isCheckmate
+  const myResult: GameResult | null = manualEnd === 'resign'
+    ? 'loss'
+    : manualEnd === 'draw' ? 'draw'
+    : liveState.isCheckmate
     ? ((liveState.currentTurn === 'white' ? 'black' : 'white') === playerColor ? 'win' : 'loss')
     : liveState.isStalemate || liveState.isDraw ? 'draw'
     : null;
@@ -372,6 +404,7 @@ export default function ChessBotPage() {
   return (
     <>
       <GameScreenLayout
+        accent="chess"
         backHref="/chess"
         headerActions={
           <>
@@ -419,8 +452,23 @@ export default function ChessBotPage() {
         }
         sidebar={
           <>
-            {/* Info card */}
-            <div className="shrink-0 bg-surface-alt rounded-xl shadow-sm border border-border p-3">
+            {/* Turn / result status — the accent banner from the design. */}
+            <StatusBanner
+              accent="chess"
+              title={
+                gameOverMsg ?? (isThinking ? 'Bot is thinking…' : yourTurn ? 'Your move' : 'Reviewing history')
+              }
+              description={
+                gameOverMsg
+                  ? undefined
+                  : yourTurn
+                    ? 'Glowing dots mark every legal square.'
+                    : undefined
+              }
+            />
+
+            {/* Game facts */}
+            <div className="shrink-0 bg-white/[0.04] rounded-xl border border-white/10 p-3">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                 <div className="flex gap-1.5">
                   <span className="text-fg-muted">ELO:</span>
@@ -444,11 +492,6 @@ export default function ChessBotPage() {
                   <span className="font-semibold text-fg">{liveState.fullMoveNumber}</span>
                 </div>
               </div>
-              {gameOverMsg && (
-                <div className="mt-2 pt-2 border-t border-border text-sm font-semibold text-center text-warning-hover">
-                  {gameOverMsg}
-                </div>
-              )}
             </div>
 
             {/* Move list with navigation */}
@@ -464,6 +507,14 @@ export default function ChessBotPage() {
               canGoBack={canGoBack}
               canGoForward={canGoForward}
               emptyMessage="No moves yet — make your first move"
+            />
+
+            {/* ½ Draw / Resign — as in the design's in-game sidebar. */}
+            <GameActions
+              className="shrink-0"
+              onDraw={() => endManually('draw')}
+              onResign={() => endManually('resign')}
+              disabled={!!gameOverMsg}
             />
           </>
         }

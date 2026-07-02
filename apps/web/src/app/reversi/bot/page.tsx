@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome } from '@gameexplorer/shared';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
+import { DiscCountBar } from '@/components/reversi/DiscCountBar';
 import { useAuth } from '@/hooks/useAuth';
 import { saveReversiGame, getUserRating, upsertUserRating } from '@gameexplorer/db';
 import type { UserRating } from '@gameexplorer/db';
@@ -11,6 +12,8 @@ import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { GameActions } from '@/components/game/GameActions';
+import { StatusBanner } from '@/components/game/StatusBanner';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -64,6 +67,8 @@ export default function ReversiBotPage() {
   const [userRating, setUserRating]   = useState<UserRating | null>(null);
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
   const [gameSaved, setGameSaved]     = useState(false);
+  // Player-initiated end — reversi has no draw offers, so resign only.
+  const [manualEnd, setManualEnd]     = useState<'resign' | null>(null);
 
   const { user } = useAuth();
 
@@ -77,6 +82,8 @@ export default function ReversiBotPage() {
   playerColorRef.current = playerColor;
   const userRatingRef  = useRef(userRating);
   userRatingRef.current = userRating;
+  const manualEndRef   = useRef(manualEnd);
+  manualEndRef.current = manualEnd;
 
   const liveState    = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -114,6 +121,8 @@ export default function ReversiBotPage() {
         ),
         new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
       ]);
+      // Dropped if the player resigned while the bot was thinking.
+      if (manualEndRef.current) return;
       const result = ReversiEngine.validateMove(currentLive, move.position);
       if (result.valid && result.resultingState) {
         appendState(result.resultingState);
@@ -127,7 +136,7 @@ export default function ReversiBotPage() {
 
   // Main turn effect — handles bot moves and auto-passes
   useEffect(() => {
-    if (!gameStarted || liveState.isGameOver || isThinking) return;
+    if (!gameStarted || liveState.isGameOver || isThinking || manualEnd) return;
 
     const isBotTurn    = liveState.currentTurn !== playerColor;
     const currentMoves = ReversiEngine.getAllLegalMoves(liveState);
@@ -145,16 +154,18 @@ export default function ReversiBotPage() {
 
     if (isBotTurn) makeBotMove();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking]);
+  }, [liveState, playerColor, gameStarted, isThinking, manualEnd]);
 
   // Save game and update rating on completion
   useEffect(() => {
-    if (!gameStarted || !liveState.isGameOver || gameSaved) return;
+    if (!gameStarted || gameSaved) return;
+    if (!liveState.isGameOver && !manualEnd) return;
     setGameSaved(true);
 
     const pc = playerColorRef.current;
     const result: 'white' | 'black' | 'draw' =
-      liveState.winner === null ? 'draw'
+      manualEnd === 'resign' ? (pc === 'black' ? 'white' : 'black')
+      : liveState.winner === null ? 'draw'
       : liveState.winner === pc ? pc
       : (pc === 'black' ? 'white' : 'black');
 
@@ -183,10 +194,10 @@ export default function ReversiBotPage() {
       saveReversiGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid ?? undefined);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState.isGameOver]);
+  }, [liveState.isGameOver, manualEnd]);
 
   const handleMove = (position: string) => {
-    if (!isAtLive || isThinking || liveState.isGameOver) return;
+    if (!isAtLive || isThinking || liveState.isGameOver || manualEnd) return;
     if (liveState.currentTurn !== playerColor) return;
     const result = ReversiEngine.validateMove(liveState, position);
     if (result.valid && result.resultingState) {
@@ -194,11 +205,20 @@ export default function ReversiBotPage() {
     }
   };
 
+  // Resign — ends the game now; the save effect applies the rated outcome.
+  const handleResign = () => {
+    if (manualEnd || liveState.isGameOver) return;
+    setManualEnd('resign');
+    setIsThinking(false);
+    setPassMsg(null);
+  };
+
   const handleNewGame = () => {
     setTimeline([ReversiEngine.newGame()]);
     setViewIndex(0);
     setGameStarted(false);
     setIsThinking(false);
+    setManualEnd(null);
     setPassMsg(null);
     setRatingResult(null);
     setGameSaved(false);
@@ -218,9 +238,9 @@ export default function ReversiBotPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen pt-16">
+      <div className="min-h-screen pt-16 page-glow-reversi">
         <div className="container mx-auto px-4 pt-8">
-          <Link href="/reversi" className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors">
+          <Link href="/reversi" className="inline-flex items-center text-fg-muted hover:text-fg transition-colors">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
@@ -229,11 +249,11 @@ export default function ReversiBotPage() {
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-fg-subtle dark:text-fg mb-8 text-center">Play vs Bot</h1>
+          <h1 className="text-4xl font-bold text-fg mb-8 text-center">Play vs Bot</h1>
 
           {/* Difficulty selector */}
-          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-fg-subtle dark:text-fg mb-6">Bot Strength</h2>
+          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+            <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {DIFFICULTY_LEVELS.map((level) => {
                 const selected = targetElo === level.elo;
@@ -243,15 +263,15 @@ export default function ReversiBotPage() {
                     onClick={() => setTargetElo(level.elo)}
                     className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                       selected
-                        ? 'border-accent bg-accent-muted dark:bg-accent-muted shadow-md scale-[1.02]'
-                        : 'border-border-strong dark:border-border-strong bg-surface-hover dark:bg-surface-muted/50 hover:border-border-strong dark:hover:border-border-strong hover:bg-white dark:hover:bg-surface-muted'
+                        ? 'border-accent bg-accent-muted [box-shadow:var(--shadow-glow-accent)] scale-[1.02]'
+                        : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                     }`}
                   >
                     <div className="text-2xl mb-2">{level.icon}</div>
-                    <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent dark:text-accent' : 'text-fg-subtle dark:text-fg'}`}>
+                    <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent' : 'text-fg'}`}>
                       {level.label}
                     </div>
-                    <div className="text-xs text-fg-subtle dark:text-fg-muted leading-snug">{level.description}</div>
+                    <div className="text-xs text-fg-muted leading-snug">{level.description}</div>
                     {selected && (
                       <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-accent flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -266,8 +286,8 @@ export default function ReversiBotPage() {
           </div>
 
           {/* Color selector */}
-          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-fg-subtle dark:text-fg mb-6">Choose Your Colour</h2>
+          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+            <h2 className="text-2xl font-semibold text-fg mb-6">Choose Your Colour</h2>
             <div className="grid grid-cols-2 gap-4">
               {(['black', 'white'] as const).map(color => (
                 <button
@@ -275,8 +295,8 @@ export default function ReversiBotPage() {
                   onClick={() => setPlayerColor(color)}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
-                      ? 'bg-accent text-on-accent shadow-lg scale-105'
-                      : 'bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-hover'
+                      ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                      : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                   }`}
                 >
                   <div className="flex justify-center mb-2">
@@ -287,7 +307,7 @@ export default function ReversiBotPage() {
                     </svg>
                   </div>
                   <div className="font-semibold capitalize">{color}</div>
-                  <div className={`text-sm ${playerColor === color ? 'text-accent' : 'text-fg-subtle dark:text-fg-muted'}`}>
+                  <div className={`text-sm ${playerColor === color ? 'text-on-accent/80' : 'text-fg-muted'}`}>
                     {color === 'black' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
@@ -297,7 +317,7 @@ export default function ReversiBotPage() {
 
           <button
             onClick={handleStartGame}
-            className="w-full px-8 py-4 bg-accent hover:bg-accent-hover text-on-accent font-bold text-lg rounded-lg shadow-lg transition-colors"
+            className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
           >
             Start Game
           </button>
@@ -308,7 +328,9 @@ export default function ReversiBotPage() {
 
   // ── Game screen ───────────────────────────────────────────────────────────────
 
-  const gameOverMsg = liveState.isGameOver
+  const gameOverMsg = manualEnd === 'resign'
+    ? 'You resigned'
+    : liveState.isGameOver
     ? liveState.winner === null
       ? `Draw! ${counts.black}–${counts.white}`
       : liveState.winner === playerColor
@@ -317,8 +339,9 @@ export default function ReversiBotPage() {
     : null;
 
   // Player-relative result for the celebration screen.
-  const myResult: GameResult =
-    liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
+  const myResult: GameResult = manualEnd === 'resign'
+    ? 'loss'
+    : liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
 
   const botLabel = DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label ?? String(targetElo);
   const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
@@ -326,6 +349,7 @@ export default function ReversiBotPage() {
   return (
     <>
       <GameScreenLayout
+        accent="reversi"
         backHref="/reversi"
         headerActions={
           <>
@@ -348,12 +372,16 @@ export default function ReversiBotPage() {
           </>
         }
         topCard={
-          <PlayerCard
-            name="Bot"
-            initial="B"
-            active={isThinking}
-            subline={isThinking ? `${botLabel} · thinking…` : botLabel}
-          />
+          <>
+            <PlayerCard
+              name="Bot"
+              initial="B"
+              active={isThinking}
+              subline={isThinking ? `${botLabel} · thinking…` : botLabel}
+            />
+            {/* Live disc-count bar above the board, per the design. */}
+            <DiscCountBar black={counts.black} white={counts.white} />
+          </>
         }
         board={
           <ReversiBoard
@@ -375,71 +403,43 @@ export default function ReversiBotPage() {
         }
         sidebar={
           <>
-              {/* Score card */}
-              <div className="shrink-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border p-4">
-                {/* Disc counts — prominent */}
-                <div className="flex items-center justify-around mb-3">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <svg width="20" height="20" viewBox="0 0 40 40">
-                        <circle cx="20" cy="20" r="16" fill="#2b3448" stroke="#5c6a85" strokeWidth="1" />
-                        <ellipse cx="15" cy="14.5" rx="5" ry="3.5" fill="#4a5877" opacity="0.35" />
-                      </svg>
-                      <span className="text-2xl font-bold text-fg-subtle dark:text-fg tabular-nums">{counts.black}</span>
-                    </div>
-                    <div className="text-xs text-fg-subtle dark:text-fg-muted">Black</div>
-                  </div>
-                  <div className="text-fg-muted dark:text-fg-subtle text-lg font-light">vs</div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <svg width="20" height="20" viewBox="0 0 40 40">
-                        <circle cx="20" cy="20" r="16" fill="#f5f0e8" stroke="#c7d2e0" strokeWidth="1" />
-                        <ellipse cx="15" cy="14.5" rx="5" ry="3.5" fill="#fff" opacity="0.35" />
-                      </svg>
-                      <span className="text-2xl font-bold text-fg-subtle dark:text-fg tabular-nums">{counts.white}</span>
-                    </div>
-                    <div className="text-xs text-fg-subtle dark:text-fg-muted">White</div>
-                  </div>
-                </div>
+              {/* Turn / result status — the accent banner from the design. */}
+              <StatusBanner
+                accent="reversi"
+                title={
+                  gameOverMsg ?? (isThinking ? 'Bot is thinking…' : yourTurn ? 'Your move' : 'Reviewing history')
+                }
+                description={
+                  gameOverMsg ? undefined : yourTurn ? 'Glowing dots mark every legal square.' : undefined
+                }
+              />
 
-                {/* Score bar */}
-                <div className="h-1.5 rounded-full bg-surface-hover dark:bg-surface-hover overflow-hidden mb-3">
-                  <div
-                    className="h-full rounded-full bg-surface-alt dark:bg-surface-hover transition-all duration-300"
-                    style={{ width: `${(counts.black / (counts.black + counts.white || 1)) * 100}%` }}
-                  />
-                </div>
-
+              {/* Info card */}
+              <div className="shrink-0 bg-white/[0.04] rounded-xl border border-white/10 p-4">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                   <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Bot:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg">
+                    <span className="text-fg-muted">Bot:</span>
+                    <span className="font-semibold text-fg">
                       {DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label}
                     </span>
                   </div>
                   <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Playing:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">{playerColor}</span>
+                    <span className="text-fg-muted">Playing:</span>
+                    <span className="font-semibold text-fg capitalize">{playerColor}</span>
                   </div>
                   <div className="flex gap-1.5 col-span-2">
-                    <span className="text-fg-subtle dark:text-fg-muted">Turn:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">
+                    <span className="text-fg-muted">Turn:</span>
+                    <span className="font-semibold text-fg capitalize">
                       {liveState.isGameOver ? '—' : liveState.currentTurn}
                     </span>
                   </div>
                 </div>
-
-                {gameOverMsg && (
-                  <div className="mt-2 pt-2 border-t border-border-strong dark:border-border-strong text-sm font-semibold text-center text-amber-700 dark:text-amber-300">
-                    {gameOverMsg}
-                  </div>
-                )}
               </div>
 
               {/* Move history */}
-              <div className="flex-1 min-h-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border flex flex-col">
-                <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border-strong dark:border-border-strong">
-                  <span className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide">Moves</span>
+              <div className="flex-1 min-h-0 bg-white/[0.04] rounded-xl border border-white/10 flex flex-col">
+                <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-white/10">
+                  <span className="text-xs font-semibold text-fg-muted uppercase tracking-wide">Moves</span>
                   <div className="flex gap-1">
                     {[
                       { label: '⇤', action: () => setViewIndex(0),                                      disabled: !canGoBack },
@@ -448,7 +448,7 @@ export default function ReversiBotPage() {
                       { label: '⇥', action: () => setViewIndex(timeline.length - 1),                   disabled: !canGoForward },
                     ].map(({ label, action, disabled }) => (
                       <button key={label} onClick={action} disabled={disabled}
-                        className="w-7 h-7 flex items-center justify-center rounded text-xs font-mono bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg-muted hover:bg-surface-hover dark:hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                        className="w-7 h-7 flex items-center justify-center rounded text-xs font-mono bg-white/5 border border-white/10 text-fg-muted hover:bg-white/10 hover:text-fg disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                         {label}
                       </button>
                     ))}
@@ -457,7 +457,7 @@ export default function ReversiBotPage() {
 
                 <div className="flex-1 overflow-y-auto p-3 text-sm font-mono">
                   {liveState.moveHistory.length === 0 ? (
-                    <p className="text-fg-muted dark:text-fg-subtle text-xs text-center py-4">
+                    <p className="text-fg-subtle text-xs text-center py-4">
                       No moves yet
                     </p>
                   ) : (
@@ -471,15 +471,15 @@ export default function ReversiBotPage() {
                         return (
                           <div key={i} className="flex items-center gap-1">
                             {isBlack && (
-                              <span className="text-fg-muted dark:text-fg-subtle w-6 shrink-0 text-right pr-0.5 text-xs">{moveNum}.</span>
+                              <span className="text-fg-subtle w-6 shrink-0 text-right pr-0.5 text-xs">{moveNum}.</span>
                             )}
                             {!isBlack && <span className="w-6 shrink-0" />}
                             <button
                               onClick={() => setViewIndex(stateIdx)}
                               className={`flex-1 text-left px-2 py-0.5 rounded transition-colors text-xs ${
                                 isActive
-                                  ? 'bg-accent text-on-accent font-semibold'
-                                  : 'text-fg-subtle dark:text-fg-muted hover:bg-surface-hover dark:hover:bg-surface-muted'
+                                  ? 'bg-[rgba(205,164,63,0.18)] text-[#f0d589] font-semibold'
+                                  : 'text-fg-muted hover:bg-white/5'
                               }`}
                             >
                               <span className="mr-1 opacity-60">{colorDot}</span>
@@ -495,6 +495,13 @@ export default function ReversiBotPage() {
                   )}
                 </div>
               </div>
+
+              {/* Resign — reversi has no draw offers, per the design. */}
+              <GameActions
+                className="shrink-0"
+                onResign={handleResign}
+                disabled={!!gameOverMsg}
+              />
           </>
         }
       />

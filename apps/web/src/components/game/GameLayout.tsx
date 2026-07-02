@@ -13,11 +13,15 @@ import { EmoteBar } from '@/components/multiplayer/EmoteBar';
 import { OpponentMenu } from '@/components/multiplayer/OpponentMenu';
 import { GameResultScreen, type GameResult } from '@/components/game/GameResultScreen';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { GameActions } from '@/components/game/GameActions';
+import type { GameAccent } from '@/components/game/GameScreenLayout';
 
 type GameSession = ReturnType<typeof useGameSession>;
 
 export interface GameLayoutProps {
   session: GameSession;
+  /** Per-game neon accent — paints the ambient page glow. */
+  accent?: GameAccent;
   /** Page heading on the matchmaking panel, e.g. "Online Chess". */
   title: string;
   /** Where the Back / Exit links point, e.g. "/chess". */
@@ -56,7 +60,7 @@ function Clock({
     <div
       aria-live={danger ? 'assertive' : 'off'}
       className={cn(
-        'flex items-center gap-1.5 px-4 py-2 rounded-lg font-mono text-2xl font-bold tabular-nums transition-colors',
+        'flex items-center gap-1.5 px-4 py-2 rounded-lg font-display text-2xl font-bold tabular-nums transition-colors',
         danger
           ? 'bg-danger text-white shadow-[0_0_0_1px_rgba(220,38,38,0.3),0_8px_28px_-6px_rgba(220,38,38,0.5)]'
           : active
@@ -274,6 +278,7 @@ function GameOverModal({
 // ── Layout ───────────────────────────────────────────────────────────────────
 export function GameLayout({
   session: s,
+  accent,
   title,
   backHref,
   timeControls,
@@ -307,6 +312,7 @@ export function GameLayout({
       className={cn(
         'relative min-h-dvh text-fg pt-16 flex flex-col items-center px-3 sm:px-4 py-6',
         inGame ? 'justify-start' : 'justify-center',
+        accent && `page-glow-${accent}`,
       )}
     >
       {/* Joining via invite link */}
@@ -420,25 +426,14 @@ export function GameLayout({
               </div>
             )}
 
-            {/* Primary actions — split row, echoing the design's ½ Draw / Resign pair. */}
+            {/* Primary actions — the design's ½ Draw / Resign split pair. */}
             {s.status === 'active' && (
               <div className="flex flex-col gap-2">
-                <div className="flex gap-2">
-                  {showDraw && (
-                    <Button className="flex-1" variant="secondary" onClick={s.offerDraw}>
-                      ½ Draw
-                    </Button>
-                  )}
-                  {moveCount < ABORT_MOVE_LIMIT ? (
-                    <Button className="flex-1" variant="secondary" onClick={s.abort}>
-                      Abort
-                    </Button>
-                  ) : (
-                    <Button className="flex-1" variant="danger" onClick={s.resign}>
-                      Resign
-                    </Button>
-                  )}
-                </div>
+                <GameActions
+                  onDraw={showDraw ? s.offerDraw : undefined}
+                  onAbort={moveCount < ABORT_MOVE_LIMIT ? s.abort : undefined}
+                  onResign={s.resign}
+                />
                 <div className="flex gap-2">
                   <SpectateLinkButton gameId={s.gameId!} />
                   {s.opponent?.userId && (

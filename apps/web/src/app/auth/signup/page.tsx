@@ -50,7 +50,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 pt-16">
+    <div className="relative min-h-screen flex items-center justify-center px-4 pt-16 page-glow-gold">
       <div className="w-full max-w-sm">
         <h1 className="text-3xl font-bold text-center mb-8 tracking-tight">
           <GradientText>Create account</GradientText>
@@ -60,7 +60,7 @@ export default function SignUpPage() {
           {/* OAuth buttons */}
           <button
             onClick={() => handleOAuth('google')}
-            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-border-strong dark:border-border-strong rounded-lg hover:bg-surface-hover dark:hover:bg-surface-muted transition-colors text-sm font-medium text-fg-subtle dark:text-fg"
+            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-white/15 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium text-fg"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -82,9 +82,9 @@ export default function SignUpPage() {
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-surface-hover dark:bg-surface-hover" />
-            <span className="text-xs text-fg-muted dark:text-fg-subtle">or</span>
-            <div className="flex-1 h-px bg-surface-hover dark:bg-surface-hover" />
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-xs text-fg-subtle">or</span>
+            <div className="flex-1 h-px bg-white/10" />
           </div>
 
           {/* Fields */}
@@ -94,14 +94,14 @@ export default function SignUpPage() {
               placeholder="Username"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-border-strong dark:border-border-strong bg-white dark:bg-surface-muted text-fg-subtle dark:text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-border-strong dark:border-border-strong bg-white dark:bg-surface-muted text-fg-subtle dark:text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <input
               type="password"
@@ -109,23 +109,23 @@ export default function SignUpPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSignUp()}
-              className="w-full px-3 py-2.5 rounded-lg border border-border-strong dark:border-border-strong bg-white dark:bg-surface-muted text-fg-subtle dark:text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+            <p className="text-sm text-danger-hover">{error}</p>
           )}
 
           <button
             onClick={handleSignUp}
             disabled={loading || !email || !password || !username}
-            className="w-full py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-on-accent font-semibold rounded-lg transition-colors text-sm"
+            className="w-full py-2.5 rounded-lg bg-accent [background-image:var(--gradient-accent)] text-on-accent font-semibold [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 disabled:opacity-50 transition-all text-sm"
           >
             {loading ? 'Creating account...' : 'Create account'}
           </button>
 
-          <p className="text-center text-sm text-fg-subtle dark:text-fg-muted">
+          <p className="text-center text-sm text-fg-muted">
             Already have an account?{' '}
             <Link href="/auth/signin" className="text-accent hover:underline">
               Sign in

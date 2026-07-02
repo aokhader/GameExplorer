@@ -66,7 +66,7 @@ export default function SpectateLobby() {
               ))}
             </div>
           ) : error ? (
-            <p className="text-sm text-red-400 py-8 text-center">{error}</p>
+            <p className="text-sm text-danger-hover py-8 text-center">{error}</p>
           ) : games.length === 0 ? (
             <div className="py-10 text-center">
               <div className="text-4xl mb-3">🍿</div>

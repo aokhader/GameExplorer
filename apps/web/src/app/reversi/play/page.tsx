@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { redirect }  from 'next/navigation';
 import { ReversiBoard }   from '@/components/reversi/ReversiBoard';
+import { DiscCountBar }   from '@/components/reversi/DiscCountBar';
 import { useGameSession } from '@gameexplorer/client';
 import { GameLayout }     from '@/components/game/GameLayout';
 import { formatClockShort } from '@gameexplorer/shared';
@@ -43,23 +44,13 @@ export default function ReversiPlayPage() {
   return (
     <GameLayout
       session={s}
+      accent="reversi"
       title="Online Reversi"
       backHref="/reversi"
       timeControls={TIME_CONTROLS}
       clockFormat={formatClockShort}
       showDraw={false}
-      topExtras={
-        <div className="flex items-center gap-3 bg-surface-alt border border-border rounded-lg px-4 py-2">
-          <span className="text-sm">⚫ {discCounts.black}</span>
-          <div className="flex-1 h-2 bg-surface-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-white rounded-full transition-all"
-              style={{ width: `${(discCounts.white / (discCounts.white + discCounts.black)) * 100}%` }}
-            />
-          </div>
-          <span className="text-sm">⚪ {discCounts.white}</span>
-        </div>
-      }
+      topExtras={<DiscCountBar black={discCounts.black} white={discCounts.white} />}
       board={
         reversiState && (
           <ReversiBoard

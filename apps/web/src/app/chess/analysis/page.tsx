@@ -32,9 +32,9 @@ function EvalBar({ cp, mate, turn }: { cp: number | null; mate: number | null; t
     blackPct = 50 - Math.max(-45, Math.min(45, (cp * sign) / 22.2));
   }
   return (
-    <div className="w-5 self-stretch rounded overflow-hidden shadow-inner border border-border-strong dark:border-border-strong relative bg-white">
+    <div className="w-5 self-stretch rounded overflow-hidden shadow-inner border border-white/10 relative bg-white">
       <div
-        className="absolute top-0 left-0 right-0 bg-surface dark:bg-surface"
+        className="absolute top-0 left-0 right-0 bg-surface"
         style={{ height: `${blackPct}%`, transition: 'height 0.45s ease-out' }}
       />
     </div>
@@ -85,7 +85,6 @@ function AnalysisPageInner() {
       setCurrentIndex(tl.length - 1);
       setMode('analyze');
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 
   // Sync FEN input with editState in edit mode
@@ -251,6 +250,7 @@ function AnalysisPageInner() {
 
   return (
     <GameScreenLayout
+      accent="chess"
       backHref={gameId ? '/chess/replays' : '/chess'}
       backLabel={gameId ? 'Replays' : 'Back'}
       headerCenter={
@@ -269,7 +269,7 @@ function AnalysisPageInner() {
         <>
           <button
             onClick={() => setFlipBoard(f => !f)}
-            className="px-3 py-1.5 text-sm text-fg-muted border border-border-strong rounded-lg hover:bg-surface-muted transition-colors"
+            className="px-3 py-1.5 text-sm text-fg-muted border border-white/15 rounded-lg bg-white/5 hover:bg-white/10 hover:text-fg transition-colors"
             title="Flip board"
           >
             ⇅
@@ -318,8 +318,8 @@ function AnalysisPageInner() {
               {mode === 'edit' ? (
                 <>
                   {/* ── Piece palette ── */}
-                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
-                    <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide mb-3">
+                  <div className="bg-white/[0.04] rounded-xl border border-white/10 p-4">
+                    <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-3">
                       {isInPlacementMode
                         ? (eraserMode ? 'Eraser active — click a square to remove' : `Placing: ${selectedPiece?.color} ${selectedPiece?.type}`)
                         : 'Click a piece to place it, or click on the board to preview moves'}
@@ -338,8 +338,8 @@ function AnalysisPageInner() {
                             }}
                             className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-11 min-h-11 ${
                               active
-                                ? 'border-accent bg-accent-muted dark:bg-accent-muted scale-110 shadow-md'
-                                : 'border-border-strong dark:border-border-strong bg-surface-hover dark:bg-surface-muted/50 hover:border-border-strong hover:bg-surface-hover dark:hover:bg-surface-muted'
+                                ? 'border-accent bg-accent-muted scale-110 shadow-md'
+                                : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                             }`}
                             title={`white ${type}`}
                           >
@@ -362,8 +362,8 @@ function AnalysisPageInner() {
                             }}
                             className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-11 min-h-11 ${
                               active
-                                ? 'border-accent bg-accent-muted dark:bg-accent-muted scale-110 shadow-md'
-                                : 'border-border-strong dark:border-border-strong bg-surface-hover dark:bg-surface-muted/50 hover:border-border-strong hover:bg-surface-hover dark:hover:bg-surface-muted'
+                                ? 'border-accent bg-accent-muted scale-110 shadow-md'
+                                : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                             }`}
                             title={`black ${type}`}
                           >
@@ -377,8 +377,8 @@ function AnalysisPageInner() {
                       onClick={() => { setEraserMode(e => !e); setSelectedPiece(null); }}
                       className={`w-full py-2 rounded-lg text-sm font-medium transition-all border-2 ${
                         eraserMode
-                          ? 'border-red-400 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                          : 'border-border-strong dark:border-border-strong text-fg-subtle dark:text-fg-muted hover:border-red-300 hover:text-red-500'
+                          ? 'border-danger/50 bg-danger/10 text-danger-hover'
+                          : 'border-white/10 text-fg-muted hover:border-danger/40 hover:text-danger-hover'
                       }`}
                     >
                       {eraserMode ? '✕ Cancel Eraser' : '⌫ Eraser'}
@@ -386,10 +386,10 @@ function AnalysisPageInner() {
                   </div>
 
                   {/* ── Position settings ── */}
-                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
-                    <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide mb-3">Position Settings</p>
+                  <div className="bg-white/[0.04] rounded-xl border border-white/10 p-4">
+                    <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-3">Position Settings</p>
 
-                    <p className="text-xs text-fg-subtle dark:text-fg-muted mb-1.5">Side to move</p>
+                    <p className="text-xs text-fg-muted mb-1.5">Side to move</p>
                     <div className="flex gap-2 mb-3">
                       {(['white', 'black'] as Color[]).map(c => (
                         <button
@@ -397,8 +397,8 @@ function AnalysisPageInner() {
                           onClick={() => setEditState(p => ({ ...p, currentTurn: c }))}
                           className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 ${
                             editState.currentTurn === c
-                              ? 'border-accent bg-accent-muted dark:bg-accent-muted text-accent dark:text-accent'
-                              : 'border-border-strong dark:border-border-strong text-fg-subtle dark:text-fg-muted hover:border-border-strong'
+                              ? 'border-accent bg-accent-muted text-accent'
+                              : 'border-white/10 text-fg-muted hover:border-border-strong'
                           }`}
                         >
                           {c === 'white' ? '⬜ White' : '⬛ Black'}
@@ -406,7 +406,7 @@ function AnalysisPageInner() {
                       ))}
                     </div>
 
-                    <p className="text-xs text-fg-subtle dark:text-fg-muted mb-1.5">Castling rights</p>
+                    <p className="text-xs text-fg-muted mb-1.5">Castling rights</p>
                     <div className="grid grid-cols-2 gap-1">
                       {([
                         ['whiteKingSide', 'White O-O'],
@@ -414,12 +414,12 @@ function AnalysisPageInner() {
                         ['blackKingSide', 'Black O-O'],
                         ['blackQueenSide', 'Black O-O-O'],
                       ] as [keyof ChessGameState['castlingRights'], string][]).map(([key, label]) => (
-                        <label key={key} className="flex items-center gap-1.5 text-xs text-fg-subtle dark:text-fg-muted cursor-pointer select-none py-0.5">
+                        <label key={key} className="flex items-center gap-1.5 text-xs text-fg-muted cursor-pointer select-none py-0.5">
                           <input
                             type="checkbox"
                             checked={editState.castlingRights[key]}
                             onChange={e => setEditState(p => ({ ...p, castlingRights: { ...p.castlingRights, [key]: e.target.checked } }))}
-                            className="rounded accent-blue-500"
+                            className="rounded accent-accent"
                           />
                           {label}
                         </label>
@@ -428,26 +428,26 @@ function AnalysisPageInner() {
                   </div>
 
                   {/* ── FEN ── */}
-                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
-                    <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide mb-2">FEN String</p>
+                  <div className="bg-white/[0.04] rounded-xl border border-white/10 p-4">
+                    <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-2">FEN String</p>
                     <textarea
                       value={fenInput}
                       onChange={e => handleFenInput(e.target.value)}
-                      className={`w-full text-xs font-mono rounded-lg px-2.5 py-2 border resize-none focus:outline-none focus:ring-2 focus:ring-accent bg-surface-hover dark:bg-surface text-fg-subtle dark:text-fg ${
-                        fenError ? 'border-red-400 dark:border-red-600' : 'border-border-strong dark:border-border-strong'
+                      className={`w-full text-xs font-mono rounded-lg px-2.5 py-2 border resize-none focus:outline-none focus:ring-2 focus:ring-accent bg-black/30 text-fg ${
+                        fenError ? 'border-danger/60' : 'border-white/10'
                       }`}
                       rows={3}
                       spellCheck={false}
                     />
-                    {fenError && <p className="text-xs text-red-500 mt-1">{fenError}</p>}
+                    {fenError && <p className="text-xs text-danger-hover mt-1">{fenError}</p>}
                   </div>
 
                   {/* ── Actions ── */}
                   <div className="flex gap-2">
-                    <button onClick={handleResetToStart} className="flex-1 py-2 text-xs font-medium rounded-lg border border-border-strong dark:border-border-strong text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-muted transition-colors">
+                    <button onClick={handleResetToStart} className="flex-1 py-2 text-xs font-medium rounded-lg border border-white/10 text-fg hover:bg-white/10 transition-colors">
                       Reset to Start
                     </button>
-                    <button onClick={handleClearBoard} className="flex-1 py-2 text-xs font-medium rounded-lg border border-border-strong dark:border-border-strong text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-muted transition-colors">
+                    <button onClick={handleClearBoard} className="flex-1 py-2 text-xs font-medium rounded-lg border border-white/10 text-fg hover:bg-white/10 transition-colors">
                       Clear Board
                     </button>
                   </div>
@@ -455,18 +455,18 @@ function AnalysisPageInner() {
               ) : (
                 <>
                   {/* ── Stockfish eval ── */}
-                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
+                  <div className="bg-white/[0.04] rounded-xl border border-white/10 p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide">Stockfish</p>
+                      <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">Stockfish</p>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium tabular-nums ${
                           !stockfish.isReady
-                            ? 'bg-surface-hover text-fg-subtle dark:bg-surface-muted dark:text-fg-muted'
+                            ? 'bg-white/5 text-fg-subtle'
                             : !analysisEnabled
-                              ? 'bg-surface-hover text-fg-muted dark:bg-surface-muted dark:text-fg-subtle'
+                              ? 'bg-white/5 text-fg-muted'
                               : stockfish.isAnalyzing
-                                ? 'bg-accent-muted text-accent dark:bg-accent-muted dark:text-accent'
-                                : 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400'
+                                ? 'bg-accent-muted text-accent'
+                                : 'bg-success/15 text-success-hover'
                         }`}>
                           {!stockfish.isReady ? 'loading' : !analysisEnabled ? 'off' : stockfish.isAnalyzing ? (depth > 0 ? `depth ${depth}` : '…') : `d${depth} ✓`}
                         </span>
@@ -477,7 +477,7 @@ function AnalysisPageInner() {
                           aria-label="Toggle Stockfish analysis"
                           onClick={() => setAnalysisEnabled(v => !v)}
                           className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 ${
-                            analysisEnabled ? 'bg-accent' : 'bg-surface-hover dark:bg-surface-hover'
+                            analysisEnabled ? 'bg-accent' : 'bg-white/15'
                           }`}
                         >
                           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
@@ -486,17 +486,17 @@ function AnalysisPageInner() {
                         </button>
                       </div>
                     </div>
-                    <div className="text-3xl font-bold tabular-nums text-fg-subtle dark:text-fg mb-1">{evalText}</div>
+                    <div className="font-display text-3xl font-bold tabular-nums text-fg mb-1">{evalText}</div>
                     {/* Always rendered so height stays stable during analysis */}
-                    <div className={`text-sm text-fg-subtle dark:text-fg-muted ${activeBestMove ? '' : 'invisible'}`}>
+                    <div className={`text-sm text-fg-muted ${activeBestMove ? '' : 'invisible'}`}>
                       Best:{' '}
-                      <span className="font-mono font-semibold text-fg-subtle dark:text-fg">
+                      <span className="font-mono font-semibold text-fg">
                         {activeBestMove
                           ? `${activeBestMove.from}–${activeBestMove.to}${activeBestMove.promotion ? `=${activeBestMove.promotion[0].toUpperCase()}` : ''}`
                           : '—'}
                       </span>
                     </div>
-                    <p className={`mt-1.5 text-xs font-mono truncate ${activePv.length > 1 ? 'text-fg-muted dark:text-fg-subtle' : 'invisible'}`}>
+                    <p className={`mt-1.5 text-xs font-mono truncate ${activePv.length > 1 ? 'text-fg-subtle' : 'invisible'}`}>
                       {activePv.length > 1 ? activePv.slice(1, 7).join(' ') : '—'}
                     </p>
                   </div>
@@ -517,24 +517,24 @@ function AnalysisPageInner() {
                   />
 
                   {/* ── FEN ── */}
-                  <div className="bg-white dark:bg-surface-alt rounded-xl shadow-sm p-4 border border-border-strong dark:border-border">
+                  <div className="bg-white/[0.04] rounded-xl border border-white/10 p-4">
                     <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide">FEN</p>
+                      <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">FEN</p>
                       <button
                         onClick={handleCopyFen}
-                        className="text-xs px-2 py-0.5 rounded bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors"
+                        className="text-xs px-2 py-0.5 rounded bg-white/5 border border-white/10 text-fg-muted hover:text-fg transition-colors"
                       >
                         {copied ? '✓ Copied' : 'Copy'}
                       </button>
                     </div>
-                    <p className="text-xs font-mono text-fg-subtle dark:text-fg-muted break-all select-all leading-relaxed">
+                    <p className="text-xs font-mono text-fg-muted break-all select-all leading-relaxed">
                       {stateToFen(activeState)}
                     </p>
                   </div>
 
                   {/* ── Game status ── */}
                   {statusMsg && (
-                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-sm font-semibold text-amber-700 dark:text-amber-300 text-center">
+                    <div className="p-3 rounded-xl bg-warning/10 border border-warning/35 text-sm font-semibold text-warning-hover text-center">
                       {statusMsg}
                     </div>
                   )}
@@ -549,8 +549,8 @@ function AnalysisPageInner() {
 export default function AnalysisPage() {
   return (
     <Suspense fallback={
-      <div className="h-screen pt-16 flex items-center justify-center bg-linear-to-br from-surface-hover to-surface-hover dark:from-surface dark:to-surface">
-        <div className="text-fg-muted dark:text-fg-subtle">Loading…</div>
+      <div className="h-screen pt-16 flex items-center justify-center page-glow-chess">
+        <div className="text-fg-subtle">Loading…</div>
       </div>
     }>
       <AnalysisPageInner />

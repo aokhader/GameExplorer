@@ -11,6 +11,8 @@ import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { GameActions } from '@/components/game/GameActions';
+import { StatusBanner } from '@/components/game/StatusBanner';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -107,6 +109,8 @@ export default function CheckersBotPage() {
   const [userRating, setUserRating] = useState<UserRating | null>(null);
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
   const [gameSaved, setGameSaved]   = useState(false);
+  // Player-initiated end (½ Draw / Resign) — still applies the rated outcome.
+  const [manualEnd, setManualEnd]   = useState<'resign' | 'draw' | null>(null);
 
   const { user } = useAuth();
 
@@ -120,6 +124,8 @@ export default function CheckersBotPage() {
   playerColorRef.current = playerColor;
   const userRatingRef  = useRef(userRating);
   userRatingRef.current = userRating;
+  const manualEndRef   = useRef(manualEnd);
+  manualEndRef.current = manualEnd;
 
   const liveState   = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -149,6 +155,9 @@ export default function CheckersBotPage() {
         new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
       ]);
 
+      // Dropped if the player resigned / agreed a draw while the bot thought.
+      if (manualEndRef.current) return;
+
       const result = CheckersEngine.validateMove(currentLiveState, move.from, move.to);
       if (result.valid && result.resultingState) {
         const next       = result.resultingState;
@@ -166,20 +175,23 @@ export default function CheckersBotPage() {
   // Trigger bot move when it's the bot's turn
   useEffect(() => {
     if (!gameStarted) return;
-    if (liveState.isGameOver) return;
+    if (liveState.isGameOver || manualEnd) return;
     const isBotTurn = liveState.currentTurn !== playerColor;
     if (isBotTurn && !isThinking) makeBotMove();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking]);
+  }, [liveState, playerColor, gameStarted, isThinking, manualEnd]);
 
-  // Save game and update rating when it ends
+  // Save game and update rating when it ends (naturally or by resign/draw)
   useEffect(() => {
-    if (!gameStarted || !liveState.isGameOver || gameSaved) return;
+    if (!gameStarted || gameSaved) return;
+    if (!liveState.isGameOver && !manualEnd) return;
     setGameSaved(true);
 
     const pc = playerColorRef.current;
     const result: 'white' | 'black' | 'draw' =
-      liveState.winner === null ? 'draw'
+      manualEnd === 'draw' ? 'draw'
+      : manualEnd === 'resign' ? (pc === 'white' ? 'black' : 'white')
+      : liveState.winner === null ? 'draw'
       : liveState.winner === pc ? pc
       : (pc === 'white' ? 'black' : 'white');
 
@@ -208,10 +220,10 @@ export default function CheckersBotPage() {
       saveCheckersGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid ?? undefined);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState.isGameOver]);
+  }, [liveState.isGameOver, manualEnd]);
 
   const handleMove = (from: string, to: string) => {
-    if (!isAtLive || isThinking || liveState.isGameOver) return;
+    if (!isAtLive || isThinking || liveState.isGameOver || manualEnd) return;
     if (liveState.currentTurn !== playerColor) return;
 
     const result = CheckersEngine.validateMove(liveState, from, to);
@@ -222,11 +234,20 @@ export default function CheckersBotPage() {
     }
   };
 
+  // Resign / agree a draw — ends the game now; the save effect applies the
+  // rated outcome exactly as a natural end would.
+  const endManually = (kind: 'resign' | 'draw') => {
+    if (manualEnd || liveState.isGameOver) return;
+    setManualEnd(kind);
+    setIsThinking(false);
+  };
+
   const handleNewGame = () => {
     setTimeline([CheckersEngine.newGame()]);
     setViewIndex(0);
     setGameStarted(false);
     setIsThinking(false);
+    setManualEnd(null);
     setRatingResult(null);
     setGameSaved(false);
   };
@@ -246,11 +267,11 @@ export default function CheckersBotPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen pt-16">
+      <div className="min-h-screen pt-16 page-glow-checkers">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/checkers"
-            className="inline-flex items-center text-fg-subtle dark:text-fg-muted hover:text-fg-subtle dark:hover:text-fg transition-colors"
+            className="inline-flex items-center text-fg-muted hover:text-fg transition-colors"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -260,13 +281,13 @@ export default function CheckersBotPage() {
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-fg-subtle dark:text-fg mb-8 text-center">
+          <h1 className="text-4xl font-bold text-fg mb-8 text-center">
             Play vs Bot
           </h1>
 
           {/* Difficulty selector */}
-          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-fg-subtle dark:text-fg mb-6">Bot Strength</h2>
+          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+            <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {DIFFICULTY_LEVELS.map((level) => {
                 const selected = targetElo === level.elo;
@@ -276,15 +297,15 @@ export default function CheckersBotPage() {
                     onClick={() => setTargetElo(level.elo)}
                     className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                       selected
-                        ? 'border-accent bg-accent-muted dark:bg-accent-muted shadow-md scale-[1.02]'
-                        : 'border-border-strong dark:border-border-strong bg-surface-hover dark:bg-surface-muted/50 hover:border-border-strong dark:hover:border-border-strong hover:bg-white dark:hover:bg-surface-muted'
+                        ? 'border-accent bg-accent-muted [box-shadow:var(--shadow-glow-accent)] scale-[1.02]'
+                        : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                     }`}
                   >
                     <div className="text-2xl mb-2">{level.icon}</div>
-                    <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent dark:text-accent' : 'text-fg-subtle dark:text-fg'}`}>
+                    <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent' : 'text-fg'}`}>
                       {level.label}
                     </div>
-                    <div className="text-xs text-fg-subtle dark:text-fg-muted leading-snug">
+                    <div className="text-xs text-fg-muted leading-snug">
                       {level.description}
                     </div>
                     {selected && (
@@ -301,8 +322,8 @@ export default function CheckersBotPage() {
           </div>
 
           {/* Color selector */}
-          <div className="bg-white dark:bg-surface-alt rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-fg-subtle dark:text-fg mb-6">Choose Your Color</h2>
+          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+            <h2 className="text-2xl font-semibold text-fg mb-6">Choose Your Color</h2>
             <div className="grid grid-cols-2 gap-4">
               {(['white', 'black'] as const).map(color => (
                 <button
@@ -310,8 +331,8 @@ export default function CheckersBotPage() {
                   onClick={() => setPlayerColor(color)}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
-                      ? 'bg-accent text-on-accent shadow-lg scale-105'
-                      : 'bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg hover:bg-surface-hover dark:hover:bg-surface-hover'
+                      ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                      : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                   }`}
                 >
                   {/* Mini piece preview */}
@@ -323,7 +344,7 @@ export default function CheckersBotPage() {
                     </svg>
                   </div>
                   <div className="font-semibold capitalize">{color}</div>
-                  <div className={`text-sm ${playerColor === color ? 'text-accent' : 'text-fg-subtle dark:text-fg-muted'}`}>
+                  <div className={`text-sm ${playerColor === color ? 'text-on-accent/80' : 'text-fg-muted'}`}>
                     {color === 'white' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
@@ -333,7 +354,7 @@ export default function CheckersBotPage() {
 
           <button
             onClick={handleStartGame}
-            className="w-full px-8 py-4 bg-accent hover:bg-accent-hover text-on-accent font-bold text-lg rounded-lg shadow-lg transition-colors"
+            className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
           >
             Start Game
           </button>
@@ -344,7 +365,10 @@ export default function CheckersBotPage() {
 
   // ── Game screen ───────────────────────────────────────────────────────────────
 
-  const gameOverMsg = liveState.isGameOver
+  const gameOverMsg = manualEnd === 'resign'
+    ? 'You resigned'
+    : manualEnd === 'draw' ? 'Draw by agreement'
+    : liveState.isGameOver
     ? liveState.winner === null
       ? 'Draw — 40 moves without capture'
       : liveState.winner === playerColor
@@ -353,8 +377,10 @@ export default function CheckersBotPage() {
     : null;
 
   // Player-relative result for the celebration screen.
-  const myResult: GameResult =
-    liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
+  const myResult: GameResult = manualEnd === 'resign'
+    ? 'loss'
+    : manualEnd === 'draw' ? 'draw'
+    : liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
 
   const botLabel = DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label ?? String(targetElo);
   const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
@@ -362,6 +388,7 @@ export default function CheckersBotPage() {
   return (
     <>
       <GameScreenLayout
+        accent="checkers"
         backHref="/checkers"
         headerActions={
           <>
@@ -408,62 +435,68 @@ export default function CheckersBotPage() {
         }
         sidebar={
           <>
+              {/* Turn / result status — the accent banner from the design. */}
+              <StatusBanner
+                accent="checkers"
+                title={
+                  gameOverMsg ?? (isThinking ? 'Bot is thinking…' : yourTurn ? 'Your move' : 'Reviewing history')
+                }
+                description={
+                  gameOverMsg ? undefined : yourTurn ? 'Captures are forced — chain your jumps.' : undefined
+                }
+              />
+
               {/* Info card */}
-              <div className="shrink-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border p-3">
+              <div className="shrink-0 bg-white/[0.04] rounded-xl border border-white/10 p-3">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                   <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Bot:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg">
+                    <span className="text-fg-muted">Bot:</span>
+                    <span className="font-semibold text-fg">
                       {DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label ?? targetElo}
                     </span>
                   </div>
                   <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Playing:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">{playerColor}</span>
+                    <span className="text-fg-muted">Playing:</span>
+                    <span className="font-semibold text-fg capitalize">{playerColor}</span>
                   </div>
                   <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Turn:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg capitalize">
+                    <span className="text-fg-muted">Turn:</span>
+                    <span className="font-semibold text-fg capitalize">
                       {liveState.isGameOver ? '—' : liveState.currentTurn}
                     </span>
                   </div>
                   <div className="flex gap-1.5">
-                    <span className="text-fg-subtle dark:text-fg-muted">Move:</span>
-                    <span className="font-semibold text-fg-subtle dark:text-fg">
+                    <span className="text-fg-muted">Move:</span>
+                    <span className="font-semibold text-fg">
                       {liveState.moveHistory.length}
                     </span>
                   </div>
                 </div>
 
                 {/* Piece count display */}
-                <div className="mt-2 pt-2 border-t border-border-strong dark:border-border-strong flex justify-around text-xs">
+                <div className="mt-2 pt-2 border-t border-white/10 flex justify-around text-xs">
                   <div className="flex items-center gap-1.5">
                     <svg width="14" height="14" viewBox="0 0 45 45">
                       <circle cx="22.5" cy="22" r="17" fill="#f4d270" stroke="#8a6a1f" strokeWidth="2" />
                     </svg>
-                    <span className="font-semibold text-fg-subtle dark:text-fg">{counts.white}</span>
+                    <span className="font-semibold text-fg">{counts.white}</span>
                   </div>
                   <div className="text-fg-muted">vs</div>
                   <div className="flex items-center gap-1.5">
                     <svg width="14" height="14" viewBox="0 0 45 45">
                       <circle cx="22.5" cy="22" r="17" fill="#3b82f6" stroke="#1e40af" strokeWidth="2" />
                     </svg>
-                    <span className="font-semibold text-fg-subtle dark:text-fg">{counts.black}</span>
+                    <span className="font-semibold text-fg">{counts.black}</span>
                   </div>
                 </div>
 
-                {gameOverMsg && (
-                  <div className="mt-2 pt-2 border-t border-border-strong dark:border-border-strong text-sm font-semibold text-center text-amber-700 dark:text-amber-300">
-                    {gameOverMsg}
-                  </div>
-                )}
               </div>
 
               {/* Move history */}
-              <div className="flex-1 min-h-0 bg-white dark:bg-surface-alt rounded-xl shadow-sm border border-border-strong dark:border-border flex flex-col">
+              <div className="flex-1 min-h-0 bg-white/[0.04] rounded-xl border border-white/10 flex flex-col">
                 {/* Nav buttons */}
-                <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border-strong dark:border-border-strong">
-                  <span className="text-xs font-semibold text-fg-subtle dark:text-fg-muted uppercase tracking-wide">Moves</span>
+                <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-white/10">
+                  <span className="text-xs font-semibold text-fg-muted uppercase tracking-wide">Moves</span>
                   <div className="flex gap-1">
                     {[
                       { label: '⇤', action: () => setViewIndex(0),                        disabled: !canGoBack },
@@ -475,7 +508,7 @@ export default function CheckersBotPage() {
                         key={label}
                         onClick={action}
                         disabled={disabled}
-                        className="w-7 h-7 flex items-center justify-center rounded text-xs font-mono bg-surface-hover dark:bg-surface-muted text-fg-subtle dark:text-fg-muted hover:bg-surface-hover dark:hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded text-xs font-mono bg-white/5 border border-white/10 text-fg-muted hover:bg-white/10 hover:text-fg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
                         {label}
                       </button>
@@ -486,7 +519,7 @@ export default function CheckersBotPage() {
                 {/* Move list */}
                 <div className="flex-1 overflow-y-auto p-3 text-sm font-mono">
                   {liveState.moveHistory.length === 0 ? (
-                    <p className="text-fg-muted dark:text-fg-subtle text-xs text-center py-4">
+                    <p className="text-fg-subtle text-xs text-center py-4">
                       No moves yet — make your first move
                     </p>
                   ) : (
@@ -499,7 +532,7 @@ export default function CheckersBotPage() {
                         return (
                           <div key={i} className="flex items-center gap-1">
                             {isWhiteMove && (
-                              <span className="text-fg-muted dark:text-fg-subtle w-7 shrink-0 text-right pr-1">
+                              <span className="text-fg-subtle w-7 shrink-0 text-right pr-1">
                                 {moveNum}.
                               </span>
                             )}
@@ -508,8 +541,8 @@ export default function CheckersBotPage() {
                               onClick={() => setViewIndex(stateIdx)}
                               className={`flex-1 text-left px-2 py-0.5 rounded transition-colors truncate ${
                                 isActive
-                                  ? 'bg-accent text-on-accent font-semibold'
-                                  : 'text-fg-subtle dark:text-fg-muted hover:bg-surface-hover dark:hover:bg-surface-muted'
+                                  ? 'bg-[rgba(205,164,63,0.18)] text-[#f0d589] font-semibold'
+                                  : 'text-fg-muted hover:bg-white/5'
                               }`}
                             >
                               {formatMove(move)}
@@ -521,6 +554,14 @@ export default function CheckersBotPage() {
                   )}
                 </div>
               </div>
+
+              {/* ½ Draw / Resign — as in the design's in-game sidebar. */}
+              <GameActions
+                className="shrink-0"
+                onDraw={() => endManually('draw')}
+                onResign={() => endManually('resign')}
+                disabled={!!gameOverMsg}
+              />
           </>
         }
       />

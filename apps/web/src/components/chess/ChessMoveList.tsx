@@ -92,11 +92,21 @@ export function ChessMoveList({
   }, [currentIndex]);
 
   const navBtn = (disabled: boolean) =>
-    `flex-1 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-lg font-bold border-r border-slate-200 dark:border-slate-700 last:border-r-0${disabled ? ' opacity-30 cursor-not-allowed' : ''}`;
+    `flex-1 py-2.5 text-fg-muted hover:bg-white/5 hover:text-fg transition-colors text-lg font-bold border-r border-white/10 last:border-r-0${disabled ? ' opacity-30 cursor-not-allowed' : ''}`;
+
+  // Current move gets the design's gold pill; past moves stay quiet.
+  const moveBtn = (active: boolean, isWhiteMove: boolean) =>
+    `flex-1 text-left px-2 py-0.5 rounded transition-colors ${
+      active
+        ? 'bg-[rgba(205,164,63,0.18)] text-[#f0d589] font-semibold'
+        : isWhiteMove
+          ? 'text-fg font-medium hover:bg-white/5'
+          : 'text-fg-muted hover:bg-white/5'
+    }`;
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col ${className}`}>
-      <div className="shrink-0 flex items-center border-b border-slate-200 dark:border-slate-700">
+    <div className={`bg-white/[0.04] rounded-xl border border-white/10 overflow-hidden flex flex-col ${className}`}>
+      <div className="shrink-0 flex items-center border-b border-white/10">
         <button onClick={onFirst} disabled={!canGoBack} className={navBtn(!canGoBack)} title="First move">⇤</button>
         <button onClick={onPrev}  disabled={!canGoBack} className={navBtn(!canGoBack)} title="Previous move">←</button>
         <button onClick={onNext}  disabled={!canGoForward} className={navBtn(!canGoForward)} title="Next move">→</button>
@@ -105,21 +115,17 @@ export function ChessMoveList({
 
       <div ref={scrollRef} className={`overflow-y-auto p-2 ${scrollHeight}`}>
         {movePairs.length === 0 ? (
-          <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-2">{emptyMessage}</p>
+          <p className="text-xs text-fg-subtle text-center py-2">{emptyMessage}</p>
         ) : (
           <div className="space-y-px">
             {movePairs.map(({ num, white, black }) => (
               <div key={num} className="flex items-center gap-1 text-sm font-mono rounded">
-                <span className="text-slate-400 dark:text-slate-500 w-6 text-right shrink-0 text-xs">{num}.</span>
+                <span className="text-fg-subtle w-6 text-right shrink-0 text-xs">{num}.</span>
                 {white && (
                   <button
                     onClick={() => onJump?.(white.idx)}
                     data-active={currentIndex === white.idx}
-                    className={`flex-1 text-left px-2 py-0.5 rounded transition-colors ${
-                      currentIndex === white.idx
-                        ? 'bg-accent text-on-accent font-semibold'
-                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }`}
+                    className={moveBtn(currentIndex === white.idx, true)}
                   >
                     {white.text}
                   </button>
@@ -128,11 +134,7 @@ export function ChessMoveList({
                   <button
                     onClick={() => onJump?.(black.idx)}
                     data-active={currentIndex === black.idx}
-                    className={`flex-1 text-left px-2 py-0.5 rounded transition-colors ${
-                      currentIndex === black.idx
-                        ? 'bg-accent text-on-accent font-semibold'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }`}
+                    className={moveBtn(currentIndex === black.idx, false)}
                   >
                     {black.text}
                   </button>

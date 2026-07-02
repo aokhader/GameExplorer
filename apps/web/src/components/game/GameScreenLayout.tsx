@@ -2,7 +2,11 @@ import React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
+export type GameAccent = 'chess' | 'checkers' | 'reversi';
+
 export interface GameScreenLayoutProps {
+  /** Per-game neon accent — paints the ambient page glow (chess blue, checkers pink, reversi lime). */
+  accent?: GameAccent;
   /** Where the header's back link points. */
   backHref: string;
   backLabel?: string;
@@ -34,6 +38,7 @@ const BackArrow = () => (
  * back link and page-specific actions (New Game, Analyze/Edit, …).
  */
 export function GameScreenLayout({
+  accent,
   backHref,
   backLabel = 'Back',
   headerCenter,
@@ -45,7 +50,13 @@ export function GameScreenLayout({
   className,
 }: GameScreenLayoutProps) {
   return (
-    <div className={cn('reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16', className)}>
+    <div
+      className={cn(
+        'reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16',
+        accent && `page-glow-${accent}`,
+        className,
+      )}
+    >
       {/* Header */}
       <div className="shrink-0 px-4 py-3 border-b border-border bg-surface-alt/50 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-between gap-3">

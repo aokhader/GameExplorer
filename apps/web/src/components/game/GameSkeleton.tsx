@@ -13,25 +13,27 @@ export function GameSkeleton() {
   return (
     <div className="min-h-screen pt-16" aria-busy="true">
       {/* Header bar */}
-      <div className="shrink-0 px-4 py-3 border-b border-border-strong dark:border-border">
+      <div className="shrink-0 px-4 py-3 border-b border-border">
         <div className="container mx-auto flex items-center justify-between">
           <Skeleton className="h-5 w-16" />
           <Skeleton className="h-9 w-28" />
         </div>
       </div>
 
-      {/* Board + sidebar */}
+      {/* Board column + sidebar — mirrors the in-game layout shape. */}
       <div className="container mx-auto px-4 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4">
-          {/* Board */}
-          <div className="flex items-center justify-center">
-            <Skeleton className="w-full max-w-150 aspect-square" />
+        <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-6 items-start">
+          {/* Player card / board / player card */}
+          <div className="flex flex-col gap-3 w-full lg:w-[460px] lg:shrink-0">
+            <Skeleton className="h-14 w-full rounded-xl" />
+            <Skeleton className="w-full aspect-square" />
+            <Skeleton className="h-14 w-full rounded-xl" />
           </div>
 
           {/* Sidebar */}
-          <div className="flex flex-col gap-3">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-64 w-full" />
+          <div className="w-full lg:flex-1 flex flex-col gap-3">
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-64 w-full rounded-xl" />
           </div>
         </div>
       </div>

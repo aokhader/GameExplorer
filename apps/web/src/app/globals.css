@@ -232,6 +232,19 @@ html {
 .glow-checkers { box-shadow: var(--shadow-glow-checkers); }
 .glow-reversi  { box-shadow: var(--shadow-glow-reversi); }
 
+/* Per-game ambient page glow — the in-game screens each carry a soft radial
+ * wash of their accent at the top-left, per the Arcade Glow design. */
+.page-glow-chess,
+.page-glow-checkers,
+.page-glow-reversi,
+.page-glow-gold {
+  background-repeat: no-repeat;
+}
+.page-glow-chess    { background-image: radial-gradient(900px 500px at 20% 0%, rgba(59,130,246,0.12),  transparent 55%); }
+.page-glow-checkers { background-image: radial-gradient(900px 500px at 20% 0%, rgba(236,72,153,0.13),  transparent 55%); }
+.page-glow-reversi  { background-image: radial-gradient(900px 500px at 20% 0%, rgba(163,230,53,0.12),  transparent 55%); }
+.page-glow-gold     { background-image: radial-gradient(900px 500px at 50% 0%, rgba(205,164,63,0.10),  transparent 55%); }
+
 /* Two-tone gradient display text. Pair with a base text color for fallback. */
 .text-gradient-gold {
   background: linear-gradient(135deg, #f0d589 0%, #cda43f 55%, #b8923a 100%);
