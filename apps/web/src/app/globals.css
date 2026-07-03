@@ -237,13 +237,20 @@ html {
 .page-glow-chess,
 .page-glow-checkers,
 .page-glow-reversi,
-.page-glow-gold {
+.page-glow-gold,
+.page-glow-profile {
   background-repeat: no-repeat;
 }
 .page-glow-chess    { background-image: radial-gradient(900px 500px at 20% 0%, rgba(59,130,246,0.12),  transparent 55%); }
 .page-glow-checkers { background-image: radial-gradient(900px 500px at 20% 0%, rgba(236,72,153,0.13),  transparent 55%); }
 .page-glow-reversi  { background-image: radial-gradient(900px 500px at 20% 0%, rgba(163,230,53,0.12),  transparent 55%); }
 .page-glow-gold     { background-image: radial-gradient(900px 500px at 50% 0%, rgba(205,164,63,0.10),  transparent 55%); }
+/* Profile carries the design's dual wash: blue top-left + pink top-right. */
+.page-glow-profile  {
+  background-image:
+    radial-gradient(900px 480px at 15% -10%, rgba(59,130,246,0.13), transparent 55%),
+    radial-gradient(700px 400px at 95% 0%,   rgba(236,72,153,0.10), transparent 55%);
+}
 
 /* Two-tone gradient display text. Pair with a base text color for fallback. */
 .text-gradient-gold {
