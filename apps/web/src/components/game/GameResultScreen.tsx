@@ -2,12 +2,18 @@
 
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+// `m` + a local <LazyMotion> provider (not `motion`): framer's animation
+// features load as their own async chunk, and since this component is itself
+// dynamically imported, no route pays for framer in its initial JS.
+import { m, LazyMotion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useSettings } from '@/components/providers/SettingsProvider';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { celebratePop, springSoft, easeOut } from '@/lib/motion';
 import { cn } from '@/lib/utils';
+
+const loadMotionFeatures = () =>
+  import('@/lib/motion-features').then(mod => mod.default);
 
 export type GameResult = 'win' | 'loss' | 'draw' | 'aborted';
 
@@ -100,9 +106,10 @@ export function GameResultScreen({
   if (!mounted) return null;
 
   return createPortal(
-    <AnimatePresence>
+    <LazyMotion features={loadMotionFeatures} strict>
+      <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           style={{ paddingTop: 'max(4rem, env(safe-area-inset-top))' }}
           initial={{ opacity: 0 }}
@@ -117,21 +124,21 @@ export function GameResultScreen({
           <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
 
           {/* Card */}
-          <motion.div
+          <m.div
             className="relative w-full max-w-sm rounded-2xl border border-border bg-surface-alt surface-raised-lg p-8 text-center"
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={springSoft}
           >
-            <motion.div
+            <m.div
               className="text-6xl mb-3"
               variants={reducedMotion ? undefined : celebratePop}
               initial={reducedMotion ? undefined : 'hidden'}
               animate={reducedMotion ? undefined : 'show'}
             >
               {copy.emoji}
-            </motion.div>
+            </m.div>
 
             <h2 className={cn('text-3xl font-bold mb-1', copy.accentClass)}>
               {title ?? copy.heading}
@@ -164,10 +171,11 @@ export function GameResultScreen({
             )}
 
             <div className="mt-6 flex flex-col gap-2">{actions}</div>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
-    </AnimatePresence>,
+      </AnimatePresence>
+    </LazyMotion>,
     document.body,
   );
 }

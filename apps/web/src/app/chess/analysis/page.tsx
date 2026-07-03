@@ -13,7 +13,7 @@ import type { BoardArrow } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useStockfishAnalysis } from '@/hooks/useStockfishAnalysis';
-import { getGameById } from '@gameexplorer/db';
+import { getGameById } from '@/lib/db';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 
 type Mode = 'edit' | 'analyze';

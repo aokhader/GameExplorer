@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@gameexplorer/db';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -39,6 +38,9 @@ export function Navigation() {
 
   const handleSignOut = async () => {
     setDropdownOpen(false);
+    // Loaded on demand — keeps @supabase/* out of the nav's (i.e. every
+    // page's) initial bundle; by sign-out time it's warm from useAuth anyway.
+    const { supabase } = await import('@gameexplorer/db');
     await supabase.auth.signOut();
     router.push('/');
   };

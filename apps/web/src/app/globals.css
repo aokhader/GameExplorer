@@ -305,6 +305,20 @@ html {
 /* Entrance reveal — graceful on first paint; near-instant under reduced-motion. */
 .reveal-up { animation: reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+/* Route entrance (PageTransition) — CSS instead of framer-motion so the
+   animation library stays out of every page's initial JS. Curve + timing match
+   the old framer `easeOut` preset (0.32s, cubic-bezier(0.22, 1, 0.36, 1)). */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes page-enter-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.page-enter      { animation: page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.page-enter-fade { animation: page-enter-fade 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
 @media (prefers-reduced-motion: no-preference) {
   .hover-lift:hover    { transform: translateY(-4px); }
   .animate-aurora      { animation: aurora-drift 18s ease-in-out infinite; }

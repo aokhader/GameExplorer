@@ -2,9 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { useSettings } from '@/components/providers/SettingsProvider';
-import { easeOut } from '@/lib/motion';
 
 /**
  * App-wide route entrance transition. Re-keys on pathname so each navigation
@@ -12,8 +10,13 @@ import { easeOut } from '@/lib/motion';
  * series of hard reloads.
  *
  * Entrance-only (no exit) by design: Next's App Router swaps route content
- * synchronously, so AnimatePresence exit choreography is unreliable here; a
- * clean fade-in is robust and judder-free.
+ * synchronously, so exit choreography is unreliable here; a clean fade-in is
+ * robust and judder-free.
+ *
+ * CSS-driven (`.page-enter` in globals.css) rather than framer-motion: this
+ * wraps every route, and a framer dependency here would put the whole
+ * animation engine in every page's initial JS. Framer now loads only with the
+ * components that genuinely need it (e.g. the lazy GameResultScreen).
  *
  * Calm where it matters: deep gameplay routes get an opacity-only fade (no
  * positional shift — the board must land where the eye expects), and reduced
@@ -29,13 +32,8 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   if (reducedMotion) return <>{children}</>;
 
   return (
-    <motion.div
-      key={pathname}
-      initial={{ opacity: 0, y: isDeepGame ? 0 : 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={easeOut}
-    >
+    <div key={pathname} className={isDeepGame ? 'page-enter-fade' : 'page-enter'}>
       {children}
-    </motion.div>
+    </div>
   );
 }

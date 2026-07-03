@@ -14,8 +14,8 @@ import {
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
 import { useAuth } from '@/hooks/useAuth';
-import { saveReversiGame, getUserRating, upsertUserRating } from '@gameexplorer/db';
-import type { UserRating } from '@gameexplorer/db';
+import { saveReversiGame, getUserRating, upsertUserRating } from '@/lib/db';
+import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';

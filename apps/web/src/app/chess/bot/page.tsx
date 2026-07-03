@@ -9,7 +9,7 @@ import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList'
 import { useChessEngine } from '@/hooks/useChessEngine';
 import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
 import { useAuth } from '@/hooks/useAuth';
-import { saveGame } from '@gameexplorer/db';
+import { saveGame } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';

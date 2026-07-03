@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getGames, SavedGame } from '@gameexplorer/db';
+import { getGames } from '@/lib/db';
+import type { SavedGame } from '@/lib/db';
 import { useAuth } from '@/hooks/useAuth';
 
 function formatDate(iso: string) {

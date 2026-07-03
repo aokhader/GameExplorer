@@ -1,5 +1,3 @@
-import { supabase } from '@gameexplorer/db';
-
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 /**
@@ -9,6 +7,9 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
  * server's `error` message when present.
  */
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  // Dynamic import keeps Supabase out of the initial JS of pages that only
+  // *might* call the API; the module is cached after the first call.
+  const { supabase } = await import('@gameexplorer/db');
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
 

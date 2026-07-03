@@ -12,8 +12,8 @@ import {
 } from '@gameexplorer/shared';
 import { CheckersBoard, BoardArrow } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
-import { saveCheckersGame, getUserRating, upsertUserRating } from '@gameexplorer/db';
-import type { UserRating } from '@gameexplorer/db';
+import { saveCheckersGame, getUserRating, upsertUserRating } from '@/lib/db';
+import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
