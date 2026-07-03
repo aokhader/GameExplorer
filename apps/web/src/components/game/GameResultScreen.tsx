@@ -11,6 +11,7 @@ import { useSettings } from '@/components/providers/SettingsProvider';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { celebratePop, springSoft, easeOut } from '@/lib/motion';
 import { cn } from '@/lib/utils';
+import { SaveProgressPrompt } from './SaveProgressPrompt';
 
 const loadMotionFeatures = () =>
   import('@/lib/motion-features').then(mod => mod.default);
@@ -171,6 +172,10 @@ export function GameResultScreen({
             )}
 
             <div className="mt-6 flex flex-col gap-2">{actions}</div>
+
+            {/* Onboarding's soft sign-up ask — renders only for a guest's
+                first game started from /welcome, then never again. */}
+            <SaveProgressPrompt open={open} />
           </m.div>
         </m.div>
       )}

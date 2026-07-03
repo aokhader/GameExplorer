@@ -106,6 +106,17 @@ export default function ChessBotPage() {
   const manualEndRef    = useRef(manualEnd);
   manualEndRef.current  = manualEnd;
 
+  // Deep link from onboarding (?elo=1200&start=1) — preselect strength and skip
+  // the setup screen. Read off the URL like /chess/play does for ?invite.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const elo = Number(params.get('elo'));
+    if (Number.isFinite(elo) && elo > 0) {
+      setTargetElo(Math.min(3000, Math.max(400, Math.round(elo / 25) * 25)));
+    }
+    if (params.get('start') === '1') setGameStarted(true);
+  }, []);
+
   // ── Sync confirmed worker state → timeline ──────────────────────────────────
   useEffect(() => {
     if (!engineReady) return;

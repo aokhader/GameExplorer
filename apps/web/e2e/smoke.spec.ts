@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test('home page renders and links to all three games', async ({ page }) => {
+  // A brand-new guest is redirected to the /welcome tour — mark this browser
+  // as already onboarded so we land on the home page itself.
+  await page.addInitScript(() => localStorage.setItem('ge:onboarded', '1'));
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'GameExplorer' })).toBeVisible();
   for (const game of ['chess', 'checkers', 'reversi']) {

@@ -133,6 +133,20 @@ export default function CheckersBotPage() {
 
   useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
+  // Deep link from onboarding (?elo=1100&start=1) — snap to the nearest
+  // difficulty level and skip the setup screen.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const elo = Number(params.get('elo'));
+    if (Number.isFinite(elo) && elo > 0) {
+      const nearest = DIFFICULTY_LEVELS.reduce((a, b) =>
+        Math.abs(b.elo - elo) < Math.abs(a.elo - elo) ? b : a,
+      );
+      setTargetElo(nearest.elo);
+    }
+    if (params.get('start') === '1') setGameStarted(true);
+  }, []);
+
   // Load rating when user is available
   useEffect(() => {
     if (!user) return;
@@ -566,8 +580,11 @@ export default function CheckersBotPage() {
         }
       />
 
+      {/* Open on game end for everyone — guests too (onboarding's soft sign-up
+          shows here); the rating block simply stays absent until the rated
+          update resolves for signed-in players. */}
       <GameResultScreen
-        open={!!ratingResult}
+        open={!!gameOverMsg}
         result={myResult}
         subtitle={myResult === 'win' ? undefined : gameOverMsg ?? undefined}
         rating={

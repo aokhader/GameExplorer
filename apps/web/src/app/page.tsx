@@ -1,13 +1,31 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import { Reveal } from '@/components/visual';
+import { ONBOARDED_KEY } from '@/lib/onboarding';
 
 type GameHue = 'chess' | 'checkers' | 'reversi';
 
 export default function HomePage() {
   const [hoveredGame, setHoveredGame] = useState<string | null>(null);
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  // Brand-new visitors land in the first-time tour instead of the marketing
+  // page (Arcade Glow onboarding: play first, sign up later). Signed-in users
+  // have nothing to onboard — just mark them as seen.
+  useEffect(() => {
+    if (loading) return;
+    if (localStorage.getItem(ONBOARDED_KEY)) return;
+    if (user) {
+      localStorage.setItem(ONBOARDED_KEY, '1');
+    } else {
+      router.replace('/welcome');
+    }
+  }, [loading, user, router]);
 
   const games = [
     {
