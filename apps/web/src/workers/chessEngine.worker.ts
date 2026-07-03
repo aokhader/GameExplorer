@@ -55,10 +55,38 @@ self.addEventListener('message', (e: MessageEvent) => {
     case 'GET_BOT_MOVE': {
       try {
         const move = getBestMoveElo(state, msg.elo);
-        self.postMessage({ type: 'BOT_MOVE', from: move.from, to: move.to });
+        self.postMessage({ type: 'BOT_MOVE', from: move.from, to: move.to, promotion: move.promotion });
       } catch (err) {
         self.postMessage({ type: 'ERROR', message: String(err) });
       }
+      break;
+    }
+
+    // ── Stateless compute requests ─────────────────────────────────────────
+    // Request/response by requestId; these never touch the worker-owned live
+    // `state` above. Used by pages that keep their own timeline (analysis).
+
+    case 'GET_LEGAL_MOVES': {
+      self.postMessage({
+        type: 'LEGAL_MOVES',
+        requestId: msg.requestId,
+        legalMoves: legalMovesEntries(msg.state),
+      });
+      break;
+    }
+
+    // Replay a saved game's moves into a timeline of states, so loading a
+    // long game doesn't run per-move validation on the main thread.
+    case 'REPLAY_MOVES': {
+      const timeline: ChessGameState[] = [ChessEngine.newGame()];
+      for (const move of msg.moves as { from: Position; to: Position; promotion?: PieceType }[]) {
+        const result = ChessEngine.validateMove(
+          timeline[timeline.length - 1], move.from, move.to, false, move.promotion,
+        );
+        if (result.valid && result.resultingState) timeline.push(result.resultingState);
+        else break;
+      }
+      self.postMessage({ type: 'REPLAY_RESULT', requestId: msg.requestId, timeline });
       break;
     }
   }

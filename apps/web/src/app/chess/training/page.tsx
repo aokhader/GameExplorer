@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ChessEngine,
   ChessGameState,
   Position,
   PieceType,
@@ -14,7 +13,8 @@ import {
 import { ChessBoard, BoardArrow } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
-import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
+import { useChessEngine } from '@/hooks/useChessEngine';
+import { useStockfish, thinkTimeForElo, STOCKFISH_MIN_ELO } from '@/hooks/useStockfish';
 import { useAuth } from '@/hooks/useAuth';
 import { saveGame, getUserRating, upsertUserRating } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
@@ -69,7 +69,12 @@ export default function ChessTrainingPage() {
   const [userRating, setUserRating] = useState<UserRating | null>(null);
   const [ratingLoading, setRatingLoading] = useState(true);
 
-  const [timeline, setTimeline] = useState<ChessGameState[]>(() => [ChessEngine.newGame()]);
+  // Worker owns the canonical game state; all move validation and the weak
+  // bot's minimax run off the main thread (same architecture as /chess/bot).
+  const { gameState: liveState, legalMoves: legalMovesMap, isReady: engineReady, makeMove, getBotMove, reset } = useChessEngine();
+
+  // Timeline for replay — grows as the worker confirms each move.
+  const [timeline, setTimeline] = useState<ChessGameState[]>([]);
   const [viewIndex, setViewIndex] = useState(0);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [isThinking, setIsThinking] = useState(false);
@@ -87,13 +92,20 @@ export default function ChessTrainingPage() {
   const [savedGameId, setSavedGameId] = useState<string | null>(null);
   const [gameSaved, setGameSaved] = useState(false);
 
-  const stockfish = useStockfish();
+  // Defer Stockfish (and its ~7 MB WASM download) until the game actually
+  // starts — no need to load the engine on the rating/setup screen. Bots
+  // below STOCKFISH_MIN_ELO never need it at all (they run in the engine worker).
+  const stockfish = useStockfish({ enabled: gameStarted });
+
+  // Tracks whether a bot MAKE_MOVE is in flight so we clear isThinking only
+  // when the worker confirms, not when makeMove() posts the message.
+  const botMovePendingRef = useRef(false);
 
   // Stable refs for async callbacks
-  const timelineRef = useRef(timeline);
-  timelineRef.current = timeline;
-  const viewIndexRef = useRef(viewIndex);
-  viewIndexRef.current = viewIndex;
+  const liveStateRef = useRef(liveState);
+  liveStateRef.current = liveState;
+  const playerColorRef = useRef(playerColor);
+  playerColorRef.current = playerColor;
   const userRatingRef = useRef(userRating);
   userRatingRef.current = userRating;
   const hintsUsedRef = useRef(hintsUsed);
@@ -101,10 +113,41 @@ export default function ChessTrainingPage() {
   const manualEndRef = useRef(manualEnd);
   manualEndRef.current = manualEnd;
 
-  const liveState = timeline[timeline.length - 1];
-  const displayState = timeline[viewIndex];
-  const isAtLive = viewIndex === timeline.length - 1;
+  const displayState = timeline[viewIndex] ?? liveState;
+  const isAtLive = timeline.length === 0 || viewIndex === timeline.length - 1;
   const botElo = userRating?.rating ?? 1200;
+
+  // ── Sync confirmed worker state → timeline ────────────────────────────────
+
+  useEffect(() => {
+    if (!engineReady) return;
+    setTimeline(prev => {
+      if (prev.length === 0) {
+        // First STATE_UPDATE after mount or after reset.
+        return [liveState];
+      }
+      const last = prev[prev.length - 1];
+      if (liveState.moveHistory.length > last.moveHistory.length) {
+        // New confirmed move — append and advance viewIndex if user was at live.
+        const newLen = prev.length + 1;
+        setViewIndex(vi => (vi === prev.length - 1 ? newLen - 1 : vi));
+
+        // Clear thinking flag once the bot move is confirmed by the worker.
+        if (botMovePendingRef.current && liveState.currentTurn === playerColorRef.current) {
+          botMovePendingRef.current = false;
+          setIsThinking(false);
+        }
+
+        return [...prev, liveState];
+      }
+      if (liveState.moveHistory.length === 0 && last.moveHistory.length > 0) {
+        // Reset — replace timeline with fresh initial state.
+        setViewIndex(0);
+        return [liveState];
+      }
+      return prev;
+    });
+  }, [engineReady, liveState]);
 
   // ── Auth guard ────────────────────────────────────────────────────────────
 
@@ -128,14 +171,17 @@ export default function ChessTrainingPage() {
   // ── Bot turn trigger ──────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!gameStarted) return;
+    if (!gameStarted || !engineReady) return;
+    // Weak bots (< STOCKFISH_MIN_ELO) run in the chess-engine worker and don't
+    // need Stockfish; only wait on it when the matched ELO actually uses it.
+    if (botElo >= STOCKFISH_MIN_ELO && !stockfish.isReady) return;
     if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd) return;
     const isBotTurn = liveState.currentTurn !== playerColor;
-    if (isBotTurn && !isThinking && stockfish.isReady) {
+    if (isBotTurn && !isThinking) {
       makeBotMove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, manualEnd]);
+  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, botElo, manualEnd]);
 
   // ── Save game + update rating when game ends ──────────────────────────────
 
@@ -195,37 +241,39 @@ export default function ChessTrainingPage() {
   // ── Bot move ──────────────────────────────────────────────────────────────
 
   const makeBotMove = async () => {
-    const currentTimeline = timelineRef.current;
-    const wasAtLive = viewIndexRef.current === currentTimeline.length - 1;
-    const currentLiveState = currentTimeline[currentTimeline.length - 1];
     const elo = userRatingRef.current?.rating ?? 1200;
 
     setIsThinking(true);
+    botMovePendingRef.current = true;
     try {
-      const [move] = await Promise.all([
-        stockfish.getBestMove(currentLiveState, elo),
-        new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
-      ]);
+      let move: { from: Position; to: Position; promotion?: PieceType };
+      if (elo < STOCKFISH_MIN_ELO) {
+        // Weak engine runs inside the chess engine worker — zero main-thread cost.
+        [move] = await Promise.all([
+          getBotMove(elo),
+          new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
+        ]);
+      } else {
+        // Stockfish runs in its own worker; we just need the current position.
+        [move] = await Promise.all([
+          stockfish.getBestMove(liveStateRef.current, elo),
+          new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
+        ]);
+      }
 
       // Dropped if the player resigned / agreed a draw while the bot thought.
-      if (move && !manualEndRef.current) {
-        const result = ChessEngine.validateMove(
-          currentLiveState,
-          move.from,
-          move.to,
-          false,
-          move.promotion as PieceType | undefined,
-        );
-        if (result.valid && result.resultingState) {
-          const next = result.resultingState;
-          const newLength = currentTimeline.length + 1;
-          setTimeline(prev => [...prev, next]);
-          if (wasAtLive) setViewIndex(newLength - 1);
-        }
+      if (manualEndRef.current) {
+        botMovePendingRef.current = false;
+        setIsThinking(false);
+        return;
       }
+
+      // Post the move to the chess engine worker for validation + state update.
+      // isThinking is cleared in the timeline sync effect when the worker confirms.
+      makeMove(move.from as Position, move.to as Position, move.promotion as PieceType | undefined);
     } catch (err) {
       console.error('Bot error:', err);
-    } finally {
+      botMovePendingRef.current = false;
       setIsThinking(false);
     }
   };
@@ -233,17 +281,12 @@ export default function ChessTrainingPage() {
   // ── Player move ───────────────────────────────────────────────────────────
 
   const handleMove = (from: Position, to: Position, promotionPiece?: PieceType) => {
-    if (!isAtLive || isThinking || manualEnd) return;
+    if (!isAtLive || isThinking || !engineReady || manualEnd) return;
     if (liveState.currentTurn !== playerColor) return;
     setHintArrow(null); // clear hint on move
 
-    const result = ChessEngine.validateMove(liveState, from, to, false, promotionPiece);
-    if (result.valid && result.resultingState) {
-      const next = result.resultingState;
-      const newIdx = timeline.length;
-      setTimeline(prev => [...prev, next]);
-      setViewIndex(newIdx);
-    }
+    // Post to worker — returns immediately; validation runs off main thread.
+    makeMove(from, to, promotionPiece);
   };
 
   // ── Hint ──────────────────────────────────────────────────────────────────
@@ -254,9 +297,12 @@ export default function ChessTrainingPage() {
 
     setIsHinting(true);
     try {
-      // Ask Stockfish at player's rating + 200 (good moves, not perfect)
+      // Ask the engine at player's rating + 200 (good moves, not perfect).
+      // Weak strengths run in the chess engine worker; Stockfish covers 1400+.
       const hintElo = Math.min(3000, botElo + 200);
-      const move = await stockfish.getBestMove(liveState, hintElo);
+      const move = hintElo < STOCKFISH_MIN_ELO
+        ? await getBotMove(hintElo)
+        : await stockfish.getBestMove(liveState, hintElo);
       if (move) {
         setHintsUsed(n => n + 1);
         setHintArrow({ from: move.from as Position, to: move.to as Position });
@@ -278,11 +324,12 @@ export default function ChessTrainingPage() {
     if (manualEnd || liveState.isCheckmate || liveState.isStalemate || liveState.isDraw) return;
     setManualEnd(kind);
     setIsThinking(false);
+    botMovePendingRef.current = false;
     setHintArrow(null);
   };
 
   const handleNewGame = () => {
-    setTimeline([ChessEngine.newGame()]);
+    setTimeline([]);
     setViewIndex(0);
     setGameStarted(false);
     setIsThinking(false);
@@ -292,13 +339,14 @@ export default function ChessTrainingPage() {
     setRatingResult(null);
     setSavedGameId(null);
     setGameSaved(false);
+    botMovePendingRef.current = false;
+    reset(); // worker resets to newGame() and broadcasts STATE_UPDATE
   };
 
   const handleStartGame = () => {
+    // When the player is black the bot-turn effect fires the first move once
+    // the required engine is ready — no manual kick-off needed.
     setGameStarted(true);
-    if (playerColor === 'black') {
-      setTimeout(() => makeBotMove(), 500);
-    }
   };
 
   const movePairs = buildMovePairs(timeline);
@@ -493,6 +541,9 @@ export default function ChessTrainingPage() {
             onMove={handleMove}
             playerColor={playerColor}
             showCoordinates={true}
+            // Worker-precomputed legal moves — piece taps are O(1) lookups
+            // instead of a synchronous getAllLegalMoves scan.
+            legalMovesMap={isAtLive && !isThinking ? legalMovesMap : undefined}
             arrows={hintArrow ? [hintArrow] : undefined}
           />
         }

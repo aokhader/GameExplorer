@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   ChessEngine, ChessGameState, Position, PieceType,
@@ -13,6 +13,7 @@ import type { BoardArrow } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useStockfishAnalysis } from '@/hooks/useStockfishAnalysis';
+import { useChessCompute } from '@/hooks/useChessCompute';
 import { getGameById } from '@/lib/db';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 
@@ -68,24 +69,25 @@ function AnalysisPageInner() {
   const [copied, setCopied] = useState(false);
 
   const stockfish = useStockfishAnalysis();
+  const { getLegalMoves, replayMoves } = useChessCompute();
 
-  // If a gameId is in the URL, load that game and jump straight to analyze mode
+  // If a gameId is in the URL, load that game and jump straight to analyze mode.
+  // The per-move replay runs in the chess engine worker so a long game doesn't
+  // block the main thread while the page loads.
   useEffect(() => {
     if (!gameId) return;
-    getGameById(gameId).then((game) => {
-      if (!game) return;
-      const tl: ChessGameState[] = [ChessEngine.newGame()];
-      for (const move of game.moves) {
-        const current = tl[tl.length - 1];
-        const result = ChessEngine.validateMove(current, move.from, move.to, false, move.promotion);
-        if (result.valid && result.resultingState) tl.push(result.resultingState);
-        else break;
-      }
+    let cancelled = false;
+    getGameById(gameId).then(async (game) => {
+      if (!game || cancelled) return;
+      const tl = await replayMoves(game.moves);
+      if (cancelled || tl.length === 0) return;
+      stockfish.newGame();
       setTimeline(tl);
       setCurrentIndex(tl.length - 1);
       setMode('analyze');
     });
-  }, [gameId]);
+    return () => { cancelled = true; };
+  }, [gameId, replayMoves, stockfish.newGame]);
 
   // Sync FEN input with editState in edit mode
   useEffect(() => {
@@ -94,22 +96,44 @@ function AnalysisPageInner() {
 
   // Trigger Stockfish when position changes in analyze mode
   const currentAnalyzeState = timeline[currentIndex] ?? null;
+  const currentAnalyzeFen = useMemo(
+    () => (currentAnalyzeState ? stateToFen(currentAnalyzeState) : null),
+    [currentAnalyzeState],
+  );
   useEffect(() => {
-    if (mode !== 'analyze' || !currentAnalyzeState || !stockfish.isReady) {
+    if (mode !== 'analyze' || !currentAnalyzeFen || !stockfish.isReady) {
       if (mode === 'edit') stockfish.stop();
       return;
     }
     if (analysisEnabled) {
-      stockfish.analyze(stateToFen(currentAnalyzeState));
+      stockfish.analyze(currentAnalyzeFen);
     } else {
       stockfish.stop();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentAnalyzeState, mode, stockfish.isReady, analysisEnabled]);
+  }, [currentAnalyzeFen, mode, stockfish.isReady, analysisEnabled]);
+
+  // Precompute the displayed position's legal moves off the main thread so
+  // selecting a piece is an O(1) map lookup instead of a synchronous
+  // getAllLegalMoves scan (ChessBoard falls back to that scan without a map).
+  const [legalMovesMap, setLegalMovesMap] = useState<Map<Position, Position[]> | undefined>(undefined);
+  useEffect(() => {
+    if (mode !== 'analyze' || !currentAnalyzeState) {
+      setLegalMovesMap(undefined);
+      return;
+    }
+    let cancelled = false;
+    setLegalMovesMap(undefined); // no stale highlights while the worker computes
+    getLegalMoves(currentAnalyzeState).then((map) => {
+      if (!cancelled) setLegalMovesMap(map);
+    });
+    return () => { cancelled = true; };
+  }, [mode, currentAnalyzeState, getLegalMoves]);
 
   // ── Mode switching ──────────────────────────────────────────────────────────
 
   const handleEnterAnalyze = () => {
+    stockfish.newGame(); // fresh position set — clear the engine's hash table
     setTimeline([editState]);
     setCurrentIndex(0);
     setMode('analyze');
@@ -193,8 +217,8 @@ function AnalysisPageInner() {
   const handleJump = (index: number) => setCurrentIndex(index);
 
   const handleCopyFen = () => {
-    const fen = mode === 'analyze' && currentAnalyzeState
-      ? stateToFen(currentAnalyzeState)
+    const fen = mode === 'analyze' && currentAnalyzeFen
+      ? currentAnalyzeFen
       : stateToFen(editState);
     navigator.clipboard.writeText(fen).then(() => {
       setCopied(true);
@@ -236,7 +260,7 @@ function AnalysisPageInner() {
     ? [{ from: activeBestMove.from, to: activeBestMove.to }]
     : [];
 
-  const movePairs = buildMovePairs(timeline);
+  const movePairs = useMemo(() => buildMovePairs(timeline), [timeline]);
 
   const isInPlacementMode = !!(selectedPiece || eraserMode);
 
@@ -307,6 +331,8 @@ function AnalysisPageInner() {
               onSquareClick={handleEditSquareClick}
               // Browse mode (nothing selected): show moves for any piece, no execution
               allowSelectAnyColor={mode === 'edit' && !isInPlacementMode}
+              // Worker-precomputed for the displayed position — O(1) lookup on tap
+              legalMovesMap={mode === 'analyze' ? legalMovesMap : undefined}
               arrows={arrows}
             />
           </div>
@@ -528,7 +554,7 @@ function AnalysisPageInner() {
                       </button>
                     </div>
                     <p className="text-xs font-mono text-fg-muted break-all select-all leading-relaxed">
-                      {stateToFen(activeState)}
+                      {currentAnalyzeFen ?? '—'}
                     </p>
                   </div>
 

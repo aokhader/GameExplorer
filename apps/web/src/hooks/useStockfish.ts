@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ChessGameState, PieceType } from '@gameexplorer/shared';
-import { getBestMoveElo } from '@gameexplorer/shared';
 
 /**
  * ELO threshold above which we hand off to Stockfish.
  * Stockfish's minimum UCI_Elo is ~1320; we start using it at 1400 as
- * requested, with the weak engine covering 400–1399.
+ * requested. Below that, callers must use the chess engine worker's
+ * getBotMove (useChessEngine) so the weak engine's minimax never runs on
+ * the main thread.
  */
-const STOCKFISH_MIN_ELO = 1400;
+export const STOCKFISH_MIN_ELO = 1400;
 
 /**
  * Minimum think time (ms) shown in the UI. The engine may compute faster;
@@ -52,6 +53,8 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
 
     workerRef.current = new Worker('/stockfish/stockfish.js');
     workerRef.current.postMessage('uci');
+    // One fresh-game signal per worker lifetime (= one game; see getBestMove).
+    workerRef.current.postMessage('ucinewgame');
 
     workerRef.current.onmessage = (e) => {
       const message = typeof e.data === 'string' ? e.data : e.data?.data;
@@ -85,22 +88,13 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
 
   const getBestMove = useCallback(
     (gameState: ChessGameState, targetElo: number): Promise<StockfishMove> => {
-      // ── Weak engine (400–1399) ────────────────────────────────────────────
-      if (targetElo < STOCKFISH_MIN_ELO) {
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            try {
-              const move = getBestMoveElo(gameState, targetElo);
-              resolve(move);
-            } catch (err) {
-              reject(err);
-            }
-          }, 0);
-        });
-      }
-
-      // ── Stockfish (1400+) ─────────────────────────────────────────────────
       return new Promise((resolve, reject) => {
+        if (targetElo < STOCKFISH_MIN_ELO) {
+          // Weak strengths belong in the chess engine worker (getBotMove) —
+          // running the JS minimax here would block the main thread.
+          reject(new Error(`Stockfish handles ELO ${STOCKFISH_MIN_ELO}+; use useChessEngine().getBotMove for weaker bots`));
+          return;
+        }
         if (!workerRef.current || !isReady) {
           reject(new Error('Stockfish not ready'));
           return;
@@ -113,7 +107,9 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
         // the configured ELO (higher ELO → needs deeper search).
         const moveTime = Math.round(500 + ((targetElo - STOCKFISH_MIN_ELO) / 1600) * 1000);
 
-        workerRef.current.postMessage('ucinewgame');
+        // No ucinewgame here: the worker lives for exactly one game (it is
+        // created when the game starts), so keeping the hash between moves
+        // makes each successive search faster.
         workerRef.current.postMessage('setoption name UCI_LimitStrength value true');
         workerRef.current.postMessage(`setoption name UCI_Elo value ${clampedElo}`);
         workerRef.current.postMessage('setoption name Skill Level value 20');
