@@ -6,6 +6,7 @@ import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { useGameSession } from '@gameexplorer/client';
 import { GameLayout } from '@/components/game/GameLayout';
+import { GameSkeleton } from '@/components/game/GameSkeleton';
 import { formatClockLong } from '@gameexplorer/shared';
 import type { ChessGameState, TimeControl, Position, PieceType } from '@gameexplorer/shared';
 
@@ -40,7 +41,9 @@ export default function ChessPlayPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.connected]);
 
-  if (s.loading || !s.user) return null;
+  // Match the route's loading.tsx shape while the session resolves, rather than
+  // collapsing to a blank frame (skeleton → blank → matchmaking = two shifts).
+  if (s.loading || !s.user) return <GameSkeleton />;
 
   const chessState = s.gameState as ChessGameState | null;
 

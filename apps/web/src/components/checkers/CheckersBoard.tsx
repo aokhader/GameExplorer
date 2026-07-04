@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CheckersEngine } from '@gameexplorer/shared';
 import type { CheckersGameState } from '@gameexplorer/shared';
 import { CheckersPiece, CHECKERS_BOARD_COLORS } from '@gameexplorer/ui';
@@ -115,7 +115,9 @@ export const CheckersBoard = React.memo(function CheckersBoard({
     setValidMoves([]);
   }, [gameState.currentTurn]);
 
-  const legalMoves = CheckersEngine.getAllLegalMoves(gameState);
+  // Full move generation is expensive; only recompute when the game state
+  // actually changes, not on every parent re-render (clock ticks, hover, etc.).
+  const legalMoves = useMemo(() => CheckersEngine.getAllLegalMoves(gameState), [gameState]);
   // Whose-turn signifier — the board lifts with an ember glow on the player's move.
   const isMyTurn = !gameState.isGameOver && gameState.currentTurn === playerColor;
 

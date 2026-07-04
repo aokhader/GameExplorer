@@ -11,7 +11,7 @@ import { useSocket }     from '@/hooks/useSocket';
 import { useAuth }       from '@/hooks/useAuth';
 import { useGameStore }  from '@/stores/gameStore';
 import { useSocketStore } from '@/stores/socketStore';
-import type { ChessGameState, CheckersGameState, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
+import type { ChessGameState, CheckersGameState, ReversiGameState, ReversiColor, ClockSnapshot } from '@gameexplorer/shared';
 
 function formatMs(ms: number) {
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -21,8 +21,43 @@ function formatMs(ms: number) {
 }
 
 // Stable no-op for the read-only boards — an inline `() => {}` would give the
-// memoized boards a new onMove identity on every 100 ms clock re-render.
+// memoized boards a new onMove identity on every re-render.
 const noop = () => {};
+
+// Self-contained smooth countdown between server clock_sync ticks. The 100 ms
+// interval lives here (not in the page) so each tick re-renders one badge, not
+// the whole page + board — the page-level version kept the main thread busy at
+// 10 Hz and pushed INP on this route to ~1.5 s.
+//
+// Callers re-key this on `clockSyncedAt`, so a new server sync remounts the
+// badge and re-seeds `ms` from the fresh base value. Between syncs the active
+// side counts down locally; `Date.now()` is read only inside the interval
+// callback, never during render.
+function ClockBadge({ color, clocks, clockSyncedAt, running }: {
+  color: 'white' | 'black';
+  clocks: ClockSnapshot | null;
+  clockSyncedAt: number;
+  running: boolean;
+}) {
+  const baseMs = color === 'white' ? clocks?.white_ms ?? 0 : clocks?.black_ms ?? 0;
+  const active = clocks?.active_color === color;
+  const countdown = running && active; // only the side to move ticks down
+  const [ms, setMs] = useState(baseMs);
+
+  useEffect(() => {
+    if (!countdown) return;
+    const id = setInterval(() => {
+      setMs(Math.max(0, baseMs - (Date.now() - clockSyncedAt)));
+    }, 100);
+    return () => clearInterval(id);
+  }, [countdown, baseMs, clockSyncedAt]);
+
+  return (
+    <span className={`px-3 py-1 rounded font-mono text-lg ${active ? 'bg-white text-fg-subtle' : 'bg-surface-muted text-fg-muted'}`}>
+      {formatMs(ms)}
+    </span>
+  );
+}
 
 export default function SpectatePage() {
   const params = useParams<{ gameId: string }>();
@@ -40,8 +75,6 @@ export default function SpectatePage() {
   const gameStatus    = useGameStore(s => s.status);
   const gameEndData   = useGameStore(s => s.gameEndData);
   const resetGame     = useGameStore(s => s.reset);
-  const [displayClocks, setDisplayClocks] = useState({ white: 0, black: 0 });
-  const clockRef  = useRef<NodeJS.Timeout | null>(null);
   const joinedRef = useRef(false);
 
   // Auth guard — spectating still requires an authenticated socket.
@@ -63,29 +96,13 @@ export default function SpectatePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, socket, gameId]);
 
-  // Smooth local clock countdown between server clock_sync ticks.
-  useEffect(() => {
-    if (clockRef.current) clearInterval(clockRef.current);
-    if (!clocks || gameStatus !== 'active') {
-      setDisplayClocks({ white: clocks?.white_ms ?? 0, black: clocks?.black_ms ?? 0 });
-      return;
-    }
-    const syncedAt = clockSyncedAt;
-    const base     = clocks;
-    clockRef.current = setInterval(() => {
-      const elapsed = Date.now() - syncedAt;
-      const wMs = base.active_color === 'white' ? Math.max(0, base.white_ms - elapsed) : base.white_ms;
-      const bMs = base.active_color === 'black' ? Math.max(0, base.black_ms - elapsed) : base.black_ms;
-      setDisplayClocks({ white: wMs, black: bMs });
-    }, 100);
-    return () => { if (clockRef.current) clearInterval(clockRef.current); };
-  }, [clocks, clockSyncedAt, gameStatus]);
+  // The per-second countdown now lives inside <ClockBadge>, so a tick
+  // re-renders only that badge — not this page and its board.
 
   if (loading || !user) return null;
 
   const gt          = gameType;
   const state       = gameState;
-  const activeColor = clocks?.active_color;
   const ended       = gameStatus === 'ended';
   const endData     = gameEndData;
 
@@ -106,7 +123,7 @@ export default function SpectatePage() {
             {/* Black player (top) */}
             <div className="flex items-center justify-between bg-surface-alt rounded-lg px-4 py-2">
               <span className="font-semibold">⚫ {opponent?.username ?? 'Black'} ({opponent?.rating ?? '—'})</span>
-              <span className={`px-3 py-1 rounded font-mono text-lg ${activeColor === 'black' ? 'bg-white text-fg-subtle' : 'bg-surface-muted text-fg-muted'}`}>{formatMs(displayClocks.black)}</span>
+              <ClockBadge key={`black-${clockSyncedAt}`} color="black" clocks={clocks} clockSyncedAt={clockSyncedAt} running={gameStatus === 'active'} />
             </div>
 
             {/* Read-only board (pointer-events disabled) */}
@@ -119,7 +136,7 @@ export default function SpectatePage() {
             {/* White player (bottom) */}
             <div className="flex items-center justify-between bg-surface-alt rounded-lg px-4 py-2">
               <span className="font-semibold">⚪ White</span>
-              <span className={`px-3 py-1 rounded font-mono text-lg ${activeColor === 'white' ? 'bg-white text-fg-subtle' : 'bg-surface-muted text-fg-muted'}`}>{formatMs(displayClocks.white)}</span>
+              <ClockBadge key={`white-${clockSyncedAt}`} color="white" clocks={clocks} clockSyncedAt={clockSyncedAt} running={gameStatus === 'active'} />
             </div>
           </div>
         )}

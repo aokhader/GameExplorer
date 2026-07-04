@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ReversiEngine } from '@gameexplorer/shared';
 import type { ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 import { ReversiDisc, REVERSI_BOARD_COLORS } from '@gameexplorer/ui';
@@ -61,7 +61,9 @@ export const ReversiBoard = React.memo(function ReversiBoard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.moveHistory.length]);
 
-  const legalMoves = ReversiEngine.getAllLegalMoves(gameState);
+  // Full move generation is expensive; only recompute when the game state
+  // actually changes, not on every parent re-render (clock ticks, hover, etc.).
+  const legalMoves = useMemo(() => ReversiEngine.getAllLegalMoves(gameState), [gameState]);
   const isPlayerTurn = gameState.currentTurn === playerColor && !gameState.isGameOver;
 
   const squares = [];

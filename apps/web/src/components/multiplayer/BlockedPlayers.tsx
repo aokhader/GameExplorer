@@ -45,7 +45,9 @@ export function BlockedPlayers() {
   };
 
   // Hide the section entirely when there's nothing to manage (and no error).
-  if (!loading && !error && blocked.length === 0) return null;
+  // Also hidden while loading: most users have no blocks, and painting a
+  // "Loading…" box that then vanishes reads as a glitch (and counts as CLS).
+  if (loading || (!error && blocked.length === 0)) return null;
 
   return (
     <div className="mt-6 bg-surface-alt border border-border rounded-xl p-5">
@@ -53,9 +55,7 @@ export function BlockedPlayers() {
         Blocked players
       </h2>
 
-      {loading ? (
-        <p className="text-sm text-fg-muted">Loading…</p>
-      ) : error ? (
+      {error ? (
         <p className="text-sm text-danger-hover">{error}</p>
       ) : (
         <ul className="divide-y divide-border">

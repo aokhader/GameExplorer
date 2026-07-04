@@ -19,9 +19,15 @@ export function useAuth() {
     import('@gameexplorer/db').then(({ supabase }) => {
       if (cancelled) return;
 
-      supabase.auth.getUser().then(({ data }: { data: { user: { id: string; email?: string } | null } }) => {
+      // getSession() resolves from local storage — no network. getUser() here
+      // added a Supabase Auth round-trip to every screen's `loading` state
+      // (and gated the home→/welcome redirect for brand-new visitors). This
+      // only drives UI state; anything sensitive is still RLS-checked
+      // server-side on every query.
+      supabase.auth.getSession().then(({ data }: { data: { session: { user: { id: string; email?: string } } | null } }) => {
         if (cancelled) return;
-        setUser(data.user ? { id: data.user.id, email: data.user.email! } : null);
+        const u = data.session?.user;
+        setUser(u ? { id: u.id, email: u.email! } : null);
         setLoading(false);
       });
 

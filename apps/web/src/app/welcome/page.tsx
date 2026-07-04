@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY, SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
 
 type GameId = 'chess' | 'checkers' | 'reversi';
@@ -59,6 +58,11 @@ export default function WelcomePage() {
   const [game, setGame] = useState<GameId>('chess');
   const [opponent, setOpponent] = useState<Opponent>('bot');
   const [difficulty, setDifficulty] = useState<Difficulty>('relaxed');
+  // True once the user moves between steps. The step card only animates on
+  // those transitions — on first paint it must be visible immediately: this is
+  // the page's LCP element, and stacking opacity-0 entrances on top of the
+  // route-level PageTransition fade pushed LCP past 6s for new visitors.
+  const [navigated, setNavigated] = useState(false);
 
   // Seeing the tour counts as taking it — never bounce this visitor here again.
   useEffect(() => {
@@ -76,6 +80,7 @@ export default function WelcomePage() {
   };
 
   const advance = () => {
+    setNavigated(true);
     if (step === 2 && opponent !== 'bot') {
       startPlaying(); // friend/online games pick their own terms — no bot difficulty
     } else if (step === 3) {
@@ -89,11 +94,12 @@ export default function WelcomePage() {
 
   return (
     <div className="min-h-screen pt-16 flex flex-col items-center justify-center px-4 py-10">
-      <Reveal className="w-full max-w-md">
-        {/* Step card — re-keyed so each step animates in */}
+      <div className="w-full max-w-md">
+        {/* Step card — re-keyed so each step change animates in (never the
+            first paint; see `navigated`) */}
         <div
           key={step}
-          className="page-enter relative rounded-[20px] border border-white/10 bg-surface-alt surface-raised-lg p-8 sm:p-9 flex flex-col"
+          className={`${navigated ? 'page-enter ' : ''}relative rounded-[20px] border border-white/10 bg-surface-alt surface-raised-lg p-8 sm:p-9 flex flex-col`}
           style={
             step === 0
               ? {
@@ -236,7 +242,7 @@ export default function WelcomePage() {
             Skip the tour — browse on my own
           </Link>
         </p>
-      </Reveal>
+      </div>
     </div>
   );
 }

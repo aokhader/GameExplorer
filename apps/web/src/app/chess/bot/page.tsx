@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import Link from 'next/link';
 import { ChessGameState, Position, PieceType } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
@@ -108,7 +109,10 @@ export default function ChessBotPage() {
 
   // Deep link from onboarding (?elo=1200&start=1) — preselect strength and skip
   // the setup screen. Read off the URL like /chess/play does for ?invite.
-  useEffect(() => {
+  // Layout effect (not useEffect) so the flip to the game screen commits before
+  // the browser paints: on the onboarding navigation the setup screen never
+  // flashes, avoiding a layout shift.
+  useIsomorphicLayoutEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const elo = Number(params.get('elo'));
     if (Number.isFinite(elo) && elo > 0) {

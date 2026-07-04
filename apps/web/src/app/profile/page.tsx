@@ -75,6 +75,22 @@ function ResultBadge({ game }: { game: GameListItem }) {
   );
 }
 
+// Shared by the skeleton and the loaded page so the header doesn't shift when
+// data lands (the skeleton previously omitted it, moving everything below).
+function HomeLink() {
+  return (
+    <Link
+      href="/"
+      className="inline-flex items-center gap-2 text-fg-muted hover:text-fg transition-colors text-sm mb-8"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+      Home
+    </Link>
+  );
+}
+
 function StatTile({ label, value, valueClass = 'text-fg' }: { label: string; value: string | number; valueClass?: string }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4 sm:p-5">
@@ -97,7 +113,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
+      // getSession() reads the stored session locally; getUser() would add a
+      // blocking round-trip to Supabase Auth before any data could load. The
+      // queries below are RLS-protected, so a forged/expired token still can't
+      // read anything — it just falls through to the signin redirect.
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
         if (!user) {
           router.replace('/auth/signin');
           return;
@@ -126,8 +147,9 @@ export default function ProfilePage() {
     return (
       <div className="relative min-h-screen pt-16 page-glow-profile">
         <div className="container mx-auto px-4 pt-8 pb-8 max-w-5xl">
+          <HomeLink />
           {/* Avatar + username */}
-          <div className="flex items-center gap-5 mb-8 mt-8">
+          <div className="flex items-center gap-5 mb-8">
             <Skeleton className="w-20 h-20 rounded-3xl shrink-0" />
             <div className="space-y-2">
               <Skeleton className="h-7 w-44" />
@@ -211,15 +233,7 @@ export default function ProfilePage() {
   return (
     <div className="relative min-h-screen pt-16 page-glow-profile">
       <div className="container mx-auto px-4 pt-8 pb-8 max-w-5xl">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-fg-muted hover:text-fg transition-colors text-sm mb-8"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Home
-        </Link>
+        <HomeLink />
 
         {/* Header — avatar, identity, settings */}
         <div className="flex items-center gap-5 mb-8 flex-wrap">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import Link from 'next/link';
 import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome } from '@gameexplorer/shared';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
@@ -134,8 +135,10 @@ export default function CheckersBotPage() {
   useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
   // Deep link from onboarding (?elo=1100&start=1) — snap to the nearest
-  // difficulty level and skip the setup screen.
-  useEffect(() => {
+  // difficulty level and skip the setup screen. Layout effect so the flip to
+  // the game screen commits before paint: the setup screen never flashes on the
+  // onboarding navigation, avoiding a layout shift.
+  useIsomorphicLayoutEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const elo = Number(params.get('elo'));
     if (Number.isFinite(elo) && elo > 0) {
