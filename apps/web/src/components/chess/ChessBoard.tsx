@@ -150,7 +150,11 @@ function ArrowOverlay({ arrows, isFlipped }: { arrows: BoardArrow[]; isFlipped: 
   );
 }
 
-export function ChessBoard({
+// Memoized: live-game pages re-render ~10×/s for their clock displays; with
+// stable props (store gameState reference + useCallback'd onMove) the whole
+// 64-square tree skips those renders. Settings changes still propagate —
+// context subscriptions bypass memo.
+export const ChessBoard = React.memo(function ChessBoard({
   gameState,
   onMove,
   playerColor = 'white',
@@ -542,7 +546,7 @@ export function ChessBoard({
       </BoardFrame>
     </div>
   );
-}
+});
 
 function getRow(position: Position): number {
   return parseInt(position[1]) - 1;

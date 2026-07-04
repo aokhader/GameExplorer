@@ -25,7 +25,9 @@ function posFromCoords(row: number, col: number): string {
 function rowOf(pos: string): number { return parseInt(pos[1]) - 1; }
 function colOf(pos: string): number { return pos.charCodeAt(0) - 97; }
 
-export function ReversiBoard({
+// Memoized — see ChessBoard: skips the play screens' 100 ms clock re-renders
+// when gameState/onMove are stable.
+export const ReversiBoard = React.memo(function ReversiBoard({
   gameState,
   onMove,
   playerColor,
@@ -157,4 +159,4 @@ export function ReversiBoard({
       </div>
     </BoardFrame>
   );
-}
+});

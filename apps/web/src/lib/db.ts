@@ -40,6 +40,7 @@ export const upsertUserRating: typeof DB.upsertUserRating = async (...args) =>
 // can keep a single import.
 export type {
   SavedGame,
+  GameListItem,
   UserRating,
   GameType,
   GameResult,

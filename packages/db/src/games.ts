@@ -1,6 +1,6 @@
 // Game Queries
 import { supabase } from './client';
-import type { NewGame, SavedGame } from './types';
+import type { GameListItem, NewGame, SavedGame } from './types';
 import type { ChessGameState, Color, CheckersGameState, CheckersColor, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 
 export interface SaveGameOptions {
@@ -79,17 +79,33 @@ export async function saveGame(
   return data as SavedGame;
 }
 
-export async function getGames(userId?: string): Promise<SavedGame[]> {
-  let query = supabase.from('games').select('*').order('created_at', { ascending: false });
+// Every SavedGame column except `moves`, whose JSONB can dwarf the rest of the
+// row put together (an 80-game list used to download every move of every game
+// just to render titles).
+const GAME_LIST_COLUMNS =
+  'id, created_at, game_type, player_color, opponent, result, difficulty, user_id, mode, rating_before, rating_after, end_reason, move_count';
+
+export async function getGames(userId?: string): Promise<GameListItem[]> {
+  let query = supabase.from('games').select(GAME_LIST_COLUMNS).order('created_at', { ascending: false });
   if (userId) query = query.eq('user_id', userId);
   const { data, error } = await query;
+  if (!error && data) return data as unknown as GameListItem[];
 
-  if (error) {
-    console.error('Failed to fetch games:', error);
+  // Fallback for databases where supabase-latency-phase-c.sql hasn't been run
+  // yet (no move_count column): old full-row fetch, counted client-side.
+  let legacy = supabase.from('games').select('*').order('created_at', { ascending: false });
+  if (userId) legacy = legacy.eq('user_id', userId);
+  const { data: legacyData, error: legacyError } = await legacy;
+
+  if (legacyError) {
+    console.error('Failed to fetch games:', legacyError);
     return [];
   }
 
-  return data as SavedGame[];
+  return (legacyData as SavedGame[]).map(({ moves, ...rest }) => ({
+    ...rest,
+    move_count: moves?.length ?? 0,
+  }));
 }
 
 export async function saveCheckersGame(

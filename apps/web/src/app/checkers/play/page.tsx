@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { redirect }  from 'next/navigation';
 import { CheckersBoard }  from '@/components/checkers/CheckersBoard';
 import { useGameSession } from '@gameexplorer/client';
@@ -15,6 +15,13 @@ const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
 
 export default function CheckersPlayPage() {
   const s = useGameSession('checkers', 'movetime');
+  const { sendMove } = s;
+
+  // Stable identity so the memoized board skips the 100 ms clock re-renders.
+  const handleMove = useCallback(
+    (from: string, to: string) => sendMove({ type: 'checkers', from, to }),
+    [sendMove],
+  );
 
   useEffect(() => {
     if (!s.loading && !s.user) redirect('/auth/signin?next=/checkers/play');
@@ -43,7 +50,7 @@ export default function CheckersPlayPage() {
         checkersState && (
           <CheckersBoard
             gameState={checkersState}
-            onMove={(from, to) => s.sendMove({ type: 'checkers', from, to })}
+            onMove={handleMove}
             playerColor={s.myColor ?? 'white'}
           />
         )

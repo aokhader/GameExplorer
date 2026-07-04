@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getPublicProfile, getGames, getUserRating, supabase } from '@gameexplorer/db';
-import type { AuthUser, Profile, SavedGame, UserRating, GameType } from '@gameexplorer/db';
+import { getPublicProfile, getGames, getUserRatings, supabase } from '@gameexplorer/db';
+import type { AuthUser, Profile, GameListItem, UserRating, GameType } from '@gameexplorer/db';
 import { useRouter } from 'next/navigation';
 import { BlockedPlayers } from '@/components/multiplayer/BlockedPlayers';
 import { Skeleton } from '@/components/ui';
@@ -54,12 +54,12 @@ const GAME_META: Record<GameType, { label: string; icon: string; text: string; c
   },
 };
 
-function ratingDelta(game: SavedGame): number | null {
+function ratingDelta(game: GameListItem): number | null {
   if (game.rating_before == null || game.rating_after == null) return null;
   return game.rating_after - game.rating_before;
 }
 
-function ResultBadge({ game }: { game: SavedGame }) {
+function ResultBadge({ game }: { game: GameListItem }) {
   const playerWon = game.result === game.player_color;
   const isDraw = game.result === 'draw';
   const label = isDraw ? 'Draw' : playerWon ? 'Win' : 'Loss';
@@ -88,7 +88,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Pick<Profile, 'id' | 'username' | 'created_at'> | null>(null);
-  const [games, setGames] = useState<SavedGame[]>([]);
+  const [games, setGames] = useState<GameListItem[]>([]);
   const [chessRating, setChessRating] = useState<UserRating | null>(null);
   const [checkersRating, setCheckersRating] = useState<UserRating | null>(null);
   const [reversiRating, setReversiRating] = useState<UserRating | null>(null);
@@ -104,19 +104,18 @@ export default function ProfilePage() {
         }
         setUser({ id: user.id, email: user.email! });
 
-        const [profileData, gamesData, chessRatingData, checkersRatingData, reversiRatingData] = await Promise.all([
+        const [profileData, gamesData, ratings] = await Promise.all([
           getPublicProfile(user.id),
           getGames(user.id),
-          getUserRating(user.id, 'chess'),
-          getUserRating(user.id, 'checkers'),
-          getUserRating(user.id, 'reversi'),
+          // One query for all three game types instead of three round-trips.
+          getUserRatings(user.id, ['chess', 'checkers', 'reversi']),
         ]);
 
         setProfile(profileData);
         setGames(gamesData);
-        setChessRating(chessRatingData);
-        setCheckersRating(checkersRatingData);
-        setReversiRating(reversiRatingData);
+        setChessRating(ratings.chess);
+        setCheckersRating(ratings.checkers);
+        setReversiRating(ratings.reversi);
         setLoading(false);
     }
 
@@ -193,7 +192,7 @@ export default function ProfilePage() {
   const checkersGames = games.filter(g => g.game_type === 'checkers');
   const reversiGames  = games.filter(g => g.game_type === 'reversi');
 
-  const tabGames: Record<Tab, SavedGame[]> = {
+  const tabGames: Record<Tab, GameListItem[]> = {
     all:      games,
     chess:    chessGames,
     checkers: checkersGames,

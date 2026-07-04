@@ -44,6 +44,29 @@ export async function getUserRating(userId: string, gameType: GameType = 'chess'
 }
 
 /**
+ * Fetch a user's ratings for several game types in ONE query (the profile page
+ * previously issued three sequential-latency requests, one per game).
+ * Game types without a row come back as the default 1200 object.
+ */
+export async function getUserRatings(
+  userId: string,
+  gameTypes: GameType[],
+): Promise<Record<GameType, UserRating>> {
+  const { data, error } = await supabase
+    .from('user_ratings')
+    .select('*')
+    .eq('user_id', userId)
+    .in('game_type', gameTypes);
+
+  const rows = (!error && data ? data : []) as UserRating[];
+  const result = {} as Record<GameType, UserRating>;
+  for (const gt of gameTypes) {
+    result[gt] = rows.find(r => r.game_type === gt) ?? defaultRating(userId, gt);
+  }
+  return result;
+}
+
+/**
  * Upsert a user's rating after a completed game.
  * Increments the appropriate win/loss/draw counter and updates peak_rating.
  * Returns the updated row.
@@ -54,7 +77,22 @@ export async function upsertUserRating(
   outcome: GameOutcome,
   gameType: GameType = 'chess',
 ): Promise<UserRating> {
-  // Fetch current row first so we can increment counters properly
+  // Preferred path: one atomic statement server-side (counters incremented in
+  // SQL, so two games finishing at once can't lose an update — and it's one
+  // round-trip instead of read-then-write).
+  // Function defined in project-docs/sql-queries/supabase-latency-phase-c.sql.
+  const { data: rpcData, error: rpcError } = await supabase.rpc('record_game_result', {
+    p_user_id:    userId,
+    p_game_type:  gameType,
+    p_new_rating: newRating,
+    p_outcome:    outcome,
+  });
+  if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+    return rpcData[0] as UserRating;
+  }
+
+  // Fallback for databases where the function hasn't been created yet:
+  // fetch current row first so we can increment counters properly.
   const current = await getUserRating(userId, gameType);
 
   const updated: UserRating = {

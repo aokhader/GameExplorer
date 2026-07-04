@@ -23,8 +23,26 @@ const CLIENT_RATING_PLACEHOLDER = 1200;
 export function useGameSession(gameType: GameType, defaultTimeControl: TimeControl) {
   const { user, loading } = useAuth();
   const { emit, connected, connectionError } = useSocket();
-  const socket    = useSocketStore(s => s.socket);
-  const gameStore = useGameStore();
+  const socket = useSocketStore(s => s.socket);
+
+  // Field-level selectors instead of a whole-store subscription. This matters
+  // for two reasons: the hook's consumers skip re-renders for fields they
+  // never read, and (more importantly) the action callbacks below can read
+  // fresh state via useGameStore.getState() and keep a *stable identity*
+  // across clock ticks — which is what lets the play screens' memoized
+  // boards actually skip re-rendering.
+  const status          = useGameStore(s => s.status);
+  const gameId          = useGameStore(s => s.gameId);
+  const myColor         = useGameStore(s => s.myColor);
+  const gameState       = useGameStore(s => s.gameState);
+  const opponent        = useGameStore(s => s.opponent);
+  const drawOffered     = useGameStore(s => s.drawOffered);
+  const aborted         = useGameStore(s => s.aborted);
+  const opponentGone    = useGameStore(s => s.opponentGone);
+  const opponentGraceMs = useGameStore(s => s.opponentGraceMs);
+  const clocks          = useGameStore(s => s.clocks);
+  const clockSyncedAt   = useGameStore(s => s.clockSyncedAt);
+  const gameEndData     = useGameStore(s => s.gameEndData);
 
   const [timeControl, setTimeControl] = useState<TimeControl>(defaultTimeControl);
   const [rated, setRated]             = useState(true);
@@ -56,95 +74,100 @@ export function useGameSession(gameType: GameType, defaultTimeControl: TimeContr
 
   // Clear the "joining…" state once the game starts (or an invite error shows).
   useEffect(() => {
-    if (gameStore.status === 'active' || inviteError) setAccepting(false);
-  }, [gameStore.status, inviteError]);
+    if (status === 'active' || inviteError) setAccepting(false);
+  }, [status, inviteError]);
 
   // In-game chat
   useEffect(() => {
     if (!socket) return;
     socket.on('chat_message', (d: ChatMsg & { gameId: string }) => {
-      if (d.gameId === gameStore.gameId) setChatLog(prev => [...prev, d]);
+      if (d.gameId === useGameStore.getState().gameId) setChatLog(prev => [...prev, d]);
     });
     return () => { socket.off('chat_message'); };
-  }, [socket, gameStore.gameId]);
+  }, [socket]);
 
   // Real-time clock countdown off the latest server snapshot
   useEffect(() => {
     if (clockRef.current) clearInterval(clockRef.current);
-    if (!gameStore.clocks || gameStore.status !== 'active') {
+    if (!clocks || status !== 'active') {
       setDisplayClocks({
-        white: gameStore.clocks?.white_ms ?? 0,
-        black: gameStore.clocks?.black_ms ?? 0,
+        white: clocks?.white_ms ?? 0,
+        black: clocks?.black_ms ?? 0,
       });
       return;
     }
-    const syncedAt = gameStore.clockSyncedAt;
-    const base     = gameStore.clocks;
+    const syncedAt = clockSyncedAt;
+    const base     = clocks;
     clockRef.current = setInterval(() => {
       setDisplayClocks(interpolateClocks(base, syncedAt, Date.now()));
     }, 100);
     return () => { if (clockRef.current) clearInterval(clockRef.current); };
-  }, [gameStore.clocks, gameStore.clockSyncedAt, gameStore.status]);
+  }, [clocks, clockSyncedAt, status]);
 
   // ── Actions ────────────────────────────────────────────────────────────
+  // These read fresh state with useGameStore.getState() instead of closing
+  // over subscribed values, so their identity survives store updates and the
+  // views can safely feed them to memoized children (boards, chat, buttons).
   const joinQueue = useCallback(() => {
     if (!user || !connected) return;
-    gameStore.setQueued(gameType);
+    useGameStore.getState().setQueued(gameType);
     emit('join_queue', { gameType, timeControl, rated, username, rating: CLIENT_RATING_PLACEHOLDER });
-  }, [user, connected, gameType, timeControl, rated, emit, gameStore, username]);
+  }, [user, connected, gameType, timeControl, rated, emit, username]);
 
   const cancelQueue = useCallback(() => {
     emit('leave_queue', { gameType, timeControl, rated });
-    gameStore.reset();
-  }, [emit, gameType, timeControl, rated, gameStore]);
+    useGameStore.getState().reset();
+  }, [emit, gameType, timeControl, rated]);
 
   // Per-game move payload is built by the view (chess from/to/promotion,
   // checkers from/to, reversi position); the gameId/turn guard is shared.
   const sendMove = useCallback((move: MovePayload) => {
-    if (!gameStore.gameId || gameStore.status !== 'active') return;
-    if ((gameStore.gameState as any)?.currentTurn !== gameStore.myColor) return;
-    emit('make_move', { gameId: gameStore.gameId, move });
-  }, [gameStore, emit]);
+    const s = useGameStore.getState();
+    if (!s.gameId || s.status !== 'active') return;
+    if ((s.gameState as any)?.currentTurn !== s.myColor) return;
+    emit('make_move', { gameId: s.gameId, move });
+  }, [emit]);
 
-  const resign      = useCallback(() => { if (gameStore.gameId) emit('resign', { gameId: gameStore.gameId }); }, [gameStore.gameId, emit]);
-  const abort       = useCallback(() => { if (gameStore.gameId) emit('abort_game', { gameId: gameStore.gameId }); }, [gameStore.gameId, emit]);
-  const offerDraw   = useCallback(() => { if (gameStore.gameId) emit('offer_draw', { gameId: gameStore.gameId }); }, [gameStore.gameId, emit]);
-  const acceptDraw  = useCallback(() => { if (gameStore.gameId) emit('accept_draw',  { gameId: gameStore.gameId }); gameStore.setDrawOffered(false); }, [gameStore, emit]);
-  const declineDraw = useCallback(() => { if (gameStore.gameId) emit('decline_draw', { gameId: gameStore.gameId }); gameStore.setDrawOffered(false); }, [gameStore, emit]);
+  const resign      = useCallback(() => { const id = useGameStore.getState().gameId; if (id) emit('resign', { gameId: id }); }, [emit]);
+  const abort       = useCallback(() => { const id = useGameStore.getState().gameId; if (id) emit('abort_game', { gameId: id }); }, [emit]);
+  const offerDraw   = useCallback(() => { const id = useGameStore.getState().gameId; if (id) emit('offer_draw', { gameId: id }); }, [emit]);
+  const acceptDraw  = useCallback(() => { const s = useGameStore.getState(); if (s.gameId) emit('accept_draw',  { gameId: s.gameId }); s.setDrawOffered(false); }, [emit]);
+  const declineDraw = useCallback(() => { const s = useGameStore.getState(); if (s.gameId) emit('decline_draw', { gameId: s.gameId }); s.setDrawOffered(false); }, [emit]);
 
   const sendChat = useCallback(() => {
-    if (!chatText.trim() || !gameStore.gameId) return;
-    emit('send_chat', { gameId: gameStore.gameId, text: chatText.trim() });
+    const id = useGameStore.getState().gameId;
+    if (!chatText.trim() || !id) return;
+    emit('send_chat', { gameId: id, text: chatText.trim() });
     setChatText('');
-  }, [chatText, gameStore.gameId, emit]);
+  }, [chatText, emit]);
 
   const playAgain = useCallback(() => {
-    gameStore.reset();
+    useGameStore.getState().reset();
     resetInvite();
     acceptedRef.current = false;
-  }, [gameStore, resetInvite]);
+  }, [resetInvite]);
 
   // ── Derived view-model ─────────────────────────────────────────────────
-  const isWhite     = gameStore.myColor === 'white';
+  const isWhite     = myColor === 'white';
   const myClockMs   = isWhite ? displayClocks.white : displayClocks.black;
   const oppClockMs  = isWhite ? displayClocks.black : displayClocks.white;
-  const activeColor = gameStore.clocks?.active_color;
-  const endData     = gameStore.gameEndData;
-  const myResult    = endData ? resultForColor(endData.result, (gameStore.myColor ?? 'white') as PlayerColor) : null;
+  const activeColor = clocks?.active_color;
+  const endData     = gameEndData;
+  const myResult    = endData ? resultForColor(endData.result, (myColor ?? 'white') as PlayerColor) : null;
 
   return {
     // identity / connection
     user, loading, connected, connectionError, emit, socket, username,
     // store state (read-only passthrough)
-    status: gameStore.status,
-    gameId: gameStore.gameId,
-    myColor: gameStore.myColor,
-    gameState: gameStore.gameState,
-    opponent: gameStore.opponent,
-    drawOffered: gameStore.drawOffered,
-    aborted: gameStore.aborted,
-    opponentGone: gameStore.opponentGone,
-    opponentGraceMs: gameStore.opponentGraceMs,
+    status,
+    gameId,
+    myColor,
+    gameState,
+    opponent,
+    drawOffered,
+    aborted,
+    opponentGone,
+    opponentGraceMs,
     // matchmaking form
     timeControl, setTimeControl, rated, setRated,
     // invite flow

@@ -53,3 +53,9 @@ export interface SavedGame {
 
 // What we send to Supabase on insert (no id/created_at, those are auto-generated)
 export type NewGame = Omit<SavedGame, 'id' | 'created_at'>;
+
+// List-view shape returned by getGames: everything except the heavy `moves`
+// JSONB, plus a server-computed move count (generated column; see
+// project-docs/sql-queries/supabase-latency-phase-c.sql). Full moves come from
+// getGameById when a single game is actually replayed.
+export type GameListItem = Omit<SavedGame, 'moves'> & { move_count: number };

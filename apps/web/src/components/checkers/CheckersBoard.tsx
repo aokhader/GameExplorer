@@ -75,7 +75,9 @@ function ArrowOverlay({ arrows, isFlipped }: { arrows: BoardArrow[]; isFlipped: 
   );
 }
 
-export function CheckersBoard({
+// Memoized — see ChessBoard: skips the play screens' 100 ms clock re-renders
+// when gameState/onMove are stable.
+export const CheckersBoard = React.memo(function CheckersBoard({
   gameState,
   onMove,
   playerColor = 'white',
@@ -283,4 +285,4 @@ export function CheckersBoard({
       </div>
     </BoardFrame>
   );
-}
+});

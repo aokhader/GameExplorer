@@ -20,13 +20,26 @@ function formatMs(ms: number) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+// Stable no-op for the read-only boards — an inline `() => {}` would give the
+// memoized boards a new onMove identity on every 100 ms clock re-render.
+const noop = () => {};
+
 export default function SpectatePage() {
   const params = useParams<{ gameId: string }>();
   const gameId = params.gameId;
   const { user, loading } = useAuth();
   const { emit, connected } = useSocket();
-  const socket    = useSocketStore(s => s.socket);
-  const gameStore = useGameStore();
+  const socket = useSocketStore(s => s.socket);
+  // Field-level selectors: this page re-renders every 100 ms while clocks run,
+  // so it should only subscribe to what it actually renders.
+  const gameType      = useGameStore(s => s.gameType);
+  const gameState     = useGameStore(s => s.gameState);
+  const opponent      = useGameStore(s => s.opponent);
+  const clocks        = useGameStore(s => s.clocks);
+  const clockSyncedAt = useGameStore(s => s.clockSyncedAt);
+  const gameStatus    = useGameStore(s => s.status);
+  const gameEndData   = useGameStore(s => s.gameEndData);
+  const resetGame     = useGameStore(s => s.reset);
   const [displayClocks, setDisplayClocks] = useState({ white: 0, black: 0 });
   const clockRef  = useRef<NodeJS.Timeout | null>(null);
   const joinedRef = useRef(false);
@@ -40,11 +53,11 @@ export default function SpectatePage() {
   useEffect(() => {
     if (!connected || !socket || joinedRef.current) return;
     joinedRef.current = true;
-    gameStore.reset();
+    resetGame();
     emit('spectate', { gameId });
     return () => {
       emit('leave_spectate', { gameId });
-      gameStore.reset();
+      resetGame();
       joinedRef.current = false;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,12 +66,12 @@ export default function SpectatePage() {
   // Smooth local clock countdown between server clock_sync ticks.
   useEffect(() => {
     if (clockRef.current) clearInterval(clockRef.current);
-    if (!gameStore.clocks || gameStore.status !== 'active') {
-      setDisplayClocks({ white: gameStore.clocks?.white_ms ?? 0, black: gameStore.clocks?.black_ms ?? 0 });
+    if (!clocks || gameStatus !== 'active') {
+      setDisplayClocks({ white: clocks?.white_ms ?? 0, black: clocks?.black_ms ?? 0 });
       return;
     }
-    const syncedAt = gameStore.clockSyncedAt;
-    const base     = gameStore.clocks;
+    const syncedAt = clockSyncedAt;
+    const base     = clocks;
     clockRef.current = setInterval(() => {
       const elapsed = Date.now() - syncedAt;
       const wMs = base.active_color === 'white' ? Math.max(0, base.white_ms - elapsed) : base.white_ms;
@@ -66,16 +79,15 @@ export default function SpectatePage() {
       setDisplayClocks({ white: wMs, black: bMs });
     }, 100);
     return () => { if (clockRef.current) clearInterval(clockRef.current); };
-  }, [gameStore.clocks, gameStore.clockSyncedAt, gameStore.status]);
+  }, [clocks, clockSyncedAt, gameStatus]);
 
   if (loading || !user) return null;
 
-  const noop        = () => {};
-  const gt          = gameStore.gameType;
-  const state       = gameStore.gameState;
-  const activeColor = gameStore.clocks?.active_color;
-  const ended       = gameStore.status === 'ended';
-  const endData     = gameStore.gameEndData;
+  const gt          = gameType;
+  const state       = gameState;
+  const activeColor = clocks?.active_color;
+  const ended       = gameStatus === 'ended';
+  const endData     = gameEndData;
 
   return (
     <div className="relative min-h-screen text-fg pt-16 flex flex-col items-center px-4 py-6">
@@ -93,7 +105,7 @@ export default function SpectatePage() {
           <div className="flex flex-col gap-2">
             {/* Black player (top) */}
             <div className="flex items-center justify-between bg-surface-alt rounded-lg px-4 py-2">
-              <span className="font-semibold">⚫ {gameStore.opponent?.username ?? 'Black'} ({gameStore.opponent?.rating ?? '—'})</span>
+              <span className="font-semibold">⚫ {opponent?.username ?? 'Black'} ({opponent?.rating ?? '—'})</span>
               <span className={`px-3 py-1 rounded font-mono text-lg ${activeColor === 'black' ? 'bg-white text-fg-subtle' : 'bg-surface-muted text-fg-muted'}`}>{formatMs(displayClocks.black)}</span>
             </div>
 

@@ -2,7 +2,12 @@ import { useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 
 export function useAuth() {
-  const { user, loading, setUser, setLoading } = useAuthStore();
+  // Field-level selectors — useAuth is mounted by nearly every screen, so a
+  // whole-store subscription would fan any auth-store write out to all of them.
+  const user       = useAuthStore(s => s.user);
+  const loading    = useAuthStore(s => s.loading);
+  const setUser    = useAuthStore(s => s.setUser);
+  const setLoading = useAuthStore(s => s.setLoading);
 
   useEffect(() => {
     // Supabase is loaded dynamically so @supabase/* stays out of the initial

@@ -8,9 +8,9 @@ export type { Profile, ProfileRow } from './profiles';
 
 export { saveGame, saveCheckersGame, saveReversiGame, getGames, getGameById } from './games';
 export type { SaveGameOptions } from './games';
-export type { SavedGame, NewGame, StoredMove, CheckersStoredMove, ReversiStoredMove, GameResult, GameType } from './types';
+export type { SavedGame, NewGame, GameListItem, StoredMove, CheckersStoredMove, ReversiStoredMove, GameResult, GameType } from './types';
 
-export { getUserRating, upsertUserRating } from './ratings';
+export { getUserRating, getUserRatings, upsertUserRating } from './ratings';
 export type { UserRating } from './ratings';
 
 export { encryptEmail, decryptEmail, hashEmail } from './crypto';

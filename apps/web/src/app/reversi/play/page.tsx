@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { redirect }  from 'next/navigation';
 import { ReversiBoard }   from '@/components/reversi/ReversiBoard';
 import { DiscCountBar }   from '@/components/reversi/DiscCountBar';
@@ -16,6 +16,13 @@ const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
 
 export default function ReversiPlayPage() {
   const s = useGameSession('reversi', 'movetime');
+  const { sendMove } = s;
+
+  // Stable identity so the memoized board skips the 100 ms clock re-renders.
+  const handleMove = useCallback(
+    (position: string) => sendMove({ type: 'reversi', position }),
+    [sendMove],
+  );
 
   useEffect(() => {
     if (!s.loading && !s.user) redirect('/auth/signin?next=/reversi/play');
@@ -55,7 +62,7 @@ export default function ReversiPlayPage() {
         reversiState && (
           <ReversiBoard
             gameState={reversiState}
-            onMove={(position) => s.sendMove({ type: 'reversi', position })}
+            onMove={handleMove}
             playerColor={s.myColor ?? 'black'}
             highlightPos={lastPos}
           />

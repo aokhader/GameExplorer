@@ -22,6 +22,10 @@ type Mode = 'edit' | 'analyze';
 const PIECE_TYPES: PieceType[] = ['king', 'queen', 'rook', 'bishop', 'knight', 'pawn'];
 const EMPTY_FEN = '8/8/8/8/8/8/8/8 w - - 0 1';
 
+// Stable no-op for edit mode — an inline `() => {}` would hand the memoized
+// board a new prop identity every render.
+const noopMove = () => {};
+
 // ── Eval bar ──────────────────────────────────────────────────────────────────
 
 function EvalBar({ cp, mate, turn }: { cp: number | null; mate: number | null; turn: 'white' | 'black' }) {
@@ -201,7 +205,9 @@ function AnalysisPageInner() {
 
   // ── Analyze mode handlers ───────────────────────────────────────────────────
 
-  const handleAnalyzeMove = (from: Position, to: Position, promotion?: PieceType) => {
+  // Stable identity (with the memoized board, an inline handler would force a
+  // full board re-render on every streamed engine info line).
+  const handleAnalyzeMove = useCallback((from: Position, to: Position, promotion?: PieceType) => {
     const state = timeline[currentIndex];
     if (!state) return;
     const r = ChessEngine.validateMove(state, from, to, false, promotion);
@@ -210,7 +216,7 @@ function AnalysisPageInner() {
       setTimeline(newTimeline);
       setCurrentIndex(newTimeline.length - 1);
     }
-  };
+  }, [timeline, currentIndex]);
 
   const handlePrev = () => setCurrentIndex(i => Math.max(0, i - 1));
   const handleNext = () => setCurrentIndex(i => Math.min(timeline.length - 1, i + 1));
@@ -256,9 +262,15 @@ function AnalysisPageInner() {
     }
   }
 
-  const arrows: BoardArrow[] = activeBestMove && mode === 'analyze'
-    ? [{ from: activeBestMove.from, to: activeBestMove.to }]
-    : [];
+  // Memoized on the squares (not the result object identity, which changes on
+  // every info line) so the board only re-renders when the arrow itself moves.
+  const arrows: BoardArrow[] = useMemo(
+    () => activeBestMove && mode === 'analyze'
+      ? [{ from: activeBestMove.from, to: activeBestMove.to }]
+      : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeBestMove?.from, activeBestMove?.to, mode],
+  );
 
   const movePairs = useMemo(() => buildMovePairs(timeline), [timeline]);
 
@@ -323,7 +335,7 @@ function AnalysisPageInner() {
           <div className="flex-1 min-w-0">
             <ChessBoard
               gameState={activeState}
-              onMove={mode === 'analyze' ? handleAnalyzeMove : () => {}}
+              onMove={mode === 'analyze' ? handleAnalyzeMove : noopMove}
               playerColor={flipBoard ? 'black' : 'white'}
               showCoordinates
               // Placement/erase mode: clicks route through onSquareClick

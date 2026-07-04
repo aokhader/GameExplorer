@@ -9,9 +9,13 @@ import { useSocketStore } from '../stores/socketStore';
 import { useGameStore }   from '../stores/gameStore';
 
 export function useSocket() {
+  // Field-level selectors: a whole-store subscription would re-render every
+  // useSocket consumer (all play screens + spectate) on every store write,
+  // including the clock syncs that arrive throughout a game.
   const user       = useAuthStore(s => s.user);
-  const { connect, disconnect, socket } = useSocketStore();
-  const gameStore  = useGameStore();
+  const socket     = useSocketStore(s => s.socket);
+  const connect    = useSocketStore(s => s.connect);
+  const disconnect = useSocketStore(s => s.disconnect);
 
   // Connect / disconnect based on auth state
   useEffect(() => {
@@ -28,6 +32,11 @@ export function useSocket() {
   // Register server→client event handlers
   useEffect(() => {
     if (!socket) return;
+
+    // Store actions are created once by zustand and never change identity, so
+    // reading them here (instead of subscribing with a hook) keeps game-state
+    // writes from re-rendering this hook's consumers.
+    const gameStore = useGameStore.getState();
 
     socket.on('game_started', (data) => {
       gameStore.setGame(

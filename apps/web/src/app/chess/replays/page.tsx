@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getGames } from '@/lib/db';
-import type { SavedGame } from '@/lib/db';
+import type { GameListItem } from '@/lib/db';
 import { useAuth } from '@/hooks/useAuth';
 
 function formatDate(iso: string) {
@@ -17,7 +17,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
-function ResultBadge({ game }: { game: SavedGame }) {
+function ResultBadge({ game }: { game: GameListItem }) {
   const playerWon = game.result === game.player_color;
   const isDraw = game.result === 'draw';
 
@@ -36,7 +36,7 @@ function ResultBadge({ game }: { game: SavedGame }) {
 }
 
 export default function ReplaysPage() {
-  const [games, setGames] = useState<SavedGame[]>([]);
+  const [games, setGames] = useState<GameListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -113,7 +113,7 @@ export default function ReplaysPage() {
                   <div className="text-xs text-fg-subtle">
                     {formatDate(game.created_at)} at {formatTime(game.created_at)}
                     {' · '}
-                    {game.moves.length} moves
+                    {game.move_count} moves
                   </div>
                 </div>
 

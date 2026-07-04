@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { redirect }  from 'next/navigation';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { useGameSession } from '@gameexplorer/client';
 import { GameLayout } from '@/components/game/GameLayout';
 import { formatClockLong } from '@gameexplorer/shared';
-import type { ChessGameState, TimeControl } from '@gameexplorer/shared';
+import type { ChessGameState, TimeControl, Position, PieceType } from '@gameexplorer/shared';
 
 const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
   { id: 'bullet',    label: 'Bullet',    desc: '1 min'      },
@@ -18,6 +18,14 @@ const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
 
 export default function ChessPlayPage() {
   const s = useGameSession('chess', 'blitz');
+  const { sendMove } = s;
+
+  // Stable identity so the memoized board skips the 100 ms clock re-renders.
+  const handleMove = useCallback(
+    (from: Position, to: Position, promotion?: PieceType) =>
+      sendMove({ type: 'chess', from, to, promotion }),
+    [sendMove],
+  );
 
   // Auth guard (web routing).
   useEffect(() => {
@@ -49,7 +57,7 @@ export default function ChessPlayPage() {
         chessState && (
           <ChessBoard
             gameState={chessState}
-            onMove={(from, to, promotion) => s.sendMove({ type: 'chess', from, to, promotion })}
+            onMove={handleMove}
             playerColor={s.myColor ?? 'white'}
           />
         )
