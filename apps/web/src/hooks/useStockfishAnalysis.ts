@@ -1,18 +1,33 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { PieceType } from '@gameexplorer/shared';
+import {
+  getStockfishEnginePath,
+  getStockfishThreads,
+  isMultiThreadSupported,
+} from '../lib/stockfishEngine';
 
 const UCI_PROMOTION_MAP: Record<string, PieceType> = {
   q: 'queen', r: 'rook', b: 'bishop', n: 'knight',
 };
 
 /**
- * Progressive deepening: each position gets a quick first pass so the eval
- * appears fast, then automatically re-searches deeper while the user stays on
- * the position. Because the search keeps its transposition table between
- * passes (and between positions of the same game), each deeper pass resumes
- * from the previous one rather than starting over.
+ * Single-threaded fallback — progressive deepening: each position gets a
+ * quick first pass so the eval appears fast, then automatically re-searches
+ * deeper while the user stays on the position. Because the search keeps its
+ * transposition table between passes (and between positions of the same
+ * game), each deeper pass resumes from the previous one rather than starting
+ * over.
  */
 const DEEPEN_MOVETIMES_MS = [300, 1000, 2500];
+
+/**
+ * Multi-threaded build — no deepening ladder needed: a search is
+ * interruptible with `stop` at any moment, and its info lines stream
+ * progressively from depth 1, so one long pass gives both the instant
+ * shallow eval and the deep final one. Capped (rather than `go infinite`)
+ * so a position left on screen doesn't burn CPU indefinitely.
+ */
+const MT_MOVETIMES_MS = [15000];
 
 /** Coalesce rapid position changes (holding an arrow key) into one search. */
 const DEBOUNCE_MS = 150;
@@ -52,20 +67,28 @@ export function useStockfishAnalysis() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Internal helper — created inside useEffect so it can close over `worker`.
   const doAnalyzeRef = useRef<(fen: string, pass: number) => void>(() => {});
+  // True when the multi-threaded build is loaded (page is cross-origin
+  // isolated), meaning a running search can be interrupted with `stop`.
+  const isMultiThreadRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const worker = new Worker('/stockfish/stockfish.js');
+    const isMultiThread = isMultiThreadSupported();
+    isMultiThreadRef.current = isMultiThread;
+    const movetimes = isMultiThread ? MT_MOVETIMES_MS : DEEPEN_MOVETIMES_MS;
+
+    const worker = new Worker(getStockfishEnginePath());
     workerRef.current = worker;
 
-    // ── Why go movetime instead of go infinite ────────────────────────────────
-    // This Stockfish WASM build (nmrugg/stockfish.js) runs `go` synchronously
-    // because IS_ASYNCIFY is not defined.  While the engine is searching the
-    // web-worker thread is blocked, so a queued `stop` command is never processed
-    // and `go infinite` runs forever.  `go movetime N` terminates after N ms
-    // from inside the C++ search loop, unblocking the thread automatically.
-    // Short passes + deepening keep the longest uninterruptible window small.
+    // ── Single-threaded build: why go movetime instead of go infinite ────────
+    // The fallback build runs `go` synchronously (no asyncify), so while the
+    // engine is searching the web-worker thread is blocked, a queued `stop` is
+    // never processed, and `go infinite` would run forever.  `go movetime N`
+    // terminates after N ms from inside the C++ search loop; short passes +
+    // deepening keep the longest uninterruptible window small.
+    // The multi-threaded build searches on pthread workers, so its (single,
+    // long) pass is ended early by `stop` — see analyze()/stop().
     //
     // No `ucinewgame` here: successive positions of the same game share most of
     // the search tree, so keeping the hash table makes each search much faster.
@@ -75,11 +98,14 @@ export function useStockfishAnalysis() {
       currentFenRef.current = fen;
       passIndexRef.current = pass;
       worker.postMessage(`position fen ${fen}`);
-      worker.postMessage(`go movetime ${DEEPEN_MOVETIMES_MS[pass]}`);
+      worker.postMessage(`go movetime ${movetimes[pass]}`);
     };
     doAnalyzeRef.current = doAnalyze;
 
     worker.postMessage('uci');
+    if (isMultiThread) {
+      worker.postMessage(`setoption name Threads value ${getStockfishThreads()}`);
+    }
 
     worker.onmessage = (e) => {
       const message = typeof e.data === 'string' ? e.data : (e.data as { data?: string })?.data;
@@ -145,7 +171,7 @@ export function useStockfishAnalysis() {
         if (pending !== null && pending !== currentFenRef.current) {
           // A newer position was requested while busy — start it fresh.
           doAnalyze(pending, 0);
-        } else if (pending !== null && passIndexRef.current < DEEPEN_MOVETIMES_MS.length - 1) {
+        } else if (pending !== null && passIndexRef.current < movetimes.length - 1) {
           // User is still on this position — deepen the search.
           // The result is left in place; deeper info lines refine it.
           doAnalyze(currentFenRef.current!, passIndexRef.current + 1);
@@ -181,6 +207,11 @@ export function useStockfishAnalysis() {
         // user sees "Analyzing…" rather than stale results while they wait.
         setIsAnalyzing(true);
         setResult(EMPTY_RESULT);
+        // Multi-threaded build: end the current search now instead of letting
+        // it run out its movetime. Its bestmove arrives within milliseconds
+        // and the handler starts the pending FEN. (Redundant stops while one
+        // is already in flight are ignored by the engine.)
+        if (isMultiThreadRef.current) workerRef.current.postMessage('stop');
       }
       // The bestmove handler starts the pending FEN when the current pass ends.
       return;
@@ -200,12 +231,16 @@ export function useStockfishAnalysis() {
 
   /**
    * Cancel any pending analysis.
-   * The current `go movetime` cannot be interrupted (single-threaded WASM), but
-   * no new search or deepening pass will be started after it finishes.
+   * Multi-threaded build: the running search is halted immediately with
+   * `stop`. Single-threaded fallback: the current `go movetime` cannot be
+   * interrupted, but no new search or deepening pass starts after it finishes.
    */
   const stop = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     pendingFenRef.current = null;
+    if (isMultiThreadRef.current && isRunningRef.current) {
+      workerRef.current?.postMessage('stop');
+    }
     setIsAnalyzing(false);
   }, []);
 

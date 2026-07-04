@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ChessGameState, PieceType } from '@gameexplorer/shared';
+import {
+  getStockfishEnginePath,
+  getStockfishThreads,
+  isMultiThreadSupported,
+} from '../lib/stockfishEngine';
 
 /**
  * ELO threshold above which we hand off to Stockfish.
@@ -51,8 +56,13 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
     if (typeof window === 'undefined') return;
     if (!enabled) return;
 
-    workerRef.current = new Worker('/stockfish/stockfish.js');
+    workerRef.current = new Worker(getStockfishEnginePath());
     workerRef.current.postMessage('uci');
+    if (isMultiThreadSupported()) {
+      // Multi-threaded build (cross-origin isolated page): reach the
+      // configured strength in less wall-clock time per move.
+      workerRef.current.postMessage(`setoption name Threads value ${getStockfishThreads()}`);
+    }
     // One fresh-game signal per worker lifetime (= one game; see getBestMove).
     workerRef.current.postMessage('ucinewgame');
 
