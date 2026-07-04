@@ -46,6 +46,25 @@ export interface ApplyMoveResult {
 function gameKey(gameId: string)  { return `game:${gameId}`; }
 function activeKey(userId: string){ return `active_game:${userId}`; }
 
+const SQUARE_RE = /^[a-h][1-8]$/;
+const PROMOTION_PIECES = new Set(['queen', 'rook', 'bishop', 'knight']);
+
+/** Structural + range validation for a client-supplied move, before the engine. */
+function isValidMovePayload(move: MovePayload): boolean {
+  if (!move || typeof move !== 'object') return false;
+  switch (move.type) {
+    case 'chess':
+      return SQUARE_RE.test(move.from) && SQUARE_RE.test(move.to)
+        && (move.promotion === undefined || PROMOTION_PIECES.has(move.promotion));
+    case 'checkers':
+      return SQUARE_RE.test(move.from) && SQUARE_RE.test(move.to);
+    case 'reversi':
+      return SQUARE_RE.test(move.position);
+    default:
+      return false;
+  }
+}
+
 export const gameSessionService = {
   async createGame(
     whiteId: string, blackId: string,
@@ -174,8 +193,31 @@ export const gameSessionService = {
       return { valid: false, reason: 'Game not found or already ended' };
     }
 
+    // ── Authorization ────────────────────────────────────────────────────────
+    // The engine only checks that a move is *legal for the side to move*. It is
+    // the caller's job to check that this *user* is allowed to make it. Without
+    // these two guards, a participant could play their opponent's moves, and any
+    // authenticated socket could inject moves into a game it isn't part of.
+    if (session.whiteId !== userId && session.blackId !== userId) {
+      return { valid: false, reason: 'Not a participant' };
+    }
     const color: PlayerColor = session.whiteId === userId ? 'white' : 'black';
+
+    // ── Payload validation ───────────────────────────────────────────────────
+    // Reject malformed coordinates before they reach the engines, where an
+    // off-board index (e.g. "z9") would throw and surface as an unhandled
+    // rejection.
+    if (!isValidMovePayload(move)) {
+      return { valid: false, reason: 'Malformed move' };
+    }
+
     const state = JSON.parse(session.state);
+
+    // Sender may only move the side whose turn it is.
+    if (state.currentTurn !== color) {
+      return { valid: false, reason: 'Not your turn' };
+    }
+
     let newState: unknown;
     let gameOver = false;
     let result: GameResult | undefined;
@@ -235,9 +277,17 @@ export const gameSessionService = {
     gameId: string,
     result: GameResult,
     reason: EndReason,
-  ): Promise<{ white: { ratingBefore: number; ratingAfter: number; ratingDelta: number }; black: { ratingBefore: number; ratingAfter: number; ratingDelta: number } }> {
+  ): Promise<{ white: { ratingBefore: number; ratingAfter: number; ratingDelta: number }; black: { ratingBefore: number; ratingAfter: number; ratingDelta: number } } | null> {
+    // Atomic end-of-game guard. Several paths can end the same game at nearly
+    // the same instant (a checkmate move and the clock-flag loop, two rapid
+    // resign/accept events). Only the caller that wins this SET NX proceeds to
+    // compute/persist ratings and tear down state; everyone else gets null and
+    // must not re-emit or double-apply the rating change.
+    const acquired = await redis.set(`endlock:${gameId}`, '1', 'EX', 300, 'NX');
+    if (!acquired) return null;
+
     const session = await this.getGameSession(gameId);
-    if (!session) return { white: { ratingBefore: 1200, ratingAfter: 1200, ratingDelta: 0 }, black: { ratingBefore: 1200, ratingAfter: 1200, ratingDelta: 0 } };
+    if (!session) return null;
 
     const rated = session.rated !== '0'; // default rated for legacy sessions
     const whiteRatingBefore = Number(session.whiteRating);
@@ -245,9 +295,18 @@ export const gameSessionService = {
     const whiteOutcome = result === 'white_wins' ? 'win' : result === 'draw' ? 'draw' : 'loss';
     const blackOutcome = result === 'black_wins' ? 'win' : result === 'draw' ? 'draw' : 'loss';
 
+    // Games-played drives the K-factor (32 provisional, 20 established). Fetched
+    // server-side so ratings actually stabilise instead of always using K=32.
+    const [whiteGames, blackGames] = rated
+      ? await Promise.all([
+          persistenceService.getGamesPlayed(session.whiteId, session.gameType),
+          persistenceService.getGamesPlayed(session.blackId, session.gameType),
+        ])
+      : [0, 0];
+
     // Unrated games end with no rating change
-    const whiteRatingAfter = rated ? calculateNewRating(whiteRatingBefore, blackRatingBefore, whiteOutcome, 0) : whiteRatingBefore;
-    const blackRatingAfter = rated ? calculateNewRating(blackRatingBefore, whiteRatingBefore, blackOutcome, 0) : blackRatingBefore;
+    const whiteRatingAfter = rated ? calculateNewRating(whiteRatingBefore, blackRatingBefore, whiteOutcome, whiteGames) : whiteRatingBefore;
+    const blackRatingAfter = rated ? calculateNewRating(blackRatingBefore, whiteRatingBefore, blackOutcome, blackGames) : blackRatingBefore;
 
     // Mark status in Redis before cleanup (so concurrent calls are safe)
     await redis.hset(gameKey(gameId), 'status', 'ended');

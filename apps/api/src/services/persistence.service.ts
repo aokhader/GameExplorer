@@ -83,6 +83,41 @@ export const persistenceService = {
     }
   },
 
+  /**
+   * Authoritative display name for a user, from the profiles table. Used so the
+   * name shown to opponents/spectators can't be spoofed via a client payload.
+   * Returns null when unavailable (falls back to the client-supplied name).
+   */
+  async getUsername(userId: string): Promise<string | null> {
+    if (!supabaseAdmin) return null;
+    try {
+      const { data } = await supabaseAdmin
+        .from('profiles')
+        .select('username')
+        .eq('id', userId)
+        .single();
+      return (data as { username?: string } | null)?.username ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  /** Games played in a game type — drives the ELO K-factor. Server-side only. */
+  async getGamesPlayed(userId: string, gameType: GameType): Promise<number> {
+    if (!supabaseAdmin) return 0;
+    try {
+      const { data } = await supabaseAdmin
+        .from('user_ratings')
+        .select('games_played')
+        .eq('user_id', userId)
+        .eq('game_type', gameType)
+        .single();
+      return (data as { games_played?: number } | null)?.games_played ?? 0;
+    } catch {
+      return 0;
+    }
+  },
+
   async upsertRating(
     userId: string,
     gameType: GameType,

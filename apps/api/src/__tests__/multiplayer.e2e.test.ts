@@ -254,6 +254,36 @@ describe('moves', () => {
     expect(e.code).toBe('ILLEGAL_MOVE');
     expect(e.message).toBe('Not your turn');
   });
+
+  it("rejects a participant moving the opponent's piece (cross-play)", async () => {
+    // The real exploit: it is white's turn, but black submits a legal *white*
+    // move. The engine alone accepts it (white piece, white turn) — the server
+    // must reject it because black is not the side to move.
+    const { a, b, gameId } = await startGame('xp-a', 'xp-b');
+    const err = once<any>(b, 'error');
+    const noMove = expectNoEvent(a, 'move_made', 800);
+    b.emit('make_move', { gameId, move: { type: 'chess', from: 'e2', to: 'e4' } });
+    expect((await err).message).toBe('Not your turn');
+    await noMove;
+  });
+
+  it('rejects make_move from a non-participant', async () => {
+    const { a, gameId } = await startGame('pp-a', 'pp-b');
+    const intruder = client('pp-intruder');
+    await connected(intruder);
+    const err = once<any>(intruder, 'error');
+    const noMove = expectNoEvent(a, 'move_made', 800);
+    intruder.emit('make_move', { gameId, move: { type: 'chess', from: 'e2', to: 'e4' } });
+    expect((await err).message).toBe('Not a participant');
+    await noMove;
+  });
+
+  it('rejects a malformed move payload without reaching the engine', async () => {
+    const { a, gameId } = await startGame('mf-a', 'mf-b');
+    const err = once<any>(a, 'error');
+    a.emit('make_move', { gameId, move: { type: 'chess', from: 'z9', to: 'e4' } as any });
+    expect((await err).message).toBe('Malformed move');
+  });
 });
 
 // ── Full game to checkmate + server-side persistence ─────────────────────────

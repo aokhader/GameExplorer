@@ -82,18 +82,19 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
       const finalReason = flagged ? 'flag' : result.endReason!;
 
       const ratings = await gameSessionService.endGame(gameId, finalResult, finalReason as import('@gameexplorer/shared').EndReason);
-      io.to(`game:${gameId}`).emit('game_ended', { gameId, result: finalResult, reason: finalReason, ...ratings });
+      if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result: finalResult, reason: finalReason, ...ratings });
     }
   });
 
   // ── Resign ────────────────────────────────────────────────────────────────
   socket.on('resign', async ({ gameId }: { gameId: string }) => {
     const session = await gameSessionService.getGameSession(gameId);
-    if (!session || (session.whiteId !== userId && session.blackId !== userId)) return;
+    if (!session || session.status !== 'active') return;
+    if (session.whiteId !== userId && session.blackId !== userId) return;
 
     const result: import('@gameexplorer/shared').GameResult = session.whiteId === userId ? 'black_wins' : 'white_wins';
     const ratings = await gameSessionService.endGame(gameId, result, 'resign');
-    io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'resign', ...ratings });
+    if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'resign', ...ratings });
   });
 
   // ── Abort (early, no rating change) ───────────────────────────────────────
@@ -128,7 +129,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
 
     await gameSessionService.clearDrawOffer(gameId);
     const ratings = await gameSessionService.endGame(gameId, 'draw', 'draw_agreement');
-    io.to(`game:${gameId}`).emit('game_ended', { gameId, result: 'draw', reason: 'draw_agreement', ...ratings });
+    if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result: 'draw', reason: 'draw_agreement', ...ratings });
   });
 
   socket.on('decline_draw', async ({ gameId }: { gameId: string }) => {
@@ -138,8 +139,17 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
 
   // ── Chat ──────────────────────────────────────────────────────────────────
   socket.on('send_chat', async ({ gameId, text }: { gameId: string; text: string }) => {
+    // Throttle: 2 messages/sec per socket (spam guard).
+    try {
+      const rl = await RedisService.checkRateLimit(`chat:${socket.id}`, 2, 1000);
+      if (!rl.allowed) return;
+    } catch { /* non-fatal */ }
+
     const session = await gameSessionService.getGameSession(gameId);
     if (!session) return;
+    // Only participants may post chat (spectators receive, never send) — otherwise
+    // a spectator's message is attributed to whichever player they aren't.
+    if (session.whiteId !== userId && session.blackId !== userId) return;
 
     const username = session.whiteId === userId ? session.whiteUsername : session.blackUsername;
     const safeText = String(text).slice(0, 200).replace(/[<>]/g, '');
@@ -193,12 +203,14 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
 
   // ── Invites ───────────────────────────────────────────────────────────────
   socket.on('create_invite_link', async ({ gameType, timeControl, username }: { gameType: import('@gameexplorer/shared').GameType; timeControl: import('@gameexplorer/shared').TimeControl; username: string; rating?: number }) => {
-    // Rating is server-authoritative — fetched from Supabase, not the client.
-    const rating = await persistenceService.getRating(userId, gameType);
+    // Rating AND username are server-authoritative — fetched from Supabase, not
+    // trusted from the client.
+    const rating       = await persistenceService.getRating(userId, gameType);
+    const safeUsername = (await persistenceService.getUsername(userId)) ?? username ?? 'Anonymous';
     // Persist identity on the socket so a later same-socket flow can reuse it.
-    socket.data.username = username;
+    socket.data.username = safeUsername;
     socket.data.rating   = rating;
-    const inviteId = await inviteService.createInvite(userId, username ?? 'Anonymous', rating, gameType, timeControl);
+    const inviteId = await inviteService.createInvite(userId, safeUsername, rating, gameType, timeControl);
     const baseUrl  = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
     socket.emit('invite_link_created', { inviteId, url: `${baseUrl}/${gameType}/play?invite=${inviteId}` });
   });
@@ -215,17 +227,18 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
       return;
     }
 
-    // Rating is server-authoritative — fetched from Supabase, not the client.
-    const rating = await persistenceService.getRating(userId, invite.gameType);
+    // Rating AND username are server-authoritative — from Supabase, not the client.
+    const rating       = await persistenceService.getRating(userId, invite.gameType);
+    const safeUsername = (await persistenceService.getUsername(userId)) ?? username ?? 'Anonymous';
 
-    socket.data.username = username;
+    socket.data.username = safeUsername;
     socket.data.rating   = rating;
 
     // Invite-by-link games are casual: there is no rated toggle in this flow,
     // so they never move ratings.
     const gameId  = await gameSessionService.createGame(
       invite.fromId, userId,
-      invite.fromUsername, username ?? 'Anonymous',
+      invite.fromUsername, safeUsername,
       Number(invite.fromRating), rating,
       invite.gameType, invite.timeControl,
       false,
@@ -240,7 +253,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     socket.join(`game:${gameId}`);
     socket.emit('game_started', { gameId, gameType: invite.gameType, initialState, myColor: 'black', opponent: { userId: invite.fromId, username: invite.fromUsername, rating: Number(invite.fromRating) }, clocks, timeControlConfig: tcConfig });
 
-    io.to(`user:${invite.fromId}`).emit('game_started', { gameId, gameType: invite.gameType, initialState, myColor: 'white', opponent: { userId, username: username ?? 'Anonymous', rating: rating ?? 1200 }, clocks, timeControlConfig: tcConfig });
+    io.to(`user:${invite.fromId}`).emit('game_started', { gameId, gameType: invite.gameType, initialState, myColor: 'white', opponent: { userId, username: safeUsername, rating: rating ?? 1200 }, clocks, timeControlConfig: tcConfig });
     io.to(`user:${invite.fromId}`).socketsJoin(`game:${gameId}`);
 
     await clockService.startClock(gameId);

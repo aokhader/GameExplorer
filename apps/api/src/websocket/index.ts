@@ -43,7 +43,7 @@ async function runForfeit(gameId: string, userId: string): Promise<void> {
   if (!session || session.status !== 'active') return;
   const result: GameResult = session.whiteId === userId ? 'black_wins' : 'white_wins';
   const ratings = await gameSessionService.endGame(gameId, result, 'disconnect');
-  io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'disconnect', ...ratings });
+  if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'disconnect', ...ratings });
 }
 
 export function initializeWebSocket(httpServer: HTTPServer) {
@@ -210,7 +210,7 @@ function startClockLoop() {
           const result: import('@gameexplorer/shared').GameResult =
             clocks.active_color === 'white' ? 'black_wins' : 'white_wins';
           const ratings = await gameSessionService.endGame(gameId, result, 'flag');
-          io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'flag', ...ratings });
+          if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'flag', ...ratings });
         }
         // Disconnect grace/forfeit is handled by reconnect-aware timers
         // (scheduleForfeit / cancelForfeit), not this loop.

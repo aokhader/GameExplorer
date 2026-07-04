@@ -10,6 +10,13 @@ import { logger } from './utils/logger';
 
 const PORT = process.env.PORT || 4000;
 
+// Safety net: a rejected promise in an async socket.io listener (which the
+// library does not await) would otherwise surface as an unhandled rejection and
+// can tear down the single API instance. Log and keep serving instead.
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection:', reason);
+});
+
 async function startServer() {
   try {
     // Check database connection

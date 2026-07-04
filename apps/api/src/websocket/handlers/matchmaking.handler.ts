@@ -15,12 +15,14 @@ export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) 
     username:    string;
     rating:      number; // ignored — rating is fetched server-side
   }) => {
-    // Rating is server-authoritative: fetched from Supabase, never trusted
-    // from the client (which previously hardcoded 1200).
-    const rating = await persistenceService.getRating(userId, data.gameType);
+    // Rating AND username are server-authoritative: fetched from Supabase, never
+    // trusted from the client (rating previously hardcoded 1200; a client could
+    // otherwise present any display name to opponents).
+    const rating   = await persistenceService.getRating(userId, data.gameType);
+    const username = (await persistenceService.getUsername(userId)) ?? data.username ?? 'Anonymous';
 
     // Store username/rating on socket for later use
-    socket.data.username = data.username;
+    socket.data.username = username;
     socket.data.rating   = rating;
 
     const existingGameId = await gameSessionService.getActiveGameId(userId);
@@ -35,7 +37,7 @@ export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) 
 
     await matchmakingService.addToQueue({
       userId,
-      username:    data.username,
+      username,
       rating,
       gameType:    data.gameType,
       timeControl: data.timeControl,
