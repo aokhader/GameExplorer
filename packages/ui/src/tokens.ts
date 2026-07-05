@@ -221,6 +221,64 @@ export const GRADIENTS = {
   heroBrand:    'linear-gradient(135deg, #3b82f6 0%, #ec4899 100%)',
 } as const;
 
+/**
+ * React Native shadow equivalents of `SHADOWS`. RN cannot consume CSS box-shadow
+ * strings, so these carry the same visual intent as `{ shadowColor, shadowOffset,
+ * shadowOpacity, shadowRadius }` (iOS) + `elevation` (Android). The colored `glow*`
+ * variants approximate the web neon halo with a tinted shadow; components that want
+ * the crisp 1px ring should pair this with a `borderColor`/`borderWidth`.
+ */
+export interface NativeShadow {
+  shadowColor: string;
+  shadowOffset: { width: number; height: number };
+  shadowOpacity: number;
+  shadowRadius: number;
+  elevation: number;
+}
+
+export const SHADOWS_NATIVE = {
+  sm: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.3, shadowRadius: 2, elevation: 1 },
+  md: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 4 },
+  lg: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 14, elevation: 8 },
+  xl: { shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.55, shadowRadius: 25, elevation: 12 },
+  // Elevation tokens: RN has no inset highlight; approximate the "lit from above"
+  // depth with the drop-shadow half only. Pair with a top hairline border if needed.
+  elevation:   { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.55, shadowRadius: 15, elevation: 8 },
+  elevationLg: { shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.65, shadowRadius: 30, elevation: 14 },
+  // Neon glows: tinted shadow, offset 0 (halo radiates evenly), high radius.
+  glowAccent:   { shadowColor: PALETTE.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 17, elevation: 10 },
+  glowInfo:     { shadowColor: PALETTE.blue, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 16, elevation: 10 },
+  glowChess:    { shadowColor: PALETTE.blue, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
+  glowCheckers: { shadowColor: PALETTE.pink, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
+  glowReversi:  { shadowColor: PALETTE.lime, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 20, elevation: 12 },
+} as const satisfies Record<keyof typeof SHADOWS, NativeShadow>;
+
+/**
+ * React Native gradient equivalents of `GRADIENTS`, parsed into the shape
+ * `expo-linear-gradient` / `react-native-linear-gradient` consume: a `colors`
+ * array with matching `locations` (0–1) and `start`/`end` unit points. Angles are
+ * converted to points — 180deg = top→bottom (0.5,0)→(0.5,1); 135deg = top-left→
+ * bottom-right (0,0)→(1,1).
+ */
+export interface NativeGradient {
+  colors: string[];
+  locations: number[];
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+}
+
+const VERTICAL = { start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 } } as const;
+const DIAGONAL = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
+
+export const GRADIENTS_NATIVE = {
+  accent:  { colors: ['#dcb456', '#cda43f', '#b8923a'], locations: [0, 0.55, 1], ...VERTICAL },
+  surface: { colors: ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'], locations: [0, 0.4], ...VERTICAL },
+  heroChess:    { colors: ['#3b82f6', '#ec4899'], locations: [0, 1], ...DIAGONAL },
+  heroCheckers: { colors: ['#ec4899', '#cda43f'], locations: [0, 1], ...DIAGONAL },
+  heroReversi:  { colors: ['#a3e635', '#22d3aa'], locations: [0, 1], ...DIAGONAL },
+  heroBrand:    { colors: ['#3b82f6', '#ec4899'], locations: [0, 1], ...DIAGONAL },
+} as const satisfies Record<keyof typeof GRADIENTS, NativeGradient>;
+
 export const Z_INDEX = {
   base: 0,
   dropdown: 30,

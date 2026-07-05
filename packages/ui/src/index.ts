@@ -3,14 +3,16 @@ export {
   THEMES,
   GAME_ACCENTS,
   GRADIENTS,
+  GRADIENTS_NATIVE,
   SPACING,
   RADIUS,
   FONT_SIZES,
   FONT_WEIGHTS,
   SHADOWS,
+  SHADOWS_NATIVE,
   Z_INDEX,
 } from './tokens';
-export type { Theme, ThemeName, GameAccent } from './tokens';
+export type { Theme, ThemeName, GameAccent, NativeShadow, NativeGradient } from './tokens';
 
 export { ChessPiece } from './chess/ChessPiece';
 export type { ChessPieceProps, PieceType, PieceColor } from './chess/ChessPiece';

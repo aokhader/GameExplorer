@@ -1,6 +1,6 @@
 export { supabase } from './client';
 
-export { signUp, signIn, signInWithOAuth, signOut, getCurrentUser } from './auth';
+export { signUp, signIn, signInWithOAuth, setOAuthRedirect, signOut, getCurrentUser } from './auth';
 export type { AuthUser, SignUpResult, SignInResult } from './auth';
 
 export { getProfile, getPublicProfile, updateUsername } from './profiles';

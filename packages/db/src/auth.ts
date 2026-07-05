@@ -86,17 +86,37 @@ export async function signIn(
 }
 
 /**
+ * Post-OAuth redirect target, injected per platform. Web sets its origin-based
+ * callback; React Native sets a deep link (e.g. `gameexplorer://auth/callback`).
+ * Kept here (instead of reading `window`) so this module runs on any runtime.
+ */
+let _oauthRedirect: string | null = null;
+
+/** Set the OAuth redirect URL once at app startup (mirrors config.setApiUrl). */
+export function setOAuthRedirect(url: string): void {
+  _oauthRedirect = url;
+}
+
+/**
  * Sign in with an OAuth provider (Google or Facebook).
- * Redirects the browser — call this client-side.
+ * On web this redirects the browser; on native the caller handles the returned
+ * deep link. Pass `redirectTo` to override the app-wide default set via
+ * `setOAuthRedirect()`; on web it falls back to the current origin.
  */
 export async function signInWithOAuth(
-  provider: 'google' | 'facebook'
+  provider: 'google' | 'facebook',
+  redirectTo?: string
 ): Promise<{ error: string | null }> {
+  const target =
+    redirectTo ??
+    _oauthRedirect ??
+    (typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : undefined);
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-    },
+    options: { redirectTo: target },
   });
 
   return { error: error?.message ?? null };
