@@ -309,12 +309,14 @@ html {
   50%      { transform: translateY(-8px); }
 }
 
-/* Entrance reveal — graceful on first paint; near-instant under reduced-motion. */
-.reveal-up { animation: reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-/* Route entrance (PageTransition) — CSS instead of framer-motion so the
-   animation library stays out of every page's initial JS. Curve + timing match
-   the old framer `easeOut` preset (0.32s, cubic-bezier(0.22, 1, 0.36, 1)). */
+/* Entrance animations are gated behind a `[data-animate]` marker so they run
+   ONLY on client-side navigation — never on the initial document load. On first
+   paint the base classes carry no animation, so statically-prerendered HTML is
+   visible immediately (these otherwise start at opacity:0 with fill-mode:both,
+   which blanked every route for ~0.32–0.6s and dragged FCP/LCP). PageTransition
+   flips `data-animate` on after the first route change (covering .reveal-up on
+   GameScreenLayout and the hub pages' Reveal via the descendant selector); the
+   welcome step card self-marks via the element selector. */
 @keyframes page-enter {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -323,8 +325,9 @@ html {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-.page-enter      { animation: page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.page-enter-fade { animation: page-enter-fade 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-animate].reveal-up,       [data-animate] .reveal-up       { animation: reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-animate].page-enter,      [data-animate] .page-enter      { animation: page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-animate].page-enter-fade, [data-animate] .page-enter-fade { animation: page-enter-fade 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 @media (prefers-reduced-motion: no-preference) {
   .hover-lift:hover    { transform: translateY(-4px); }
@@ -334,5 +337,5 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal-up { animation-duration: 0.01ms; }
+  [data-animate].reveal-up, [data-animate] .reveal-up { animation-duration: 0.01ms; }
 }

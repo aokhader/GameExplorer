@@ -28,7 +28,10 @@ const ACCENTS: Record<GameAccent | 'gold', string> = {
 export function StatusBanner({ accent, title, description, className }: StatusBannerProps) {
   return (
     <div
-      className={cn('shrink-0 rounded-xl border px-4 py-3', ACCENTS[accent ?? 'gold'], className)}
+      // min-h reserves the title+description height so bot-driven transitions
+      // between the one- and two-line states (no user input → counts as CLS)
+      // don't shift the sidebar below.
+      className={cn('shrink-0 min-h-[66px] rounded-xl border px-4 py-3', ACCENTS[accent ?? 'gold'], className)}
       role="status"
     >
       <div data-title className="text-sm font-bold">{title}</div>

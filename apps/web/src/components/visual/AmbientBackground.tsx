@@ -53,36 +53,40 @@ export function AmbientBackground({
         className,
       )}
     >
-      {/* Gold bloom — top-right brand warmth. */}
+      {/* Gold bloom — top-right brand warmth. No filter blur: a radial gradient
+          to transparent is already edge-soft, so the ~64px `blur-3xl` only added
+          a large per-frame raster pass (this backdrop is mounted site-wide and
+          hurt first paint). The transparent stop is pushed out + the size bumped
+          to reproduce the blurred spread. */}
       <div
         className={cn(
-          'absolute -top-1/4 -right-1/4 h-[70vh] w-[70vh] rounded-full blur-3xl',
+          'absolute -top-1/4 -right-1/4 h-[78vh] w-[78vh] rounded-full',
           INTENSITY_OPACITY[intensity],
           animated && 'animate-aurora',
         )}
-        style={{ background: `radial-gradient(circle, var(--c-accent-glow) 0%, transparent 70%)` }}
+        style={{ background: `radial-gradient(circle, var(--c-accent-glow) 0%, transparent 75%)` }}
       />
       {/* Steel bloom — bottom-left cool counterweight. */}
       <div
         className={cn(
-          'absolute -bottom-1/4 -left-1/4 h-[70vh] w-[70vh] rounded-full blur-3xl',
+          'absolute -bottom-1/4 -left-1/4 h-[78vh] w-[78vh] rounded-full',
           INTENSITY_OPACITY[intensity],
           animated && 'animate-aurora',
         )}
         style={{
-          background: `radial-gradient(circle, var(--c-info-glow) 0%, transparent 70%)`,
+          background: `radial-gradient(circle, var(--c-info-glow) 0%, transparent 75%)`,
           animationDelay: '-9s',
         }}
       />
       {/* Signature hue — central, defines the page's identity. */}
       <div
         className={cn(
-          'absolute left-1/2 top-1/3 h-[55vh] w-[55vh] -translate-x-1/2 rounded-full blur-3xl',
+          'absolute left-1/2 top-1/3 h-[60vh] w-[60vh] -translate-x-1/2 rounded-full',
           INTENSITY_OPACITY[intensity],
           animated && 'animate-aurora',
         )}
         style={{
-          background: `radial-gradient(circle, ${HUE_GLOW[hue]} 0%, transparent 70%)`,
+          background: `radial-gradient(circle, ${HUE_GLOW[hue]} 0%, transparent 75%)`,
           animationDelay: '-4.5s',
         }}
       />

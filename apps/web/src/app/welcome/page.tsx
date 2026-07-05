@@ -95,11 +95,15 @@ export default function WelcomePage() {
   return (
     <div className="min-h-screen pt-16 flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
-        {/* Step card — re-keyed so each step change animates in (never the
-            first paint; see `navigated`) */}
+        {/* Step card — re-keyed so each step change animates in. `page-enter`
+            only fires when `data-animate` is present (see globals.css); we mark
+            it once the user steps, so the first paint stays static (this is the
+            LCP element) but step transitions still animate — even on a direct
+            onboarding landing where no route-level navigation has occurred. */}
         <div
           key={step}
-          className={`${navigated ? 'page-enter ' : ''}relative rounded-[20px] border border-white/10 bg-surface-alt surface-raised-lg p-8 sm:p-9 flex flex-col`}
+          data-animate={navigated ? '' : undefined}
+          className="page-enter relative rounded-[20px] border border-white/10 bg-surface-alt surface-raised-lg p-8 sm:p-9 flex flex-col"
           style={
             step === 0
               ? {

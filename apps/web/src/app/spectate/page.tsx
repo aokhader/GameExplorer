@@ -78,7 +78,11 @@ export default function SpectateLobby() {
           ) : (
             <div className="space-y-2">
               {games.map(g => (
-                <button key={g.gameId} onClick={() => router.push(`/spectate/${g.gameId}`)}
+                // <Link> (not a button+router.push) so Next prefetches the
+                // /spectate/[gameId] route JS when the row enters the viewport —
+                // the chunk statically imports all three boards + engine code,
+                // so on-click download+compile was the spectate INP cost.
+                <Link key={g.gameId} href={`/spectate/${g.gameId}`}
                   className="w-full flex items-center justify-between bg-surface-muted hover:bg-surface-hover rounded-lg px-4 py-3 text-left transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-2xl">{GAME_ICON[g.gameType]}</span>
@@ -90,7 +94,7 @@ export default function SpectateLobby() {
                     </div>
                   </div>
                   <span className="px-3 py-1 bg-accent rounded text-sm font-semibold shrink-0 ml-2">Watch</span>
-                </button>
+                </Link>
               ))}
             </div>
           )}
