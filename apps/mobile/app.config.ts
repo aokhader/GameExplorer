@@ -14,8 +14,9 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   userInterfaceStyle: 'dark',
   newArchEnabled: true,
-  // App icon / splash image assets are added in M5 (release polish). Until then
-  // Expo uses its defaults; the splash background still uses the brand base color.
+  // Final app icon / splash artwork lands in M5 (release polish). For now a
+  // placeholder brand mark (assets/splash-icon.png) satisfies the native
+  // splash drawable so the Android build links; the background stays brand base.
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.gameexplorer.app',
@@ -28,7 +29,9 @@ const config: ExpoConfig = {
     [
       'expo-splash-screen',
       {
+        image: './assets/splash-icon.png',
         backgroundColor: '#0b0e17', // PALETTE.ink900 — Arcade Glow page background
+        imageWidth: 180,
         resizeMode: 'contain',
       },
     ],
