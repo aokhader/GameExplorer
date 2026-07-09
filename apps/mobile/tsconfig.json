@@ -2,6 +2,12 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // SDK 52's expo/tsconfig.base sets moduleResolution "node" and no "module",
+    // so tsc infers an older module target that rejects dynamic import() — which
+    // shared code (packages/client useAuth) uses. Set an ESM module explicitly.
+    // (The SDK 54+ base switches to moduleResolution "bundler", making this
+    // redundant; harmless to keep and remove during the SDK upgrade.)
+    "module": "esnext",
     "paths": {
       "@/*": ["./src/*"]
     }
