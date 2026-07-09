@@ -10,7 +10,7 @@
  *
  * Requires `react-native-svg` in the mobile app (it is the standard SVG runtime
  * for React Native; this file is excluded from the web typecheck via the
- * `**/*.native.tsx` exclude in packages/ui/tsconfig.json, so it adds no web dep).
+ * ".native.tsx" exclude glob in packages/ui/tsconfig.json, so it adds no web dep).
  */
 
 import React from 'react';

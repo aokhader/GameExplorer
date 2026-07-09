@@ -15,4 +15,8 @@ router.post('/blocks',               requireAuth, strictLimiter, userController.
 router.delete('/blocks/:targetUserId', requireAuth, userController.unblockUser);
 router.post('/reports',              requireAuth, strictLimiter, userController.reportUser);
 
+// Full account deletion (App Store 5.1.1 / Play data deletion). strictLimiter
+// (30/15min) is ample for a destructive, rarely-repeated action.
+router.delete('/me',                 requireAuth, strictLimiter, userController.deleteAccount);
+
 export default router;

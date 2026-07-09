@@ -9,7 +9,7 @@
  * component, so both platforms render identical discs from one source of truth.
  *
  * Requires `react-native-svg` in the mobile app. This file is excluded from the
- * web typecheck via the `**/*.native.tsx` exclude in packages/ui/tsconfig.json,
+ * web typecheck via the ".native.tsx" exclude glob in packages/ui/tsconfig.json,
  * so it adds no web dependency.
  */
 

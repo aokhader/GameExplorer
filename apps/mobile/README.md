@@ -5,7 +5,7 @@ React Native app for GameExplorer. Consumes the shared monorepo packages
 `@gameexplorer/db`) — game logic, bots, stores, session hooks, design tokens, and
 the Supabase client are **not** re-implemented here.
 
-## Status: M0 scaffold
+## Status: M0 scaffold (upgrading SDK 52 → 57)
 
 Done:
 - Expo SDK 52 + expo-router + NativeWind v4, monorepo-aware Metro/Babel config.
@@ -14,8 +14,13 @@ Done:
 - Root layout (gesture + safe-area providers, config bootstrap) and a home-hub
   placeholder screen proving the token system renders on device.
 
+In progress: **upgrade to Expo SDK 57** (RN 0.86 / React 19.2) for store gates
+(Play targetSdk 35 + 16 KB libs, Apple Xcode 26) and to unify React with web —
+see `project-docs/mobile-app-plan.md` (Decisions from the July 2026 strategy review).
+
 Pending (next milestones): auth + navigation (M1), native boards + local game loop
-(M2–M3), native Stockfish (M3), pass-and-play (M4), release polish (M5).
+(M2–M3), native Stockfish spike then integration (M3), pass-and-play (M4), release
+polish (M5). Store-compliance checklist lives in the mobile plan.
 
 ## First-time setup
 
@@ -44,17 +49,62 @@ pnpm --filter @gameexplorer/mobile ios       # or: android
 pnpm --filter @gameexplorer/mobile start
 ```
 
-Cloud builds / store submission use EAS:
+If the app talks to a locally-running API (`apps/api` on :4000), forward it to the
+emulator too:
 
 ```bash
-eas build --profile development --platform ios     # or android
-eas build --profile production --platform all
+adb reverse tcp:8081 tcp:8081   # Metro
+adb reverse tcp:4000 tcp:4000   # local API (EXPO_PUBLIC_API_URL=http://localhost:4000)
 ```
+
+## Cloud builds (EAS) & environment
+
+```bash
+eas login
+eas init            # then add `extra.eas.projectId` to app.config.ts by hand
+                    # (TypeScript config — the CLI can't write it automatically)
+eas build --profile development --platform android   # cloud dev-client (no local Gradle)
+eas build:run -p android --latest                    # install the cloud build
+```
+
+Env by profile: **local dev** reads `apps/mobile/.env.local` (Metro inlines
+`EXPO_PUBLIC_*`); the `eas.json` `development` profile's `env` is mostly inert for
+dev-client builds. **preview/production** builds need `EXPO_PUBLIC_API_URL` +
+`EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY` set via `eas env`.
+
+### iOS (from a Windows machine — deferred to ~M5)
+
+There is no local Xcode/simulator on Windows, so **iOS builds run in EAS cloud**.
+Testing on a physical iPhone requires Apple Developer Program enrollment ($99/yr,
+no Mac needed) and ad-hoc device provisioning:
+
+```bash
+eas device:create                                 # register the iPhone's UDID
+eas build --profile development --platform ios     # cloud ad-hoc build → install via QR
+eas submit --profile production --platform ios      # store submission, later
+```
+
+Until then, develop and test on the **Android emulator**.
 
 ## Why a dev client (not Expo Go)
 
 Expo Go can't load the native Stockfish module (M3) or custom config plugins, so the
 project standardizes on `expo-dev-client` from the start.
+
+## Clean reinstall (Windows / pnpm hoisted)
+
+The root `.npmrc` pins `node-linker=hoisted` (required so native C++ builds fit under
+Windows MAX_PATH). After changing the dependency tree, do a **full** clean reinstall —
+stale junctions otherwise shadow the hoisted copies:
+
+```bash
+# from the repo root, delete every node_modules, then:
+pnpm install
+pnpm --filter @gameexplorer/api exec prisma generate
+```
+
+`pnpm config get node-linker` must print `hoisted`. A `CMake`/MAX_PATH error during a
+native build means hoisting isn't in effect.
 
 ## Monorepo notes
 

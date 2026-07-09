@@ -24,6 +24,13 @@ const eslintConfig = defineConfig([
       // board animation components (e.g. resetting selection on turn change).
       // Downgrade from error to warn so CI doesn't block; clean up in a future pass.
       "react-hooks/set-state-in-effect": "warn",
+      // react-hooks v7 also promoted `refs` (read/write of a ref during render)
+      // to an error. PageTransition intentionally sets a render-time ref to gate
+      // first-paint animations behind `data-animate` so statically-prerendered
+      // HTML paints visible on first load (tech spec v4.11 / commit 270c9bc — the
+      // server render and first client render both omit the marker, so hydration
+      // matches). Keep it visible as a warning rather than block CI on the pattern.
+      "react-hooks/refs": "warn",
     },
   },
 ]);

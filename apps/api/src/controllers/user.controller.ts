@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma }         from '../config/database';
 import { getIO }          from '../websocket';
 import { blockService }   from '../services/block.service';
+import { accountService } from '../services/account.service';
 import type { AuthRequest } from '../middleware/auth';
 
 export const userController = {
@@ -120,5 +121,17 @@ export const userController = {
       gameId,
     });
     res.json({ ok: true });
+  },
+
+  // ── Account deletion ──────────────────────────────────────────────────────
+  async deleteAccount(req: AuthRequest, res: Response) {
+    const userId = req.userId!;
+    const result = await accountService.deleteAccount(userId);
+    if (result.ok) { res.json({ ok: true }); return; }
+    if (result.reason === 'unavailable') {
+      res.status(503).json({ error: 'Account deletion is temporarily unavailable' });
+      return;
+    }
+    res.status(500).json({ error: 'Account deletion failed — please try again' });
   },
 };

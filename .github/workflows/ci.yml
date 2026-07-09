@@ -45,7 +45,8 @@ jobs:
       - name: Type-check
         run: pnpm typecheck
 
-      # Only apps/web has a lint script today; Turbo skips packages without one.
+      # apps/web (eslint-config-next) and apps/mobile (eslint-config-expo) have
+      # lint scripts; Turbo skips packages without one.
       - name: Lint
         run: pnpm lint
 

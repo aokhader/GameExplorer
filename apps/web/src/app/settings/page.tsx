@@ -5,6 +5,7 @@ import { Card } from '@/components/ui';
 import { GradientText } from '@/components/visual';
 import { useSettings, type Settings } from '@/components/providers/SettingsProvider';
 import { useGameSfx } from '@/hooks/useGameSfx';
+import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
 import { cn } from '@/lib/utils';
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
@@ -134,6 +135,9 @@ export default function SettingsPage() {
             />
           </div>
         </Card>
+
+        {/* Danger zone — only renders for signed-in users */}
+        <DeleteAccountCard />
       </div>
     </div>
   );
