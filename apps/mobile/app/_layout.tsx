@@ -3,11 +3,16 @@ import '../global.css';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { COLORS } from '@gameexplorer/ui';
 
 import { bootstrapConfig } from '@/config/env';
+
+// SDK 54+ no longer auto-hides the splash on first render — hide it explicitly
+// once the root has mounted, or the app sits on the splash forever.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /**
  * Root layout. Order matters:
@@ -22,6 +27,8 @@ import { bootstrapConfig } from '@/config/env';
 export default function RootLayout() {
   useEffect(() => {
     bootstrapConfig();
+    // Root has mounted and providers are wired — reveal the app.
+    SplashScreen.hideAsync().catch(() => {});
   }, []);
 
   return (

@@ -5,9 +5,9 @@ module.exports = function (api) {
       ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
       'nativewind/babel',
     ],
-    plugins: [
-      // MUST be last. Powers react-native-reanimated worklets (board drag/anim).
-      'react-native-reanimated/plugin',
-    ],
+    // No manual reanimated/worklets plugin: babel-preset-expo@57 auto-injects
+    // `react-native-worklets/plugin` (last) when react-native-worklets is
+    // installed — reanimated 4's replacement for the old reanimated/plugin.
+    // Listing it here too would load the plugin twice.
   };
 };

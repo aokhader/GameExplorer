@@ -3,8 +3,8 @@ import type { ExpoConfig } from 'expo/config';
 /**
  * Expo app config. `scheme` powers deep links used for OAuth callback
  * (`gameexplorer://auth/callback`) and multiplayer invite links in v1.1.
- * New Architecture is on (RN 0.76 default) — reanimated + gesture-handler +
- * svg all support it.
+ * New Architecture is always-on in SDK 57 / RN 0.86 — reanimated (v4 +
+ * worklets) + gesture-handler + svg all support it.
  */
 const config: ExpoConfig = {
   name: 'GameExplorer',
@@ -13,7 +13,8 @@ const config: ExpoConfig = {
   version: '0.1.0',
   orientation: 'portrait',
   userInterfaceStyle: 'dark',
-  newArchEnabled: true,
+  // New Architecture is always-on in SDK 57 / RN 0.86 — the `newArchEnabled`
+  // flag was removed from ExpoConfig.
   // Final app icon / splash artwork lands in M5 (release polish). For now a
   // placeholder brand mark (assets/splash-icon.png) satisfies the native
   // splash drawable so the Android build links; the background stays brand base.
@@ -26,6 +27,10 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    // SDK 57 ships config plugins for these; `expo install --fix` flags them.
+    'expo-audio',
+    'expo-image',
+    'expo-status-bar',
     [
       'expo-splash-screen',
       {
