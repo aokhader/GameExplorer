@@ -1,0 +1,261 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  calculateNewRating,
+  type GameOutcome,
+} from '@gameexplorer/shared';
+import {
+  getUserRating,
+  upsertUserRating,
+  type GameType,
+  type SaveGameOptions,
+  type UserRating,
+} from '@gameexplorer/db';
+
+export type LocalGameMode = 'bot' | 'pass-and-play';
+export type Color = 'white' | 'black';
+
+/**
+ * Everything `useLocalGame` needs to drive a single game without knowing its
+ * rules — supplied per game (checkers now; chess/reversi in M3). Keeping the loop
+ * engine-agnostic is what lets pass-and-play (M4) reuse it as a config flag.
+ */
+export interface LocalGameAdapter<S> {
+  gameType: GameType;
+  newGame(): S;
+  currentTurn(state: S): Color;
+  isGameOver(state: S): boolean;
+  winner(state: S): Color | null;
+  validateMove(state: S, from: string, to: string): { valid: boolean; resultingState?: S };
+  getBotMove(state: S, elo: number): { from: string; to: string };
+  /** Padding delay (ms) so a bot reply doesn't feel instant. */
+  thinkTimeForElo(elo: number): number;
+  save(args: {
+    state: S;
+    playerColor: Color;
+    result: Color | 'draw';
+    difficulty: string;
+    userId?: string;
+    options?: SaveGameOptions;
+  }): Promise<unknown>;
+}
+
+export interface UseLocalGameOptions<S> {
+  adapter: LocalGameAdapter<S>;
+  mode: LocalGameMode;
+  playerColor: Color;
+  targetElo: number;
+  /** Apply an Elo change on end (bot mode + signed in + online). */
+  rated: boolean;
+  userId: string | null;
+  /** Setup complete — the loop is live (bot may move first if player is black). */
+  started: boolean;
+}
+
+export interface RatingResult {
+  before: number;
+  after: number;
+  delta: number;
+}
+
+/**
+ * The local game loop — the native port of web's `bot/page.tsx` timeline model,
+ * generalized behind a `LocalGameAdapter`. It owns the move `timeline`, the
+ * history scrubber (`viewIndex`), the bot reply effect, manual end (resign /
+ * agree-draw), and the save + rating write on game end. Boards call `handleMove`;
+ * everything else is derived here.
+ */
+export function useLocalGame<S>({
+  adapter,
+  mode,
+  playerColor,
+  targetElo,
+  rated,
+  userId,
+  started,
+}: UseLocalGameOptions<S>) {
+  const [timeline, setTimeline] = useState<S[]>(() => [adapter.newGame()]);
+  const [viewIndex, setViewIndex] = useState(0);
+  const [isThinking, setIsThinking] = useState(false);
+  const [manualEnd, setManualEnd] = useState<'resign' | 'draw' | null>(null);
+  const [userRating, setUserRating] = useState<UserRating | null>(null);
+  const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
+  const [gameSaved, setGameSaved] = useState(false);
+
+  const liveState = timeline[timeline.length - 1];
+  const displayState = timeline[viewIndex];
+  const isAtLive = viewIndex === timeline.length - 1;
+
+  // Refs so the async bot task / save effect read fresh values without re-firing.
+  const timelineRef = useRef(timeline);
+  timelineRef.current = timeline;
+  const viewIndexRef = useRef(viewIndex);
+  viewIndexRef.current = viewIndex;
+  const targetEloRef = useRef(targetElo);
+  targetEloRef.current = targetElo;
+  const playerColorRef = useRef(playerColor);
+  playerColorRef.current = playerColor;
+  const userRatingRef = useRef(userRating);
+  userRatingRef.current = userRating;
+  const manualEndRef = useRef(manualEnd);
+  manualEndRef.current = manualEnd;
+
+  // Load the player's current rating once we know who they are (rated bot games).
+  useEffect(() => {
+    if (!userId || !rated || mode !== 'bot') {
+      setUserRating(null);
+      return;
+    }
+    let active = true;
+    getUserRating(userId, adapter.gameType).then((r) => {
+      if (active) setUserRating(r);
+    });
+    return () => {
+      active = false;
+    };
+  }, [userId, rated, mode, adapter]);
+
+  // ── Bot reply ─────────────────────────────────────────────────────────────────
+  const makeBotMove = useCallback(async () => {
+    const currentTimeline = timelineRef.current;
+    const wasAtLive = viewIndexRef.current === currentTimeline.length - 1;
+    const current = currentTimeline[currentTimeline.length - 1];
+    const elo = targetEloRef.current;
+
+    setIsThinking(true);
+    try {
+      // Compute off the current tick (so "thinking" paints) and honor a minimum
+      // think time, exactly like web.
+      const [move] = await Promise.all([
+        new Promise<{ from: string; to: string }>((resolve) =>
+          setTimeout(() => resolve(adapter.getBotMove(current, elo)), 0),
+        ),
+        new Promise((resolve) => setTimeout(resolve, adapter.thinkTimeForElo(elo))),
+      ]);
+
+      // Dropped if the player resigned / agreed a draw while the bot thought.
+      if (manualEndRef.current) return;
+
+      const result = adapter.validateMove(current, move.from, move.to);
+      if (result.valid && result.resultingState) {
+        const next = result.resultingState;
+        setTimeline((prev) => [...prev, next]);
+        if (wasAtLive) setViewIndex(currentTimeline.length);
+      }
+    } catch (err) {
+      console.error('Bot error:', err);
+    } finally {
+      setIsThinking(false);
+    }
+  }, [adapter]);
+
+  useEffect(() => {
+    if (!started || mode !== 'bot') return;
+    if (adapter.isGameOver(liveState) || manualEnd) return;
+    const isBotTurn = adapter.currentTurn(liveState) !== playerColor;
+    if (isBotTurn && !isThinking) makeBotMove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveState, playerColor, started, isThinking, manualEnd, mode]);
+
+  // ── Save + rating on end ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!started || gameSaved) return;
+    if (!adapter.isGameOver(liveState) && !manualEnd) return;
+    setGameSaved(true);
+
+    const pc = playerColorRef.current;
+    const other: Color = pc === 'white' ? 'black' : 'white';
+    const winner = adapter.winner(liveState);
+    const result: Color | 'draw' =
+      manualEnd === 'draw' ? 'draw'
+      : manualEnd === 'resign' ? other
+      : winner === null ? 'draw'
+      : winner === pc ? pc
+      : other;
+
+    const outcome: GameOutcome = result === 'draw' ? 'draw' : result === pc ? 'win' : 'loss';
+    const difficulty = `elo-${targetEloRef.current}`;
+    const current = userRatingRef.current;
+
+    // Casual: pass-and-play, guests, or an unrated bot game — save without Elo.
+    if (mode !== 'bot' || !rated || !current || !userId) {
+      adapter.save({ state: liveState, playerColor: pc, result, difficulty, userId: userId ?? undefined });
+      return;
+    }
+
+    const newRating = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played);
+    const delta = newRating - current.rating;
+
+    Promise.all([
+      upsertUserRating(userId, newRating, outcome, adapter.gameType),
+      adapter.save({
+        state: liveState,
+        playerColor: pc,
+        result,
+        difficulty,
+        userId,
+        options: { mode: 'rated', rating_before: current.rating, rating_after: newRating },
+      }),
+    ])
+      .then(([updated]) => {
+        setUserRating(updated);
+        setRatingResult({ before: current.rating, after: newRating, delta });
+      })
+      .catch((err) => console.error('Failed to save game / rating:', err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveState, manualEnd, started]);
+
+  // ── Player actions ─────────────────────────────────────────────────────────────
+  const handleMove = useCallback(
+    (from: string, to: string) => {
+      const live = timelineRef.current[timelineRef.current.length - 1];
+      if (viewIndexRef.current !== timelineRef.current.length - 1) return;
+      if (adapter.isGameOver(live) || manualEndRef.current) return;
+      // In pass-and-play both colors are the human; in bot mode only the player's.
+      if (mode === 'bot' && adapter.currentTurn(live) !== playerColorRef.current) return;
+
+      const result = adapter.validateMove(live, from, to);
+      if (result.valid && result.resultingState) {
+        const nextIdx = timelineRef.current.length;
+        setTimeline((prev) => [...prev, result.resultingState as S]);
+        setViewIndex(nextIdx);
+      }
+    },
+    [adapter, mode],
+  );
+
+  const endManually = useCallback(
+    (kind: 'resign' | 'draw') => {
+      if (manualEndRef.current || adapter.isGameOver(timelineRef.current[timelineRef.current.length - 1])) return;
+      setManualEnd(kind);
+      setIsThinking(false);
+    },
+    [adapter],
+  );
+
+  const newGame = useCallback(() => {
+    setTimeline([adapter.newGame()]);
+    setViewIndex(0);
+    setIsThinking(false);
+    setManualEnd(null);
+    setRatingResult(null);
+    setGameSaved(false);
+  }, [adapter]);
+
+  return {
+    timeline,
+    viewIndex,
+    setViewIndex,
+    liveState,
+    displayState,
+    isAtLive,
+    isThinking,
+    manualEnd,
+    ratingResult,
+    handleMove,
+    resign: () => endManually('resign'),
+    agreeDraw: () => endManually('draw'),
+    newGame,
+    canGoBack: viewIndex > 0,
+    canGoForward: viewIndex < timeline.length - 1,
+  };
+}

@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
 import { Screen, BackHeader } from '@/components/ui';
+import { CheckersScreen } from '@/screens/CheckersScreen';
 
 const LABELS: Record<string, string> = {
   chess: 'Chess',
@@ -10,13 +11,15 @@ const LABELS: Record<string, string> = {
 };
 
 /**
- * Per-game placeholder. M1 wires the home hub's cards to real navigation targets;
- * the native board + setup screen land here in M2 (checkers first), M3 (reversi,
- * chess). Until then this confirms the routing works and sets expectations.
+ * Per-game entry point. Checkers ships in M2 (setup → native board vs bot);
+ * chess + reversi land in M3 and keep the placeholder until then.
  */
-export default function GamePlaceholderScreen() {
+export default function GameScreen() {
   const { game } = useLocalSearchParams<{ game: string }>();
   const key = (game ?? 'chess').toLowerCase();
+
+  if (key === 'checkers') return <CheckersScreen />;
+
   const label = LABELS[key] ?? 'Game';
   const accent = GAME_ACCENTS[key as keyof typeof GAME_ACCENTS]?.base ?? COLORS.accent;
 
@@ -36,9 +39,7 @@ export default function GamePlaceholderScreen() {
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 34 }}>
-            {key === 'checkers' ? '⛃' : key === 'reversi' ? '⚫' : '♞'}
-          </Text>
+          <Text style={{ fontSize: 34 }}>{key === 'reversi' ? '⚫' : '♞'}</Text>
         </View>
         <Text style={{ color: COLORS.fg, fontSize: 20, fontWeight: '700' }}>
           {label} is on the way
