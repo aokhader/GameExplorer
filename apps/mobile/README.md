@@ -59,18 +59,34 @@ adb reverse tcp:4000 tcp:4000   # local API (EXPO_PUBLIC_API_URL=http://localhos
 
 ## Cloud builds (EAS) & environment
 
+The EAS project is already linked — `extra.eas.projectId` is set in `app.config.ts`
+(the CLI can't auto-write a TypeScript config), so `eas init` is not needed. Just log
+in, then build:
+
 ```bash
-eas login
-eas init            # then add `extra.eas.projectId` to app.config.ts by hand
-                    # (TypeScript config — the CLI can't write it automatically)
-eas build --profile development --platform android   # cloud dev-client (no local Gradle)
-eas build:run -p android --latest                    # install the cloud build
+eas login                                             # interactive; credentials cached in ~/.expo
+eas build --profile preview --platform android        # standalone APK, JS bundle embedded
+eas build --profile development --platform android    # dev-client APK (needs Metro to load JS)
+eas build:run -p android --latest                     # download + install the latest build
 ```
+
+The first Android build asks to generate a keystore — say yes (EAS stores it
+remotely). With a logged-in session (or `EXPO_TOKEN` set) a `--non-interactive`
+build generates it automatically, the standard CI flow.
+
+**Preview vs development, and why preview is handy here:** a `development` build is a
+dev client that still fetches JS from Metro over the network — the same
+`adb reverse` / localhost dance as a local build, which is **flaky on the emulator**
+(see the Metro note below). A `preview` build **embeds the JS bundle in the APK**, so
+it runs standalone with no Metro connection — the reliable way to actually see the app
+render on the emulator or a device.
 
 Env by profile: **local dev** reads `apps/mobile/.env.local` (Metro inlines
 `EXPO_PUBLIC_*`); the `eas.json` `development` profile's `env` is mostly inert for
 dev-client builds. **preview/production** builds need `EXPO_PUBLIC_API_URL` +
-`EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY` set via `eas env`.
+`EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY` set via `eas env`
+(the home hub renders without them — `bootstrapConfig` falls back to
+`http://localhost:4000` — but any screen that talks to Supabase/the API needs them).
 
 ### iOS (from a Windows machine — deferred to ~M5)
 
@@ -110,6 +126,15 @@ native build means hoisting isn't in effect.
 
 - `metro.config.js` watches the workspace root and points resolution at both the
   app's and the root's `node_modules` (pnpm hoists shared deps to the root).
-- Shared packages are consumed from **source**; `@gameexplorer/db` exposes a
-  `react-native` entry so Metro picks up `client.native.ts` (AsyncStorage session)
-  instead of the web `dist` build.
+- Shared packages are consumed from **source**. `@gameexplorer/client` and
+  `@gameexplorer/ui` point `main` straight at `src/index.ts`; `@gameexplorer/db`
+  and `@gameexplorer/shared` keep `main: dist/index.js` (for web/API) but add a
+  `"react-native": "./src/index.ts"` field so Metro reads source on native
+  (`db`'s also selects `client.native.ts` for the AsyncStorage session).
+  **Rule:** any workspace package consumed by mobile whose `main` points at
+  `dist/` MUST also carry the `react-native`→`src` field. Otherwise Metro's
+  `main` fallback needs a built `dist/`, which exists locally but **not** on a
+  clean EAS builder — the bundle then fails only in the cloud (`EAGER_BUNDLE`:
+  "specifies a `main` module field that could not be resolved … dist/index.js").
+  Reproduce clean-cloud bundling locally by hiding the `dist/` dirs and running
+  `npx expo export --platform android`.

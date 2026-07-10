@@ -2,6 +2,7 @@
 // by apps/web today and apps/mobile (React Native) later. No DOM, no next/*.
 
 export { getApiUrl, setApiUrl } from './config';
+export { apiFetch } from './apiFetch';
 
 export { useAuthStore } from './stores/authStore';
 export { useGameStore } from './stores/gameStore';

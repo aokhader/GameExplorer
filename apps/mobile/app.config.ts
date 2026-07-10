@@ -9,6 +9,9 @@ import type { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'GameExplorer',
   slug: 'gameexplorer',
+  // The EAS project lives under the `gameexplorermobile` account (an org),
+  // not the personal login — pin it so builds resolve the right owner.
+  owner: 'gameexplorermobile',
   scheme: 'gameexplorer',
   version: '0.1.0',
   orientation: 'portrait',
@@ -31,6 +34,9 @@ const config: ExpoConfig = {
     'expo-audio',
     'expo-image',
     'expo-status-bar',
+    // OAuth sign-in opens the provider consent page in an in-app browser tab and
+    // catches the `gameexplorer://auth/callback` deep link on return (M1 auth).
+    'expo-web-browser',
     [
       'expo-splash-screen',
       {
@@ -49,6 +55,11 @@ const config: ExpoConfig = {
     // Consumed via expo-constants if EXPO_PUBLIC_* inlining is ever insufficient.
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    // EAS project link. `eas init` can't auto-write this TypeScript config, so
+    // it's set by hand (EAS dashboard → project settings).
+    eas: {
+      projectId: '455b736e-0a50-4a5d-90e2-448dc2e8ce83',
+    },
   },
 };
 

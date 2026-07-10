@@ -1,0 +1,205 @@
+import { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { Screen, Button } from '@/components/ui';
+import { markOnboarded } from '@/lib/onboarding';
+
+type GameId = 'chess' | 'checkers' | 'reversi';
+type Difficulty = 'relaxed' | 'balanced' | 'sharp';
+
+const GAMES: { id: GameId; name: string; icon: string; tagline: string }[] = [
+  { id: 'chess', name: 'Chess', icon: '♞', tagline: 'Timeless strategy' },
+  { id: 'checkers', name: 'Checkers', icon: '⛃', tagline: 'Easy to learn' },
+  { id: 'reversi', name: 'Reversi', icon: '⚫', tagline: 'Quick to master' },
+];
+
+const DIFFICULTIES: { id: Difficulty; name: string; icon: string; tagline: string; accent: string }[] = [
+  { id: 'relaxed', name: 'Relaxed', icon: '😌', tagline: 'Forgiving — great to learn', accent: COLORS.successHover },
+  { id: 'balanced', name: 'Balanced', icon: '🙂', tagline: 'A fair fight', accent: COLORS.info },
+  { id: 'sharp', name: 'Sharp', icon: '🔥', tagline: 'Bring your A-game', accent: COLORS.dangerHover },
+];
+
+function OptionRow({
+  icon,
+  name,
+  tagline,
+  selected,
+  accent,
+  onPress,
+}: {
+  icon: string;
+  name: string;
+  tagline: string;
+  selected: boolean;
+  accent: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        paddingHorizontal: 16,
+        paddingVertical: 15,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: selected ? accent : COLORS.border,
+        backgroundColor: selected ? COLORS.surfaceHover : COLORS.surfaceAlt,
+      }}
+    >
+      <Text style={{ fontSize: 26 }}>{icon}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: COLORS.fg, fontSize: 16, fontWeight: '700' }}>{name}</Text>
+        <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{tagline}</Text>
+      </View>
+      {selected && (
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor: accent,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ color: COLORS.surface, fontSize: 13, fontWeight: '800' }}>✓</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/**
+ * First-run tour. A trimmed native mirror of the web `/welcome`: pick a game, pick
+ * a difficulty vibe, start playing. Seeing the tour counts as onboarding, so the
+ * home hub never redirects here again. "Start playing" routes into the game screen
+ * (a placeholder until the native boards land in M2/M3).
+ */
+export default function WelcomeScreen() {
+  const router = useRouter();
+  const [step, setStep] = useState(0);
+  const [game, setGame] = useState<GameId>('chess');
+  const [difficulty, setDifficulty] = useState<Difficulty>('relaxed');
+
+  // Seeing the tour counts as taking it.
+  useEffect(() => {
+    markOnboarded();
+  }, []);
+
+  const totalSteps = 3;
+
+  const start = () => router.replace({ pathname: '/play/[game]', params: { game } } as never);
+
+  const advance = () => {
+    if (step === 2) start();
+    else setStep((s) => s + 1);
+  };
+
+  return (
+    <Screen>
+      {/* Progress dots */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 12, marginBottom: 24 }}>
+        {Array.from({ length: totalSteps }, (_, i) => (
+          <View
+            key={i}
+            style={{
+              height: 5,
+              width: i === step ? 22 : 8,
+              borderRadius: 3,
+              backgroundColor: i === step ? COLORS.accent : COLORS.border,
+            }}
+          />
+        ))}
+      </View>
+
+      {step > 0 && (
+        <Pressable onPress={() => setStep((s) => s - 1)} hitSlop={10} style={{ marginBottom: 8 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: 15 }}>‹ Back</Text>
+        </Pressable>
+      )}
+
+      {step === 0 && (
+        <View style={{ alignItems: 'center', paddingTop: 24, gap: 14 }}>
+          <Text style={{ fontSize: 56 }}>♟️</Text>
+          <Text style={{ color: COLORS.fg, fontSize: 26, fontWeight: '800', textAlign: 'center' }}>
+            Welcome to <Text style={{ color: COLORS.accent }}>GameExplorer</Text>
+          </Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: 15, textAlign: 'center', lineHeight: 22, maxWidth: 300 }}>
+            Chess, checkers &amp; reversi — the classics you know, ready in seconds.
+          </Text>
+          <View style={{ width: '100%', gap: 12, marginTop: 16 }}>
+            <Button label="Let's play →" onPress={advance} glow />
+            <Pressable
+              onPress={() => router.replace('/(auth)/sign-in' as never)}
+              style={{ alignItems: 'center', paddingVertical: 8 }}
+            >
+              <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>
+                Already have an account? <Text style={{ color: COLORS.infoHover, fontWeight: '700' }}>Sign in</Text>
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {step === 1 && (
+        <>
+          <Text style={{ color: COLORS.fg, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+            What do you feel like playing?
+          </Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
+            You can switch anytime.
+          </Text>
+          <View style={{ gap: 12 }}>
+            {GAMES.map((g) => (
+              <OptionRow
+                key={g.id}
+                icon={g.icon}
+                name={g.name}
+                tagline={g.tagline}
+                selected={game === g.id}
+                accent={GAME_ACCENTS[g.id].base}
+                onPress={() => setGame(g.id)}
+              />
+            ))}
+          </View>
+          <Button label="Continue →" onPress={advance} style={{ marginTop: 20 }} />
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <Text style={{ color: COLORS.fg, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+            How tough should the bot be?
+          </Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
+            The bot adapts as you improve.
+          </Text>
+          <View style={{ gap: 12 }}>
+            {DIFFICULTIES.map((d) => (
+              <OptionRow
+                key={d.id}
+                icon={d.icon}
+                name={d.name}
+                tagline={d.tagline}
+                selected={difficulty === d.id}
+                accent={d.accent}
+                onPress={() => setDifficulty(d.id)}
+              />
+            ))}
+          </View>
+          <Button label="Start playing →" onPress={advance} glow style={{ marginTop: 20 }} />
+        </>
+      )}
+
+      <Pressable onPress={() => router.replace('/' as never)} style={{ alignItems: 'center', marginTop: 20 }}>
+        <Text style={{ color: COLORS.fgSubtle, fontSize: 13 }}>Skip the tour — browse on my own</Text>
+      </Pressable>
+    </Screen>
+  );
+}

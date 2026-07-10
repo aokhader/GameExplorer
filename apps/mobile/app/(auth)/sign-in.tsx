@@ -1,0 +1,89 @@
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { COLORS } from '@gameexplorer/ui';
+import { supabase } from '@gameexplorer/db';
+import { Button, Screen, BackHeader, TextField } from '@/components/ui';
+import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
+
+/**
+ * Email/password + OAuth sign-in. Mirrors the web `/auth/signin` page. On success
+ * we route to `next` (defaults to /profile). The shared `onAuthStateChange`
+ * (mounted by AuthBootstrap) updates the store; the redirect just moves the UI.
+ */
+export default function SignInScreen() {
+  const router = useRouter();
+  const { next } = useLocalSearchParams<{ next?: string }>();
+  const target = next ?? '/profile';
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const done = () => router.replace(target as never);
+
+  const handleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      done();
+    }
+  };
+
+  return (
+    <Screen>
+      <BackHeader fallbackHref="/" />
+      <Text style={{ color: COLORS.fg, fontSize: 28, fontWeight: '800', marginBottom: 24 }}>
+        Sign in
+      </Text>
+
+      <View style={{ gap: 16 }}>
+        <OAuthButtons onSuccess={done} onError={(m) => setError(m || null)} />
+        <OrDivider />
+
+        <TextField
+          label="Email"
+          placeholder="you@example.com"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          inputMode="email"
+        />
+        <TextField
+          label="Password"
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoCapitalize="none"
+          onSubmitEditing={handleSignIn}
+          returnKeyType="go"
+        />
+
+        {error && <Text style={{ color: COLORS.dangerHover, fontSize: 14 }}>{error}</Text>}
+
+        <Button
+          label="Sign in"
+          onPress={handleSignIn}
+          loading={loading}
+          disabled={!email || !password}
+          glow
+        />
+
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 4 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>No account?</Text>
+          <Pressable onPress={() => router.replace('/(auth)/sign-up' as never)}>
+            <Text style={{ color: COLORS.accent, fontSize: 14, fontWeight: '600' }}>Sign up</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Screen>
+  );
+}

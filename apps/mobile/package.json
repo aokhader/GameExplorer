@@ -12,11 +12,11 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@expo/metro-runtime": "~57.0.3",
     "@gameexplorer/client": "workspace:*",
     "@gameexplorer/db": "workspace:*",
     "@gameexplorer/shared": "workspace:*",
     "@gameexplorer/ui": "workspace:*",
-    "@expo/metro-runtime": "~57.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.4",
     "expo-audio": "~57.0.0",
@@ -29,6 +29,7 @@
     "expo-router": "~57.0.4",
     "expo-splash-screen": "~57.0.2",
     "expo-status-bar": "~57.0.0",
+    "expo-web-browser": "~57.0.0",
     "nativewind": "~4.2.6",
     "react": "19.2.3",
     "react-native": "0.86.0",

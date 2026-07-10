@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./config": "./src/config.ts",
+    "./apiFetch": "./src/apiFetch.ts",
     "./hooks/useAuth": "./src/hooks/useAuth.ts",
     "./stores/authStore": "./src/stores/authStore.ts",
     "./package.json": "./package.json"

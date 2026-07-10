@@ -1,30 +1,5 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-
-/**
- * Authenticated fetch against the Express API. Pulls the current Supabase
- * access token (the same JWT the socket uses) and sends it as a Bearer header,
- * matching the server's `requireAuth` middleware. Throws on non-2xx with the
- * server's `error` message when present.
- */
-export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
-  // Dynamic import keeps Supabase out of the initial JS of pages that only
-  // *might* call the API; the module is cached after the first call.
-  const { supabase } = await import('@gameexplorer/db');
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-
-  const res = await fetch(`${API_BASE}/api${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(body.error ?? `Request failed (${res.status})`);
-  }
-  return res.json() as Promise<T>;
-}
+// The authenticated API fetch now lives in the shared client layer so web and
+// mobile share one implementation (see packages/client/src/apiFetch.ts). This
+// re-export keeps the existing `@/lib/apiFetch` import path stable for callers.
+// The base URL is `getApiUrl()`, set at startup by ClientConfig via setApiUrl().
+export { apiFetch } from '@gameexplorer/client/apiFetch';
