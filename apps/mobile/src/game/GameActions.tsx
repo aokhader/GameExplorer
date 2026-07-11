@@ -29,21 +29,34 @@ export function GameActions({
 }: GameActionsProps) {
   const [confirming, setConfirming] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Source of truth for the two-tap confirm, read synchronously. `confirming`
+  // state alone races on a fast double-tap: both taps' handlers close over
+  // confirming=false (React hasn't re-rendered between them), so the second tap
+  // starts a *new* confirm instead of firing onResign — the resign never lands.
+  const confirmingRef = useRef(false);
 
-  useEffect(() => () => {
+  const stopTimer = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  }, []);
+    timeoutRef.current = null;
+  };
+
+  useEffect(() => () => stopTimer(), []);
 
   const handleResign = () => {
     if (!onResign) return;
-    if (confirming) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (confirmingRef.current) {
+      stopTimer();
+      confirmingRef.current = false;
       setConfirming(false);
       onResign();
       return;
     }
+    confirmingRef.current = true;
     setConfirming(true);
-    timeoutRef.current = setTimeout(() => setConfirming(false), 3000);
+    timeoutRef.current = setTimeout(() => {
+      confirmingRef.current = false;
+      setConfirming(false);
+    }, 3000);
   };
 
   const buttonBase: ViewStyle = {

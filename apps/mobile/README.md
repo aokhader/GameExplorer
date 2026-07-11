@@ -41,21 +41,55 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 
 ## Run
 
-```bash
-# Build + install the dev client on a simulator/emulator (first run only)
-pnpm --filter @gameexplorer/mobile ios       # or: android
-
-# Start Metro against the dev client
-pnpm --filter @gameexplorer/mobile start
-```
-
-If the app talks to a locally-running API (`apps/api` on :4000), forward it to the
-emulator too:
+The dev-client APK holds only native code; the JS is served live by Metro. So the
+loop is: **boot emulator → start Metro → point emulator at Metro → open the app.**
 
 ```bash
-adb reverse tcp:8081 tcp:8081   # Metro
-adb reverse tcp:4000 tcp:4000   # local API (EXPO_PUBLIC_API_URL=http://localhost:4000)
+# First run only — build + install the dev client on the emulator/simulator
+pnpm --filter @gameexplorer/mobile android    # or: ios
 ```
+
+### Run on the Android emulator (day-to-day)
+
+1. **Boot an emulator** (skip if one's already running). From Android Studio's Device
+   Manager, or a terminal:
+   ```bash
+   emulator -list-avds              # list AVDs
+   emulator -avd <name>             # e.g. Pixel_7_API_35
+   adb devices                      # confirm: emulator-5554  device
+   ```
+2. **Start Metro** from this folder, and leave it running:
+   ```bash
+   cd apps/mobile
+   npx expo start --dev-client --port 8081
+   ```
+3. **Point the emulator's localhost at Metro** (in a second terminal). Re-run this
+   whenever adb or the emulator restarts — a dropped mapping shows as a network-error
+   screen in the app:
+   ```bash
+   adb reverse tcp:8081 tcp:8081                       # Metro
+   adb reverse tcp:4000 tcp:4000                       # only if using a local API on :4000
+   ```
+4. **Open the app** — tap the **GameExplorer** icon, or launch it via its dev-client URL:
+   ```bash
+   adb shell am start -a android.intent.action.VIEW \
+     -d "exp+gameexplorer://expo-development-client/?url=http://localhost:8081"
+   ```
+
+### Reload after code changes (Windows cache gotcha)
+
+Reload with the shake gesture, or `adb shell input keyevent 82` → **Reload**. If a
+change won't show — **especially new files or new/renamed routes** — Metro's file
+watch is flaky on Windows (no watchman). Restart Metro with a cleared cache, then
+force-stop the app so it refetches a fresh bundle:
+
+```bash
+npx expo start --dev-client --port 8081 --clear     # rebuilds cache from current files
+adb shell am force-stop com.gameexplorer.app        # then reopen (step 4)
+```
+
+If Metro won't start with `EADDRINUSE`/`8081 in use`, kill the stale instance first
+(`npx kill-port 8081`, or find the PID via `netstat -ano | findstr :8081`).
 
 ## Cloud builds (EAS) & environment
 

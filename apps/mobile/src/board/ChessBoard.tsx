@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -8,28 +8,24 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { CheckersEngine } from '@gameexplorer/shared';
-import type { CheckersGameState } from '@gameexplorer/shared';
-import {
-  CheckersPiece,
-  CHECKERS_BOARD_COLORS,
-  COLORS,
-  SHADOWS_NATIVE,
-} from '@gameexplorer/ui';
+import { ChessEngine } from '@gameexplorer/shared';
+import type { ChessGameState, PieceType } from '@gameexplorer/shared';
+import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 
-interface CheckersBoardProps {
-  gameState: CheckersGameState;
-  onMove: (from: string, to: string) => void;
+interface ChessBoardProps {
+  gameState: ChessGameState;
+  onMove: (from: string, to: string, promotion?: PieceType) => void;
   playerColor?: 'white' | 'black';
   showCoordinates?: boolean;
   /** Board is inert while reviewing history / after game end. */
   interactive?: boolean;
 }
 
-const PIECE_RATIO = 0.86;
+const PIECE_RATIO = 0.92;
+const CHECK_RING = 'rgba(244,63,94,0.9)';
 
 function isDark(row: number, col: number): boolean {
   return (row + col) % 2 === 1;
@@ -53,8 +49,7 @@ function screenXY(pos: string, isFlipped: boolean, sq: number): { x: number; y: 
   return { x: screenCol * sq, y: screenRow * sq };
 }
 
-/** On-screen px → board position (clamped to the 8×8 grid). `size` is the full
- *  board edge length; squares are `size / 8`. */
+/** On-screen px → board position. `size` is the full board edge length. */
 function squareAt(x: number, y: number, isFlipped: boolean, size: number): string {
   const sq = size / 8;
   const clamp = (n: number) => Math.max(0, Math.min(7, Math.floor(n / sq)));
@@ -65,11 +60,26 @@ function squareAt(x: number, y: number, isFlipped: boolean, size: number): strin
   return posFromCoords(boardRow, boardCol);
 }
 
-/**
- * A single piece, absolutely positioned, with a reanimated "arrive" pop when it
- * lands (mirrors web's `scale-110` transition on the just-moved square). The
- * origin piece dims while its owner drags it (the "lifted" look).
- */
+/** Find the given color's king square, or null. Called only when in check. */
+function findKing(board: ChessGameState['board'], color: 'white' | 'black'): string | null {
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const p = board[row][col];
+      if (p && p.type === 'king' && p.color === color) return posFromCoords(row, col);
+    }
+  }
+  return null;
+}
+
+/** True if moving the pawn at `from` to `to` reaches the back rank. */
+function isPromotion(state: ChessGameState, from: string, to: string): boolean {
+  const piece = state.board[rowOf(from)][colOf(from)];
+  if (!piece || piece.type !== 'pawn') return false;
+  const toRow = rowOf(to);
+  return (piece.color === 'white' && toRow === 7) || (piece.color === 'black' && toRow === 0);
+}
+
+/** A single piece, absolutely positioned, with an "arrive" pop on the last move. */
 function BoardPiece({
   x,
   y,
@@ -83,7 +93,7 @@ function BoardPiece({
   x: number;
   y: number;
   sq: number;
-  type: 'man' | 'king';
+  type: PieceType;
   color: 'white' | 'black';
   dimmed: boolean;
   pop: boolean;
@@ -99,7 +109,6 @@ function BoardPiece({
         withTiming(1, { duration: 120 }),
       );
     }
-    // Only re-run when the pop trigger flips on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pop]);
 
@@ -122,49 +131,112 @@ function BoardPiece({
         anim,
       ]}
     >
-      <CheckersPiece type={type} color={color} size={sq * PIECE_RATIO} />
+      <ChessPiece type={type} color={color} size={sq * PIECE_RATIO} />
     </Animated.View>
   );
 }
 
+/** Promotion picker overlay — shown when a pawn reaches the back rank. */
+function PromotionPicker({
+  color,
+  size,
+  onSelect,
+}: {
+  color: 'white' | 'black';
+  size: number;
+  onSelect: (piece: PieceType) => void;
+}) {
+  const pieces: PieceType[] = ['queen', 'rook', 'bishop', 'knight'];
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: size,
+        height: size,
+        zIndex: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.6)',
+      }}
+    >
+      <View
+        style={{
+          backgroundColor: COLORS.surfaceAlt,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: COLORS.border,
+          padding: 14,
+          alignItems: 'center',
+        }}
+      >
+        <Text style={{ color: COLORS.fg, fontSize: 14, fontWeight: '700', marginBottom: 10 }}>
+          Promote pawn to:
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {pieces.map((type) => (
+            <Pressable
+              key={type}
+              onPress={() => onSelect(type)}
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 12,
+                backgroundColor: COLORS.surfaceMuted,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ChessPiece type={type} color={color} size={44} />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 /**
- * Native checkers board — the interaction/animation port of web's
- * `CheckersBoard.tsx`. One `Pan` gesture over the whole board serves both
- * tap-to-move and drag-to-move: `onBegin` picks up an own piece (selecting it and
- * lighting its legal destinations), `onUpdate` glides a floating copy on the UI
- * thread (60fps), and `onEnd` classifies the gesture as a tap or a drop by the
- * travelled distance. Legal moves come from the shared `CheckersEngine`, so the
- * board never encodes rules.
+ * Native chess board — the interaction/animation port of web's `ChessBoard.tsx`.
+ * One `Pan`+`Tap` race serves both tap-to-move and drag-to-move (identical to the
+ * checkers board): `Pan.onStart` picks up an own piece, `onUpdate` glides a
+ * floating copy on the UI thread, `onEnd` drops it; `Tap` handles click-to-move.
+ * Legal moves come from the shared `ChessEngine`. Pawn promotions surface a picker
+ * before committing; the king's square rings red while in check.
  */
-function CheckersBoardInner({
+function ChessBoardInner({
   gameState,
   onMove,
   playerColor = 'white',
   showCoordinates = true,
   interactive = true,
-}: CheckersBoardProps) {
+}: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves] = useState<string[]>([]);
-  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [lastMoveTo, setLastMoveTo] = useState<string | null>(null);
   const [draggingFrom, setDraggingFrom] = useState<string | null>(null);
+  const [pending, setPendingState] = useState<{ from: string; to: string } | null>(null);
 
   const sfx = useGameSfx();
   const { settings, reducedMotion } = useSettings();
   const coordsOn = showCoordinates && settings.showCoordinates;
   const isFlipped = playerColor === 'black';
-  const isMyTurn = !gameState.isGameOver && gameState.currentTurn === playerColor;
+  const gameOver = gameState.isCheckmate || gameState.isStalemate || gameState.isDraw;
+  const isMyTurn = !gameOver && gameState.currentTurn === playerColor;
+
+  const lastMoveEntry = gameState.moveHistory[gameState.moveHistory.length - 1] ?? null;
+  const lastMove = lastMoveEntry ? { from: lastMoveEntry.from, to: lastMoveEntry.to } : null;
+  const kingInCheckPos = gameState.isCheck ? findKing(gameState.board, gameState.currentTurn) : null;
 
   // Full move generation is expensive — recompute only when the state changes.
-  const legalMoves = useMemo(() => CheckersEngine.getAllLegalMoves(gameState), [gameState]);
+  const legalMoves = useMemo(() => ChessEngine.getAllLegalMoves(gameState), [gameState]);
 
-  // Drag translation (UI thread) + pickup lift.
   const dragTX = useSharedValue(0);
   const dragTY = useSharedValue(0);
   const dragScale = useSharedValue(1);
 
-  // Props/derived refs — safe to mirror render state every render. These let the
-  // gesture (built once, memoized) read fresh values without re-registering.
+  // Props/derived refs — mirror render every render (read by the memoized gesture).
   const stateRef = useRef(gameState);
   stateRef.current = gameState;
   const legalRef = useRef(legalMoves);
@@ -175,27 +247,26 @@ function CheckersBoardInner({
   const interactiveRef = useRef(interactive);
   interactiveRef.current = interactive;
 
-  // Interaction refs — the source of truth for selection/drag DURING a gesture.
-  // Critically these are updated SYNCHRONOUSLY by the mutators below (not from
-  // render), because a gesture's onEnd/onDrop can fire before React has flushed
-  // the setState from its onBegin/onStart — reading render-synced refs there
-  // would see stale nulls and no move would ever commit.
+  // Interaction refs — source of truth during a gesture (see CheckersBoard for why
+  // these must be written synchronously, not from render).
   const selectedRef = useRef<string | null>(null);
   const validRef = useRef<string[]>([]);
   const draggingRef = useRef<string | null>(null);
+  const pendingRef = useRef<{ from: string; to: string } | null>(null);
 
-  // Announce the latest move (highlight + haptic + arrival pop), like web.
+  // Announce the latest move (highlight + sound + arrival pop), like web.
   useEffect(() => {
     if (gameState.moveHistory.length === 0) {
-      setLastMove(null);
       setLastMoveTo(null);
       return;
     }
     const latest = gameState.moveHistory[gameState.moveHistory.length - 1];
-    setLastMove({ from: latest.from, to: latest.to });
     setLastMoveTo(latest.to);
-    const isJump = Math.abs(rowOf(latest.to) - rowOf(latest.from)) >= 2;
-    sfx.play(isJump ? 'jump' : 'move');
+    if (!gameState.isCheckmate) {
+      if (gameState.isCheck) sfx.play('check');
+      else if (latest.capturedPiece) sfx.play('capture');
+      else sfx.play('move');
+    }
     const t = setTimeout(() => setLastMoveTo(null), 320);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,30 +283,44 @@ function CheckersBoardInner({
     draggingRef.current = pos;
     setDraggingFrom(pos);
   };
+  const setPending = (p: { from: string; to: string } | null) => {
+    pendingRef.current = p;
+    setPendingState(p);
+  };
   const clearSelection = () => setSelection(null, []);
   const selectSquare = (pos: string) =>
     setSelection(pos, legalRef.current.filter((m) => m.from === pos).map((m) => m.to));
+
   const commitMove = (from: string, to: string) => {
     setDrag(null);
     clearSelection();
+    // Pawn promotion → resolve the picker before notifying the parent.
+    if (isPromotion(stateRef.current, from, to)) {
+      setPending({ from, to });
+      return;
+    }
     onMove(from, to);
   };
 
-  // Clear selection whenever the turn flips (e.g. after the bot replies). Uses the
-  // synchronous mutators so the refs don't lag a render behind the reset.
+  const handlePromotion = (piece: PieceType) => {
+    const p = pendingRef.current;
+    if (!p) return;
+    setPending(null);
+    sfx.play('promote');
+    onMove(p.from, p.to, piece);
+  };
+
+  // Clear selection whenever the turn flips (e.g. after the bot replies).
   useEffect(() => {
     setSelection(null, []);
     setDrag(null);
   }, [gameState.currentTurn]);
 
   // ── Gesture → JS handlers ─────────────────────────────────────────────────────
-  // Tap-to-move: mirrors web's handleSquareClick. Runs from a dedicated Tap
-  // gesture (a Pan never fires onEnd for a motionless tap, so tap-to-move must
-  // not depend on the Pan lifecycle).
   const handleTap = (x: number, y: number) => {
-    if (!interactiveRef.current) return;
+    if (!interactiveRef.current || pendingRef.current) return;
     const s = stateRef.current;
-    if (s.isGameOver) return;
+    if (s.isCheckmate || s.isStalemate || s.isDraw) return;
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
     const piece = s.board[rowOf(pos)][colOf(pos)];
 
@@ -248,13 +333,10 @@ function CheckersBoardInner({
     }
   };
 
-  // Drag pickup — fires only once the Pan actually activates (real movement), so
-  // taps are left entirely to the Tap gesture. `x,y` are the touch-DOWN point
-  // (current point minus translation so far).
   const handleDragStart = (x: number, y: number) => {
-    if (!interactiveRef.current) return;
+    if (!interactiveRef.current || pendingRef.current) return;
     const s = stateRef.current;
-    if (s.isGameOver) return;
+    if (s.isCheckmate || s.isStalemate || s.isDraw) return;
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
     const piece = s.board[rowOf(pos)][colOf(pos)];
     if (piece && piece.color === s.currentTurn) {
@@ -272,15 +354,11 @@ function CheckersBoardInner({
     if (endSq !== dragging && validRef.current.includes(endSq)) {
       commitMove(dragging, endSq);
     } else {
-      // Released off a legal square — drop the piece back, keep it selected so a
-      // follow-up tap can still move it.
       setDrag(null);
       if (endSq !== dragging) sfx.play('illegal');
     }
   };
 
-  // Handler refs so the memoized gesture always calls the latest closures (fresh
-  // Settings: haptics / reduced-motion).
   const tapRef = useRef(handleTap);
   tapRef.current = handleTap;
   const dragStartRef = useRef(handleDragStart);
@@ -327,7 +405,6 @@ function CheckersBoardInner({
         dragScale.value = withTiming(1, { duration: 110 });
       });
 
-    // A motionless touch → Tap wins; movement past 8px → Pan activates and wins.
     return Gesture.Race(pan, tap);
     // Gesture is stable; all mutable state is read through refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -342,7 +419,7 @@ function CheckersBoardInner({
   }));
 
   return (
-    <BoardFrame>
+    <BoardFrame maxPx={520} vhCap={70}>
       {(size) => {
         sizeRef.current = size;
         const sq = size / 8;
@@ -360,19 +437,16 @@ function CheckersBoardInner({
 
             const isSelected = selectedSquare === pos;
             const isValidDest = validMoves.includes(pos);
-            const isLastMoveSquare =
-              !!lastMove && (lastMove.from === pos || lastMove.to === pos);
+            const isLastMoveSquare = !!lastMove && (lastMove.from === pos || lastMove.to === pos);
+            const isCheckKing = kingInCheckPos === pos;
 
-            let bg = dark ? CHECKERS_BOARD_COLORS.darkSquare : CHECKERS_BOARD_COLORS.lightSquare;
-            if (isSelected) bg = CHECKERS_BOARD_COLORS.selectedSquare;
-            else if (isLastMoveSquare)
-              bg = dark ? CHECKERS_BOARD_COLORS.lastMoveDark : CHECKERS_BOARD_COLORS.lastMoveLight;
+            let bg: string = dark ? BOARD_COLORS.darkSquare : BOARD_COLORS.lightSquare;
+            if (isSelected) bg = BOARD_COLORS.selectedSquare;
+            else if (isLastMoveSquare) bg = dark ? BOARD_COLORS.lastMoveDark : BOARD_COLORS.lastMoveLight;
 
             const showRank = coordsOn && screenCol === 0;
             const showFile = coordsOn && screenRow === 7;
-            const labelColor = dark
-              ? CHECKERS_BOARD_COLORS.lightSquare
-              : CHECKERS_BOARD_COLORS.darkSquare;
+            const labelColor = dark ? BOARD_COLORS.lightSquare : BOARD_COLORS.darkSquare;
 
             squares.push(
               <View
@@ -390,58 +464,53 @@ function CheckersBoardInner({
                 }}
               >
                 {showRank && (
-                  <Text
-                    style={{
-                      position: 'absolute',
-                      top: 2,
-                      left: 3,
-                      fontSize: 9,
-                      fontWeight: '700',
-                      color: labelColor,
-                      opacity: 0.75,
-                    }}
-                  >
+                  <Text style={{ position: 'absolute', top: 2, left: 3, fontSize: 9, fontWeight: '700', color: labelColor, opacity: 0.75 }}>
                     {boardRow + 1}
                   </Text>
                 )}
                 {showFile && (
-                  <Text
-                    style={{
-                      position: 'absolute',
-                      bottom: 2,
-                      right: 3,
-                      fontSize: 9,
-                      fontWeight: '700',
-                      color: labelColor,
-                      opacity: 0.75,
-                    }}
-                  >
+                  <Text style={{ position: 'absolute', bottom: 2, right: 3, fontSize: 9, fontWeight: '700', color: labelColor, opacity: 0.75 }}>
                     {String.fromCharCode(97 + boardCol)}
                   </Text>
                 )}
+                {/* King-in-check ring. */}
+                {isCheckKing && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: sq * 0.06,
+                      top: sq * 0.06,
+                      right: sq * 0.06,
+                      bottom: sq * 0.06,
+                      borderRadius: sq,
+                      borderWidth: 3,
+                      borderColor: CHECK_RING,
+                    }}
+                  />
+                )}
                 {/* Legal-move dot on an empty destination. */}
-                {dark && isValidDest && !piece && (
+                {isValidDest && !piece && (
                   <View
                     style={{
                       width: sq * 0.28,
                       height: sq * 0.28,
                       borderRadius: sq * 0.14,
-                      backgroundColor: CHECKERS_BOARD_COLORS.moveIndicator,
+                      backgroundColor: BOARD_COLORS.moveIndicator,
                     }}
                   />
                 )}
-                {/* Capture ring (defensive — checkers lands on empty squares). */}
-                {dark && isValidDest && piece && (
+                {/* Capture ring on an occupied legal destination. */}
+                {isValidDest && piece && (
                   <View
                     style={{
                       position: 'absolute',
-                      left: sq * 0.08,
-                      top: sq * 0.08,
-                      right: sq * 0.08,
-                      bottom: sq * 0.08,
+                      left: sq * 0.06,
+                      top: sq * 0.06,
+                      right: sq * 0.06,
+                      bottom: sq * 0.06,
                       borderRadius: sq,
                       borderWidth: 3,
-                      borderColor: CHECKERS_BOARD_COLORS.captureIndicator,
+                      borderColor: BOARD_COLORS.moveIndicatorCapture,
                     }}
                   />
                 )}
@@ -467,7 +536,7 @@ function CheckersBoardInner({
           }
         }
 
-        // Floating copy of the piece being dragged (drawn above everything).
+        // Floating copy of the piece being dragged (above everything).
         let floating: React.ReactNode = null;
         if (draggingFrom) {
           const dragPiece = gameState.board[rowOf(draggingFrom)][colOf(draggingFrom)];
@@ -490,7 +559,7 @@ function CheckersBoardInner({
                   floatStyle,
                 ]}
               >
-                <CheckersPiece type={dragPiece.type} color={dragPiece.color} size={sq * PIECE_RATIO} />
+                <ChessPiece type={dragPiece.type} color={dragPiece.color} size={sq * PIECE_RATIO} />
               </Animated.View>
             );
           }
@@ -507,14 +576,17 @@ function CheckersBoardInner({
                   overflow: 'hidden',
                   borderWidth: 2,
                   borderColor: COLORS.borderStrong,
-                  backgroundColor: CHECKERS_BOARD_COLORS.darkSquare,
+                  backgroundColor: BOARD_COLORS.darkSquare,
                 },
-                isMyTurn && SHADOWS_NATIVE.glowCheckers,
+                isMyTurn && SHADOWS_NATIVE.glowChess,
               ]}
             >
               {squares}
               {pieces}
               {floating}
+              {pending && (
+                <PromotionPicker color={playerColor} size={size} onSelect={handlePromotion} />
+              )}
             </View>
           </GestureDetector>
         );
@@ -523,6 +595,4 @@ function CheckersBoardInner({
   );
 }
 
-// Memoized like web — skip the play screen's clock/re-render churn when
-// gameState / onMove are stable.
-export const CheckersBoard = React.memo(CheckersBoardInner);
+export const ChessBoard = React.memo(ChessBoardInner);

@@ -3,6 +3,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
 import { Screen, BackHeader } from '@/components/ui';
 import { CheckersScreen } from '@/screens/CheckersScreen';
+import { ReversiScreen } from '@/screens/ReversiScreen';
+import { ChessScreen } from '@/screens/ChessScreen';
 
 const LABELS: Record<string, string> = {
   chess: 'Chess',
@@ -11,14 +13,17 @@ const LABELS: Record<string, string> = {
 };
 
 /**
- * Per-game entry point. Checkers ships in M2 (setup → native board vs bot);
- * chess + reversi land in M3 and keep the placeholder until then.
+ * Per-game entry point. All three games ship a native board vs bot as of M3
+ * (checkers M2; reversi + chess M3). The placeholder now only shows for an
+ * unknown game key.
  */
 export default function GameScreen() {
   const { game } = useLocalSearchParams<{ game: string }>();
   const key = (game ?? 'chess').toLowerCase();
 
   if (key === 'checkers') return <CheckersScreen />;
+  if (key === 'reversi') return <ReversiScreen />;
+  if (key === 'chess') return <ChessScreen />;
 
   const label = LABELS[key] ?? 'Game';
   const accent = GAME_ACCENTS[key as keyof typeof GAME_ACCENTS]?.base ?? COLORS.accent;

@@ -12,7 +12,10 @@
  */
 
 import React from 'react';
-import { Image, ImageStyle, StyleProp } from 'react-native';
+import type { ImageStyle, StyleProp } from 'react-native';
+// expo-image (not RN core Image) — its renderer decodes SVG assets on native.
+// RN's core <Image> only handles raster formats, so chess SVGs render blank.
+import { Image } from 'expo-image';
 
 // Same asset paths as ChessPiece.tsx — Metro bundles these at compile time.
 import whitePawn   from '../../assets/pieces/white_pawn.svg';
@@ -62,7 +65,7 @@ export function ChessPiece({ type, color, size = 45, style }: ChessPieceProps) {
     <Image
       source={source}
       style={[{ width: size, height: size }, style as ImageStyle]}
-      resizeMode="contain"
+      contentFit="contain"
       accessibilityLabel={`${color} ${type}`}
     />
   );

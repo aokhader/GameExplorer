@@ -25,10 +25,23 @@ export interface LocalGameAdapter<S> {
   currentTurn(state: S): Color;
   isGameOver(state: S): boolean;
   winner(state: S): Color | null;
-  validateMove(state: S, from: string, to: string): { valid: boolean; resultingState?: S };
-  getBotMove(state: S, elo: number): { from: string; to: string };
+  /** `promotion` is optional and only meaningful for chess (pawn promotion). */
+  validateMove(
+    state: S,
+    from: string,
+    to: string,
+    promotion?: string,
+  ): { valid: boolean; resultingState?: S };
+  getBotMove(state: S, elo: number): { from: string; to: string; promotion?: string };
   /** Padding delay (ms) so a bot reply doesn't feel instant. */
   thinkTimeForElo(elo: number): number;
+  /**
+   * Reversi only — the current player has no legal move and must pass. When both
+   * are provided the loop auto-passes (append `executePass(state)`) after a short
+   * delay instead of expecting a move. Undefined for chess/checkers (never pass).
+   */
+  mustPass?(state: S): boolean;
+  executePass?(state: S): S;
   save(args: {
     state: S;
     playerColor: Color;
@@ -114,11 +127,18 @@ export function useLocalGame<S>({
     };
   }, [userId, rated, mode, adapter]);
 
+  // Append a new state to the timeline, following the live head if we're on it
+  // (so bot/pass moves scroll into view but don't yank a user reviewing history).
+  const appendState = useCallback((next: S) => {
+    const wasAtLive = viewIndexRef.current === timelineRef.current.length - 1;
+    const newIndex = timelineRef.current.length;
+    setTimeline((prev) => [...prev, next]);
+    if (wasAtLive) setViewIndex(newIndex);
+  }, []);
+
   // ── Bot reply ─────────────────────────────────────────────────────────────────
   const makeBotMove = useCallback(async () => {
-    const currentTimeline = timelineRef.current;
-    const wasAtLive = viewIndexRef.current === currentTimeline.length - 1;
-    const current = currentTimeline[currentTimeline.length - 1];
+    const current = timelineRef.current[timelineRef.current.length - 1];
     const elo = targetEloRef.current;
 
     setIsThinking(true);
@@ -126,7 +146,7 @@ export function useLocalGame<S>({
       // Compute off the current tick (so "thinking" paints) and honor a minimum
       // think time, exactly like web.
       const [move] = await Promise.all([
-        new Promise<{ from: string; to: string }>((resolve) =>
+        new Promise<{ from: string; to: string; promotion?: string }>((resolve) =>
           setTimeout(() => resolve(adapter.getBotMove(current, elo)), 0),
         ),
         new Promise((resolve) => setTimeout(resolve, adapter.thinkTimeForElo(elo))),
@@ -135,24 +155,33 @@ export function useLocalGame<S>({
       // Dropped if the player resigned / agreed a draw while the bot thought.
       if (manualEndRef.current) return;
 
-      const result = adapter.validateMove(current, move.from, move.to);
-      if (result.valid && result.resultingState) {
-        const next = result.resultingState;
-        setTimeline((prev) => [...prev, next]);
-        if (wasAtLive) setViewIndex(currentTimeline.length);
-      }
+      const result = adapter.validateMove(current, move.from, move.to, move.promotion);
+      if (result.valid && result.resultingState) appendState(result.resultingState);
     } catch (err) {
       console.error('Bot error:', err);
     } finally {
       setIsThinking(false);
     }
-  }, [adapter]);
+  }, [adapter, appendState]);
 
+  // Turn effect — bot replies, plus reversi auto-pass (either side) when the
+  // player to move has no legal move. Checkers/chess never pass (mustPass unset).
   useEffect(() => {
     if (!started || mode !== 'bot') return;
-    if (adapter.isGameOver(liveState) || manualEnd) return;
+    if (adapter.isGameOver(liveState) || manualEnd || isThinking) return;
     const isBotTurn = adapter.currentTurn(liveState) !== playerColor;
-    if (isBotTurn && !isThinking) makeBotMove();
+
+    if (adapter.mustPass?.(liveState) && adapter.executePass) {
+      const delay = isBotTurn ? 800 : 1400;
+      const t = setTimeout(() => {
+        if (manualEndRef.current) return;
+        const live = timelineRef.current[timelineRef.current.length - 1];
+        appendState(adapter.executePass!(live));
+      }, delay);
+      return () => clearTimeout(t);
+    }
+
+    if (isBotTurn) makeBotMove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState, playerColor, started, isThinking, manualEnd, mode]);
 
@@ -206,26 +235,23 @@ export function useLocalGame<S>({
 
   // ── Player actions ─────────────────────────────────────────────────────────────
   const handleMove = useCallback(
-    (from: string, to: string) => {
+    (from: string, to: string, promotion?: string) => {
       const live = timelineRef.current[timelineRef.current.length - 1];
       if (viewIndexRef.current !== timelineRef.current.length - 1) return;
       if (adapter.isGameOver(live) || manualEndRef.current) return;
       // In pass-and-play both colors are the human; in bot mode only the player's.
       if (mode === 'bot' && adapter.currentTurn(live) !== playerColorRef.current) return;
 
-      const result = adapter.validateMove(live, from, to);
-      if (result.valid && result.resultingState) {
-        const nextIdx = timelineRef.current.length;
-        setTimeline((prev) => [...prev, result.resultingState as S]);
-        setViewIndex(nextIdx);
-      }
+      const result = adapter.validateMove(live, from, to, promotion);
+      if (result.valid && result.resultingState) appendState(result.resultingState);
     },
-    [adapter, mode],
+    [adapter, mode, appendState],
   );
 
   const endManually = useCallback(
     (kind: 'resign' | 'draw') => {
-      if (manualEndRef.current || adapter.isGameOver(timelineRef.current[timelineRef.current.length - 1])) return;
+      const live = timelineRef.current[timelineRef.current.length - 1];
+      if (manualEndRef.current || adapter.isGameOver(live)) return;
       setManualEnd(kind);
       setIsThinking(false);
     },
