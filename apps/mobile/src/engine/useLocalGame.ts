@@ -16,8 +16,10 @@ export type Color = 'white' | 'black';
 
 /**
  * Everything `useLocalGame` needs to drive a single game without knowing its
- * rules — supplied per game (checkers now; chess/reversi in M3). Keeping the loop
- * engine-agnostic is what lets pass-and-play (M4) reuse it as a config flag.
+ * rules — supplied per game. Keeping the loop engine-agnostic is what lets
+ * pass-and-play reuse it as a config flag: `mode: 'pass-and-play'` simply skips
+ * the bot reply and the save/rating write, and both colors go through
+ * `handleMove`.
  */
 export interface LocalGameAdapter<S> {
   gameType: GameType;
@@ -55,7 +57,9 @@ export interface LocalGameAdapter<S> {
 export interface UseLocalGameOptions<S> {
   adapter: LocalGameAdapter<S>;
   mode: LocalGameMode;
+  /** The human's side. Ignored in pass-and-play (both sides are human). */
   playerColor: Color;
+  /** Bot strength. Ignored in pass-and-play (no bot, no save). */
   targetElo: number;
   /** Apply an Elo change on end (bot mode + signed in + online). */
   rated: boolean;
@@ -166,10 +170,12 @@ export function useLocalGame<S>({
 
   // Turn effect — bot replies, plus reversi auto-pass (either side) when the
   // player to move has no legal move. Checkers/chess never pass (mustPass unset).
+  // The pass branch runs in BOTH modes (pass-and-play still needs auto-pass); the
+  // human delay (1400ms) leaves time to read the "passing…" banner.
   useEffect(() => {
-    if (!started || mode !== 'bot') return;
+    if (!started) return;
     if (adapter.isGameOver(liveState) || manualEnd || isThinking) return;
-    const isBotTurn = adapter.currentTurn(liveState) !== playerColor;
+    const isBotTurn = mode === 'bot' && adapter.currentTurn(liveState) !== playerColor;
 
     if (adapter.mustPass?.(liveState) && adapter.executePass) {
       const delay = isBotTurn ? 800 : 1400;
@@ -191,6 +197,11 @@ export function useLocalGame<S>({
     if (!adapter.isGameOver(liveState) && !manualEnd) return;
     setGameSaved(true);
 
+    // Pass-and-play is never persisted: it's a casual game between two humans on
+    // one device (the db writers record `opponent: 'bot'`, so a row would show up
+    // in history as a bot game), and it must work fully offline.
+    if (mode !== 'bot') return;
+
     const pc = playerColorRef.current;
     const other: Color = pc === 'white' ? 'black' : 'white';
     const winner = adapter.winner(liveState);
@@ -205,8 +216,8 @@ export function useLocalGame<S>({
     const difficulty = `elo-${targetEloRef.current}`;
     const current = userRatingRef.current;
 
-    // Casual: pass-and-play, guests, or an unrated bot game — save without Elo.
-    if (mode !== 'bot' || !rated || !current || !userId) {
+    // Casual: guests or an unrated bot game — save without Elo.
+    if (!rated || !current || !userId) {
       adapter.save({ state: liveState, playerColor: pc, result, difficulty, userId: userId ?? undefined });
       return;
     }

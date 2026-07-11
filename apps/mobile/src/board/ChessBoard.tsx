@@ -585,7 +585,15 @@ function ChessBoardInner({
               {pieces}
               {floating}
               {pending && (
-                <PromotionPicker color={playerColor} size={size} onSelect={handlePromotion} />
+                <PromotionPicker
+                  // The promoting pawn's own color — not `playerColor`, which in
+                  // pass-and-play is the board orientation, not the mover.
+                  color={
+                    gameState.board[rowOf(pending.from)][colOf(pending.from)]?.color ?? playerColor
+                  }
+                  size={size}
+                  onSelect={handlePromotion}
+                />
               )}
             </View>
           </GestureDetector>

@@ -10,10 +10,13 @@ import { PlayerCard } from '@/game/PlayerCard';
 import { StatusBanner } from '@/game/StatusBanner';
 import { GameActions } from '@/game/GameActions';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
-import { useLocalGame } from '@/engine/useLocalGame';
+import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
+import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { checkersAdapter } from '@/engine/checkersAdapter';
+import { useSettings } from '@/providers/SettingsProvider';
 
 const PINK = GAME_ACCENTS.checkers.base;
+const PINK_TINT = 'rgba(236,72,153,0.12)';
 
 const DIFFICULTY_LEVELS = [
   { elo: 500, label: 'Beginner', description: 'Misses captures, blunders pieces', icon: '🟢' },
@@ -28,31 +31,41 @@ function labelForElo(elo: number): string {
   return DIFFICULTY_LEVELS.find((l) => l.elo === elo)?.label ?? String(elo);
 }
 
+/** "white" → "White" for pass-and-play messages. */
+function cap(color: string): string {
+  return color[0].toUpperCase() + color.slice(1);
+}
+
 function formatMove(move: CheckersGameState['moveHistory'][number]): string {
   if (move.captures.length === 0) return `${move.from}-${move.to}`;
   return move.path.reduce((acc, sq, i) => (i === 0 ? `${move.from}x${sq}` : `${acc}x${sq}`), '');
 }
 
 /**
- * Checkers vs bot — the M2 end-to-end flow. A setup screen (strength + color +
- * rated toggle) hands off to the in-game shell driven by `useLocalGame`. Mirrors
- * web's `checkers/bot/page.tsx`, reusing the same shared engine, bot, rating math,
- * and `saveCheckersGame` writer so results match web exactly.
+ * Checkers vs bot or pass-and-play. A setup screen (opponent + strength + color +
+ * rated toggle) hands off to the in-game shell driven by `useLocalGame`. Bot mode
+ * mirrors web's `checkers/bot/page.tsx`, reusing the same shared engine, bot,
+ * rating math, and `saveCheckersGame` writer so results match web exactly.
+ * Pass-and-play (M4) runs the same loop with no bot and no save — two humans
+ * alternate on one device, optionally flipping the board between turns.
  */
 export function CheckersScreen() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  const { settings } = useSettings();
 
+  const [mode, setMode] = useState<LocalGameMode>('bot');
   const [targetElo, setTargetElo] = useState(1100);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [rated, setRated] = useState(true);
   const [started, setStarted] = useState(false);
 
-  const ratedEffective = rated && !!userId;
+  const isPassAndPlay = mode === 'pass-and-play';
+  const ratedEffective = rated && !!userId && !isPassAndPlay;
 
   const game = useLocalGame<CheckersGameState>({
     adapter: checkersAdapter,
-    mode: 'bot',
+    mode,
     playerColor,
     targetElo,
     rated: ratedEffective,
@@ -69,110 +82,119 @@ export function CheckersScreen() {
   if (!started) {
     return (
       <Screen>
-        <BackHeader title="Play vs Bot" fallbackHref="/" />
+        <BackHeader title="New Game" fallbackHref="/" />
 
-        <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700', marginBottom: 10 }}>
-          Bot strength
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
-          {DIFFICULTY_LEVELS.map((level) => {
-            const selected = targetElo === level.elo;
-            return (
-              <Pressable
-                key={level.elo}
-                onPress={() => setTargetElo(level.elo)}
-                style={{
-                  flexGrow: 1,
-                  flexBasis: '47%',
-                  borderRadius: 14,
-                  borderWidth: 2,
-                  padding: 12,
-                  backgroundColor: selected ? 'rgba(236,72,153,0.12)' : COLORS.surfaceAlt,
-                  borderColor: selected ? PINK : COLORS.border,
-                }}
-              >
-                <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                <Text style={{ color: selected ? PINK : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
-                  {level.label}
-                </Text>
-                <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
-                  {level.description}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <OpponentPicker value={mode} onChange={setMode} accent={PINK} tint={PINK_TINT} />
 
-        <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700', marginBottom: 10 }}>
-          Your color
-        </Text>
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-          {(['white', 'black'] as const).map((color) => {
-            const selected = playerColor === color;
-            return (
-              <Pressable
-                key={color}
-                onPress={() => setPlayerColor(color)}
-                style={{
-                  flex: 1,
-                  borderRadius: 14,
-                  borderWidth: 2,
-                  padding: 16,
-                  alignItems: 'center',
-                  backgroundColor: selected ? 'rgba(236,72,153,0.12)' : COLORS.surfaceAlt,
-                  borderColor: selected ? PINK : COLORS.border,
-                }}
-              >
-                <View
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 17,
-                    marginBottom: 8,
-                    backgroundColor: color === 'white' ? '#f4d270' : '#3b82f6',
-                    borderWidth: 2,
-                    borderColor: color === 'white' ? '#8a6a1f' : '#1e40af',
-                  }}
-                />
-                <Text style={{ color: selected ? PINK : COLORS.fg, fontSize: 15, fontWeight: '700', textTransform: 'capitalize' }}>
-                  {color}
-                </Text>
-                <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
-                  {color === 'white' ? 'You move first' : 'Bot moves first'}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* Rated toggle — needs a signed-in account (rating reads/writes). */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: COLORS.border,
-            backgroundColor: COLORS.surfaceAlt,
-            padding: 16,
-            marginBottom: 24,
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }}>Rated</Text>
-            <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
-              {userId ? 'Updates your checkers rating' : 'Sign in to play rated games'}
+        {!isPassAndPlay && (
+          <>
+            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700', marginBottom: 10 }}>
+              Bot strength
             </Text>
-          </View>
-          <Toggle
-            value={ratedEffective}
-            onValueChange={setRated}
-            label="Rated"
-            disabled={!userId}
-          />
-        </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+              {DIFFICULTY_LEVELS.map((level) => {
+                const selected = targetElo === level.elo;
+                return (
+                  <Pressable
+                    key={level.elo}
+                    onPress={() => setTargetElo(level.elo)}
+                    style={{
+                      flexGrow: 1,
+                      flexBasis: '47%',
+                      borderRadius: 14,
+                      borderWidth: 2,
+                      padding: 12,
+                      backgroundColor: selected ? PINK_TINT : COLORS.surfaceAlt,
+                      borderColor: selected ? PINK : COLORS.border,
+                    }}
+                  >
+                    <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
+                    <Text style={{ color: selected ? PINK : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                      {level.label}
+                    </Text>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
+                      {level.description}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700', marginBottom: 10 }}>
+              Your color
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+              {(['white', 'black'] as const).map((color) => {
+                const selected = playerColor === color;
+                return (
+                  <Pressable
+                    key={color}
+                    onPress={() => setPlayerColor(color)}
+                    style={{
+                      flex: 1,
+                      borderRadius: 14,
+                      borderWidth: 2,
+                      padding: 16,
+                      alignItems: 'center',
+                      backgroundColor: selected ? PINK_TINT : COLORS.surfaceAlt,
+                      borderColor: selected ? PINK : COLORS.border,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 17,
+                        marginBottom: 8,
+                        backgroundColor: color === 'white' ? '#f4d270' : '#3b82f6',
+                        borderWidth: 2,
+                        borderColor: color === 'white' ? '#8a6a1f' : '#1e40af',
+                      }}
+                    />
+                    <Text style={{ color: selected ? PINK : COLORS.fg, fontSize: 15, fontWeight: '700', textTransform: 'capitalize' }}>
+                      {color}
+                    </Text>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+                      {color === 'white' ? 'You move first' : 'Bot moves first'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Rated toggle — needs a signed-in account (rating reads/writes). */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: COLORS.border,
+                backgroundColor: COLORS.surfaceAlt,
+                padding: 16,
+                marginBottom: 24,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }}>Rated</Text>
+                <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+                  {userId ? 'Updates your checkers rating' : 'Sign in to play rated games'}
+                </Text>
+              </View>
+              <Toggle
+                value={ratedEffective}
+                onValueChange={setRated}
+                label="Rated"
+                disabled={!userId}
+              />
+            </View>
+          </>
+        )}
+
+        {/* Pass-and-play is casual (no rating) — the only option is board flipping. */}
+        {isPassAndPlay && <FlipBoardCard />}
 
         <Button label="Start Game" onPress={() => setStarted(true)} glow />
       </Screen>
@@ -182,21 +204,33 @@ export function CheckersScreen() {
   // ── Game screen ─────────────────────────────────────────────────────────────
   const { liveState, displayState, isAtLive, isThinking, manualEnd, ratingResult } = game;
 
-  const gameOverMsg =
-    manualEnd === 'resign'
-      ? 'You resigned'
-      : manualEnd === 'draw'
-        ? 'Draw by agreement'
-        : liveState.isGameOver
-          ? liveState.winner === null
-            ? 'Draw — 40 moves without capture'
-            : liveState.winner === playerColor
-              ? 'You win! 🎉'
-              : 'Bot wins'
-          : null;
+  // Pass-and-play: "the mover" replaces "you". Resign concedes for the player to
+  // move (currentTurn is stable after a manual end — no moves append past it).
+  const mover = liveState.currentTurn;
+  const moverOther: 'white' | 'black' = mover === 'white' ? 'black' : 'white';
+  const pnpWinner = manualEnd === 'resign' ? moverOther : manualEnd === 'draw' ? null : liveState.winner;
 
-  const myResult: GameResult =
-    manualEnd === 'resign'
+  let gameOverMsg: string | null = null;
+  if (manualEnd === 'resign') {
+    gameOverMsg = isPassAndPlay ? `${cap(mover)} resigned — ${cap(moverOther)} wins` : 'You resigned';
+  } else if (manualEnd === 'draw') {
+    gameOverMsg = 'Draw by agreement';
+  } else if (liveState.isGameOver) {
+    gameOverMsg =
+      liveState.winner === null
+        ? 'Draw — 40 moves without capture'
+        : isPassAndPlay
+          ? `${cap(liveState.winner)} wins! 🎉`
+          : liveState.winner === playerColor
+            ? 'You win! 🎉'
+            : 'Bot wins';
+  }
+
+  const myResult: GameResult = isPassAndPlay
+    ? pnpWinner
+      ? 'win'
+      : 'draw'
+    : manualEnd === 'resign'
       ? 'loss'
       : manualEnd === 'draw'
         ? 'draw'
@@ -207,9 +241,18 @@ export function CheckersScreen() {
             : 'loss';
 
   const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
+  const moverTurn = isAtLive && !gameOverMsg;
   const counts = CheckersEngine.getPieceCounts(displayState);
   const botLabel = labelForElo(targetElo);
   const interactive = isAtLive && !liveState.isGameOver && !manualEnd;
+  // Pass-and-play orientation: face the mover when the flip setting is on,
+  // otherwise stay white-side-down. Follows the LIVE turn so reviewing history
+  // never spins the board.
+  const boardColor: 'white' | 'black' = isPassAndPlay
+    ? settings.flipBoardPassAndPlay
+      ? mover
+      : 'white'
+    : playerColor;
 
   return (
     <>
@@ -236,36 +279,75 @@ export function CheckersScreen() {
           </>
         }
         topCard={
-          <PlayerCard
-            name="Bot"
-            initial="B"
-            active={isThinking}
-            subline={isThinking ? `${botLabel} · thinking…` : botLabel}
-          />
+          isPassAndPlay ? (
+            <PlayerCard
+              name="Black"
+              initial="B"
+              active={moverTurn && mover === 'black'}
+              subline={`Black pieces${moverTurn && mover === 'black' ? ' · to move' : ''}`}
+            />
+          ) : (
+            <PlayerCard
+              name="Bot"
+              initial="B"
+              active={isThinking}
+              subline={isThinking ? `${botLabel} · thinking…` : botLabel}
+            />
+          )
         }
         board={
           <CheckersBoard
             gameState={displayState}
             onMove={game.handleMove}
-            playerColor={playerColor}
+            playerColor={boardColor}
             interactive={interactive}
           />
         }
         bottomCard={
-          <PlayerCard
-            name="You"
-            initial="Y"
-            isYou
-            active={yourTurn}
-            subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
-          />
+          isPassAndPlay ? (
+            <PlayerCard
+              name="White"
+              initial="W"
+              active={moverTurn && mover === 'white'}
+              subline={`White pieces${moverTurn && mover === 'white' ? ' · to move' : ''}`}
+            />
+          ) : (
+            <PlayerCard
+              name="You"
+              initial="Y"
+              isYou
+              active={yourTurn}
+              subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
+            />
+          )
         }
         sidebar={
           <>
             <StatusBanner
               accent="checkers"
-              title={gameOverMsg ?? (isThinking ? 'Bot is thinking…' : yourTurn ? 'Your move' : 'Reviewing history')}
-              description={gameOverMsg ? undefined : yourTurn ? 'Captures are forced — chain your jumps.' : undefined}
+              title={
+                gameOverMsg ??
+                (isPassAndPlay
+                  ? moverTurn
+                    ? `${cap(mover)} to move`
+                    : 'Reviewing history'
+                  : isThinking
+                    ? 'Bot is thinking…'
+                    : yourTurn
+                      ? 'Your move'
+                      : 'Reviewing history')
+              }
+              description={
+                gameOverMsg
+                  ? undefined
+                  : isPassAndPlay
+                    ? moverTurn
+                      ? 'Pass the device between turns.'
+                      : undefined
+                    : yourTurn
+                      ? 'Captures are forced — chain your jumps.'
+                      : undefined
+              }
             />
 
             {/* Info card */}
@@ -280,9 +362,15 @@ export function CheckersScreen() {
               }}
             >
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                <InfoCell label="Bot" value={botLabel} />
-                <InfoCell label="Playing" value={playerColor} capitalize />
-                <InfoCell label="Turn" value={liveState.isGameOver ? '—' : liveState.currentTurn} capitalize />
+                {isPassAndPlay ? (
+                  <InfoCell label="Mode" value="Pass & Play" />
+                ) : (
+                  <>
+                    <InfoCell label="Bot" value={botLabel} />
+                    <InfoCell label="Playing" value={playerColor} capitalize />
+                  </>
+                )}
+                <InfoCell label="Turn" value={gameOverMsg ? '—' : liveState.currentTurn} capitalize />
                 <InfoCell label="Move" value={String(liveState.moveHistory.length)} />
               </View>
               <View
@@ -383,7 +471,20 @@ export function CheckersScreen() {
       <GameResultScreen
         open={!!gameOverMsg}
         result={myResult}
-        subtitle={myResult === 'win' ? undefined : gameOverMsg ?? undefined}
+        title={isPassAndPlay && pnpWinner ? `${cap(pnpWinner)} Wins!` : undefined}
+        subtitle={
+          isPassAndPlay
+            ? manualEnd === 'resign'
+              ? `${cap(mover)} resigned`
+              : manualEnd === 'draw'
+                ? 'Draw by agreement'
+                : pnpWinner
+                  ? undefined
+                  : '40 moves without capture'
+            : myResult === 'win'
+              ? undefined
+              : gameOverMsg ?? undefined
+        }
         rating={
           ratingResult
             ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
