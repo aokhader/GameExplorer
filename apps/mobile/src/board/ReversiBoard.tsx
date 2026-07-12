@@ -190,7 +190,7 @@ function ReversiBoardInner({
   }, []);
 
   return (
-    <BoardFrame>
+    <BoardFrame accessibilityLabel="Reversi board">
       {(size) => {
         sizeRef.current = size;
         const sq = size / 8;

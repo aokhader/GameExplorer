@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -22,6 +22,10 @@ export interface GameResultScreenProps {
   subtitle?: string;
   /** Optional rating change block with an animated count-up. */
   rating?: { before: number; after: number; delta: number };
+  /** The rated save/rating write failed (offline etc.) — show an error + retry. */
+  saveError?: boolean;
+  /** Re-attempt the failed save. Required when `saveError` can be true. */
+  onRetrySave?: () => void;
   /** Action buttons (Play Again / Back) supplied by the screen. */
   actions: React.ReactNode;
 }
@@ -65,6 +69,8 @@ export function GameResultScreen({
   title,
   subtitle,
   rating,
+  saveError = false,
+  onRetrySave,
   actions,
 }: GameResultScreenProps) {
   const { reducedMotion } = useSettings();
@@ -122,6 +128,8 @@ export function GameResultScreen({
         }}
       >
         <Animated.View
+          accessibilityViewIsModal
+          accessibilityLiveRegion="polite"
           style={[
             {
               width: '100%',
@@ -176,6 +184,45 @@ export function GameResultScreen({
                   {rating.delta}
                 </Text>
               </View>
+            </View>
+          )}
+
+          {saveError && (
+            <View
+              accessibilityLiveRegion="polite"
+              style={{
+                marginTop: 14,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: COLORS.danger,
+                backgroundColor: COLORS.dangerMuted,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                alignSelf: 'stretch',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <Text style={{ color: COLORS.dangerHover, fontSize: 13, flex: 1, lineHeight: 18 }}>
+                Couldn&apos;t save your game — check your connection.
+              </Text>
+              {onRetrySave && (
+                <Pressable
+                  onPress={onRetrySave}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry saving the game"
+                  hitSlop={8}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 8,
+                    backgroundColor: COLORS.danger,
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Retry</Text>
+                </Pressable>
+              )}
             </View>
           )}
 

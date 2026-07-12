@@ -29,6 +29,9 @@ export function StatusBanner({ accent, title, description, style }: StatusBanner
   const c = ACCENTS[accent ?? 'gold'];
   return (
     <View
+      // Announce turn/status changes to screen readers as they happen.
+      accessible
+      accessibilityLiveRegion="polite"
       style={[
         {
           minHeight: 66,

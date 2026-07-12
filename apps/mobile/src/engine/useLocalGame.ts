@@ -97,6 +97,10 @@ export function useLocalGame<S>({
   const [userRating, setUserRating] = useState<UserRating | null>(null);
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
   const [gameSaved, setGameSaved] = useState(false);
+  // Rated save/rating write failed (e.g. connectivity dropped mid-game). Per the
+  // offline semantics: play on, save at the end, surface an error + retry.
+  const [saveError, setSaveError] = useState(false);
+  const saveAttemptRef = useRef<(() => void) | null>(null);
 
   const liveState = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -216,31 +220,43 @@ export function useLocalGame<S>({
     const difficulty = `elo-${targetEloRef.current}`;
     const current = userRatingRef.current;
 
-    // Casual: guests or an unrated bot game — save without Elo.
+    // Casual: guests or an unrated bot game — save without Elo. Best-effort; a
+    // casual game must never surface a save error (it's the offline path).
     if (!rated || !current || !userId) {
-      adapter.save({ state: liveState, playerColor: pc, result, difficulty, userId: userId ?? undefined });
+      adapter
+        .save({ state: liveState, playerColor: pc, result, difficulty, userId: userId ?? undefined })
+        .catch((err) => console.error('Failed to save casual game:', err));
       return;
     }
 
     const newRating = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played);
     const delta = newRating - current.rating;
 
-    Promise.all([
-      upsertUserRating(userId, newRating, outcome, adapter.gameType),
-      adapter.save({
-        state: liveState,
-        playerColor: pc,
-        result,
-        difficulty,
-        userId,
-        options: { mode: 'rated', rating_before: current.rating, rating_after: newRating },
-      }),
-    ])
-      .then(([updated]) => {
-        setUserRating(updated);
-        setRatingResult({ before: current.rating, after: newRating, delta });
-      })
-      .catch((err) => console.error('Failed to save game / rating:', err));
+    const attempt = () => {
+      setSaveError(false);
+      Promise.all([
+        upsertUserRating(userId, newRating, outcome, adapter.gameType),
+        adapter.save({
+          state: liveState,
+          playerColor: pc,
+          result,
+          difficulty,
+          userId,
+          options: { mode: 'rated', rating_before: current.rating, rating_after: newRating },
+        }),
+      ])
+        .then(([updated]) => {
+          saveAttemptRef.current = null;
+          setUserRating(updated);
+          setRatingResult({ before: current.rating, after: newRating, delta });
+        })
+        .catch((err) => {
+          console.error('Failed to save game / rating:', err);
+          setSaveError(true);
+        });
+    };
+    saveAttemptRef.current = attempt;
+    attempt();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState, manualEnd, started]);
 
@@ -276,6 +292,8 @@ export function useLocalGame<S>({
     setManualEnd(null);
     setRatingResult(null);
     setGameSaved(false);
+    setSaveError(false);
+    saveAttemptRef.current = null;
   }, [adapter]);
 
   return {
@@ -288,6 +306,8 @@ export function useLocalGame<S>({
     isThinking,
     manualEnd,
     ratingResult,
+    saveError,
+    retrySave: () => saveAttemptRef.current?.(),
     handleMove,
     resign: () => endManually('resign'),
     agreeDraw: () => endManually('draw'),

@@ -18,15 +18,24 @@ const config: ExpoConfig = {
   userInterfaceStyle: 'dark',
   // New Architecture is always-on in SDK 57 / RN 0.86 — the `newArchEnabled`
   // flag was removed from ExpoConfig.
-  // Final app icon / splash artwork lands in M5 (release polish). For now a
-  // placeholder brand mark (assets/splash-icon.png) satisfies the native
-  // splash drawable so the Android build links; the background stays brand base.
+  // Brand icon set (M5): the gold Play mark + three game dots on ink-900,
+  // generated from packages/ui token colors. icon.png is fully opaque (Apple
+  // rejects alpha in the marketing icon).
+  icon: './assets/icon.png',
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.gameexplorer.app',
   },
   android: {
     package: 'com.gameexplorer.app',
+    adaptiveIcon: {
+      foregroundImage: './assets/adaptive-icon.png',
+      monochromeImage: './assets/adaptive-icon-mono.png',
+      backgroundColor: '#0b0e17', // PALETTE.ink900
+    },
+  },
+  web: {
+    favicon: './assets/favicon.png',
   },
   plugins: [
     'expo-router',

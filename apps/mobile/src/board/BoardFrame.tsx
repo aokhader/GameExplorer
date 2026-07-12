@@ -9,6 +9,8 @@ export interface BoardFrameProps {
   maxPx?: number;
   /** Upper bound on the board's edge length, as a fraction (0–100) of window height. */
   vhCap?: number;
+  /** Screen-reader label for the board region (e.g. "Chess board"). */
+  accessibilityLabel?: string;
   style?: ViewStyle;
 }
 
@@ -24,7 +26,13 @@ export interface BoardFrameProps {
  * The board is centered and square. Children get the concrete `size` so the board
  * can map a touch point to a square (`size / 8`).
  */
-export function BoardFrame({ children, maxPx = 600, vhCap = 80, style }: BoardFrameProps) {
+export function BoardFrame({
+  children,
+  maxPx = 600,
+  vhCap = 80,
+  accessibilityLabel,
+  style,
+}: BoardFrameProps) {
   const { height } = useWindowDimensions();
   // Start at 0 so nothing paints at a wrong size before the first layout pass;
   // the container fills its parent's width, then we lock the square to it.
@@ -34,6 +42,7 @@ export function BoardFrame({ children, maxPx = 600, vhCap = 80, style }: BoardFr
 
   return (
     <View
+      accessibilityLabel={accessibilityLabel}
       style={[{ width: '100%', alignItems: 'center' }, style]}
       onLayout={(e) => setContainerW(e.nativeEvent.layout.width)}
     >

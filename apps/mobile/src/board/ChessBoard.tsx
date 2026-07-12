@@ -419,7 +419,7 @@ function ChessBoardInner({
   }));
 
   return (
-    <BoardFrame maxPx={520} vhCap={70}>
+    <BoardFrame maxPx={520} vhCap={70} accessibilityLabel="Chess board">
       {(size) => {
         sizeRef.current = size;
         const sq = size / 8;

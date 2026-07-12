@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import { COLORS } from '@gameexplorer/ui';
 import { Toggle } from '@/components/ui';
 import { useSettings } from '@/providers/SettingsProvider';
+import { FONTS } from '@/theme/typography';
 import type { LocalGameMode } from '@/engine/useLocalGame';
 
 export interface OpponentPickerProps {
@@ -30,7 +31,7 @@ const OPTIONS: { mode: LocalGameMode; icon: string; label: string; description: 
 export function OpponentPicker({ value, onChange, accent, tint }: OpponentPickerProps) {
   return (
     <>
-      <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700', marginBottom: 10 }}>
+      <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
         Opponent
       </Text>
       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
@@ -40,6 +41,9 @@ export function OpponentPicker({ value, onChange, accent, tint }: OpponentPicker
             <Pressable
               key={opt.mode}
               onPress={() => onChange(opt.mode)}
+              accessibilityRole="button"
+              accessibilityLabel={`${opt.label} — ${opt.description}`}
+              accessibilityState={{ selected }}
               style={{
                 flex: 1,
                 borderRadius: 14,
@@ -51,11 +55,11 @@ export function OpponentPicker({ value, onChange, accent, tint }: OpponentPicker
             >
               <Text style={{ fontSize: 20, marginBottom: 4 }}>{opt.icon}</Text>
               <Text
-                style={{ color: selected ? accent : COLORS.fg, fontSize: 14, fontWeight: '800' }}
+                style={{ color: selected ? accent : COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 14 }}
               >
                 {opt.label}
               </Text>
-              <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
+              <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 11, marginTop: 2 }}>
                 {opt.description}
               </Text>
             </Pressable>
@@ -89,10 +93,10 @@ export function FlipBoardCard() {
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }}>
+        <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>
           Flip board between turns
         </Text>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 12, marginTop: 2 }}>
           {"Rotate the board to face whoever's turn it is."}
         </Text>
       </View>

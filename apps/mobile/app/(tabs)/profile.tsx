@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   getPublicProfile,
   getGames,
@@ -11,8 +11,10 @@ import {
   type UserRating,
   type GameType,
 } from '@gameexplorer/db';
+import { useAuth } from '@gameexplorer/client';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
-import { Screen, BackHeader, Card, Button } from '@/components/ui';
+import { Screen, Card, Button } from '@/components/ui';
+import { FONTS } from '@/theme/typography';
 
 const GAME_META: Record<GameType, { label: string; icon: string; accent: string }> = {
   chess: { label: 'Chess', icon: '♞', accent: GAME_ACCENTS.chess.base },
@@ -54,57 +56,149 @@ function StatTile({ label, value, valueColor }: { label: string; value: string |
         padding: 16,
       }}
     >
-      <Text style={{ color: valueColor ?? COLORS.fg, fontSize: 26, fontWeight: '800' }}>{value}</Text>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2 }}>{label}</Text>
+      <Text style={{ color: valueColor ?? COLORS.fg, fontSize: 26, fontFamily: FONTS.display }}>{value}</Text>
+      <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2, fontFamily: FONTS.body }}>{label}</Text>
     </View>
   );
 }
 
-export default function ProfileScreen() {
+/** Tab header: screen title + settings entry (settings lives off the tab bar). */
+function YouHeader({ onSettings }: { onSettings: () => void }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 8,
+        marginBottom: 20,
+      }}
+    >
+      <Text style={{ color: COLORS.fg, fontSize: 24, fontFamily: FONTS.display }}>You</Text>
+      <Pressable
+        onPress={onSettings}
+        accessibilityRole="button"
+        accessibilityLabel="Settings"
+        hitSlop={10}
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: COLORS.border,
+          backgroundColor: COLORS.surfaceMuted,
+        }}
+      >
+        <Text style={{ fontSize: 17 }}>⚙️</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * The "You" tab. Guests get an inline sign-in prompt (a tab must not redirect
+ * away on focus); signed-in users get the profile: identity, summary stats,
+ * per-game ratings, recent games. Data refreshes on tab focus so a just-played
+ * game shows up without an app restart.
+ */
+export default function YouScreen() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Pick<Profile, 'id' | 'username' | 'created_at'> | null>(null);
   const [games, setGames] = useState<GameListItem[]>([]);
   const [ratings, setRatings] = useState<Record<GameType, UserRating> | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      // getSession() reads local storage (no network). Queries are RLS-protected,
-      // so a stale token simply falls through to the sign-in redirect.
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) {
-        router.replace('/(auth)/sign-in?next=/profile' as never);
-        return;
-      }
+  const userId = user?.id;
 
-      const [profileData, gamesData, ratingData] = await Promise.all([
-        getPublicProfile(user.id),
-        getGames(user.id),
-        getUserRatings(user.id, ['chess', 'checkers', 'reversi']),
-      ]);
-      if (!active) return;
-      setProfile(profileData);
-      setGames(gamesData);
-      setRatings(ratingData);
-      setLoading(false);
-    }
-    load();
-    return () => {
-      active = false;
-    };
-  }, [router]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      let active = true;
+      Promise.all([
+        getPublicProfile(userId),
+        getGames(userId),
+        getUserRatings(userId, ['chess', 'checkers', 'reversi']),
+      ])
+        .then(([profileData, gamesData, ratingData]) => {
+          if (!active) return;
+          setProfile(profileData);
+          setGames(gamesData);
+          setRatings(ratingData);
+        })
+        .catch(() => {
+          /* keep whatever data is showing; a retry happens on next focus */
+        });
+      return () => {
+        active = false;
+      };
+    }, [userId]),
+  );
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    setProfile(null);
+    setGames([]);
+    setRatings(null);
     router.replace('/' as never);
   }, [router]);
 
-  if (loading || !profile || !ratings) {
+  const goSettings = () => router.push('/settings' as never);
+
+  // Guest state — invite to sign in, keep settings reachable.
+  if (!authLoading && !user) {
     return (
       <Screen scroll={false}>
-        <BackHeader fallbackHref="/" />
+        <YouHeader onSettings={goSettings} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingBottom: 60 }}>
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: COLORS.surfaceAlt,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+            }}
+          >
+            <Text style={{ fontSize: 32 }}>👤</Text>
+          </View>
+          <Text style={{ color: COLORS.fg, fontSize: 22, fontFamily: FONTS.display }}>
+            Playing as guest
+          </Text>
+          <Text
+            style={{
+              color: COLORS.fgMuted,
+              fontSize: 15,
+              fontFamily: FONTS.body,
+              textAlign: 'center',
+              lineHeight: 22,
+              maxWidth: 300,
+              marginBottom: 8,
+            }}
+          >
+            Sign in to save your games, climb the ratings, and carry your streaks across devices.
+          </Text>
+          <View style={{ alignSelf: 'stretch', gap: 10 }}>
+            <Button label="Sign in" onPress={() => router.push('/(auth)/sign-in?next=/profile' as never)} />
+            <Button
+              label="Create account"
+              variant="secondary"
+              onPress={() => router.push('/(auth)/sign-up' as never)}
+            />
+          </View>
+        </View>
+      </Screen>
+    );
+  }
+
+  if (authLoading || !profile || !ratings) {
+    return (
+      <Screen scroll={false}>
+        <YouHeader onSettings={goSettings} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={COLORS.accent} />
         </View>
@@ -143,7 +237,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <BackHeader fallbackHref="/" />
+      <YouHeader onSettings={goSettings} />
 
       {/* Identity */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 }}>
@@ -157,13 +251,13 @@ export default function ProfileScreen() {
             justifyContent: 'center',
           }}
         >
-          <Text style={{ color: COLORS.onAccent, fontSize: 34, fontWeight: '800' }}>
+          <Text style={{ color: COLORS.onAccent, fontSize: 34, fontFamily: FONTS.display }}>
             {profile.username[0]?.toUpperCase() ?? '?'}
           </Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: COLORS.fg, fontSize: 24, fontWeight: '800' }}>{profile.username}</Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2 }}>
+          <Text style={{ color: COLORS.fg, fontSize: 24, fontFamily: FONTS.display }}>{profile.username}</Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2, fontFamily: FONTS.body }}>
             Member since {formatDate(profile.created_at)}
             {currentStreak >= 2 ? ` · 🔥 ${currentStreak}-game streak` : ''}
           </Text>
@@ -188,36 +282,36 @@ export default function ProfileScreen() {
             <Card key={type} style={{ padding: 16, borderLeftColor: meta.accent, borderLeftWidth: 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <Text style={{ fontSize: 22 }}>{meta.icon}</Text>
-                <Text style={{ color: COLORS.fg, fontSize: 16, fontWeight: '700' }}>{meta.label}</Text>
+                <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.displaySemi }}>{meta.label}</Text>
               </View>
               {rated ? (
                 <>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-                    <Text style={{ color: meta.accent, fontSize: 28, fontWeight: '800' }}>{rating.rating}</Text>
+                    <Text style={{ color: meta.accent, fontSize: 28, fontFamily: FONTS.display }}>{rating.rating}</Text>
                     {delta !== null && delta !== 0 && (
                       <Text
                         style={{
                           color: delta > 0 ? COLORS.successHover : COLORS.dangerHover,
                           fontSize: 14,
-                          fontWeight: '700',
+                          fontFamily: FONTS.bodyBold,
                         }}
                       >
                         {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}
                       </Text>
                     )}
                   </View>
-                  <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 4 }}>
+                  <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 4, fontFamily: FONTS.body }}>
                     {rating.games_played} game{rating.games_played !== 1 ? 's' : ''} · {rating.wins}W / {rating.losses}L / {rating.draws}D
                   </Text>
-                  <Text style={{ color: COLORS.fgSubtle, fontSize: 12, marginTop: 2 }}>
+                  <Text style={{ color: COLORS.fgSubtle, fontSize: 12, marginTop: 2, fontFamily: FONTS.body }}>
                     Peak {rating.peak_rating}
                     {rating.games_played < 30 ? ` · Provisional (${30 - rating.games_played} left)` : ''}
                   </Text>
                 </>
               ) : (
                 <>
-                  <Text style={{ color: meta.accent, fontSize: 28, fontWeight: '800', opacity: 0.5 }}>—</Text>
-                  <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 4 }}>No rated games yet</Text>
+                  <Text style={{ color: meta.accent, fontSize: 28, fontFamily: FONTS.display, opacity: 0.5 }}>—</Text>
+                  <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 4, fontFamily: FONTS.body }}>No rated games yet</Text>
                 </>
               )}
             </Card>
@@ -227,11 +321,14 @@ export default function ProfileScreen() {
 
       {/* Recent games */}
       <Card style={{ padding: 16, marginBottom: 20 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 16, fontWeight: '700', marginBottom: 8 }}>Recent games</Text>
+        <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.displaySemi, marginBottom: 8 }}>Recent games</Text>
         {recent.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 24 }}>
             <Text style={{ fontSize: 28, marginBottom: 6 }}>♞</Text>
-            <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>No games played yet</Text>
+            <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.body }}>No games played yet</Text>
+            <Text style={{ color: COLORS.fgSubtle, fontSize: 13, fontFamily: FONTS.body, marginTop: 2 }}>
+              Win a rated bot game and it lands here.
+            </Text>
           </View>
         ) : (
           recent.map((game, i) => {
@@ -263,14 +360,14 @@ export default function ProfileScreen() {
                     backgroundColor: COLORS.surfaceMuted,
                   }}
                 >
-                  <Text style={{ color, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' }}>{label}</Text>
+                  <Text style={{ color, fontSize: 11, fontFamily: FONTS.bodyBold, textTransform: 'uppercase' }}>{label}</Text>
                 </View>
                 <Text style={{ fontSize: 18 }}>{meta.icon}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: COLORS.fg, fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
+                  <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodySemi }} numberOfLines={1}>
                     vs {game.opponent}
                   </Text>
-                  <Text style={{ color: COLORS.fgMuted, fontSize: 12 }} numberOfLines={1}>
+                  <Text style={{ color: COLORS.fgMuted, fontSize: 12, fontFamily: FONTS.body }} numberOfLines={1}>
                     {meta.label}
                     {game.difficulty ? ` · ${game.difficulty}` : ''} · as {game.player_color === 'white' ? 'White' : 'Black'}
                   </Text>
@@ -280,25 +377,22 @@ export default function ProfileScreen() {
                     style={{
                       color: delta > 0 ? COLORS.successHover : COLORS.dangerHover,
                       fontSize: 13,
-                      fontWeight: '700',
+                      fontFamily: FONTS.bodyBold,
                     }}
                   >
                     {delta > 0 ? '+' : '−'}{Math.abs(delta)}
                   </Text>
                 )}
-                <Text style={{ color: COLORS.fgSubtle, fontSize: 11 }}>{relativeTime(game.created_at)}</Text>
+                <Text style={{ color: COLORS.fgSubtle, fontSize: 11, fontFamily: FONTS.body }}>{relativeTime(game.created_at)}</Text>
               </View>
             );
           })
         )}
       </Card>
 
-      <View style={{ gap: 12 }}>
-        <Button label="Settings" variant="secondary" onPress={() => router.push('/settings' as never)} />
-        <Pressable onPress={signOut} style={{ alignItems: 'center', paddingVertical: 12 }}>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontWeight: '600' }}>Sign out</Text>
-        </Pressable>
-      </View>
+      <Pressable onPress={signOut} accessibilityRole="button" style={{ alignItems: 'center', paddingVertical: 12 }}>
+        <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.bodySemi }}>Sign out</Text>
+      </Pressable>
     </Screen>
   );
 }

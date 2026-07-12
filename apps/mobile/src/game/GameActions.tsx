@@ -76,6 +76,9 @@ export function GameActions({
         <Pressable
           onPress={onDraw}
           disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel="Offer draw"
+          accessibilityState={{ disabled }}
           style={[
             buttonBase,
             { backgroundColor: COLORS.surfaceMuted, borderColor: COLORS.border },
@@ -88,6 +91,10 @@ export function GameActions({
         <Pressable
           onPress={handleResign}
           disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel={confirming ? 'Confirm resign' : 'Resign'}
+          accessibilityHint={confirming ? undefined : 'Tap twice to resign the game'}
+          accessibilityState={{ disabled }}
           style={[
             buttonBase,
             confirming

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
 import { type ChessGameState } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
-import { Screen, BackHeader, Button, Toggle } from '@/components/ui';
+import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
@@ -11,9 +12,12 @@ import { StatusBanner } from '@/game/StatusBanner';
 import { GameActions } from '@/game/GameActions';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
+import { SetupHero } from '@/game/SetupHero';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { chessAdapter } from '@/engine/chessAdapter';
 import { useSettings } from '@/providers/SettingsProvider';
+import { useIsOnline } from '@/lib/useIsOnline';
+import { FONTS } from '@/theme/typography';
 
 const BLUE = GAME_ACCENTS.chess.base;
 const BLUE_TINT = 'rgba(59,130,246,0.12)';
@@ -56,6 +60,7 @@ function formatMove(move: ChessGameState['moveHistory'][number]): string {
  * save — two humans alternate on one device, optionally flipping the board.
  */
 export function ChessScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const { settings } = useSettings();
@@ -66,8 +71,10 @@ export function ChessScreen() {
   const [rated, setRated] = useState(true);
   const [started, setStarted] = useState(false);
 
+  const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
-  const ratedEffective = rated && !!userId && !isPassAndPlay;
+  // Rated needs connectivity at game start (offline semantics — mobile plan).
+  const ratedEffective = rated && !!userId && !isPassAndPlay && online;
 
   const game = useLocalGame<ChessGameState>({
     adapter: chessAdapter,
@@ -88,13 +95,17 @@ export function ChessScreen() {
   if (!started) {
     return (
       <Screen>
-        <BackHeader title="New Game" fallbackHref="/" />
+        <GlowBackdrop
+          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: BLUE, opacity: 0.16 }]}
+        />
+        <BackHeader fallbackHref="/" />
+        <SetupHero game="chess" />
 
         <OpponentPicker value={mode} onChange={setMode} accent={BLUE} tint={BLUE_TINT} />
 
         {!isPassAndPlay && (
           <>
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700', marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Bot strength
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
@@ -104,6 +115,9 @@ export function ChessScreen() {
                   <Pressable
                     key={level.elo}
                     onPress={() => setTargetElo(level.elo)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${level.label} bot — ${level.description}`}
+                    accessibilityState={{ selected }}
                     style={{
                       flexGrow: 1,
                       flexBasis: '47%',
@@ -129,7 +143,7 @@ export function ChessScreen() {
               Stronger bots (1400+ ELO) arrive in a future update.
             </Text>
 
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700', marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Your color
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
@@ -139,6 +153,9 @@ export function ChessScreen() {
                   <Pressable
                     key={color}
                     onPress={() => setPlayerColor(color)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Play as ${color}`}
+                    accessibilityState={{ selected }}
                     style={{
                       flex: 1,
                       borderRadius: 14,
@@ -194,12 +211,16 @@ export function ChessScreen() {
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }}>Rated</Text>
+                <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
                 <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
-                  {userId ? 'Updates your chess rating' : 'Sign in to play rated games'}
+                  {!userId
+                    ? 'Sign in to play rated games'
+                    : !online
+                      ? 'Offline — rated games need a connection'
+                      : 'Updates your chess rating'}
                 </Text>
               </View>
-              <Toggle value={ratedEffective} onValueChange={setRated} label="Rated" disabled={!userId} />
+              <Toggle value={ratedEffective} onValueChange={setRated} label="Rated" disabled={!userId || !online} />
             </View>
           </>
         )}
@@ -281,6 +302,8 @@ export function ChessScreen() {
             {!isAtLive && (
               <Pressable
                 onPress={() => game.setViewIndex(game.timeline.length - 1)}
+                accessibilityRole="button"
+                accessibilityLabel="Jump to live position"
                 style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: COLORS.accent }}
               >
                 <Text style={{ color: COLORS.onAccent, fontSize: 12, fontWeight: '700' }}>Live ⇥</Text>
@@ -288,6 +311,7 @@ export function ChessScreen() {
             )}
             <Pressable
               onPress={handleNewGame}
+              accessibilityRole="button"
               style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: COLORS.accent }}
             >
               <Text style={{ color: COLORS.onAccent, fontSize: 13, fontWeight: '700' }}>New Game</Text>
@@ -488,10 +512,12 @@ export function ChessScreen() {
             ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
             : undefined
         }
+        saveError={game.saveError}
+        onRetrySave={game.retrySave}
         actions={
           <>
             <Button label="Play Again" onPress={handleNewGame} glow />
-            <Button label="Back to Home" variant="secondary" onPress={handleNewGame} />
+            <Button label="Back to Home" variant="secondary" onPress={() => router.replace('/' as never)} />
           </>
         }
       />
@@ -510,11 +536,21 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
   );
 }
 
+const NAV_LABELS: Record<string, string> = {
+  '⇤': 'First move',
+  '←': 'Previous move',
+  '→': 'Next move',
+  '⇥': 'Latest move',
+};
+
 function NavBtn({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={NAV_LABELS[label] ?? label}
+      accessibilityState={{ disabled }}
       style={{
         width: 28,
         height: 28,

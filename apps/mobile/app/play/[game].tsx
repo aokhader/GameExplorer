@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
 import { Screen, BackHeader } from '@/components/ui';
+import { setLastPlayed, type GameKey } from '@/lib/lastPlayed';
 import { CheckersScreen } from '@/screens/CheckersScreen';
 import { ReversiScreen } from '@/screens/ReversiScreen';
 import { ChessScreen } from '@/screens/ChessScreen';
@@ -20,6 +22,13 @@ const LABELS: Record<string, string> = {
 export default function GameScreen() {
   const { game } = useLocalSearchParams<{ game: string }>();
   const key = (game ?? 'chess').toLowerCase();
+
+  // Remember the game so the tab bar's Play button reopens it next time.
+  useEffect(() => {
+    if (key === 'chess' || key === 'checkers' || key === 'reversi') {
+      setLastPlayed(key as GameKey);
+    }
+  }, [key]);
 
   if (key === 'checkers') return <CheckersScreen />;
   if (key === 'reversi') return <ReversiScreen />;

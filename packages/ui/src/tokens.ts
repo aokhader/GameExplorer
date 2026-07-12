@@ -139,12 +139,31 @@ export const THEMES = {
 export interface GameAccent {
   base: string;
   glow: string; // translucent, for radial blooms / glow rings
+  /** Lightened hue — text/chevrons sitting on dark tinted fills. */
+  light: string;
+  /** Translucent tint fill (~16%) — card/icon-tile backgrounds. */
+  tintBg: string;
+  /** Near-transparent tail (~3%) — the fade end of tinted card gradients. */
+  tintBgSoft: string;
+  /** Translucent border (~40%) — hairline on tinted cards/tiles. */
+  tintBorder: string;
 }
 
 export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi', GameAccent> = {
-  chess:    { base: PALETTE.blue, glow: 'rgba(59,130,246,0.45)' },
-  checkers: { base: PALETTE.pink, glow: 'rgba(236,72,153,0.45)' },
-  reversi:  { base: PALETTE.lime, glow: 'rgba(163,230,53,0.42)' },
+  // The tint ramp (bg/bgSoft/border) powers the Arcade Glow card treatment on
+  // mobile home/hub screens; web mirrors as `--c-game-*-tint*` vars if adopted.
+  chess: {
+    base: PALETTE.blue, glow: 'rgba(59,130,246,0.45)', light: PALETTE.blueLight,
+    tintBg: 'rgba(59,130,246,0.16)', tintBgSoft: 'rgba(59,130,246,0.03)', tintBorder: 'rgba(59,130,246,0.40)',
+  },
+  checkers: {
+    base: PALETTE.pink, glow: 'rgba(236,72,153,0.45)', light: PALETTE.pinkLight,
+    tintBg: 'rgba(236,72,153,0.16)', tintBgSoft: 'rgba(236,72,153,0.03)', tintBorder: 'rgba(236,72,153,0.40)',
+  },
+  reversi: {
+    base: PALETTE.lime, glow: 'rgba(163,230,53,0.42)', light: PALETTE.limeLight,
+    tintBg: 'rgba(163,230,53,0.15)', tintBgSoft: 'rgba(163,230,53,0.03)', tintBorder: 'rgba(163,230,53,0.38)',
+  },
 } as const;
 
 export type ThemeName = keyof typeof THEMES;

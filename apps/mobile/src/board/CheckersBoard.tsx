@@ -342,7 +342,7 @@ function CheckersBoardInner({
   }));
 
   return (
-    <BoardFrame>
+    <BoardFrame accessibilityLabel="Checkers board">
       {(size) => {
         sizeRef.current = size;
         const sq = size / 8;

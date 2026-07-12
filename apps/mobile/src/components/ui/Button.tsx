@@ -72,7 +72,14 @@ export function Button({
 
   if (variant === 'primary') {
     return (
-      <Pressable onPress={onPress} disabled={isDisabled} style={[glowStyle, style]}>
+      <Pressable
+        onPress={onPress}
+        disabled={isDisabled}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: isDisabled, busy: loading }}
+        style={[glowStyle, style]}
+      >
         {({ pressed }) => (
           <LinearGradient
             colors={GRADIENTS_NATIVE.accent.colors as [string, string, ...string[]]}
@@ -96,7 +103,14 @@ export function Button({
         : { backgroundColor: 'transparent' };
 
   return (
-    <Pressable onPress={onPress} disabled={isDisabled} style={style}>
+    <Pressable
+      onPress={onPress}
+      disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      style={style}
+    >
       {({ pressed }) => (
         <View style={[base, surface, { opacity: isDisabled ? 0.5 : pressed ? 0.7 : 1 }]}>
           {content}

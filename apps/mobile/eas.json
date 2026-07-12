@@ -22,6 +22,14 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      },
+      "ios": {
+        "ascAppId": "SET_AFTER_APP_STORE_CONNECT_APP_EXISTS"
+      }
+    }
   }
 }

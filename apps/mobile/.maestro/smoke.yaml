@@ -1,0 +1,28 @@
+# GameExplorer smoke flow — launch → home renders → open chess → start a bot
+# game → board shell visible. Run with a dev/preview build installed:
+#   maestro test .maestro/smoke.yaml
+# (Maestro CLI: https://maestro.mobile.dev — not wired into CI yet.)
+appId: com.gameexplorer.app
+---
+- launchApp:
+    clearState: true
+
+# Fresh installs land on the welcome tour (guest first-run redirect) — walk it.
+- runFlow:
+    when:
+      visible: "Let's play →"
+    commands:
+      - tapOn: "Let's play →"
+      - tapOn: "Start playing →"
+
+# The tour's final step drops into a game. Cold launches land on Home instead —
+# handle both by navigating back to the hub if the tab bar is visible.
+- runFlow:
+    when:
+      visible: "Choose your game"
+    commands:
+      - tapOn: "Play Chess"
+
+- assertVisible: "Opponent"
+- tapOn: "Start Game"
+- assertVisible: "Chess board"

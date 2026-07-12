@@ -11,19 +11,24 @@ interface ScreenProps {
   edges?: Edge[];
 }
 
-/** Page shell: safe-area inset + surface background, optional scroll. */
+/**
+ * Page shell: safe-area inset + surface background, optional scroll. Content is
+ * capped at a phone-ish column width and centered so tablets don't stretch
+ * cards edge-to-edge (no effect on phones).
+ */
 export function Screen({ children, scroll = true, edges = ['top', 'bottom'] }: ScreenProps) {
+  const column = { width: '100%' as const, maxWidth: 560, alignSelf: 'center' as const };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.surface }} edges={edges}>
       {scroll ? (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 }}
+          contentContainerStyle={[{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 }, column]}
           keyboardShouldPersistTaps="handled"
         >
           {children}
         </ScrollView>
       ) : (
-        <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 8 }}>{children}</View>
+        <View style={[{ flex: 1, paddingHorizontal: 20, paddingTop: 8 }, column]}>{children}</View>
       )}
     </SafeAreaView>
   );
