@@ -1,11 +1,13 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui';
 import { GradientText } from '@/components/visual';
 import { useSettings, type Settings } from '@/components/providers/SettingsProvider';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
+import { SUPPORT_EMAIL } from '@/lib/support';
 import { cn } from '@/lib/utils';
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
@@ -133,6 +135,41 @@ export default function SettingsPage() {
               description="Display rank and file labels (a–h, 1–8) along the board edge."
               settingKey="showCoordinates"
             />
+          </div>
+        </Card>
+
+        {/* Help & support */}
+        <Card elevation="raised" className="mt-6 px-5 py-1">
+          <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wide pt-4 pb-1">
+            Help &amp; support
+          </h2>
+          <div className="divide-y divide-border">
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('GameExplorer — Bug report / feedback')}`}
+              className="group flex items-center justify-between gap-4 py-4"
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-fg">Contact support</p>
+                <p className="text-sm text-fg-muted">
+                  Found a bug or have a concern during a game? {SUPPORT_EMAIL}
+                </p>
+              </div>
+              <span className="text-fg-subtle group-hover:text-fg transition-colors" aria-hidden>
+                ›
+              </span>
+            </a>
+            <Link
+              href="/privacy"
+              className="group flex items-center justify-between gap-4 py-4"
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-fg">Privacy policy</p>
+                <p className="text-sm text-fg-muted">How your data is handled, on web and mobile.</p>
+              </div>
+              <span className="text-fg-subtle group-hover:text-fg transition-colors" aria-hidden>
+                ›
+              </span>
+            </Link>
           </div>
         </Card>
 

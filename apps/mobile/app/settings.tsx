@@ -1,8 +1,10 @@
-import { Text, View } from 'react-native';
+import { Alert, Linking, Pressable, Text, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { COLORS } from '@gameexplorer/ui';
 import { Screen, BackHeader, Card, Toggle } from '@/components/ui';
 import { useSettings, type Settings } from '@/providers/SettingsProvider';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
+import { PRIVACY_URL, SUPPORT_EMAIL, supportMailtoUrl } from '@/config/support';
 
 function SettingRow({
   title,
@@ -37,6 +39,43 @@ function SettingRow({
         onValueChange={(next) => setSetting(settingKey, next)}
       />
     </View>
+  );
+}
+
+/** A tappable row (chevron) — external links / actions, matching SettingRow. */
+function LinkRow({
+  title,
+  description,
+  onPress,
+  first,
+}: {
+  title: string;
+  description: string;
+  onPress: () => void;
+  first?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      // Static style object — the function form renders unstyled here (matches
+      // the SettingRow pattern used everywhere else in the app).
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        paddingVertical: 16,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: COLORS.border,
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }}>{title}</Text>
+        <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2 }}>{description}</Text>
+      </View>
+      <Text style={{ color: COLORS.fgSubtle, fontSize: 20, fontWeight: '700' }}>›</Text>
+    </Pressable>
   );
 }
 
@@ -109,6 +148,29 @@ export default function SettingsScreen() {
           title="Flip board in pass & play"
           description="Rotate the board to face whoever's turn it is."
           settingKey="flipBoardPassAndPlay"
+        />
+      </Card>
+
+      <SectionLabel>Help &amp; support</SectionLabel>
+      <Card style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+        <LinkRow
+          first
+          title="Contact support"
+          description={`Found a bug or have a concern? ${SUPPORT_EMAIL}`}
+          onPress={() => {
+            // Pre-filled with app version + platform; if no mail app is set up,
+            // surface the address so the user can reach us some other way.
+            Linking.openURL(supportMailtoUrl()).catch(() =>
+              Alert.alert('Contact support', `Email us at ${SUPPORT_EMAIL}`),
+            );
+          }}
+        />
+        <LinkRow
+          title="Privacy policy"
+          description="How your data is handled, on web and mobile."
+          onPress={() => {
+            WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => Linking.openURL(PRIVACY_URL));
+          }}
         />
       </Card>
 

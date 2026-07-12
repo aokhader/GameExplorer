@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY } from '@/lib/onboarding';
+import { SUPPORT_EMAIL } from '@/lib/support';
 
 type GameHue = 'chess' | 'checkers' | 'reversi';
 
@@ -140,6 +141,14 @@ export default function HomePage() {
         {/* Footer */}
         <footer className="mt-24 text-center text-fg-muted">
           <p className="mb-4">Three games. One board. Endless rematches.</p>
+          <div className="mb-4 flex items-center justify-center gap-6 text-sm">
+            <Link href="/privacy" className="hover:text-fg transition-colors">
+              Privacy
+            </Link>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-fg transition-colors">
+              Contact
+            </a>
+          </div>
           <p className="text-sm">© 2026 GameExplorer</p>
         </footer>
       </div>
