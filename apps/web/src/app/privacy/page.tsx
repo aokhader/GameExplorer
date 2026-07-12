@@ -21,7 +21,7 @@ export default function PrivacyPage() {
 
       <div className="space-y-8 text-fg-muted leading-relaxed">
         <section>
-          <h2 className="text-lg font-semibold text-fg mb-2">What this covers</h2>
+          <h2 className="text-lg font-semibold text-fg mb-2 mt-6">What this covers</h2>
           <p>
             This policy covers GameExplorer on the web and the GameExplorer app for iOS and
             Android. Both are the same service: play chess, checkers and reversi against bots,
