@@ -1,6 +1,7 @@
 // Game Queries
 import { supabase } from './client';
 import type { GameListItem, NewGame, SavedGame } from './types';
+import { LIMITS } from '@gameexplorer/shared';
 import type { ChessGameState, Color, CheckersGameState, CheckersColor, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 
 export interface SaveGameOptions {
@@ -9,24 +10,24 @@ export interface SaveGameOptions {
   rating_after?: number;
 }
 
-const MAX_STORED_GAMES = 80;
-
 /**
- * Deletes the oldest games for a user when they exceed MAX_STORED_GAMES.
- * Called automatically after every save — fire-and-forget, never throws.
+ * Deletes the oldest games of one type for a user when they exceed
+ * LIMITS.GAMES_PER_TYPE. Called automatically after every save —
+ * fire-and-forget, never throws.
  */
-async function pruneOldGames(userId: string): Promise<void> {
+async function pruneOldGames(userId: string, gameType: NewGame['game_type']): Promise<void> {
   try {
-    // Fetch all game IDs ordered oldest first
+    // Fetch the user's game IDs for this type, ordered oldest first
     const { data, error } = await supabase
       .from('games')
       .select('id')
       .eq('user_id', userId)
+      .eq('game_type', gameType)
       .order('created_at', { ascending: true });
 
-    if (error || !data || data.length <= MAX_STORED_GAMES) return;
+    if (error || !data || data.length <= LIMITS.GAMES_PER_TYPE) return;
 
-    const toDelete = data.slice(0, data.length - MAX_STORED_GAMES).map((g: { id: string }) => g.id);
+    const toDelete = data.slice(0, data.length - LIMITS.GAMES_PER_TYPE).map((g: { id: string }) => g.id);
     await supabase.from('games').delete().in('id', toDelete);
   } catch {
     // Non-critical — never let pruning break the save flow
@@ -75,7 +76,7 @@ export async function saveGame(
     return null;
   }
 
-  if (userId) pruneOldGames(userId);
+  if (userId) pruneOldGames(userId, 'chess');
   return data as SavedGame;
 }
 
@@ -147,7 +148,7 @@ export async function saveCheckersGame(
     return null;
   }
 
-  if (userId) pruneOldGames(userId);
+  if (userId) pruneOldGames(userId, 'checkers');
   return data as SavedGame;
 }
 
@@ -188,7 +189,7 @@ export async function saveReversiGame(
     return null;
   }
 
-  if (userId) pruneOldGames(userId);
+  if (userId) pruneOldGames(userId, 'reversi');
   return data as SavedGame;
 }
 

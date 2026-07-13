@@ -6,11 +6,11 @@
 // still open when the game ends.
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
+import { LIMITS } from '@gameexplorer/shared';
 import type { GameType, GameResult, GameOutcome, EndReason } from '@gameexplorer/shared';
 import type { GameSession } from './gameSession.service';
 
 const DEFAULT_RATING  = 1200;
-const MAX_STORED_GAMES = 80;
 
 interface RatingRow {
   user_id: string;
@@ -49,17 +49,18 @@ function serializeMoves(gameType: GameType, state: any): unknown[] {
   return history.map(m => ({ position: m.position, flipped: m.flipped, color: m.color }));
 }
 
-/** Oldest-first prune beyond MAX_STORED_GAMES — mirrors packages/db, never throws. */
-async function pruneOldGames(userId: string): Promise<void> {
+/** Oldest-first prune beyond LIMITS.GAMES_PER_TYPE per game type — mirrors packages/db, never throws. */
+async function pruneOldGames(userId: string, gameType: GameType): Promise<void> {
   if (!supabaseAdmin) return;
   try {
     const { data, error } = await supabaseAdmin
       .from('games')
       .select('id')
       .eq('user_id', userId)
+      .eq('game_type', gameType)
       .order('created_at', { ascending: true });
-    if (error || !data || data.length <= MAX_STORED_GAMES) return;
-    const toDelete = data.slice(0, data.length - MAX_STORED_GAMES).map((g: { id: string }) => g.id);
+    if (error || !data || data.length <= LIMITS.GAMES_PER_TYPE) return;
+    const toDelete = data.slice(0, data.length - LIMITS.GAMES_PER_TYPE).map((g: { id: string }) => g.id);
     await supabaseAdmin.from('games').delete().in('id', toDelete);
   } catch {
     // Non-critical — never let pruning break the persist flow
@@ -207,6 +208,6 @@ export const persistenceService = {
       return;
     }
 
-    await Promise.all(players.map(p => pruneOldGames(p.id)));
+    await Promise.all(players.map(p => pruneOldGames(p.id, session.gameType)));
   },
 };

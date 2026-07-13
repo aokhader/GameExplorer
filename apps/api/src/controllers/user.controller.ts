@@ -1,9 +1,17 @@
 import { Response } from 'express';
+import { LIMITS }          from '@gameexplorer/shared';
 import { prisma }         from '../config/database';
 import { getIO }          from '../websocket';
 import { blockService }   from '../services/block.service';
 import { accountService } from '../services/account.service';
 import type { AuthRequest } from '../middleware/auth';
+
+/** Accepted friendships a user is part of (either direction). */
+function countFriends(userId: string): Promise<number> {
+  return prisma.friendship.count({
+    where: { OR: [{ userId }, { friendId: userId }], status: 'accepted' },
+  });
+}
 
 export const userController = {
   async getFriends(req: AuthRequest, res: Response) {
@@ -32,6 +40,25 @@ export const userController = {
     });
     if (existing) { res.status(409).json({ error: 'Request already exists' }); return; }
 
+    // Free-tier caps: bound friends-list size and pending-request spam
+    const [senderFriends, targetFriends, pendingOutgoing] = await Promise.all([
+      countFriends(userId),
+      countFriends(targetUserId),
+      prisma.friendship.count({ where: { userId, status: 'pending' } }),
+    ]);
+    if (senderFriends >= LIMITS.MAX_FRIENDS) {
+      res.status(409).json({ error: `Your friends list is full (max ${LIMITS.MAX_FRIENDS})` });
+      return;
+    }
+    if (targetFriends >= LIMITS.MAX_FRIENDS) {
+      res.status(409).json({ error: "That user's friends list is full" });
+      return;
+    }
+    if (pendingOutgoing >= LIMITS.MAX_PENDING_REQUESTS) {
+      res.status(409).json({ error: `Too many pending requests (max ${LIMITS.MAX_PENDING_REQUESTS})` });
+      return;
+    }
+
     const friendship = await prisma.friendship.create({
       data: { userId, friendId: targetUserId, status: 'pending' },
     });
@@ -55,6 +82,22 @@ export const userController = {
       where: { id: Number(id), friendId: userId },
     });
     if (!friendship) { res.status(404).json({ error: 'Request not found' }); return; }
+
+    // Re-check both parties' caps — requests may predate either list filling up
+    if (action === 'accept') {
+      const [accepterFriends, senderFriends] = await Promise.all([
+        countFriends(userId),
+        countFriends(friendship.userId),
+      ]);
+      if (accepterFriends >= LIMITS.MAX_FRIENDS) {
+        res.status(409).json({ error: `Your friends list is full (max ${LIMITS.MAX_FRIENDS})` });
+        return;
+      }
+      if (senderFriends >= LIMITS.MAX_FRIENDS) {
+        res.status(409).json({ error: "That user's friends list is full" });
+        return;
+      }
+    }
 
     const updated = await prisma.friendship.update({
       where: { id: Number(id) },
@@ -88,6 +131,11 @@ export const userController = {
     const { targetUserId, targetUsername } = req.body as { targetUserId?: string; targetUsername?: string };
     if (!targetUserId)             { res.status(400).json({ error: 'targetUserId is required' }); return; }
     if (userId === targetUserId)   { res.status(400).json({ error: 'Cannot block yourself' }); return; }
+
+    if (await blockService.countBlocked(userId) >= LIMITS.MAX_BLOCKS) {
+      res.status(400).json({ error: 'Block list is full — unblock someone first' });
+      return;
+    }
 
     await blockService.block(userId, targetUserId, targetUsername);
     res.json({ ok: true });

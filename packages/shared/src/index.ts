@@ -13,3 +13,6 @@ export * from './game-logic/reversi';
 
 // Socket event protocol
 export * from './types/socket.types';
+
+// Free-tier cost-control limits
+export * from './limits';

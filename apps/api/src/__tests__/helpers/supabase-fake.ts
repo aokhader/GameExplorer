@@ -11,6 +11,8 @@
 // Supported chains:
 //   from(t).select(cols).eq(...).eq(...).single()
 //   from(t).select(cols).eq(...).order(col, { ascending })   ← awaitable
+//   from(t).select(cols).eq(...).limit(n)                    ← awaitable
+//   from(t).select(cols, { count: 'exact', head: true }).eq(...)  ← count only
 //   from(t).upsert(row, { onConflict: 'a,b' })
 //   from(t).insert(rows)
 //   from(t).delete().in(col, values)                         ← awaitable
@@ -41,7 +43,7 @@ export function createSupabaseFakeModule() {
     const rows = tables[table] ?? (tables[table] = []);
 
     return {
-      select(_cols: string) {
+      select(_cols: string, selectOpts?: { count?: string; head?: boolean }) {
         const filters: Array<(r: Row) => boolean> = [];
         const matches = () => rows.filter(r => filters.every(f => f(r)));
         const chain = {
@@ -56,10 +58,14 @@ export function createSupabaseFakeModule() {
             const data = matches()[0] ?? null;
             return { data, error: data ? null : { code: 'PGRST116', message: 'No rows found' } };
           },
-          // Awaiting the chain directly (no .single()/.order()) resolves to all
-          // matching rows — e.g. block.service's `select(...).eq(...)`.
-          then(resolve: (v: { data: Row[]; error: null }) => void) {
-            resolve({ data: matches(), error: null });
+          async limit(n: number) {
+            return { data: matches().slice(0, n), error: null };
+          },
+          // Awaiting the chain directly (no .single()/.order()/.limit()) resolves
+          // to all matching rows — e.g. block.service's `select(...).eq(...)` —
+          // plus a `count` for head/count queries like countBlocked.
+          then(resolve: (v: { data: Row[]; count: number; error: null }) => void) {
+            resolve({ data: selectOpts?.head ? [] : matches(), count: matches().length, error: null });
           },
         };
         return chain;

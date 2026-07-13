@@ -9,6 +9,7 @@
 // when they join the queue and kept in sync on block/unblock. The set holds
 // every userId in a block relationship in EITHER direction, so a single
 // membership check excludes both "I blocked them" and "they blocked me".
+import { LIMITS } from '@gameexplorer/shared';
 import { redis } from '../config/redis';
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
@@ -99,6 +100,17 @@ export const blockService = {
     await this.syncCaches(blockerId, blockedId, false);
   },
 
+  /** How many users `blockerId` has blocked — drives the MAX_BLOCKS cap. */
+  async countBlocked(blockerId: string): Promise<number> {
+    if (!supabaseAdmin) return 0;
+    const { count, error } = await supabaseAdmin
+      .from('user_blocks')
+      .select('id', { count: 'exact', head: true })
+      .eq('blocker_id', blockerId);
+    if (error) { logger.error('countBlocked failed:', error); return 0; }
+    return count ?? 0;
+  },
+
   /** Users that `blockerId` has blocked (for the management UI). */
   async listBlocked(blockerId: string): Promise<Array<{ blockedId: string; username: string | null; createdAt: string }>> {
     if (!supabaseAdmin) return [];
@@ -117,6 +129,21 @@ export const blockService = {
     context?: string; gameId?: string;
   }): Promise<void> {
     if (!supabaseAdmin) return;
+
+    // Free-tier caps: one open report per pair, bounded open reports per
+    // reporter. Skipping silently is fine — the reporter still sees "ok",
+    // and moderation already has the earlier report.
+    const { data: existing, error: capError } = await supabaseAdmin
+      .from('user_reports')
+      .select('reported_id')
+      .eq('reporter_id', opts.reporterId)
+      .eq('status', 'open')
+      .limit(LIMITS.MAX_OPEN_REPORTS);
+    if (capError) { logger.error('report cap check failed:', capError); return; }
+    const open = (existing ?? []) as Array<{ reported_id: string }>;
+    if (open.length >= LIMITS.MAX_OPEN_REPORTS) return;
+    if (open.some(r => r.reported_id === opts.reportedId)) return;
+
     const { error } = await supabaseAdmin.from('user_reports').insert({
       reporter_id: opts.reporterId,
       reported_id: opts.reportedId,
