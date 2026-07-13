@@ -11,5 +11,4 @@ mobile app embeds the [Stockfish](https://github.com/official-stockfish/Stockfis
 chess engine (GPL-3.0-or-later), so the mobile app binary as a whole is
 conveyed under GPL terms; the code you fork remains MIT. "GameExplorer" and
 its branding are not covered by any code license — forks must use their own
-name and identity. The reasoning behind this licensing posture is in
-[project-docs/strategy.md](project-docs/strategy.md).
+name and identity. 
