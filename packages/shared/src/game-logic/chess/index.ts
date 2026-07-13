@@ -6,3 +6,4 @@ export * from './moves';
 export * from './engine';
 export * from './weakEngine';
 export * from './fen';
+export * from './uci';

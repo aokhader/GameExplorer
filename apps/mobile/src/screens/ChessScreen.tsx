@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
-import { type ChessGameState } from '@gameexplorer/shared';
+import { STOCKFISH_MIN_ELO, type ChessGameState } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ChessBoard } from '@/board/ChessBoard';
@@ -15,6 +15,7 @@ import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
 import { SetupHero } from '@/game/SetupHero';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { chessAdapter } from '@/engine/chessAdapter';
+import { useStockfishNative } from '@/engine/useStockfishNative';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
@@ -22,15 +23,17 @@ import { FONTS } from '@/theme/typography';
 const BLUE = GAME_ACCENTS.chess.base;
 const BLUE_TINT = 'rgba(59,130,246,0.12)';
 
-// Chess bots ship capped below 1400 on mobile (in-house TS engine). The GPL-free
-// ≥1400 engine is a documented follow-on — see mobile-app-plan "Chess engine
-// decision". Keep every tile under 1400.
+// The same six-preset ladder as web's chess/bot page: below 1400 the in-house
+// TS engine plays; 1400+ hands off to the native Stockfish service (see
+// chessAdapter / stockfishEngine). Tiles at 1400+ only show when the engine is
+// linked into this binary (isStockfishAvailable).
 const DIFFICULTY_LEVELS = [
   { elo: 600, label: 'Beginner', description: 'Hangs pieces, random-looking play', icon: '🟢' },
-  { elo: 800, label: 'Novice', description: 'Misses basic tactics', icon: '🔵' },
-  { elo: 1000, label: 'Casual', description: 'Spots one-move threats', icon: '🟡' },
-  { elo: 1200, label: 'Club', description: 'Consistent, beatable with tactics', icon: '🟠' },
-  { elo: 1300, label: 'Intermediate', description: 'Solid basic play', icon: '🔴' },
+  { elo: 900, label: 'Novice', description: 'Spots one-move threats, misses combos', icon: '🔵' },
+  { elo: 1200, label: 'Club', description: 'Consistent, beatable with tactics', icon: '🟡' },
+  { elo: 1500, label: 'Intermediate', description: 'Strong tactically, rarely blunders', icon: '🟠' },
+  { elo: 2000, label: 'Advanced', description: 'Finds deep combinations reliably', icon: '🔴' },
+  { elo: 2800, label: 'Master', description: 'Elite — extremely strong', icon: '🟣' },
 ] as const;
 
 function labelForElo(elo: number): string {
@@ -66,7 +69,7 @@ export function ChessScreen() {
   const { settings } = useSettings();
 
   const [mode, setMode] = useState<LocalGameMode>('bot');
-  const [targetElo, setTargetElo] = useState(1000);
+  const [targetElo, setTargetElo] = useState(1200);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [rated, setRated] = useState(true);
   const [started, setStarted] = useState(false);
@@ -76,6 +79,14 @@ export function ChessScreen() {
   // Rated needs connectivity at game start (offline semantics — mobile plan).
   const ratedEffective = rated && !!userId && !isPassAndPlay && online;
 
+  const isStockfishTier = mode === 'bot' && targetElo >= STOCKFISH_MIN_ELO;
+  // Warm the engine only once a strong game actually starts (the NNUE load is
+  // heavy); it then stays up for the app session.
+  const stockfish = useStockfishNative({ enabled: started && isStockfishTier });
+  const levels = stockfish.isAvailable
+    ? DIFFICULTY_LEVELS
+    : DIFFICULTY_LEVELS.filter((l) => l.elo < STOCKFISH_MIN_ELO);
+
   const game = useLocalGame<ChessGameState>({
     adapter: chessAdapter,
     mode,
@@ -84,6 +95,7 @@ export function ChessScreen() {
     rated: ratedEffective,
     userId,
     started,
+    botReady: !isStockfishTier || stockfish.isReady,
   });
 
   const handleNewGame = () => {
@@ -109,7 +121,7 @@ export function ChessScreen() {
               Bot strength
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
-              {DIFFICULTY_LEVELS.map((level) => {
+              {levels.map((level) => {
                 const selected = targetElo === level.elo;
                 return (
                   <Pressable
@@ -140,7 +152,9 @@ export function ChessScreen() {
               })}
             </View>
             <Text style={{ color: COLORS.fgSubtle, fontSize: 11, marginBottom: 24 }}>
-              Stronger bots (1400+ ELO) arrive in a future update.
+              {stockfish.isAvailable
+                ? 'Bots rated 1400+ are powered by the Stockfish engine.'
+                : 'Stronger bots (1400+ ELO) need an updated app build.'}
             </Text>
 
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
@@ -235,6 +249,11 @@ export function ChessScreen() {
 
   // ── Game screen ─────────────────────────────────────────────────────────────
   const { liveState, displayState, isAtLive, isThinking, manualEnd, ratingResult } = game;
+
+  // First strong game of the session: Stockfish is still doing its UCI
+  // handshake (NNUE load). The bot turn is gated on it (botReady above), so
+  // tell the player what the wait is.
+  const engineWarming = isStockfishTier && !stockfish.isReady;
 
   const winner = liveState.isCheckmate
     ? liveState.currentTurn === 'white'
@@ -373,13 +392,15 @@ export function ChessScreen() {
                       ? `Check! ${cap(mover)} to move`
                       : `${cap(mover)} to move`
                     : 'Reviewing history'
-                  : isThinking
-                    ? 'Bot is thinking…'
-                    : checkNow && yourTurn
-                      ? 'Check! Defend your king'
-                      : yourTurn
-                        ? 'Your move'
-                        : 'Reviewing history')
+                  : engineWarming && !yourTurn
+                    ? 'Warming up the engine…'
+                    : isThinking
+                      ? 'Bot is thinking…'
+                      : checkNow && yourTurn
+                        ? 'Check! Defend your king'
+                        : yourTurn
+                          ? 'Your move'
+                          : 'Reviewing history')
               }
               description={
                 gameOverMsg

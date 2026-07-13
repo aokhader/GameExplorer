@@ -34,7 +34,13 @@ export interface LocalGameAdapter<S> {
     to: string,
     promotion?: string,
   ): { valid: boolean; resultingState?: S };
-  getBotMove(state: S, elo: number): { from: string; to: string; promotion?: string };
+  /** Sync (in-house TS engines) or async (native Stockfish at 1400+). */
+  getBotMove(
+    state: S,
+    elo: number,
+  ):
+    | { from: string; to: string; promotion?: string }
+    | Promise<{ from: string; to: string; promotion?: string }>;
   /** Padding delay (ms) so a bot reply doesn't feel instant. */
   thinkTimeForElo(elo: number): number;
   /**
@@ -66,6 +72,14 @@ export interface UseLocalGameOptions<S> {
   userId: string | null;
   /** Setup complete — the loop is live (bot may move first if player is black). */
   started: boolean;
+  /**
+   * The bot's engine is ready to answer (defaults to true). Screens whose
+   * strong bots need an async engine warm-up (native Stockfish) pass this so
+   * the bot turn waits for the handshake instead of firing into a dead engine
+   * — the effect refires when it flips true. Mirrors web's
+   * `stockfish.isReady` gate on the bot page.
+   */
+  botReady?: boolean;
 }
 
 export interface RatingResult {
@@ -89,6 +103,7 @@ export function useLocalGame<S>({
   rated,
   userId,
   started,
+  botReady = true,
 }: UseLocalGameOptions<S>) {
   const [timeline, setTimeline] = useState<S[]>(() => [adapter.newGame()]);
   const [viewIndex, setViewIndex] = useState(0);
@@ -191,9 +206,9 @@ export function useLocalGame<S>({
       return () => clearTimeout(t);
     }
 
-    if (isBotTurn) makeBotMove();
+    if (isBotTurn && botReady) makeBotMove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, started, isThinking, manualEnd, mode]);
+  }, [liveState, playerColor, started, isThinking, manualEnd, mode, botReady]);
 
   // ── Save + rating on end ──────────────────────────────────────────────────────
   useEffect(() => {

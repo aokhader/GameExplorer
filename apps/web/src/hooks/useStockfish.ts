@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ChessGameState, PieceType } from '@gameexplorer/shared';
+import type { ChessGameState, UciBestMove } from '@gameexplorer/shared';
+import {
+  STOCKFISH_MIN_ELO,
+  buildUciPositionCommand,
+  clampStockfishElo,
+  parseUciBestMove,
+  stockfishMoveTimeMs,
+} from '@gameexplorer/shared';
 import {
   getStockfishEnginePath,
   getStockfishThreads,
@@ -7,13 +14,12 @@ import {
 } from '../lib/stockfishEngine';
 
 /**
- * ELO threshold above which we hand off to Stockfish.
- * Stockfish's minimum UCI_Elo is ~1320; we start using it at 1400 as
- * requested. Below that, callers must use the chess engine worker's
- * getBotMove (useChessEngine) so the weak engine's minimax never runs on
- * the main thread.
+ * ELO threshold above which we hand off to Stockfish (re-exported from the
+ * shared UCI helpers, which mobile's native engine service also uses).
+ * Below it, callers must use the chess engine worker's getBotMove
+ * (useChessEngine) so the weak engine's minimax never runs on the main thread.
  */
-export const STOCKFISH_MIN_ELO = 1400;
+export { STOCKFISH_MIN_ELO };
 
 /**
  * Minimum think time (ms) shown in the UI. The engine may compute faster;
@@ -27,15 +33,7 @@ export function thinkTimeForElo(elo: number): number {
   return 1400;
 }
 
-const UCI_PROMOTION_MAP: Record<string, PieceType> = {
-  q: 'queen', r: 'rook', b: 'bishop', n: 'knight',
-};
-
-export interface StockfishMove {
-  from: string;
-  to: string;
-  promotion?: PieceType;
-}
+export type StockfishMove = UciBestMove;
 
 export interface UseStockfishOptions {
   /**
@@ -75,16 +73,10 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
         workerRef.current?.postMessage('isready');
       }
 
-      if (message.startsWith('bestmove')) {
-        const moveStr = message.split(' ')[1];
-        if (moveStr && moveResolverRef.current) {
-          const from = moveStr.substring(0, 2);
-          const to   = moveStr.substring(2, 4);
-          const promotionChar = moveStr.length === 5 ? moveStr[4] : undefined;
-          const promotion = promotionChar ? UCI_PROMOTION_MAP[promotionChar] : undefined;
-          moveResolverRef.current({ from, to, promotion });
-          moveResolverRef.current = null;
-        }
+      const bestMove = parseUciBestMove(message);
+      if (bestMove && moveResolverRef.current) {
+        moveResolverRef.current(bestMove);
+        moveResolverRef.current = null;
       }
     };
 
@@ -112,28 +104,14 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
 
         moveResolverRef.current = resolve;
 
-        const clampedElo = Math.max(1320, Math.min(3190, targetElo));
-        // Give Stockfish more time as strength increases so it actually reaches
-        // the configured ELO (higher ELO → needs deeper search).
-        const moveTime = Math.round(500 + ((targetElo - STOCKFISH_MIN_ELO) / 1600) * 1000);
-
         // No ucinewgame here: the worker lives for exactly one game (it is
         // created when the game starts), so keeping the hash between moves
         // makes each successive search faster.
         workerRef.current.postMessage('setoption name UCI_LimitStrength value true');
-        workerRef.current.postMessage(`setoption name UCI_Elo value ${clampedElo}`);
+        workerRef.current.postMessage(`setoption name UCI_Elo value ${clampStockfishElo(targetElo)}`);
         workerRef.current.postMessage('setoption name Skill Level value 20');
-
-        if (gameState.moveHistory.length > 0) {
-          const uciMoves = gameState.moveHistory
-            .map(m => `${m.from}${m.to}${m.promotion ? m.promotion[0] : ''}`)
-            .join(' ');
-          workerRef.current.postMessage(`position startpos moves ${uciMoves}`);
-        } else {
-          workerRef.current.postMessage('position startpos');
-        }
-
-        workerRef.current.postMessage(`go movetime ${moveTime}`);
+        workerRef.current.postMessage(buildUciPositionCommand(gameState.moveHistory));
+        workerRef.current.postMessage(`go movetime ${stockfishMoveTimeMs(targetElo)}`);
       });
     },
     [isReady],

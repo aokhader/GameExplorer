@@ -1,6 +1,7 @@
 {
   "name": "@gameexplorer/api",
   "version": "1.0.0",
+  "license": "MIT",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "postinstall": "prisma generate",

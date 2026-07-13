@@ -1,11 +1,13 @@
 import {
   ChessEngine,
   getBestMoveElo,
+  STOCKFISH_MIN_ELO,
   type ChessGameState,
   type PieceType,
 } from '@gameexplorer/shared';
 import { saveGame } from '@gameexplorer/db';
 import type { LocalGameAdapter } from './useLocalGame';
+import { getStockfishBestMove, stockfishNewGame } from './stockfishEngine';
 
 /** Bot pacing by strength — mirrors web's `useStockfish` `thinkTimeForElo`. */
 function thinkTimeForElo(elo: number): number {
@@ -17,18 +19,23 @@ function thinkTimeForElo(elo: number): number {
 }
 
 /**
- * Chess binding for `useLocalGame`. Uses the in-house pure-TS `getBestMoveElo`
- * engine, which covers the whole supported range (≤1399). Chess bots ship capped
- * below 1400 on mobile — the GPL-free ≥1400 engine (zurichess/extended-TS) is a
- * documented follow-on (see mobile-app-plan "Chess engine decision"); the elo is
- * clamped here so the contract holds even if a higher setup value ever reaches it.
+ * Chess binding for `useLocalGame`. Same split as web's bot page: below 1400
+ * the in-house pure-TS `getBestMoveElo` engine plays (sync, offline, capped at
+ * 1399 by its calibration); at 1400+ the native Stockfish service takes over
+ * (async, also offline — the engine ships in the app). Screens gate the bot
+ * turn on `useStockfishNative().isReady` so a strong request never fires
+ * before the engine handshake completes.
  *
  * `validateMove` threads the optional promotion piece; the board resolves the
  * picker before it ever calls with a promotion move.
  */
 export const chessAdapter: LocalGameAdapter<ChessGameState> = {
   gameType: 'chess',
-  newGame: () => ChessEngine.newGame(),
+  newGame: () => {
+    // Fresh game → clear Stockfish's tables (no-op when it isn't running).
+    stockfishNewGame();
+    return ChessEngine.newGame();
+  },
   currentTurn: (s) => s.currentTurn,
   isGameOver: (s) => s.isCheckmate || s.isStalemate || s.isDraw,
   // Checkmate = the side to move is mated → the other color wins. Stalemate /
@@ -39,7 +46,8 @@ export const chessAdapter: LocalGameAdapter<ChessGameState> = {
     return { valid: r.valid, resultingState: r.resultingState };
   },
   getBotMove: (s, elo) => {
-    const m = getBestMoveElo(s, Math.min(elo, 1399));
+    if (elo >= STOCKFISH_MIN_ELO) return getStockfishBestMove(s, elo);
+    const m = getBestMoveElo(s, elo);
     return { from: m.from, to: m.to, promotion: m.promotion };
   },
   thinkTimeForElo,

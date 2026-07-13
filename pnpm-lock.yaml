@@ -140,6 +140,9 @@ importers:
       '@gameexplorer/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@loloof64/react-native-stockfish':
+        specifier: ~0.3.3
+        version: 0.3.3(react-native@0.86.0(@babel/core@7.29.0)(@react-native/jest-preset@0.86.0(@babel/core@7.29.0)(react@19.2.4))(@react-native/metro-config@0.86.0(@babel/core@7.29.0))(@types/react@19.2.4)(react@19.2.4))(react@19.2.4)
       '@react-native-async-storage/async-storage':
         specifier: 2.2.0
         version: 2.2.0(react-native@0.86.0(@babel/core@7.29.0)(@react-native/jest-preset@0.86.0(@babel/core@7.29.0)(react@19.2.4))(@react-native/metro-config@0.86.0(@babel/core@7.29.0))(@types/react@19.2.4)(react@19.2.4))
@@ -1794,6 +1797,12 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@loloof64/react-native-stockfish@0.3.3':
+    resolution: {integrity: sha512-JbrNfdIqiV1NUaySj3gDWPOfmbbXdkgPCXWUsnO+hM6MJSaqDSVK4HVZj7uz2CzBuvgcBXODBXa/lLqI0RW1qA==}
+    peerDependencies:
+      react: 19.2.4
+      react-native: '*'
 
   '@mrleebo/prisma-ast@0.13.1':
     resolution: {integrity: sha512-XyroGQXcHrZdvmrGJvsA9KNeOOgGMg1Vg9OlheUsBOSKznLMDl+YChxbkboRHvtFYJEMRYmlV3uoo/njCw05iw==}
@@ -9054,6 +9063,11 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  '@loloof64/react-native-stockfish@0.3.3(react-native@0.86.0(@babel/core@7.29.0)(@react-native/jest-preset@0.86.0(@babel/core@7.29.0)(react@19.2.4))(@react-native/metro-config@0.86.0(@babel/core@7.29.0))(@types/react@19.2.4)(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      react: 19.2.4
+      react-native: 0.86.0(@babel/core@7.29.0)(@react-native/jest-preset@0.86.0(@babel/core@7.29.0)(react@19.2.4))(@react-native/metro-config@0.86.0(@babel/core@7.29.0))(@types/react@19.2.4)(react@19.2.4)
+
   '@mrleebo/prisma-ast@0.13.1':
     dependencies:
       chevrotain: 10.5.0
@@ -9542,7 +9556,9 @@ snapshots:
       metro-runtime: 0.84.4
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.86.0': {}
 

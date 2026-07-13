@@ -4,7 +4,7 @@ import { COLORS } from '@gameexplorer/ui';
 import { Screen, BackHeader, Card, Toggle } from '@/components/ui';
 import { useSettings, type Settings } from '@/providers/SettingsProvider';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
-import { PRIVACY_URL, SUPPORT_EMAIL, supportMailtoUrl } from '@/config/support';
+import { PRIVACY_URL, SOURCE_REPO_URL, SUPPORT_EMAIL, supportMailtoUrl } from '@/config/support';
 
 function SettingRow({
   title,
@@ -170,6 +170,15 @@ export default function SettingsScreen() {
           description="How your data is handled, on web and mobile."
           onPress={() => {
             WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => Linking.openURL(PRIVACY_URL));
+          }}
+        />
+        {/* GPL source offer: the app embeds Stockfish (GPL-3), so its complete
+            source must be reachable from the app itself (apps/mobile/LICENSE.md). */}
+        <LinkRow
+          title="Open source"
+          description="GPL-3.0 licensed · powered by the Stockfish chess engine. View the source code."
+          onPress={() => {
+            WebBrowser.openBrowserAsync(SOURCE_REPO_URL).catch(() => Linking.openURL(SOURCE_REPO_URL));
           }}
         />
       </Card>
