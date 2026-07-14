@@ -1,0 +1,33 @@
+MIT License
+
+This module's wrapper code is forked from @loloof64/react-native-stockfish
+(MIT, Copyright (c) 2024 loloof64) with the engine replaced. It contains:
+
+- Wrapper/bridge code: MIT (this repository's root LICENSE.md applies to
+  first-party modifications; original wrapper Copyright (c) 2024 loloof64).
+- cpp/stream_fix.{h,cpp}: from flutter_stockfish_plugin via
+  @loloof64/react-native-stockfish (MIT).
+- cpp/arasan/: the Arasan chess engine, Copyright 1994-2026 by Jon Dart,
+  distributed under its MIT-style license — see cpp/arasan/LICENSE.
+  Vendored at the commit recorded in cpp/arasan/VENDORED.txt, with one patch:
+  arasanx.cpp main() renamed to arasan_core (marked "PATCHED" inline).
+- assets/arasanv8-*.nnue: the Arasan neural network, from the arasan-chess
+  repository's network/ directory, covered by the same Arasan license.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

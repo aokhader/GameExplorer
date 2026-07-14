@@ -15,7 +15,7 @@ import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
 import { SetupHero } from '@/game/SetupHero';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { chessAdapter } from '@/engine/chessAdapter';
-import { useStockfishNative } from '@/engine/useStockfishNative';
+import { useEngineNative } from '@/engine/useEngineNative';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
@@ -24,9 +24,9 @@ const BLUE = GAME_ACCENTS.chess.base;
 const BLUE_TINT = 'rgba(59,130,246,0.12)';
 
 // The same six-preset ladder as web's chess/bot page: below 1400 the in-house
-// TS engine plays; 1400+ hands off to the native Stockfish service (see
-// chessAdapter / stockfishEngine). Tiles at 1400+ only show when the engine is
-// linked into this binary (isStockfishAvailable).
+// TS engine plays; 1400+ hands off to the native Arasan service (see
+// chessAdapter / chessEngineNative). Tiles at 1400+ only show when the engine
+// is linked into this binary (isEngineAvailable).
 const DIFFICULTY_LEVELS = [
   { elo: 600, label: 'Beginner', description: 'Hangs pieces, random-looking play', icon: '🟢' },
   { elo: 900, label: 'Novice', description: 'Spots one-move threats, misses combos', icon: '🔵' },
@@ -82,7 +82,7 @@ export function ChessScreen() {
   const isStockfishTier = mode === 'bot' && targetElo >= STOCKFISH_MIN_ELO;
   // Warm the engine only once a strong game actually starts (the NNUE load is
   // heavy); it then stays up for the app session.
-  const stockfish = useStockfishNative({ enabled: started && isStockfishTier });
+  const stockfish = useEngineNative({ enabled: started && isStockfishTier });
   const levels = stockfish.isAvailable
     ? DIFFICULTY_LEVELS
     : DIFFICULTY_LEVELS.filter((l) => l.elo < STOCKFISH_MIN_ELO);
@@ -153,7 +153,7 @@ export function ChessScreen() {
             </View>
             <Text style={{ color: COLORS.fgSubtle, fontSize: 11, marginBottom: 24 }}>
               {stockfish.isAvailable
-                ? 'Bots rated 1400+ are powered by the Stockfish engine.'
+                ? 'Bots rated 1400+ are powered by the Arasan engine.'
                 : 'Stronger bots (1400+ ELO) need an updated app build.'}
             </Text>
 
@@ -250,9 +250,9 @@ export function ChessScreen() {
   // ── Game screen ─────────────────────────────────────────────────────────────
   const { liveState, displayState, isAtLive, isThinking, manualEnd, ratingResult } = game;
 
-  // First strong game of the session: Stockfish is still doing its UCI
-  // handshake (NNUE load). The bot turn is gated on it (botReady above), so
-  // tell the player what the wait is.
+  // First strong game of the session: the engine is still doing its UCI
+  // handshake (network install + NNUE load). The bot turn is gated on it
+  // (botReady above), so tell the player what the wait is.
   const engineWarming = isStockfishTier && !stockfish.isReady;
 
   const winner = liveState.isCheckmate

@@ -1,0 +1,30 @@
+{
+  "name": "react-native-arasan",
+  "version": "1.0.0",
+  "description": "Arasan chess engine (MIT) as a React Native TurboModule. Forked from @loloof64/react-native-stockfish (MIT wrapper), engine swapped for Arasan so the binary is App Store distributable.",
+  "main": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "private": true,
+  "files": [
+    "src",
+    "android",
+    "ios",
+    "cpp",
+    "*.podspec",
+    "!android/build",
+    "!ios/build"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "codegenConfig": {
+    "name": "RNArasanSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.gameexplorer.arasan"
+    }
+  }
+}

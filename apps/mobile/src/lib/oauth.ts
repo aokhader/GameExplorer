@@ -1,5 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@gameexplorer/db';
 import { ensureProfile } from './profile';
 
@@ -50,6 +51,48 @@ export async function signInWithOAuthNative(
   }
 
   return finishOAuth(result.url);
+}
+
+/**
+ * Native Sign in with Apple (iOS). Apple requires the native credential flow
+ * (its own button + `signInAsync`), not the WebBrowser round-trip used for
+ * Google/Facebook. We exchange the returned identity token with Supabase via
+ * `signInWithIdToken`, which fires the same `onAuthStateChange` every screen
+ * listens on. Required by App Store Guideline 4.8 whenever social logins are
+ * offered.
+ *
+ * Note: Apple returns the user's name only on the FIRST authorization and the
+ * email may be a private relay — `ensureProfile` already derives a username
+ * from whatever metadata is present, so no special handling is needed here.
+ */
+export async function signInWithAppleNative(): Promise<{ error: string | null; cancelled: boolean }> {
+  try {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+
+    if (!credential.identityToken) {
+      return { error: 'Apple did not return an identity token.', cancelled: false };
+    }
+
+    const { error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: credential.identityToken,
+    });
+    if (error) return { error: error.message, cancelled: false };
+
+    await ensureProfile();
+    return { error: null, cancelled: false };
+  } catch (e) {
+    // The user tapped Cancel on the Apple sheet — not an error to surface.
+    if (e && typeof e === 'object' && 'code' in e && (e as { code?: string }).code === 'ERR_REQUEST_CANCELED') {
+      return { error: null, cancelled: true };
+    }
+    return { error: e instanceof Error ? e.message : 'Apple sign-in failed.', cancelled: false };
+  }
 }
 
 /** Extract tokens/code from the returned deep link and establish the session. */

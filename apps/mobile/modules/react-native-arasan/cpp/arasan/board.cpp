@@ -1,0 +1,2217 @@
+// Copyright 1994-2012, 2015, 2017-2021, 2023, 2025-2026 by Jon Dart.  All Rights Reserved.
+
+#include "constant.h"
+#include "chess.h"
+#include "board.h"
+#include "attacks.h"
+#include "boardio.h"
+#include "bhash.h"
+#include "movegen.h"
+#include "search.h"
+#include <memory.h>
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <cstddef>
+#include <cstring>
+#include <iostream>
+#include <sstream>
+#include <unordered_set>
+
+struct NodeInfo;
+
+const Bitboard Board::black_squares(0xaa55aa55aa55aa55ULL);
+
+const Bitboard Board::white_squares(0x55aa55aa55aa55aaULL);
+
+const hash_t rep_codes[3] =
+{
+    0x194ca2c45c8e7baaULL,
+    0x804e48e8e8f5544fULL,
+    0xd4767986f0ab49a7ULL
+};
+
+void Board::init() {
+}
+
+void Board::cleanup() {
+}
+
+void Board::setSecondaryVars()
+{
+   int i;
+
+   material[White].clear();
+   material[Black].clear();
+   pawn_bits[White].clear();
+   pawn_bits[Black].clear();
+   knight_bits[White].clear();
+   knight_bits[Black].clear();
+   bishop_bits[White].clear();
+   bishop_bits[Black].clear();
+   rook_bits[White].clear();
+   rook_bits[Black].clear();
+   queen_bits[White].clear();
+   queen_bits[Black].clear();
+   king_bits[White].clear();
+   king_bits[Black].clear();
+   occupied[White].clear();
+   occupied[Black].clear();
+   allOccupied.clear();
+   kingPos[White] = InvalidSquare;
+   kingPos[Black] = InvalidSquare;
+   for (i=0;i<64;i++)
+   {
+      Square sq(i);
+      if (contents[sq] != EmptyPiece)
+      {
+         const Piece piece = contents[sq];
+         ColorType color = PieceColor(piece);
+         occupied[color].set(sq);
+         allOccupied.set(sq);
+         material[color].addPiece(TypeOfPiece(piece));
+         switch (TypeOfPiece(piece))
+         {
+         case King:
+            kingPos[color] = sq;
+            break;
+         case Pawn:
+            pawn_bits[color].set(sq);
+            break;
+         case Knight:
+            knight_bits[color].set(sq);
+            break;
+         case Bishop:
+            bishop_bits[color].set(sq);
+            break;
+         case Rook:
+            rook_bits[color].set(sq);
+            break;
+         case Queen:
+            queen_bits[color].set(sq);
+            break;
+         default:
+            break;
+         }
+      }
+   }
+   king_bits[White].set(kingPos[White]);
+   king_bits[Black].set(kingPos[Black]);
+   state.hashCode = BoardHash::hashCode(*this);
+   state.pawnHashCodeW = BoardHash::pawnHash(*this,White);
+   state.pawnHashCodeB = BoardHash::pawnHash(*this,Black);
+   state.nonPawnHashCodeW = BoardHash::nonPawnHash(*this,White);
+   state.nonPawnHashCodeB = BoardHash::nonPawnHash(*this,Black);
+   state.minorPieceHashCodeW = BoardHash::minorPieceHash(*this,White);
+   state.minorPieceHashCodeB = BoardHash::minorPieceHash(*this,Black);
+}
+
+void Board::setCastleStatus( CastleType t, ColorType c )
+{
+   CastleType old = castleStatus(c);
+   state.castleStatus[c] = t;
+   if (c == White) {
+      state.hashCode ^= w_castle_status[old];
+      state.hashCode ^= w_castle_status[t];
+   }
+   else {
+      state.hashCode ^= b_castle_status[old];
+      state.hashCode ^= b_castle_status[t];
+   }
+   state.hashCode = BoardHash::setSideToMove(state.hashCode, sideToMove());
+}
+
+void Board::reset()
+{
+    static constexpr Piece initialContents[64] = {
+           WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing, WhiteBishop, WhiteKnight, WhiteRook,
+           WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn,
+           EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece,
+           EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece,
+           EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece,
+           EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece, EmptyPiece,
+           BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn,
+           BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing, BlackBishop, BlackKnight, BlackRook };
+
+   side = White;
+   state.checkStatus = CheckUnknown;
+   std::memcpy(reinterpret_cast<void*>(&contents),reinterpret_cast<const void*>(&initialContents),sizeof(Piece)*64);
+   state.enPassantSq = InvalidSquare;
+   state.castleStatus[White] = state.castleStatus[Black] = CanCastleEitherSide;
+   state.moveCount = 0;
+   state.movesFromNull = 0;
+   repListHead = repList;
+   setSecondaryVars();
+   *(repListHead)++ = hashCode();
+}
+
+void Board::makeEmpty() {
+   for (Square sq = 0; sq < 64; sq++) contents[sq] = EmptyPiece;
+   state.castleStatus[White] = state.castleStatus[Black] = CantCastleEitherSide;
+}
+
+Board::Board()
+{
+   reset();
+}
+
+Board::Board(const Board &b) {
+    // Copy all contents except the repetition list
+    std::memcpy(&contents, &b.contents, (uint8_t *)repList - (uint8_t *)&contents);
+    // Copy the repetition table
+    int rep_entries = (int)(b.repListHead - b.repList);
+    assert(rep_entries >= 0 && rep_entries < RepListSize);
+    if (rep_entries) {
+        std::memcpy(repList, b.repList, sizeof(hash_t) * rep_entries);
+    }
+    repListHead = repList + rep_entries;
+}
+
+Board &Board::operator=(const Board &b) {
+    if (&b != this) {
+        // Copy all contents except the repetition list
+        memcpy(&contents, &b.contents, (uint8_t *)repList - (uint8_t *)&contents);
+        // Copy the repetition table
+        int rep_entries = (int)(b.repListHead - b.repList);
+        if (rep_entries) {
+            memcpy(repList, b.repList, sizeof(hash_t) * rep_entries);
+        }
+        repListHead = repList + rep_entries;
+    }
+    return *this;
+}
+
+Board::~Board()
+{
+}
+
+#ifdef _DEBUG
+const Piece &Board::operator[]( const Square sq ) const
+{
+   assert(OnBoard(sq));
+   return contents[sq];
+}
+#endif
+
+static inline CastleType UpdateCastleStatusW( CastleType cs, Square sq )
+// after a move of or capture of the rook on 'sq', update castle status
+// for 'side'
+{
+   assert(cs<3);
+   if (sq == chess::A1) // Queen Rook moved or captured
+   {
+      if (cs == CanCastleEitherSide)
+         return CanCastleKSide;
+      else if (cs == CanCastleQSide)
+         return CantCastleEitherSide;
+   }
+   else if (sq == chess::H1) // King Rook moved or captured
+   {
+      if (cs == CanCastleEitherSide)
+         return CanCastleQSide;
+      else if (cs == CanCastleKSide)
+         return CantCastleEitherSide;
+   }
+   return cs;
+}
+
+static inline CastleType UpdateCastleStatusB(CastleType cs, Square sq)
+// after a move of or capture of the rook on 'sq', update castle status
+// for 'side'
+{
+   assert(cs<3);
+   if (sq == chess::A8) // Queen Rook moved or captured
+   {
+      if (cs == CanCastleEitherSide)
+         return CanCastleKSide;
+      else if (cs == CanCastleQSide)
+         return CantCastleEitherSide;
+   }
+   else if (sq==chess::H8) // King Rook moved or captured
+   {
+      if (cs == CanCastleEitherSide)
+         return CanCastleQSide;
+      else if (cs == CanCastleKSide)
+         return CantCastleEitherSide;
+   }
+   return cs;
+}
+
+static FORCEINLINE void Xor(hash_t &h,Square sq,Piece piece) {
+   h ^= hash_codes[sq][(int)piece];
+}
+
+void Board::doNull(NodeInfo *node)
+{
+   state.checkStatus = CheckUnknown;
+   // We can't reset the halfmove counter because we might overwrite
+   // existing entries in the repList then. But we keep separate
+   // track of how far we are from a null move (idea from Stockfish).
+   state.movesFromNull = 0;
+   if (state.enPassantSq != InvalidSquare)
+   {
+       state.hashCode ^= ep_codes[state.enPassantSq];
+       state.hashCode ^= ep_codes[0];
+       state.enPassantSq = InvalidSquare;
+   }
+   side = oppositeSide();
+   state.hashCode = BoardHash::setSideToMove(state.hashCode,side);
+   *repListHead++ = state.hashCode;
+   if (node) {
+      (node+1)->dirty_num = 0;
+      (node+1)->accum.setEmpty();
+      (node+1)->stm = side;
+      (node+1)->kingPos[White] = kingPos[White];
+      (node+1)->kingPos[Black] = kingPos[Black];
+   }
+   assert(repListHead-repList < (int)RepListSize);
+   assert(state.hashCode == BoardHash::hashCode(*this));
+}
+
+void Board::doMove( Move move, [[maybe_unused]] NodeInfo *node )
+{
+  assert(!IsNull(move));
+   assert(state.hashCode == BoardHash::hashCode(*this));
+   state.checkStatus = CheckUnknown;
+   ++state.moveCount;
+   ++state.movesFromNull;
+   if (state.enPassantSq != InvalidSquare)
+   {
+       state.hashCode ^= ep_codes[state.enPassantSq];
+       state.hashCode ^= ep_codes[0];
+   }
+   Square old_epsq = state.enPassantSq;
+   state.enPassantSq = InvalidSquare;
+   if (node) {
+      (node+1)->dirty_num = 0;
+      (node+1)->accum.setEmpty();
+   }
+
+   assert(PieceMoved(move) != Empty);
+
+   const Square start = StartSquare(move);
+   const Square dest = DestSquare(move);
+   const MoveType moveType = TypeOfMove(move);
+   assert(PieceMoved(move) == TypeOfPiece(contents[start]));
+#ifdef _DEBUG
+   if (Capture(move) != Empty) {
+           if (TypeOfMove(move) == EnPassant) {
+                   assert(contents[old_epsq] == MakePiece(Pawn,OppositeColor(side)));
+           } else {
+                   assert(contents[dest] == MakePiece(Capture(move),OppositeColor(side)));
+           }
+   }
+#endif
+   if (side == White)
+   {
+      if (moveType == KCastle)
+      {
+         state.moveCount = 0;
+
+         // update the hash code
+         const Square kp = kingSquare(White);
+         Xor(state.hashCode, kp+3, WhiteRook);
+         Xor(state.hashCode, kp, WhiteKing);
+         Xor(state.hashCode, kp+1, WhiteRook);
+         Xor(state.hashCode, kp+2, WhiteKing);
+         Xor(state.nonPawnHashCodeW, kp+3, WhiteRook);
+         Xor(state.nonPawnHashCodeW, kp, WhiteKing);
+         Xor(state.nonPawnHashCodeW, kp+1, WhiteRook);
+         Xor(state.nonPawnHashCodeW, kp+2, WhiteKing);
+
+         state.hashCode ^= w_castle_status[(int)state.castleStatus[White]];
+         state.hashCode ^= w_castle_status[(int)CantCastleEitherSide];
+
+         const int newkp = kp + 2;
+         kingPos[White] = newkp;
+         king_bits[White].clear(kp);
+         king_bits[White].set(newkp);
+         state.castleStatus[White] = CantCastleEitherSide;
+         // find old square of rook
+         Square oldrooksq = kp + 3;
+         Square newrooksq = kp + 1;
+         contents[kp] = contents[oldrooksq] = EmptyPiece;
+         contents[newrooksq] = WhiteRook;
+         contents[newkp] = WhiteKing;
+         rook_bits[White].clear(oldrooksq);
+         rook_bits[White].set(newrooksq);
+         clearAll(White,kp);
+         clearAll(White,oldrooksq);
+         setAll(White,newkp);
+         setAll(White,newrooksq);
+         if (node) {
+             (node+1)->dirty_num = 2;
+             (node+1)->dirty[0] = nnue::DirtyState(kp, newkp, WhiteKing);
+             (node+1)->dirty[1] = nnue::DirtyState(oldrooksq, newrooksq, WhiteRook);
+         }
+      }
+      else if (moveType == QCastle)
+      {
+         state.moveCount = 0;
+
+         // update the hash code
+         const Square kp = kingSquare(White);
+         Xor(state.hashCode, kp-4, WhiteRook);
+         Xor(state.hashCode, kp, WhiteKing);
+         Xor(state.hashCode, kp-1, WhiteRook);
+         Xor(state.hashCode, kp-2, WhiteKing);
+         Xor(state.nonPawnHashCodeW, kp-4, WhiteRook);
+         Xor(state.nonPawnHashCodeW, kp, WhiteKing);
+         Xor(state.nonPawnHashCodeW, kp-1, WhiteRook);
+         Xor(state.nonPawnHashCodeW, kp-2, WhiteKing);
+
+         state.hashCode ^= w_castle_status[(int)state.castleStatus[White]];
+         state.hashCode ^= w_castle_status[(int)CantCastleEitherSide];
+
+         const int newkp = kp - 2;
+         kingPos[White] = newkp;
+         king_bits[White].clear(kp);
+         king_bits[White].set(newkp);
+         state.castleStatus[White] = CantCastleEitherSide;
+         // find old square of rook
+         Square oldrooksq = kp - 4;
+         Square newrooksq = kp - 1;
+         contents[kp] = contents[oldrooksq] = Piece();
+         contents[newrooksq] = WhiteRook;
+         contents[kp-2] = WhiteKing;
+         rook_bits[White].clear(oldrooksq);
+         rook_bits[White].set(newrooksq);
+         clearAll(White,kp);
+         clearAll(White,oldrooksq);
+         setAll(White,newkp);
+         setAll(White,newrooksq);
+         if (node) {
+             (node+1)->dirty_num = 2;
+             (node+1)->dirty[0] = nnue::DirtyState(kp, newkp, WhiteKing);
+             (node+1)->dirty[1] = nnue::DirtyState(oldrooksq, newrooksq, WhiteRook);
+         }
+      }
+      else // not castling
+      {
+         assert(contents[start] != EmptyPiece);
+         const Bitboard bits(BitUtils::mask[start] |
+                             BitUtils::mask[dest]);
+         Square target = dest; // where we captured
+         Piece capture = contents[dest]; // what we captured
+         if (node && moveType != Promotion) {
+             (node+1)->dirty_num = 1;
+             (node+1)->dirty[0] = nnue::DirtyState(start,dest,MakePiece(PieceMoved(move),White));
+         }
+         switch (TypeOfPiece(contents[StartSquare(move)])) {
+         case Empty: break;
+         case Pawn:
+            state.moveCount = 0;
+            switch (moveType)
+            {
+            case EnPassant:
+               // update hash code
+               Xor(state.hashCode, start, WhitePawn);
+               Xor(state.hashCode, dest, WhitePawn);
+               Xor(state.pawnHashCodeW, start, WhitePawn);
+               Xor(state.pawnHashCodeW, dest, WhitePawn);
+               assert(dest - 8 == old_epsq);
+               target = old_epsq;
+               capture = BlackPawn;
+               contents[dest] = WhitePawn;
+               pawn_bits[White].set(dest);
+               break;
+            case Promotion:
+               // update hash code
+               Xor(state.hashCode, start, WhitePawn);
+               Xor(state.hashCode, dest, MakeWhitePiece(PromoteTo(move)));
+               Xor(state.pawnHashCodeW, start, WhitePawn);
+               Xor(state.nonPawnHashCodeW, dest, MakeWhitePiece(PromoteTo(move)));
+               if (PromoteTo(move) == Knight || PromoteTo(move) == Bishop)
+                  Xor(state.minorPieceHashCodeW, dest, MakeWhitePiece(PromoteTo(move)));
+               contents[dest] = MakeWhitePiece(PromoteTo(move));
+               material[White].removePawn();
+               material[White].addPiece(PromoteTo(move));
+               switch (PromoteTo(move))
+               {
+               case Knight:
+                  knight_bits[White].set(dest);
+                  break;
+               case Bishop:
+                  bishop_bits[White].set(dest);
+                  break;
+               case Rook:
+                  rook_bits[White].set(dest);
+                  break;
+               case Queen:
+                  queen_bits[White].set(dest);
+                  break;
+               default:
+                  break;
+               }
+               if (node) {
+                   (node + 1)->dirty[(node + 1)->dirty_num++] =
+                       nnue::DirtyState(start, InvalidSquare, WhitePawn);
+                   (node + 1)->dirty[(node + 1)->dirty_num++] =
+                       nnue::DirtyState(InvalidSquare, dest, MakePiece(PromoteTo(move), White));
+               }
+               break;
+            default:
+               Xor(state.hashCode, start, WhitePawn );
+               Xor(state.hashCode, dest, WhitePawn );
+               Xor(state.pawnHashCodeW, start, WhitePawn);
+               Xor(state.pawnHashCodeW, dest, WhitePawn);
+               contents[dest] = WhitePawn;
+               if (dest - start == 16) // 2-square pawn advance
+               {
+                  if (Attacks::ep_mask[File(dest)-1][(int)White] & pawn_bits[Black]) {
+                    state.enPassantSq = dest;
+                    state.hashCode ^= ep_codes[0];
+                    state.hashCode ^= ep_codes[dest];
+                  }
+               }
+               pawn_bits[White].set(dest);
+               break;
+            }
+            pawn_bits[White].clear(start);
+            break;
+         case Knight:
+            Xor(state.hashCode, start, WhiteKnight);
+            Xor(state.hashCode, dest, WhiteKnight);
+            Xor(state.nonPawnHashCodeW, start, WhiteKnight);
+            Xor(state.nonPawnHashCodeW, dest, WhiteKnight);
+            Xor(state.minorPieceHashCodeW, start, WhiteKnight);
+            Xor(state.minorPieceHashCodeW, dest, WhiteKnight);
+            contents[dest] = WhiteKnight;
+            knight_bits[White].setClear(bits);
+            break;
+         case Bishop:
+            Xor(state.hashCode, start, WhiteBishop);
+            Xor(state.hashCode, dest, WhiteBishop);
+            Xor(state.nonPawnHashCodeW, start, WhiteBishop);
+            Xor(state.nonPawnHashCodeW, dest, WhiteBishop);
+            Xor(state.minorPieceHashCodeW, start, WhiteBishop);
+            Xor(state.minorPieceHashCodeW, dest, WhiteBishop);
+            contents[dest] = WhiteBishop;
+            bishop_bits[White].setClear(bits);
+            break;
+         case Rook:
+            Xor(state.hashCode, start, WhiteRook );
+            Xor(state.hashCode, dest, WhiteRook );
+            Xor(state.nonPawnHashCodeW, start, WhiteRook);
+            Xor(state.nonPawnHashCodeW, dest, WhiteRook);
+            contents[dest] = WhiteRook;
+            rook_bits[White].setClear(bits);
+            if ((int)state.castleStatus[White]<3) {
+               state.hashCode ^= w_castle_status[(int)state.castleStatus[White]];
+               state.castleStatus[White] = UpdateCastleStatusW(state.castleStatus[White],start);
+               state.hashCode ^= w_castle_status[(int)state.castleStatus[White]];
+            }
+            break;
+         case Queen:
+            Xor(state.hashCode, start, WhiteQueen);
+            Xor(state.hashCode, dest, WhiteQueen);
+            Xor(state.nonPawnHashCodeW, start, WhiteQueen);
+            Xor(state.nonPawnHashCodeW, dest, WhiteQueen);
+            contents[dest] = WhiteQueen;
+            queen_bits[White].setClear(bits);
+            break;
+         case King:
+            Xor(state.hashCode, start, WhiteKing );
+            Xor(state.hashCode, dest, WhiteKing );
+            Xor(state.nonPawnHashCodeW, start, WhiteKing);
+            Xor(state.nonPawnHashCodeW, dest, WhiteKing);
+            contents[dest] = WhiteKing;
+            kingPos[White] = dest;
+            king_bits[White].clear(start);
+            king_bits[White].set(dest);
+            state.hashCode ^= w_castle_status[(int)castleStatus(White)];
+            state.hashCode ^= w_castle_status[(int)CantCastleEitherSide];
+            state.castleStatus[White] = CantCastleEitherSide;
+            break;
+         }
+         contents[start] = EmptyPiece;
+         if (capture != EmptyPiece)
+         {
+            if (node) {
+                (node+1)->dirty[(node+1)->dirty_num++] = nnue::DirtyState(target, InvalidSquare, capture);
+            }
+            state.moveCount = 0;
+            assert(target != InvalidSquare);
+            occupied[Black].clear(target);
+            Xor(state.hashCode, target, capture);
+            switch (TypeOfPiece(capture))
+            {
+            case Empty: break;
+            case Pawn:
+               assert(pawn_bits[Black].isSet(target));
+               pawn_bits[Black].clear(target);
+               Xor(state.pawnHashCodeB, target, capture);
+               if (moveType == EnPassant)
+               {
+                  contents[target] = EmptyPiece;
+                  clearAll(Black,target);
+               }
+               material[Black].removePawn();
+               break;
+            case Rook:
+               rook_bits[Black].clear(target);
+               Xor(state.nonPawnHashCodeB, target, capture);
+               material[Black].removePiece(Rook);
+               if ((int)state.castleStatus[Black]<3) {
+                  state.hashCode ^= b_castle_status[(int)state.castleStatus[Black]];
+                  state.castleStatus[Black] = UpdateCastleStatusB(state.castleStatus[Black],dest);
+                  state.hashCode ^= b_castle_status[(int)state.castleStatus[Black]];
+               }
+               break;
+            case Knight:
+               knight_bits[Black].clear(target);
+               Xor(state.nonPawnHashCodeB, target, capture);
+               Xor(state.minorPieceHashCodeB, target, capture);
+               material[Black].removePiece(Knight);
+               break;
+            case Bishop:
+               bishop_bits[Black].clear(target);
+               Xor(state.nonPawnHashCodeB, target, capture);
+               Xor(state.minorPieceHashCodeB, target, capture);
+               material[Black].removePiece(Bishop);
+               break;
+            case Queen:
+               queen_bits[Black].clear(target);
+               Xor(state.nonPawnHashCodeB, target, capture);
+               material[Black].removePiece(Queen);
+               break;
+            case King:
+               assert(0);
+               kingPos[Black] = InvalidSquare;
+               Xor(state.nonPawnHashCodeB, target, capture);
+               state.castleStatus[Black] = CantCastleEitherSide;
+               material[Black].removePiece(King);
+               break;
+            default:
+               break;
+            }
+         }
+      }
+      setAll(White,dest);
+      clearAll(White,start);
+
+   }
+   else // side == Black
+   {
+      if (moveType == KCastle)
+      {
+         state.moveCount = 0;
+         const Square kp = kingSquare(Black);
+
+         // update the hash code
+         Xor(state.hashCode, kp+3, BlackRook);
+         Xor(state.hashCode, kp, BlackKing);
+         Xor(state.hashCode, kp+1, BlackRook);
+         Xor(state.hashCode, kp+2, BlackKing);
+         Xor(state.nonPawnHashCodeB, kp+3, BlackRook);
+         Xor(state.nonPawnHashCodeB, kp, BlackKing);
+         Xor(state.nonPawnHashCodeB, kp+1, BlackRook);
+         Xor(state.nonPawnHashCodeB, kp+2, BlackKing);
+
+         state.hashCode ^= b_castle_status[(int)state.castleStatus[Black]];
+         state.hashCode ^= b_castle_status[(int)CantCastleEitherSide];
+
+         const int newkp = kp + 2;
+         kingPos[Black] = newkp;
+         king_bits[Black].clear(kp);
+         king_bits[Black].set(newkp);
+         state.castleStatus[Black] = CantCastleEitherSide;
+         // find old square of rook
+         Square oldrooksq = kp + 3;
+         Square newrooksq = kp + 1;
+         contents[kp] = contents[oldrooksq] = EmptyPiece;
+         contents[newrooksq] = BlackRook;
+         contents[kp+2] = BlackKing;
+         rook_bits[Black].clear(oldrooksq);
+         rook_bits[Black].set(newrooksq);
+         clearAll(Black,kp);
+         clearAll(Black,oldrooksq);
+         setAll(Black,newkp);
+         setAll(Black,newrooksq);
+         if (node) {
+             (node+1)->dirty_num = 2;
+             (node+1)->dirty[0] = nnue::DirtyState(kp, newkp, BlackKing);
+             (node+1)->dirty[1] = nnue::DirtyState(oldrooksq, newrooksq, BlackRook);
+         }
+      }
+      else if (moveType == QCastle)
+      {
+         state.moveCount = 0;
+         const Square kp = kingSquare(Black);
+
+         // update the hash code
+         Xor(state.hashCode, kp-4, BlackRook);
+         Xor(state.hashCode, kp, BlackKing);
+         Xor(state.hashCode, kp-1, BlackRook);
+         Xor(state.hashCode, kp-2, BlackKing);
+         Xor(state.nonPawnHashCodeB, kp-4, BlackRook);
+         Xor(state.nonPawnHashCodeB, kp, BlackKing);
+         Xor(state.nonPawnHashCodeB, kp-1, BlackRook);
+         Xor(state.nonPawnHashCodeB, kp-2, BlackKing);
+
+         state.hashCode ^= b_castle_status[(int)state.castleStatus[Black]];
+         state.hashCode ^= b_castle_status[(int)CantCastleEitherSide];
+
+         const int newkp = kp - 2;
+         kingPos[Black] = newkp;
+         king_bits[Black].clear(kp);
+         king_bits[Black].set(newkp);
+         state.castleStatus[Black] = CantCastleEitherSide;
+         // find old square of rook
+         Square oldrooksq = kp - 4;
+         Square newrooksq = kp - 1;
+         contents[kp] = contents[oldrooksq] = EmptyPiece;
+         contents[newrooksq] = BlackRook;
+         contents[kp-2] = BlackKing;
+         rook_bits[Black].clear(oldrooksq);
+         rook_bits[Black].set(newrooksq);
+         clearAll(Black,kp);
+         clearAll(Black,oldrooksq);
+         setAll(Black,newkp);
+         setAll(Black,newrooksq);
+         if (node) {
+             (node+1)->dirty_num = 2;
+             (node+1)->dirty[0] = nnue::DirtyState(kp, newkp, BlackKing);
+             (node+1)->dirty[1] = nnue::DirtyState(oldrooksq, newrooksq, BlackRook);
+         }
+      }
+      else // not castling
+      {
+         assert(contents[start] != EmptyPiece);
+         const Bitboard bits(BitUtils::mask[start] |
+                           BitUtils::mask[dest]);
+         Square target = dest; // where we captured
+         Piece capture = contents[dest]; // what we captured
+         if (node && moveType != Promotion) {
+             (node+1)->dirty_num = 1;
+             (node+1)->dirty[0] = nnue::DirtyState(start,
+                                             dest,
+                                             MakePiece(PieceMoved(move),Black));
+         }
+         switch (TypeOfPiece(contents[StartSquare(move)])) {
+         case Empty: break;
+         case Pawn:
+            state.moveCount = 0;
+            switch (moveType)
+            {
+            case EnPassant:
+               // update hash code
+               Xor(state.hashCode, start, BlackPawn);
+               Xor(state.hashCode, dest, BlackPawn);
+               Xor(state.pawnHashCodeB, start, BlackPawn);
+               Xor(state.pawnHashCodeB, dest, BlackPawn);
+               assert(dest + 8 == old_epsq);
+               target = old_epsq;
+               capture = WhitePawn;
+               contents[dest] = BlackPawn;
+               pawn_bits[Black].set(dest);
+               break;
+            case Promotion:
+               // update hash code
+               Xor(state.hashCode, start, BlackPawn);
+               Xor(state.hashCode, dest, MakeBlackPiece(PromoteTo(move)));
+               Xor(state.pawnHashCodeB, start, BlackPawn);
+               Xor(state.nonPawnHashCodeB, dest, MakeBlackPiece(PromoteTo(move)));
+               if (PromoteTo(move) == Knight || PromoteTo(move) == Bishop)
+                  Xor(state.minorPieceHashCodeB, dest, MakeBlackPiece(PromoteTo(move)));
+               contents[dest] = MakeBlackPiece(PromoteTo(move));
+               material[Black].removePawn();
+               material[Black].addPiece(PromoteTo(move));
+               switch (PromoteTo(move))
+               {
+               case Knight:
+                  knight_bits[Black].set(dest);
+                  break;
+               case Bishop:
+                  bishop_bits[Black].set(dest);
+                  break;
+               case Rook:
+                  rook_bits[Black].set(dest);
+                  break;
+               case Queen:
+                  queen_bits[Black].set(dest);
+                  break;
+               default:
+                  break;
+               }
+               if (node) {
+                   (node+1)->dirty[(node+1)->dirty_num++] = nnue::DirtyState(start, InvalidSquare, BlackPawn);
+                   (node+1)->dirty[(node+1)->dirty_num++] = nnue::DirtyState(InvalidSquare, dest, MakePiece(PromoteTo(move),Black));
+               }
+               break;
+            default:
+               Xor(state.hashCode, start, BlackPawn );
+               Xor(state.hashCode, dest, BlackPawn );
+               Xor(state.pawnHashCodeB, start, BlackPawn);
+               Xor(state.pawnHashCodeB, dest, BlackPawn);
+               contents[dest] = BlackPawn;
+               if (start - dest == 16) // 2-square pawn advance
+               {
+                  if (Attacks::ep_mask[File(dest)-1][(int)Black] & pawn_bits[White]) {
+                    state.enPassantSq = dest;
+                    state.hashCode ^= ep_codes[0];
+                    state.hashCode ^= ep_codes[dest];
+                  }
+               }
+               pawn_bits[Black].set(dest);
+               break;
+            }
+            pawn_bits[Black].clear(start);
+            break;
+         case Knight:
+            Xor(state.hashCode, start, BlackKnight);
+            Xor(state.hashCode, dest, BlackKnight);
+            Xor(state.nonPawnHashCodeB, start, BlackKnight);
+            Xor(state.nonPawnHashCodeB, dest, BlackKnight);
+            Xor(state.minorPieceHashCodeB, start, BlackKnight);
+            Xor(state.minorPieceHashCodeB, dest, BlackKnight);
+            contents[dest] = BlackKnight;
+            knight_bits[Black].setClear(bits);
+            break;
+         case Bishop:
+            Xor(state.hashCode, start, BlackBishop);
+            Xor(state.hashCode, dest, BlackBishop);
+            Xor(state.nonPawnHashCodeB, start, BlackBishop);
+            Xor(state.nonPawnHashCodeB, dest, BlackBishop);
+            Xor(state.minorPieceHashCodeB, start, BlackBishop);
+            Xor(state.minorPieceHashCodeB, dest, BlackBishop);
+            contents[dest] = BlackBishop;
+            bishop_bits[Black].setClear(bits);
+            break;
+         case Rook:
+            Xor(state.hashCode, start, BlackRook );
+            Xor(state.hashCode, dest, BlackRook );
+            Xor(state.nonPawnHashCodeB, start, BlackRook);
+            Xor(state.nonPawnHashCodeB, dest, BlackRook);
+            contents[dest] = BlackRook;
+            rook_bits[Black].setClear(bits);
+            if ((int)state.castleStatus[Black]<3) {
+                state.hashCode ^= b_castle_status[(int)state.castleStatus[Black]];
+                state.castleStatus[Black] = UpdateCastleStatusB(state.castleStatus[Black],start);
+                state.hashCode ^= b_castle_status[(int)state.castleStatus[Black]];
+            }
+            break;
+         case Queen:
+            Xor(state.hashCode, start, BlackQueen);
+            Xor(state.hashCode, dest, BlackQueen);
+            Xor(state.nonPawnHashCodeB, start, BlackQueen);
+            Xor(state.nonPawnHashCodeB, dest, BlackQueen);
+            contents[dest] = BlackQueen;
+            queen_bits[Black].setClear(bits);
+            break;
+         case King:
+            Xor(state.hashCode, start, BlackKing );
+            Xor(state.hashCode, dest, BlackKing );
+            Xor(state.nonPawnHashCodeB, start, BlackKing);
+            Xor(state.nonPawnHashCodeB, dest, BlackKing);
+            contents[dest] = BlackKing;
+            kingPos[Black] = dest;
+            king_bits[Black].clear(start);
+            king_bits[Black].set(dest);
+            state.hashCode ^= b_castle_status[(int)castleStatus(Black)];
+            state.hashCode ^= b_castle_status[(int)CantCastleEitherSide];
+            state.castleStatus[Black] = CantCastleEitherSide;
+            break;
+         }
+         contents[start] = EmptyPiece;
+         if (capture != EmptyPiece)
+         {
+            if (node) {
+                (node+1)->dirty[(node+1)->dirty_num++] = nnue::DirtyState(target, InvalidSquare, capture);
+            }
+            state.moveCount = 0;
+            assert(OnBoard(target));
+            occupied[White].clear(target);
+            Xor(state.hashCode, target, capture);
+            switch (TypeOfPiece(capture)) {
+            case Empty: break;
+            case Pawn:
+               assert(pawn_bits[White].isSet(target));
+               pawn_bits[White].clear(target);
+               Xor(state.pawnHashCodeW, target, capture);
+               if (moveType == EnPassant)
+               {
+                  contents[target] = EmptyPiece;
+                  clearAll(White,target);
+               }
+               material[White].removePawn();
+               break;
+            case Rook:
+               rook_bits[White].clear(target);
+               Xor(state.nonPawnHashCodeW, target, capture);
+               material[White].removePiece(Rook);
+               if ((int)state.castleStatus[White]<3) {
+                  state.hashCode ^= w_castle_status[(int)state.castleStatus[White]];
+                  state.castleStatus[White] = UpdateCastleStatusW(state.castleStatus[White],dest);
+                  state.hashCode ^= w_castle_status[(int)state.castleStatus[White]];
+               }
+               break;
+            case Knight:
+               knight_bits[White].clear(target);
+               Xor(state.nonPawnHashCodeW, target, capture);
+               Xor(state.minorPieceHashCodeW, target, capture);
+               material[White].removePiece(Knight);
+               break;
+            case Bishop:
+               bishop_bits[White].clear(target);
+               Xor(state.nonPawnHashCodeW, target, capture);
+               Xor(state.minorPieceHashCodeW, target, capture);
+               material[White].removePiece(Bishop);
+               break;
+            case Queen:
+               queen_bits[White].clear(target);
+               Xor(state.nonPawnHashCodeW, target, capture);
+               material[White].removePiece(Queen);
+               break;
+            case King:
+               assert(0);
+               kingPos[White] = InvalidSquare;
+               Xor(state.nonPawnHashCodeW, target, capture);
+               state.castleStatus[White] = CantCastleEitherSide;
+               material[White].removePiece(King);
+               break;
+            default:
+               break;
+            }
+         }
+         setAll(Black,dest);
+         clearAll(Black,start);
+      }
+   }
+
+   // changing side to move so flip those bits
+   state.hashCode = BoardHash::setSideToMove(state.hashCode,oppositeSide());
+   *repListHead++ = state.hashCode;
+   //assert(pawn_hash(White) == BoardHash::pawnHash(*this),White);
+   side = oppositeSide();
+   allOccupied = occupied[White] | occupied[Black];
+   if (node) {
+       (node+1)->stm = side;
+       (node+1)->kingPos[White] = kingPos[White];
+       (node+1)->kingPos[Black] = kingPos[Black];
+   }
+   assert(state.hashCode == BoardHash::hashCode(*this));
+   assert(state.nonPawnHashCodeW == BoardHash::nonPawnHash(*this, White));
+   assert(state.nonPawnHashCodeB == BoardHash::nonPawnHash(*this, Black));
+   assert(state.minorPieceHashCodeW == BoardHash::minorPieceHash(*this, White));
+   assert(state.minorPieceHashCodeB == BoardHash::minorPieceHash(*this, Black));
+#if defined(_DEBUG) && defined(FULL_DEBUG)
+   // verify correct updating of bitmaps:
+   Board copy(*this);
+   copy.setSecondaryVars();
+   assert(pawn_bits[White] == copy.pawn_bits[White]);
+   assert(knight_bits[White] == copy.knight_bits[White]);
+   assert(bishop_bits[White] == copy.bishop_bits[White]);
+   assert(rook_bits[White] == copy.rook_bits[White]);
+   assert(queen_bits[White] == copy.queen_bits[White]);
+   assert(occupied[White] == copy.occupied[White]);
+   assert(pawn_bits[Black] == copy.pawn_bits[Black]);
+   assert(knight_bits[Black] == copy.knight_bits[Black]);
+   assert(bishop_bits[Black] == copy.bishop_bits[Black]);
+   assert(rook_bits[Black] == copy.rook_bits[Black]);
+   assert(queen_bits[Black] == copy.queen_bits[Black]);
+   assert(occupied[Black] == copy.occupied[Black]);
+   assert(contents[kingPos[White]]==WhiteKing);
+   assert(contents[kingPos[Black]]==BlackKing);
+   assert(validPiece(contents[start]));
+   assert(validPiece(contents[dest]));
+#endif
+}
+
+hash_t Board::hashCode( Move move ) const
+{
+   hash_t newHash = state.hashCode;
+   if (state.enPassantSq != InvalidSquare)
+   {
+       newHash ^= ep_codes[state.enPassantSq];
+       newHash ^= ep_codes[0];
+   }
+   const Square start = StartSquare(move);
+   const Square dest = DestSquare(move);
+   const MoveType moveType = TypeOfMove(move);
+   if (side == White)
+   {
+      if (moveType == KCastle)
+      {
+         const Square kp = kingSquare(White);
+         Xor(newHash, kp+3, WhiteRook);
+         Xor(newHash, kp, WhiteKing);
+         Xor(newHash, kp+1, WhiteRook);
+         Xor(newHash, kp+2, WhiteKing);
+         newHash ^= w_castle_status[(int)state.castleStatus[White]];
+         newHash ^= w_castle_status[(int)CantCastleEitherSide];
+      }
+      else if (moveType == QCastle)
+      {
+         const Square kp = kingSquare(White);
+         Xor(newHash, kp-4, WhiteRook);
+         Xor(newHash, kp, WhiteKing);
+         Xor(newHash, kp-1, WhiteRook);
+         Xor(newHash, kp-2, WhiteKing);
+         newHash ^= w_castle_status[(int)state.castleStatus[White]];
+         newHash ^= w_castle_status[(int)CantCastleEitherSide];
+      }
+      else // not castling
+      {
+         Square target = dest; // where we captured
+         switch (TypeOfPiece(contents[StartSquare(move)]))
+         {
+         case Empty: break;
+         case Pawn:
+            switch (moveType)
+            {
+            case EnPassant:
+               // update hash code
+               Xor(newHash, start, WhitePawn);
+               Xor(newHash, dest, WhitePawn);
+               target = state.enPassantSq;
+               break;
+            case Promotion:
+               // update hash code
+               Xor(newHash, start, WhitePawn);
+               Xor(newHash, dest, MakeWhitePiece(PromoteTo(move)));
+               break;
+            default:
+               Xor(newHash, start, WhitePawn );
+               Xor(newHash, dest, WhitePawn );
+               if (start - dest == 16) // 2-square pawn advance
+               {
+                  if (Attacks::ep_mask[File(dest)-1][(int)White] & pawn_bits[Black]) {
+                    newHash ^= ep_codes[0];
+                    newHash ^= ep_codes[dest];
+                  }
+               }
+               break;
+            }
+            break;
+         case Knight:
+            Xor(newHash, start, WhiteKnight);
+            Xor(newHash, dest, WhiteKnight);
+            break;
+         case Bishop:
+            Xor(newHash, start, WhiteBishop);
+            Xor(newHash, dest, WhiteBishop);
+            break;
+         case Rook:
+            Xor(newHash, start, WhiteRook );
+            Xor(newHash, dest, WhiteRook );
+            if ((int)state.castleStatus[White]<3) {
+               newHash ^= w_castle_status[(int)state.castleStatus[White]];
+               newHash ^= w_castle_status[(int)UpdateCastleStatusW(state.castleStatus[White],start)];
+            }
+            break;
+         case Queen:
+            Xor(newHash, start, WhiteQueen);
+            Xor(newHash, dest, WhiteQueen);
+            break;
+         case King:
+            Xor(newHash, start, WhiteKing );
+            Xor(newHash, dest, WhiteKing );
+            newHash ^= w_castle_status[(int)castleStatus(White)];
+            newHash ^= w_castle_status[(int)CantCastleEitherSide];
+            break;
+         }
+         if (Capture(move) != Empty)
+         {
+            Piece cap = MakeBlackPiece(Capture(move));
+            assert(OnBoard(target));
+            Xor(newHash, target, cap);
+            if (Capture(move) == Rook) {
+               if ((int)state.castleStatus[Black]<3) {
+                  newHash ^= b_castle_status[(int)state.castleStatus[Black]];
+                  newHash ^= b_castle_status[(int)UpdateCastleStatusB(state.castleStatus[Black],dest)];
+               }
+            }
+         }
+      }
+
+   }
+   else // side == Black
+   {
+      if (moveType == KCastle)
+      {
+         const Square kp = kingSquare(Black);
+         Xor(newHash, kp+3, BlackRook);
+         Xor(newHash, kp, BlackKing);
+         Xor(newHash, kp+1, BlackRook);
+         Xor(newHash, kp+2, BlackKing);
+         newHash ^= b_castle_status[(int)state.castleStatus[Black]];
+         newHash ^= b_castle_status[(int)CantCastleEitherSide];
+      }
+      else if (moveType == QCastle)
+      {
+         const Square kp = kingSquare(Black);
+         Xor(newHash, kp-4, BlackRook);
+         Xor(newHash, kp, BlackKing);
+         Xor(newHash, kp-1, BlackRook);
+         Xor(newHash, kp-2, BlackKing);
+         newHash ^= b_castle_status[(int)state.castleStatus[Black]];
+         newHash ^= b_castle_status[(int)CantCastleEitherSide];
+      }
+      else // not castling
+      {
+         Square target = dest; // where we captured
+         switch (TypeOfPiece(contents[StartSquare(move)]))
+         {
+         case Empty: break;
+         case Pawn:
+            switch (moveType)
+            {
+            case EnPassant:
+               // update hash code
+               Xor(newHash, start, BlackPawn);
+               Xor(newHash, dest, BlackPawn);
+               target = state.enPassantSq;
+               break;
+            case Promotion:
+               // update hash code
+               Xor(newHash, start, BlackPawn);
+               Xor(newHash, dest, MakeBlackPiece(PromoteTo(move)));
+               break;
+            default:
+               Xor(newHash, start, BlackPawn );
+               Xor(newHash, dest, BlackPawn );
+               if (dest - start == 16) // 2-square pawn advance
+               {
+                  if (Attacks::ep_mask[File(dest)-1][(int)Black] & pawn_bits[White]) {
+                    newHash ^= ep_codes[0];
+                    newHash ^= ep_codes[dest];
+                  }
+               }
+               break;
+            }
+            break;
+         case Knight:
+            Xor(newHash, start, BlackKnight);
+            Xor(newHash, dest, BlackKnight);
+            break;
+         case Bishop:
+            Xor(newHash, start, BlackBishop);
+            Xor(newHash, dest, BlackBishop);
+            break;
+         case Rook:
+            Xor(newHash, start, BlackRook );
+            Xor(newHash, dest, BlackRook );
+            if ((int)state.castleStatus[Black]<3) {
+               newHash ^= b_castle_status[(int)state.castleStatus[Black]];
+               newHash ^= b_castle_status[(int)UpdateCastleStatusB(state.castleStatus[Black],dest)];
+            }
+            break;
+         case Queen:
+            Xor(newHash, start, BlackQueen);
+            Xor(newHash, dest, BlackQueen);
+            break;
+         case King:
+            Xor(newHash, start, BlackKing );
+            Xor(newHash, dest, BlackKing );
+            newHash ^= b_castle_status[(int)castleStatus(Black)];
+            newHash ^= b_castle_status[(int)CantCastleEitherSide];
+            break;
+         }
+         if (Capture(move) != Empty)
+         {
+            Piece cap = MakeWhitePiece(Capture(move));
+            assert(OnBoard(target));
+            Xor(newHash, target, cap);
+            if (Capture(move) == Rook) {
+               if ((int)state.castleStatus[White]<3) {
+                  newHash ^= w_castle_status[(int)state.castleStatus[White]];
+                  newHash ^= w_castle_status[(int)UpdateCastleStatusW(state.castleStatus[White],dest)];
+               }
+            }
+         }
+
+      }
+   }
+
+   if (sideToMove() == White)
+      newHash |= (hash_t)1;
+   else
+      newHash &= (hash_t)~1;
+   return newHash;
+}
+
+void Board::undoCastling(Square kp, Square oldkingsq, Square newrooksq,
+                          Square oldrooksq)
+{
+   contents[kp] = EmptyPiece;
+   contents[oldrooksq] = MakePiece(Rook,side);
+   contents[newrooksq] = EmptyPiece;
+   contents[oldkingsq] = MakePiece(King,side);
+   kingPos[side] = oldkingsq;
+   king_bits[side].clear(kp);
+   king_bits[side].set(oldkingsq);
+   rook_bits[side].set(oldrooksq);
+   rook_bits[side].clear(newrooksq);
+
+   setAll(side,oldrooksq);
+   setAll(side,oldkingsq);
+   clearAll(side,kp);
+   clearAll(side,newrooksq);
+}
+
+void Board::undoMove( Move move, const BoardState &old_state )
+{
+   side = OppositeColor(side);
+   if (!IsNull(move))
+   {
+      const MoveType moveType = TypeOfMove(move);
+      const Square start = StartSquare(move);
+      const Square dest = DestSquare(move);
+      if (moveType == KCastle)
+      {
+         Square kp = kingSquare(side);
+         Square oldrooksq = kp+1;
+         Square newrooksq = kp-1;
+         Square oldkingsq = kp-2;
+         undoCastling(kp,oldkingsq,newrooksq,oldrooksq);
+      }
+      else if (moveType == QCastle)
+      {
+         Square kp = kingSquare(side);
+         Square oldrooksq = kp-2;
+         Square newrooksq = kp+1;
+         Square oldkingsq = kp+2;
+         undoCastling(kp,oldkingsq,newrooksq,oldrooksq);
+      }
+      else if (side == White)
+      {
+         const Bitboard bits(BitUtils::mask[start] |
+                             BitUtils::mask[dest]);
+         // not castling
+         Square target = dest;
+         // fix up start square:
+         if (moveType == Promotion || moveType == EnPassant)
+         {
+            contents[start] = WhitePawn;
+         }
+         else
+         {
+            contents[start] = contents[dest];
+         }
+         setAll(White,start);
+         switch (TypeOfPiece(contents[start])) {
+         case Empty: break;
+         case Pawn:
+            Xor(state.pawnHashCodeW,start,WhitePawn);
+            switch (moveType) {
+            case Promotion:
+               material[White].addPawn();
+               material[White].removePiece(PromoteTo(move));
+               switch (PromoteTo(move))
+               {
+               case Knight:
+                  knight_bits[White].clear(dest);
+                  break;
+               case Bishop:
+                  bishop_bits[White].clear(dest);
+                  break;
+               case Rook:
+                  rook_bits[White].clear(dest);
+                  break;
+               case Queen:
+                  queen_bits[White].clear(dest);
+                  break;
+               default:
+                  break;
+               }
+               break;
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
+            case EnPassant:
+               target = dest - 8;
+               assert(OnBoard(target));
+               assert(contents[target]==EmptyPiece);
+               // note: falls through to normal case
+            case Normal:
+               pawn_bits[White].clear(dest);
+               Xor(state.pawnHashCodeW,dest,WhitePawn);
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+            default:
+               break;
+            }
+            pawn_bits[White].set(start);
+            break;
+         case Knight:
+            knight_bits[White].setClear(bits);
+            break;
+         case Bishop:
+            bishop_bits[White].setClear(bits);
+            break;
+         case Rook:
+            rook_bits[White].setClear(bits);
+            break;
+         case Queen:
+            queen_bits[White].setClear(bits);
+            break;
+         case King:
+            kingPos[White] = start;
+            king_bits[White].clear(dest);
+            king_bits[White].set(start);
+            break;
+         default:
+            break;
+         }
+         // fix up dest square
+         clearAll(White,dest);
+         contents[dest] = EmptyPiece;
+         contents[target] = MakePiece(Capture(move),Black);
+         if (Capture(move) != Empty)
+         {
+            switch (Capture(move))
+            {
+            case Pawn:
+                           assert(!pawn_bits[Black].isSet(target));
+               pawn_bits[Black].set(target);
+               Xor(state.pawnHashCodeB,target,BlackPawn);
+               material[Black].addPawn();
+               break;
+            case Knight:
+               knight_bits[Black].set(target);
+               material[Black].addPiece(Knight);
+               break;
+            case Bishop:
+               bishop_bits[Black].set(target);
+               material[Black].addPiece(Bishop);
+               break;
+            case Rook:
+               rook_bits[Black].set(target);
+               material[Black].addPiece(Rook);
+               break;
+            case Queen:
+               queen_bits[Black].set(target);
+               material[Black].addPiece(Queen);
+               break;
+            case King:
+               kingPos[Black] = target;
+               king_bits[Black].set(target);
+               material[Black].addPiece(King);
+               break;
+            default:
+               break;
+            }
+            setAll(Black,target);
+         }
+      }
+      else // side == Black
+      {
+         const Bitboard bits(BitUtils::mask[start] |
+                             BitUtils::mask[dest]);
+         // not castling
+         Square target = dest;
+         // fix up start square:
+         if (moveType == Promotion || moveType == EnPassant)
+         {
+            contents[start] = BlackPawn;
+         }
+         else
+         {
+            contents[start] = contents[dest];
+         }
+         setAll(Black,start);
+         switch (TypeOfPiece(contents[start])) {
+         case Empty: break;
+         case Pawn:
+            Xor(state.pawnHashCodeB,start,BlackPawn);
+            switch (moveType) {
+            case Promotion:
+            {
+               material[Black].addPawn();
+               material[Black].removePiece(PromoteTo(move));
+               switch (PromoteTo(move))
+               {
+               case Knight:
+                  knight_bits[Black].clear(dest);
+                  break;
+               case Bishop:
+                  bishop_bits[Black].clear(dest);
+                  break;
+               case Rook:
+                  rook_bits[Black].clear(dest);
+                  break;
+               case Queen:
+                  queen_bits[Black].clear(dest);
+                  break;
+               default:
+                  break;
+               }
+               break;
+            }
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
+            case EnPassant:
+               target = dest + 8;
+               assert(OnBoard(target));
+               assert(contents[target]== EmptyPiece);
+               // note: falls through to normal case
+            case Normal:
+               pawn_bits[Black].clear(dest);
+               Xor(state.pawnHashCodeB,dest,BlackPawn);
+               break;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+            default:
+               break;
+            }
+            pawn_bits[Black].set(start);
+            break;
+         case Knight:
+            knight_bits[Black].setClear(bits);
+            break;
+         case Bishop:
+            bishop_bits[Black].setClear(bits);
+            break;
+         case Rook:
+            rook_bits[Black].setClear(bits);
+            break;
+         case Queen:
+            queen_bits[Black].setClear(bits);
+            break;
+         case King:
+            kingPos[Black] = start;
+            king_bits[Black].clear(dest);
+            king_bits[Black].set(start);
+            break;
+         default:
+            break;
+         }
+         // fix up dest square
+         clearAll(Black,dest);
+         contents[dest] = EmptyPiece;
+         contents[target] = MakePiece(Capture(move),White);
+         if (Capture(move) != Empty)
+         {
+            switch (Capture(move))
+            {
+            case Pawn:
+               assert(!pawn_bits[White].isSet(target));
+               pawn_bits[White].set(target);
+               Xor(state.pawnHashCodeW,target,WhitePawn);
+               material[White].addPawn();
+               break;
+            case Knight:
+               knight_bits[White].set(target);
+               material[White].addPiece(Knight);
+               break;
+            case Bishop:
+               bishop_bits[White].set(target);
+               material[White].addPiece(Bishop);
+               break;
+            case Rook:
+               rook_bits[White].set(target);
+               material[White].addPiece(Rook);
+               break;
+            case Queen:
+               queen_bits[White].set(target);
+               material[White].addPiece(Queen);
+               break;
+            case King:
+               kingPos[White] = target;
+               king_bits[White].set(target);
+               material[White].addPiece(King);
+               break;
+            default:
+               break;
+            }
+            setAll(White,target);
+         }
+      }
+   }
+   state = old_state;
+   assert(getMaterial(sideToMove()).pawnCount() == (int)pawn_bits[side].bitCount());
+   assert(getMaterial(oppositeSide()).pawnCount() == (int)pawn_bits[oppositeSide()].bitCount());
+
+   --repListHead;
+   allOccupied = Bitboard(occupied[White] | occupied[Black]);
+   assert(state.hashCode == BoardHash::hashCode(*this));
+   assert(king_bits[White].bitCount() == 1);
+   assert(king_bits[Black].bitCount() == 1);
+#if defined(_DEBUG) && defined(FULL_DEBUG)
+   // verify correct updating of bitmaps:
+   Board copy = *this;
+   assert(pawn_bits[White] == copy.pawn_bits[White]);
+   assert(knight_bits[White] == copy.knight_bits[White]);
+   assert(bishop_bits[White] == copy.bishop_bits[White]);
+   assert(rook_bits[White] == copy.rook_bits[White]);
+   assert(queen_bits[White] == copy.queen_bits[White]);
+   assert(occupied[White] == copy.occupied[White]);
+
+   assert(pawn_bits[Black] == copy.pawn_bits[Black]);
+   assert(knight_bits[Black] == copy.knight_bits[Black]);
+   assert(bishop_bits[Black] == copy.bishop_bits[Black]);
+   assert(rook_bits[Black] == copy.rook_bits[Black]);
+   assert(queen_bits[Black] == copy.queen_bits[Black]);
+   assert(occupied[Black] == copy.occupied[Black]);
+   assert(contents[kingPos[White]]==WhiteKing);
+   assert(contents[kingPos[Black]]==BlackKing);
+   assert(validPiece(contents[StartSquare(move)]));
+   assert(validPiece(contents[DestSquare(move)]));
+#endif
+}
+
+int Board::wouldAttack(Move m,Square target) const {
+  Bitboard attacks;
+  Square sq = DestSquare(m);
+  switch(PieceMoved(m)) {
+  case Empty: break;
+  case Pawn:
+    attacks = Attacks::pawn_attacks[sq][OppositeColor(side)];
+    break;
+  case Knight:
+    attacks = Attacks::knight_attacks[sq];
+    break;
+  case Bishop:
+    attacks = bishopAttacks(sq); break;
+  case Rook:
+    attacks = rookAttacks(sq); break;
+  case Queen:
+    attacks = bishopAttacks(sq) | rookAttacks(sq); break;
+  case King:
+    attacks = Attacks::king_attacks[sq];
+    break;
+  }
+  return attacks.isSet(target);
+}
+
+int Board::anyAttacks(const Square sq, ColorType c) const
+{
+   if (sq == InvalidSquare)
+      return 0;
+   if (Attacks::pawn_attacks[sq][c] & pawn_bits[c]) return 1;
+   if (Attacks::knight_attacks[sq] & knight_bits[c]) return 1;
+   if (Attacks::king_attacks[sq].isSet(kingSquare(c))) return 1;
+   if ((rook_bits[c] | queen_bits[c]) & rookAttacks(sq)) return 1;
+   if ((bishop_bits[c] | queen_bits[c]) & bishopAttacks(sq)) return 1;
+   return 0;
+}
+
+int Board::anyAttacks(Square sq, ColorType c, Bitboard &source) const
+{
+   if (sq == InvalidSquare)
+      return 0;
+   source = Bitboard(Attacks::pawn_attacks[sq][c] & pawn_bits[c]);
+   if (!source.isClear()) return 1;
+   source = Bitboard(Attacks::knight_attacks[sq] & knight_bits[c]);
+   if (!source.isClear()) return 1;
+   source = Bitboard((uint64_t)Attacks::king_attacks[sq] & (1ULL<<kingSquare(c)));
+   if (!source.isClear()) return 1;
+   source = Bitboard((rook_bits[c] | queen_bits[c]) & rookAttacks(sq));
+   if (!source.isClear()) return 1;
+   source = Bitboard((bishop_bits[c] | queen_bits[c]) & bishopAttacks(sq));
+   return !source.isClear();
+}
+
+Bitboard Board::allAttacks(ColorType c) const
+{
+   Square sq;
+   Bitboard ret(allPawnAttacks(c));
+   Bitboard knights(knight_bits[c]);
+   while (knights.iterate(sq)) ret |= Attacks::knight_attacks[sq];
+   Bitboard bishops(bishop_bits[c]);
+   while (bishops.iterate(sq)) ret |= bishopAttacks(sq);
+   Bitboard rooks(rook_bits[c]);
+   while (rooks.iterate(sq)) ret |= rookAttacks(sq);
+   Bitboard queens(queen_bits[c]);
+   while (queens.iterate(sq)) ret |= queenAttacks(sq);
+   return ret | Attacks::king_attacks[kingSquare(c)];
+}
+
+Bitboard Board::calcAttacks(Square sq, ColorType c) const
+{
+   assert(sq != InvalidSquare);
+
+   Bitboard retval;
+
+   retval |= (Attacks::pawn_attacks[sq][c] & pawn_bits[c]);
+   retval |= (Attacks::knight_attacks[sq] & knight_bits[c]);
+   retval |= (Attacks::king_attacks[sq] & ((uint64_t)1<<kingSquare(c)));
+   retval |= (rookAttacks(sq) & (rook_bits[c] | queen_bits[c]));
+   retval |= (bishopAttacks(sq) & (bishop_bits[c] | queen_bits[c]));
+
+   return retval;
+}
+
+Bitboard Board::calcBlocks(Square sq, ColorType c) const
+{
+   assert(sq != InvalidSquare);
+
+   Bitboard retval;
+
+   if (c == Black)
+   {
+       Square origin = sq-8;
+       if (OnBoard(origin) && contents[origin] == BlackPawn)
+          retval.set(origin);
+       if (Rank<Black>(sq) == 4 && contents[origin] == EmptyPiece &&
+           contents[origin - 8] == BlackPawn)
+          retval.set(origin - 8);
+   }
+   else
+   {
+       Square origin = sq+8;
+       if (OnBoard(origin) && contents[origin] == WhitePawn)
+          retval.set(origin);
+       if (Rank<White>(sq) == 4 && contents[origin] == EmptyPiece &&
+          contents[origin + 8] == WhitePawn)
+          retval.set(origin + 8);
+   }
+
+   retval |= (Attacks::knight_attacks[sq] & knight_bits[c]);
+   retval |= (rookAttacks(sq) & (rook_bits[c] | queen_bits[c]));
+   retval |= (bishopAttacks(sq) & (bishop_bits[c] | queen_bits[c]));
+
+   return retval;
+}
+
+
+Square Board::getDirectionalAttack(Square sq, int dir, ColorType c) const {
+   Square attacker;
+   switch (dir)
+   {
+   case 1:
+      attacker = Bitboard(rankAttacksRight(sq) & allOccupied).firstOne();
+      if (attacker == InvalidSquare ||
+          (!Bitboard(rook_bits[c] | queen_bits[c]).isSet(attacker))) {
+         return InvalidSquare;
+      }
+      else {
+         return attacker;
+      }
+      break;
+   case -1:
+      attacker = Bitboard(rankAttacksLeft(sq) & allOccupied).lastOne();
+      if (attacker == InvalidSquare ||
+          (!Bitboard(rook_bits[c] | queen_bits[c]).isSet(attacker))) {
+         return InvalidSquare;
+      }
+      else {
+         return attacker;
+      }
+      break;
+   case 8:
+      attacker = Bitboard(fileAttacksUp(sq) & allOccupied).firstOne();
+      if (attacker == InvalidSquare ||
+          (!Bitboard(rook_bits[c] | queen_bits[c]).isSet(attacker))) {
+         return InvalidSquare;
+      }
+      else {
+         return attacker;
+      }
+      break;
+   case -8:
+      attacker = Bitboard(fileAttacksDown(sq) & allOccupied).lastOne();
+      if (attacker == InvalidSquare ||
+          (!Bitboard(rook_bits[c] | queen_bits[c]).isSet(attacker))) {
+         return InvalidSquare;
+      }
+      else {
+         return attacker;
+      }
+      break;
+   case 7:
+      attacker = Bitboard(diagAttacksA8Upper(sq) & allOccupied).lastOne();
+      if (attacker == InvalidSquare ||
+          (!Bitboard(bishop_bits[c] | queen_bits[c]).isSet(attacker))) {
+         return InvalidSquare;
+      }
+      else {
+         return attacker;
+      }
+      break;
+   case -7:
+      attacker = Bitboard(diagAttacksA8Lower(sq) & allOccupied).firstOne();
+      if (attacker == InvalidSquare ||
+          (!Bitboard(bishop_bits[c] | queen_bits[c]).isSet(attacker))) {
+         return InvalidSquare;
+      }
+      else {
+         return attacker;
+      }
+      break;
+   case 9:
+      attacker = Bitboard(diagAttacksA1Upper(sq) & allOccupied).firstOne();
+      if (attacker == InvalidSquare ||
+          (!Bitboard(bishop_bits[c] | queen_bits[c]).isSet(attacker))) {
+         return InvalidSquare;
+      }
+      else {
+         return attacker;
+      }
+      break;
+   case -9:
+      attacker = Bitboard(diagAttacksA1Lower(sq) & allOccupied).lastOne();
+      if (attacker == InvalidSquare ||
+          (!Bitboard(bishop_bits[c] | queen_bits[c]).isSet(attacker))) {
+         return InvalidSquare;
+      }
+      else {
+         return attacker;
+      }
+      break;
+   default:
+      return InvalidSquare;
+   }
+}
+
+Bitboard Board::allPawnAttacks(ColorType c, Bitboard pawns) const
+{
+   if (c == Black)
+   {
+      Bitboard pawns2(pawns);
+      pawns.shr(7);
+      pawns &= Bitboard(~0x0101010101010101ULL);
+      pawns2.shr(9);
+      pawns2 &= Bitboard(~0x8080808080808080ULL);
+      return (pawns | pawns2);
+   }
+   else
+   {
+      Bitboard pawns2(pawns);
+      pawns.shl(7);
+      pawns &= Bitboard(~0x8080808080808080ULL);
+      pawns2.shl(9);
+      pawns2 &= Bitboard(~0x0101010101010101ULL);
+      return (pawns | pawns2);
+   }
+}
+
+const Bitboard Board::rookAttacks(Square sq,ColorType c) const {
+   Board &b = (Board&)*this;
+   b.allOccupied &= ~(rook_bits[c] | queen_bits[c]);
+   Bitboard attacks(rookAttacks(sq));
+   b.allOccupied |= (rook_bits[c] | queen_bits[c]);
+   return attacks;
+}
+
+const Bitboard Board::bishopAttacks(Square sq,ColorType c) const {
+   Board &b = (Board&)*this;
+   b.allOccupied &= ~(queen_bits[c] | bishop_bits[c]);
+   Bitboard attacks(bishopAttacks(sq));
+   b.allOccupied |= (queen_bits[c] | bishop_bits[c]);
+   return attacks;
+}
+
+CheckStatusType Board::getCheckStatus() const
+{
+   if (anyAttacks(kingSquare(sideToMove()),oppositeSide()))
+   {
+      // This is a const function, but we cache its result
+      Board &b = (Board&)*this;
+      b.state.checkStatus = InCheck;
+   }
+   else
+   {
+      // This is a const function, but we cache its result
+      Board &b = (Board&)*this;
+      b.state.checkStatus = NotInCheck;
+   }
+   return state.checkStatus;
+}
+
+// This variant of CheckStatus sees if the last move made
+// delivered check. It is generally faster than checkStatus
+// with no param, because we can use the last move information
+// to avoid calling anyAttacks, in many cases.
+CheckStatusType Board::checkStatus(Move lastMove) const {
+   if (state.checkStatus != CheckUnknown) {
+      return state.checkStatus;
+   }
+   if (IsNull(lastMove)) {
+      return checkStatus();
+   }
+   Square kp = kingPos[side];
+   Square checker = DestSquare(lastMove);
+   int d = Attacks::directions[checker][kp];
+   Board &b = (Board&)*this;
+   switch(PieceMoved(lastMove)) {
+   case Pawn: {
+      if (TypeOfMove(lastMove) != Normal)
+         return checkStatus();
+      if (Attacks::pawn_attacks[kp][oppositeSide()].isSet(checker)) {
+         b.state.checkStatus = InCheck;
+      }
+      else if (Attacks::directions[kp][StartSquare(lastMove)] == 0) {
+         b.state.checkStatus = NotInCheck;
+      }
+      if (state.checkStatus == CheckUnknown)
+         return checkStatus();
+      else
+         return state.checkStatus;
+   }
+   case Rook:
+      switch(d) {
+      case 1:
+      case -1:
+      case 8:
+      case -8:
+         if (clear(checker,kp)) {
+            b.state.checkStatus = InCheck;
+         }
+      default:
+         break;
+      }
+      if (state.checkStatus == CheckUnknown) {
+         // check for discovered attack
+         if (discAttackDiag(StartSquare(lastMove),kp,oppositeSide())) {
+            b.state.checkStatus = InCheck;
+         }
+         else {
+            b.state.checkStatus = NotInCheck;
+         }
+      }
+      break;
+   case Bishop:
+      switch(d) {
+      case 7:
+      case -7:
+      case 9:
+      case -9:
+         if (clear(checker,kp)) {
+            b.state.checkStatus = InCheck;
+         }
+      default:
+         break;
+      }
+      if (state.checkStatus == CheckUnknown) {
+         // check for discovered attack
+         if (discAttackRankFile(StartSquare(lastMove),kp,oppositeSide())) {
+            b.state.checkStatus = InCheck;
+         }
+         else {
+            b.state.checkStatus = NotInCheck;
+         }
+      }
+      break;
+   case Knight:
+      if (Attacks::knight_attacks[checker].isSet(kp)) {
+         b.state.checkStatus = InCheck;
+      }
+      else {
+         if (state.checkStatus == CheckUnknown) {
+            // check for discovered attack
+            if (discAttack(StartSquare(lastMove),kp,oppositeSide())) {
+               b.state.checkStatus = InCheck;
+            }
+            else {
+               b.state.checkStatus = NotInCheck;
+            }
+         }
+      }
+      break;
+   case Queen:
+      if (d && clear(checker,kp)) {
+         b.state.checkStatus = InCheck;
+      } else {
+         b.state.checkStatus = NotInCheck;
+      }
+      break;
+   case King:
+      if (TypeOfMove(lastMove) != Normal) /* castling */
+         return checkStatus();
+      if (Attacks::king_attacks[checker].isSet(kp)) {
+         b.state.checkStatus = InCheck;
+         return InCheck;
+      }
+      else if (Attacks::directions[StartSquare(lastMove)][kp] == 0) {
+         b.state.checkStatus = NotInCheck;
+         return NotInCheck;
+      }
+      else {
+         if (discAttack(StartSquare(lastMove),kp,oppositeSide())) {
+            b.state.checkStatus = InCheck;
+         }
+         else {
+            b.state.checkStatus = NotInCheck;
+         }
+      }
+      break;
+   default:
+      break;
+   } // end switch
+   return checkStatus();
+}
+
+
+CheckStatusType Board::wouldCheck(Move lastMove) const {
+   Square kp = kingPos[oppositeSide()];
+   const Square checker = DestSquare(lastMove);
+   // check for discovered check first
+   if (isPinned(oppositeSide(),lastMove)) return InCheck;
+   switch(PieceMoved(lastMove)) {
+      case Pawn: {
+          switch (TypeOfMove(lastMove)) {
+          case EnPassant:
+             if (Attacks::pawn_attacks[kp][sideToMove()].isSet(checker)) {
+                 return InCheck;
+             }
+             return CheckUnknown;
+          case Promotion:
+             // see if the promoted to piece would check the King:
+             switch(PromoteTo(lastMove)) {
+             case Knight:
+                 return Attacks::knight_attacks[checker].isSet(kp) ?
+                 InCheck : NotInCheck;
+             case Bishop: {
+                 const int d = (int)Attacks::directions[checker][kp];
+                 if (std::abs(d) == 7 || std::abs(d) == 9) {
+                     Board &b = (Board&)*this;
+                     b.allOccupied.clear(StartSquare(lastMove));
+                     int in_check = bishopAttacks(checker).isSet(kp);
+                     b.allOccupied.set(StartSquare(lastMove));
+                     return in_check ? InCheck : NotInCheck;
+                 } else {
+                     return NotInCheck;
+                 }
+             }
+             break;
+             case Rook: {
+                 const int d = (int)Attacks::directions[checker][kp];
+                 if (std::abs(d) == 1 || std::abs(d) == 8) {
+                     Board &b = (Board&)*this;
+                     b.allOccupied.clear(StartSquare(lastMove));
+                     int in_check = rookAttacks(checker).isSet(kp);
+                     b.allOccupied.set(StartSquare(lastMove));
+                     return in_check ? InCheck : NotInCheck;
+                 }
+                 else {
+                     return NotInCheck;
+                 }
+             }
+             case Queen: {
+                 const int d = (int)Attacks::directions[checker][kp];
+                 if (d) {
+                     Board &b = (Board&)*this;
+                     b.allOccupied.clear(StartSquare(lastMove));
+                     int in_check = queenAttacks(checker).isSet(kp);
+                     b.allOccupied.set(StartSquare(lastMove));
+                     return in_check ? InCheck : NotInCheck;
+                 } else {
+                     return NotInCheck;
+                 }
+             }
+             default:
+              break;
+             }
+             break;
+          case Normal: {
+             if (Attacks::pawn_attacks[kp][sideToMove()].isSet(checker)) {
+                 return InCheck;
+             } else {
+                 return NotInCheck;
+             }
+          }
+          case KCastle:
+          case QCastle:
+          break;
+          }
+      }
+      break;
+      case Knight:
+        if (Attacks::knight_attacks[checker].isSet(kp)) {
+           return InCheck;
+        } else {
+           return NotInCheck;
+        }
+      case King: {
+          if (TypeOfMove(lastMove) != Normal) {
+             return CheckUnknown;
+          } else if (Attacks::king_attacks[DestSquare(lastMove)].isSet(kp)) {
+             return InCheck;
+          } else {
+             return NotInCheck;
+          }
+       }
+       case Bishop: {
+          const int d = (int)Attacks::directions[checker][kp];
+          switch(d) {
+            case 7:
+            case -7:
+            case 9:
+            case -9:
+               return ((Attacks::betweenSquares[checker][kp] & allOccupied) ? NotInCheck : InCheck);
+            default:
+              break;
+          }
+          break;
+       }
+       case Rook: {
+          const int d = (int)Attacks::directions[checker][kp];
+          switch(d) {
+            case 1:
+            case -1:
+            case 8:
+            case -8:
+            return ((Attacks::betweenSquares[checker][kp] & allOccupied) ? NotInCheck : InCheck);
+
+            default:
+              break;
+          }
+          break;
+        }
+        case Queen:
+          return clear(checker,kp) ? InCheck : NotInCheck;
+        default:
+         break;
+   }
+   return NotInCheck;
+}
+
+int Board::wasLegal(Move lastMove, bool evasion) const {
+    if (IsNull(lastMove)) return 1;
+    Square kp = kingSquare(oppositeSide());
+    if (evasion) {
+        if (GetPhase(lastMove) == MoveGenerator::HASH_MOVE_PHASE) {
+            // Ensure that the hash move does actually evade check
+            return !anyAttacks(kp,sideToMove());
+        } else {
+            // Non-hash move legality is ensured by move generator.
+            return 1;
+        }
+    }
+    switch (TypeOfMove(lastMove)) {
+       case QCastle:
+       case KCastle:
+         return 1; // checked for legality in move generator
+       case EnPassant:
+         return !anyAttacks(kp,sideToMove());
+       default:
+         break;
+    }
+    return !anyAttacks(kp,sideToMove());
+}
+
+
+// True if moving from 'source' to 'dest' uncovers an attack by 'side' on
+// 'target'
+int Board::discoversAttack(Square source, Square dest, Square target, ColorType c) const
+{
+   assert(OnBoard(source));
+   assert(OnBoard(dest));
+   assert(OnBoard(target));
+   const int dir = Attacks::directions[source][target];
+   // check that source is in a line to the King
+   if (dir == 0) return 0;
+   const int dir2 =  Attacks::directions[dest][target];
+   // check for movement in direction of possible pin. Also exit
+   // here if path is not clear to the King
+   if (std::abs(dir) == std::abs(dir2) ||
+       (Attacks::betweenSquares[source][target] & allOccupied)) return 0;
+
+   Square attackSq = getDirectionalAttack(source,-dir,c);
+   if (attackSq != InvalidSquare ) {
+      // pinned if path is clear from attackSq to source
+      return Bitboard(Attacks::betweenSquares[attackSq][source] & allOccupied).isClear();
+   } else {
+      return 0;
+   }
+}
+
+static void set_bad( std::istream &i )
+{
+    i.clear( std::ios::badbit | i.rdstate() );
+}
+
+int Board::repCount(int target) const noexcept
+{
+    int entries = std::min<int>(state.movesFromNull,state.moveCount) - 2;
+    if (entries <= 0) return 0;
+    hash_t to_match = hashCode();
+    int count = 0;
+    for (hash_t *r=repListHead-3;
+       entries>=0;
+       r-=2,entries-=2)
+    {
+      if (*r == to_match)
+      {
+         count++;
+         if (count >= target)
+         {
+            return count;
+         }
+      }
+   }
+   return count;
+}
+
+bool Board::anyRep() const noexcept
+{
+   int entries = state.moveCount;
+   // If only 2 entries side to move is different so the
+   // hash codes cannot match:
+   if (entries < 3) return 0;
+   std::unordered_set<hash_t> codes;
+   for (hash_t *r=repListHead-1;
+      entries>0;
+      r--,entries--) {
+      if (!codes.emplace(*r).second) {
+         return 1;
+      }
+   }
+   return 0;
+}
+
+bool Board::fiftyMoveDraw() const noexcept {
+   // check the 50 move rule
+   if (state.moveCount >= 100) {
+      if (checkStatus() == InCheck) {
+
+         // must verify side to move is not checkmated
+         MoveGenerator mg(*this);
+         Move moves[Constants::MaxMoves];
+         return(mg.generateAllMoves(moves, 0) > 0);
+      }
+      else {
+         return true;
+      }
+   }
+   return false;
+}
+
+Bitboard Board::getPinned(Square ksq, ColorType pinnerSide, ColorType pinnedSide) const {
+    // Same algorithm as Stockfish: get potential pinners then
+    // determine which are actually pinning.
+    Bitboard pinners( ((rook_bits[pinnerSide] | queen_bits[pinnerSide]) &
+                 Attacks::rank_file_mask[ksq]) |
+                ((bishop_bits[pinnerSide] | queen_bits[pinnerSide]) &
+                 Attacks::diag_mask[ksq]));
+    Square pinner;
+    Bitboard result;
+    while (pinners.iterate(pinner)) {
+        Bitboard b;
+        between(ksq, pinner, b);
+        b &= allOccupied;
+        if (b.singleBitSet()) {
+            // Only one piece between "pinner" and King. See if it is
+            // the correct color.
+            result |= (b & occupied[pinnedSide]);
+        }
+    }
+    return result;
+}
+
+bool Board::materialDraw() const noexcept {
+    // check for insufficient material per FIDE Rules of Chess
+    const Material &mat1 = getMaterial(White);
+    const Material &mat2 = getMaterial(Black);
+    if (mat1.pawnCount() || mat2.pawnCount()) {
+        return false;
+    }
+    if ((mat1.kingOnly() || mat1.infobits() == Material::KB || mat1.infobits() == Material::KN) &&
+        (mat2.kingOnly() || mat2.infobits() == Material::KB || mat2.infobits() == Material::KN)) {
+        if (mat1.kingOnly() || mat2.kingOnly()) {
+            // K vs K, or K vs KN, or K vs KB
+            return true;
+        }
+        else if (mat1.infobits() == Material::KB && mat2.infobits() == Material::KB) {
+            // drawn if same-color bishops
+            if (bishop_bits[White] & black_squares)
+                return bishop_bits[Black] & black_squares;
+            else if (bishop_bits[White] &white_squares)
+                return bishop_bits[Black] & white_squares;
+        }
+    }
+    return false;
+}
+
+void Board::flip() {
+   for (int i=0;i<4;i++) {
+     for (int j=0;j<8;j++) {
+        Piece tmp = contents[i*8+j];
+        tmp = MakePiece(TypeOfPiece(tmp),OppositeColor(PieceColor(tmp)));
+        Piece tmp2 = contents[(7-i)*8+j];
+        tmp2 = MakePiece(TypeOfPiece(tmp2),OppositeColor(PieceColor(tmp2)));
+        contents[i*8+j] = tmp2;
+        contents[(7-i)*8+j] = tmp;
+        if (i*8+j == state.enPassantSq) {
+            state.enPassantSq = (7-i)*8+j;
+        } else if ((7-i)*8+j == state.enPassantSq) {
+            state.enPassantSq = i*8+j;
+        }
+     }
+   }
+   CastleType tmp = state.castleStatus[White];
+   state.castleStatus[White] = state.castleStatus[Black];
+   state.castleStatus[Black] = tmp;
+   side = OppositeColor(side);
+   setSecondaryVars();
+}
+
+std::istream & operator >> (std::istream &i, Board &board)
+{
+   // read in a board position in Forsythe-Edwards (FEN) notation.
+   std::stringstream buf;
+   char c = '\0';
+
+   // skip leading spaces/newlines
+   i >> c;
+
+   if (i.bad() || i.eof()) return i;
+
+   i.putback(c);
+
+   int fields = 0;
+   // read only the required 4 fields that are part of FEN:
+   // leave any remaining text such as EPD operators unread.
+   while (fields < 4 && i.peek() != std::char_traits<char>::eof()) {
+       if (!i.get(c) || c == '\n')
+           break;
+       buf << c;
+       if (isspace(c))
+           fields++;
+   }
+
+   if (i.bad())
+      return i;
+
+   if (!BoardIO::readFEN(board, buf.str())) {
+       set_bad(i);
+   }
+
+   return i;
+}
+
+std::ostream & operator << (std::ostream &o, const Board &board)
+{
+   BoardIO::writeFEN(board,o,1);
+   return o;
+}
+
+bool Board::discAttackDiag(Square sq, Square ksq, ColorType c) const noexcept {
+    Bitboard mask(Attacks::diag_mask[ksq]);
+    if (mask.isSet(sq)) {
+        Bitboard attackers((bishop_bits[c] | queen_bits[c]) & mask);
+        Square attacker;
+        while (attackers.iterate(attacker)) {
+            if (clear(attacker,ksq)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Board::discAttackRankFile(Square sq, Square ksq, ColorType c) const noexcept {
+    Bitboard mask(Attacks::rank_file_mask[ksq]);
+    if (mask.isSet(sq)) {
+        Bitboard attackers((rook_bits[c] | queen_bits[c]) & mask);
+        Square attacker;
+        while (attackers.iterate(attacker)) {
+            if (clear(attacker,ksq)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Board::discAttack(Square sq, Square ksq, ColorType c) const noexcept {
+    return discAttackRankFile(sq, ksq, c) ||
+        discAttackDiag(sq,ksq,c);
+}

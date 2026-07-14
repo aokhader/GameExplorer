@@ -13,7 +13,7 @@ const config: ExpoConfig = {
   // not the personal login — pin it so builds resolve the right owner.
   owner: 'gameexplorermobile',
   scheme: 'gameexplorer',
-  version: '0.1.0',
+  version: '1.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'dark',
   // New Architecture is always-on in SDK 57 / RN 0.86 — the `newArchEnabled`
@@ -25,6 +25,16 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.gameexplorer.app',
+    // Sign in with Apple (App Store Guideline 4.8 — required alongside the
+    // Google/Facebook logins). The expo-apple-authentication plugin adds the
+    // matching entitlement.
+    usesAppleSignIn: true,
+    infoPlist: {
+      // The app uses only standard HTTPS/TLS, which is exempt from US export
+      // encryption documentation — declaring this stops App Store Connect from
+      // asking on every submission.
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     package: 'com.gameexplorer.app',
@@ -46,6 +56,8 @@ const config: ExpoConfig = {
     // OAuth sign-in opens the provider consent page in an in-app browser tab and
     // catches the `gameexplorer://auth/callback` deep link on return (M1 auth).
     'expo-web-browser',
+    // Sign in with Apple (iOS) — adds the entitlement + native module.
+    'expo-apple-authentication',
     [
       'expo-splash-screen',
       {

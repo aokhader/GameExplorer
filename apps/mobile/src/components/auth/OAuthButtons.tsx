@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { COLORS } from '@gameexplorer/ui';
-import { signInWithOAuthNative } from '@/lib/oauth';
+import { signInWithAppleNative, signInWithOAuthNative } from '@/lib/oauth';
 
 function GoogleIcon() {
   return (
@@ -38,7 +39,7 @@ export function OAuthButtons({
   onSuccess: () => void;
   onError: (message: string) => void;
 }) {
-  const [busy, setBusy] = useState<null | 'google' | 'facebook'>(null);
+  const [busy, setBusy] = useState<null | 'google' | 'facebook' | 'apple'>(null);
 
   const run = async (provider: 'google' | 'facebook') => {
     onError('');
@@ -54,8 +55,34 @@ export function OAuthButtons({
     }
   };
 
+  const runApple = async () => {
+    onError('');
+    setBusy('apple');
+    try {
+      const { error, cancelled } = await signInWithAppleNative();
+      if (error) onError(error);
+      else if (!cancelled) onSuccess();
+    } catch (e) {
+      onError(e instanceof Error ? e.message : 'Sign-in failed.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <View style={{ gap: 12 }}>
+      {/* Sign in with Apple — iOS only, shown first with equal prominence
+          (App Store Guideline 4.8 requires it alongside Google/Facebook). */}
+      {Platform.OS === 'ios' && (
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+          cornerRadius={12}
+          style={{ height: 48, width: '100%' }}
+          onPress={runApple}
+        />
+      )}
+
       <Pressable
         onPress={() => run('google')}
         disabled={busy !== null}

@@ -7,7 +7,7 @@ import {
 } from '@gameexplorer/shared';
 import { saveGame } from '@gameexplorer/db';
 import type { LocalGameAdapter } from './useLocalGame';
-import { getStockfishBestMove, stockfishNewGame } from './stockfishEngine';
+import { getEngineBestMove, engineNewGame } from './chessEngineNative';
 
 /** Bot pacing by strength — mirrors web's `useStockfish` `thinkTimeForElo`. */
 function thinkTimeForElo(elo: number): number {
@@ -21,9 +21,9 @@ function thinkTimeForElo(elo: number): number {
 /**
  * Chess binding for `useLocalGame`. Same split as web's bot page: below 1400
  * the in-house pure-TS `getBestMoveElo` engine plays (sync, offline, capped at
- * 1399 by its calibration); at 1400+ the native Stockfish service takes over
+ * 1399 by its calibration); at 1400+ the native Arasan service takes over
  * (async, also offline — the engine ships in the app). Screens gate the bot
- * turn on `useStockfishNative().isReady` so a strong request never fires
+ * turn on `useEngineNative().isReady` so a strong request never fires
  * before the engine handshake completes.
  *
  * `validateMove` threads the optional promotion piece; the board resolves the
@@ -32,8 +32,8 @@ function thinkTimeForElo(elo: number): number {
 export const chessAdapter: LocalGameAdapter<ChessGameState> = {
   gameType: 'chess',
   newGame: () => {
-    // Fresh game → clear Stockfish's tables (no-op when it isn't running).
-    stockfishNewGame();
+    // Fresh game → clear the engine's tables (no-op when it isn't running).
+    engineNewGame();
     return ChessEngine.newGame();
   },
   currentTurn: (s) => s.currentTurn,
@@ -46,7 +46,7 @@ export const chessAdapter: LocalGameAdapter<ChessGameState> = {
     return { valid: r.valid, resultingState: r.resultingState };
   },
   getBotMove: (s, elo) => {
-    if (elo >= STOCKFISH_MIN_ELO) return getStockfishBestMove(s, elo);
+    if (elo >= STOCKFISH_MIN_ELO) return getEngineBestMove(s, elo);
     const m = getBestMoveElo(s, elo);
     return { from: m.from, to: m.to, promotion: m.promotion };
   },

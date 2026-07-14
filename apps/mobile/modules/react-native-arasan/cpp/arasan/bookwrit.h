@@ -1,0 +1,43 @@
+// Copyright 2014, 2021 by Jon Dart.  All Rights Reserved.
+
+#ifndef _BOOK_WRITER_H
+#define _BOOK_WRITER_H
+
+#include "board.h"
+#include "bookdefs.h"
+#include <exception>
+#include <vector>
+
+class BookFullException : public std::exception {
+  public:
+    virtual const char *what() const throw() {
+        return "too many moves in book, allocate more index space";
+    }
+};
+
+class BookWriter {
+
+    // writes to the opening book
+
+  public:
+    // "Pages" is the number of index pages.
+    BookWriter(int index_pages);
+
+    // closes book file
+    ~BookWriter();
+
+    // add a move to the file.
+    void add(const hash_t hashCode, uint8_t moveIndex, uint8_t weight,
+             uint32_t win, uint32_t loss, uint32_t draw);
+
+    // Write book contents out to the designated path. Returns 0
+    // if no errors, -1 if error
+    int write(const char *pathName);
+
+  protected:
+    int index_pages;
+    book::IndexPage **index;
+    std::vector<book::DataPage *> data;
+};
+
+#endif

@@ -1,0 +1,38 @@
+{
+  "buildFiles": [
+    "C:\\Users\\azizk\\Documents\\GitHub\\GameExplorer\\apps\\mobile\\modules\\react-native-arasan\\android\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "C:\\Users\\azizk\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "C:\\Users\\azizk\\Documents\\GitHub\\GameExplorer\\apps\\mobile\\modules\\react-native-arasan\\android\\.cxx\\Debug\\54691s4r\\arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "C:\\Users\\azizk\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "C:\\Users\\azizk\\Documents\\GitHub\\GameExplorer\\apps\\mobile\\modules\\react-native-arasan\\android\\.cxx\\Debug\\54691s4r\\arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "react-native-arasan::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "react-native-arasan",
+      "output": "C:\\Users\\azizk\\Documents\\GitHub\\GameExplorer\\apps\\mobile\\modules\\react-native-arasan\\android\\build\\intermediates\\cxx\\Debug\\54691s4r\\obj\\arm64-v8a\\libreact-native-arasan.so",
+      "runtimeFiles": []
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "C:\\Users\\azizk\\AppData\\Local\\Android\\Sdk\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang.exe",
+      "cppCompilerExecutable": "C:\\Users\\azizk\\AppData\\Local\\Android\\Sdk\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe"
+    }
+  },
+  "cFileExtensions": [],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

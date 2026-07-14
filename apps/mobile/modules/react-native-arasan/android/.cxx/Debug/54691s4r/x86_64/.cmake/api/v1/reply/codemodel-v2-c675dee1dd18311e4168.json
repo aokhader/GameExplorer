@@ -1,0 +1,60 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.6.0"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "ReactNativeArasan",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "react-native-arasan::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-react-native-arasan-Debug-9955cf5f260d17a5e3d0.json",
+					"name" : "react-native-arasan",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/.cxx/Debug/54691s4r/x86_64",
+		"source" : "C:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

@@ -23,7 +23,7 @@ import { COLORS } from '@gameexplorer/ui';
 import { bootstrapConfig } from '@/config/env';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 import { AuthBootstrap } from '@/providers/AuthBootstrap';
-import { StockfishHost } from '@/engine/StockfishHost';
+import { EngineHost } from '@/engine/EngineHost';
 
 // SDK 54+ no longer auto-hides the splash on first render — hide it explicitly
 // once the root has mounted, or the app sits on the splash forever.
@@ -71,10 +71,10 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <SettingsProvider>
           <AuthBootstrap>
-            {/* Never unmounts — the native Stockfish engine cannot survive a
+            {/* Never unmounts — the native chess engine cannot survive a
                 stop/restart cycle, so its host lives at the root (see
-                src/engine/stockfishEngine.ts). */}
-            <StockfishHost />
+                src/engine/chessEngineNative.ts). */}
+            <EngineHost />
             <StatusBar style="light" />
             <Stack
               screenOptions={{

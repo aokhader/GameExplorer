@@ -29,17 +29,20 @@ SOFTWARE.
 
 ## Third-party engines
 
-- **Mobile app — Stockfish (GPL).** `apps/mobile` statically links the
-  [Stockfish](https://github.com/official-stockfish/Stockfish) chess engine
+- **Mobile app — Arasan (MIT).** `apps/mobile` statically links the
+  [Arasan](https://github.com/jdart1/arasan-chess) chess engine and its NNUE
+  network (Copyright 1994-2026 by Jon Dart, MIT-style license) plus the
+  [Fathom](https://github.com/jdart1/Fathom) tablebase probing code (MIT),
+  vendored in `apps/mobile/modules/react-native-arasan/` (wrapper forked from
+  the MIT [@loloof64/react-native-stockfish](https://github.com/loloof64/ReactNativeStockfish)).
+  Everything in the mobile binary is MIT — it replaced GPL Stockfish
+  (July 2026) so the same engine can ship on Google Play **and** the Apple
+  App Store. See [`apps/mobile/LICENSE.md`](apps/mobile/LICENSE.md).
+- **Web app — Stockfish WASM (GPL, mere use).** `apps/web` serves unmodified
+  [Stockfish](https://github.com/official-stockfish/Stockfish) builds
   (GPL-3.0-or-later, full text at
-  [`LICENSES/GPL-3.0-or-later.txt`](LICENSES/GPL-3.0-or-later.txt)) via
-  [@loloof64/react-native-stockfish](https://github.com/loloof64/ReactNativeStockfish).
-  The first-party code remains MIT (MIT is GPL-compatible), but the mobile app
-  binary **as a whole** is conveyed under GPL-3.0-or-later terms; the complete
-  corresponding source for it is this repository. See
-  [`apps/mobile/LICENSE.md`](apps/mobile/LICENSE.md).
-- **Web app — Stockfish WASM.** `apps/web` serves unmodified Stockfish builds
-  as separate Web Worker programs (mere use, not linking) — see
+  [`LICENSES/GPL-3.0-or-later.txt`](LICENSES/GPL-3.0-or-later.txt)) as
+  separate Web Worker programs (mere use, not linking) — see
   `apps/web/public/stockfish/README.md`.
 
 ## Contributions
