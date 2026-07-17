@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Tabs, type BottomTabBarProps } from 'expo-router/tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, GRADIENTS_NATIVE, SHADOWS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE } from '@gameexplorer/ui';
 
 import { FONTS } from '@/theme/typography';
 import { getLastPlayed } from '@/lib/lastPlayed';
@@ -119,7 +119,10 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               borderRadius: 28,
               alignItems: 'center',
               justifyContent: 'center',
-              ...SHADOWS_NATIVE.glowAccent,
+              // Gold bloom + the design's dark lift off the tab plate. Uses
+              // boxShadow, not SHADOWS_NATIVE.glowAccent: on a full circle the
+              // elevation shadow traces the outline as a hard gold ring.
+              boxShadow: `${GLOWS_NATIVE.glowAccent}, 0 8px 18px -6px rgba(0,0,0,0.6)`,
             }}
           >
             <Text style={{ color: COLORS.onAccent, fontSize: 21, marginLeft: 3 }}>▶</Text>

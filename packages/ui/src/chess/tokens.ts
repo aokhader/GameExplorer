@@ -28,3 +28,35 @@ export const PIECE_STROKES = {
   white: '#2c1b08',
   black: '#e8d5b5',
 } as const;
+
+/**
+ * "Game Pieces" design system — chess glyphs (design doc `Game Pieces.dc.html`,
+ * section 01, July 17 revision). The medallion tiles are gone: each piece is
+ * now the classic filled glyph (♚♛♜♝♞♟) at play scale with a vertical
+ * metallic gradient clipped to the glyph itself — white→silver for the light
+ * side, slate→ink with a light-blue outline stroke for the dark side (so it
+ * reads on dark squares). Consumed by both ChessPiece.tsx (web) and
+ * ChessPiece.native.tsx — one source of truth.
+ */
+export const CHESS_PIECE_STYLE = {
+  white: {
+    // linear-gradient(180deg, #ffffff, #eef2f8 55%, #ccd6e4) clipped to text
+    fill: [
+      { offset: 0, color: '#ffffff' },
+      { offset: 0.55, color: '#eef2f8' },
+      { offset: 1, color: '#ccd6e4' },
+    ],
+    /** No outline on the light side. */
+    stroke: null,
+  },
+  black: {
+    // linear-gradient(180deg, #51617f, #293350 52%, #0d1526) clipped to text
+    fill: [
+      { offset: 0, color: '#51617f' },
+      { offset: 0.52, color: '#293350' },
+      { offset: 1, color: '#0d1526' },
+    ],
+    // -webkit-text-stroke: 1px rgba(150,178,222,.5)
+    stroke: 'rgba(150,178,222,0.5)',
+  },
+} as const;

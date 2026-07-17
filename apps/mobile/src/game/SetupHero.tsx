@@ -1,11 +1,12 @@
 import { Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, SHADOWS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE } from '@gameexplorer/ui';
+import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
 
 const META = {
-  chess: { name: 'Chess', icon: '♞', glow: SHADOWS_NATIVE.glowChess },
-  checkers: { name: 'Checkers', icon: '⛃', glow: SHADOWS_NATIVE.glowCheckers },
-  reversi: { name: 'Reversi', icon: '⚫', glow: SHADOWS_NATIVE.glowReversi },
+  chess: { name: 'Chess', glow: GLOWS_NATIVE.glowChess },
+  checkers: { name: 'Checkers', glow: GLOWS_NATIVE.glowCheckers },
+  reversi: { name: 'Reversi', glow: GLOWS_NATIVE.glowReversi },
 } as const;
 
 export type SetupHeroGame = keyof typeof META;
@@ -31,10 +32,10 @@ export function SetupHero({ game }: { game: SetupHeroGame }) {
           borderWidth: 1,
           borderColor: accent.tintBorder,
           marginBottom: 16,
-          ...meta.glow,
+          boxShadow: meta.glow,
         }}
       >
-        <Text style={{ fontSize: 40 }}>{meta.icon}</Text>
+        <GamePieceIcon game={game} size={48} />
       </View>
       <Text style={{ fontFamily: FONTS.display, fontSize: 32, color: COLORS.fg }}>
         Play <Text style={{ color: accent.light }}>{meta.name}</Text>

@@ -11,6 +11,7 @@
 		"commands" : 
 		[
 			"add_library",
+			"target_link_options",
 			"target_link_libraries",
 			"add_compile_options",
 			"add_compile_definitions",
@@ -34,29 +35,35 @@
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 57,
+				"line" : 61,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 28,
+				"line" : 57,
 				"parent" : 0
 			},
 			{
 				"command" : 3,
+				"file" : 0,
+				"line" : 28,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
 				"file" : 0,
 				"line" : 13,
 				"parent" : 0
 			},
 			{
-				"command" : 3,
+				"command" : 4,
 				"file" : 0,
 				"line" : 27,
 				"parent" : 0
 			},
 			{
-				"command" : 4,
+				"command" : 5,
 				"file" : 0,
 				"line" : 49,
 				"parent" : 0
@@ -72,70 +79,70 @@
 					"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 4,
 					"fragment" : "-msse2"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 4,
 					"fragment" : "-mssse3"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 4,
 					"fragment" : "-msse4.1"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 4,
 					"fragment" : "-msse4.2"
 				},
 				{
-					"backtrace" : 3,
+					"backtrace" : 4,
 					"fragment" : "-mpopcnt"
 				}
 			],
 			"defines" : 
 			[
 				{
-					"backtrace" : 4,
+					"backtrace" : 5,
 					"define" : "ARASAN_VERSION=25.4"
 				},
 				{
-					"backtrace" : 4,
+					"backtrace" : 5,
 					"define" : "NETWORK=arasanv8-20260622.nnue"
 				},
 				{
-					"backtrace" : 5,
+					"backtrace" : 6,
 					"define" : "SIMD"
 				},
 				{
-					"backtrace" : 4,
+					"backtrace" : 5,
 					"define" : "SMP_STATS"
 				},
 				{
-					"backtrace" : 5,
+					"backtrace" : 6,
 					"define" : "SSE2"
 				},
 				{
-					"backtrace" : 5,
+					"backtrace" : 6,
 					"define" : "SSE41"
 				},
 				{
-					"backtrace" : 5,
+					"backtrace" : 6,
 					"define" : "SSSE3"
 				},
 				{
-					"backtrace" : 4,
+					"backtrace" : 5,
 					"define" : "SYZYGY_TBS"
 				},
 				{
-					"backtrace" : 4,
+					"backtrace" : 5,
 					"define" : "USE_INTRINSICS"
 				},
 				{
-					"backtrace" : 5,
+					"backtrace" : 6,
 					"define" : "USE_POPCNT"
 				},
 				{
-					"backtrace" : 4,
+					"backtrace" : 5,
 					"define" : "_64BIT"
 				},
 				{
@@ -145,19 +152,19 @@
 			"includes" : 
 			[
 				{
-					"backtrace" : 6,
+					"backtrace" : 7,
 					"path" : "C:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp"
 				},
 				{
-					"backtrace" : 6,
+					"backtrace" : 7,
 					"path" : "C:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan"
 				},
 				{
-					"backtrace" : 6,
+					"backtrace" : 7,
 					"path" : "C:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue"
 				},
 				{
-					"backtrace" : 6,
+					"backtrace" : 7,
 					"path" : "C:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src"
 				}
 			],
@@ -230,6 +237,11 @@
 			},
 			{
 				"backtrace" : 2,
+				"fragment" : "-Wl,-z,max-page-size=16384",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 3,
 				"fragment" : "C:\\Users\\azizk\\AppData\\Local\\Android\\Sdk\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\sysroot\\usr\\lib\\x86_64-linux-android\\24\\liblog.so",
 				"role" : "libraries"
 			},

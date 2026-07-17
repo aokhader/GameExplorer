@@ -27,3 +27,36 @@ export const REVERSI_DISC_COLORS = {
     shadow:    '#0b0e17',
   },
 };
+
+/**
+ * "Game Pieces" design system — the two reversi disc faces (design doc `Game
+ * Pieces.dc.html`, section 03): glossy coins, light face wearing the lime
+ * accent glow, dark face sitting in its own shadow. Consumed by both
+ * ReversiDisc variants; the flip animation lives in the boards.
+ */
+export const REVERSI_DISC_STYLE = {
+  white: {
+    // radial-gradient(circle at 34% 26%, #fff, #c7d2e0 78%)
+    body: [
+      { offset: 0, color: '#ffffff' },
+      { offset: 0.78, color: '#c7d2e0' },
+      { offset: 1, color: '#b3becd' },
+    ],
+    border: 'rgba(255,255,255,0.6)',
+    halo: 'rgba(190,242,100,0.85)',   // lime bloom
+    sheen: 'rgba(255,255,255,0.9)',
+    shade: 'rgba(30,45,70,0.25)',
+  },
+  black: {
+    // radial-gradient(circle at 34% 26%, #3a4354, #0a0d15 80%)
+    body: [
+      { offset: 0, color: '#3a4354' },
+      { offset: 0.8, color: '#0a0d15' },
+      { offset: 1, color: '#05080d' },
+    ],
+    border: 'rgba(255,255,255,0.12)',
+    halo: 'rgba(0,0,0,0.7)',          // sits in its own shadow
+    sheen: 'rgba(120,140,170,0.25)',
+    shade: 'rgba(0,0,0,0.55)',
+  },
+} as const;

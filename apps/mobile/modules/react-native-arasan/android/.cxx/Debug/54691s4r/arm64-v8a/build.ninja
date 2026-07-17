@@ -50,382 +50,402 @@ cmake_ninja_workdir = C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/
 build cmake_object_order_depends_target_react-native-arasan: phony || CMakeFiles/react-native-arasan.dir
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/react-native-arasan.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/react-native-arasan.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\react-native-arasan.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/stream_fix.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/stream_fix.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\stream_fix.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/cpp-adapter.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/cpp-adapter.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\cpp-adapter.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/arasanx.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/arasanx.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\arasanx.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/attacks.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/attacks.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\attacks.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/bench.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/bench.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\bench.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/bhash.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/bhash.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\bhash.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bitprobe.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/bitprobe.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\bitprobe.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bitutil.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/bitutil.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\bitutil.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/board.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/board.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\board.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/boardio.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/boardio.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\boardio.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bookread.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/bookread.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\bookread.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bookwrit.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/bookwrit.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\bookwrit.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/calctime.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/calctime.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\calctime.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/chess.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/chess.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\chess.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/chessio.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/chessio.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\chessio.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/eco.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/eco.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\eco.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/epdrec.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/epdrec.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\epdrec.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/evaluate.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/evaluate.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\evaluate.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/globals.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/globals.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\globals.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/hash.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/hash.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\hash.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/input.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/input.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\input.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/learn.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/learn.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\learn.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/legal.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/legal.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\legal.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/material.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/material.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\material.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/movearr.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/movearr.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\movearr.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/movegen.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/movegen.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\movegen.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/notation.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/notation.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\notation.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/options.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/options.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\options.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/protocol.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/protocol.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\protocol.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/scoring.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/scoring.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\scoring.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/search.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/search.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\search.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/searchc.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/searchc.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\searchc.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/see.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/see.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\see.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/stats.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/stats.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan\stats.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\831f168a0b0e343f7479860631692ec3\mobile\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
+build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/syzygy.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/syzygy.cpp || cmake_object_order_depends_target_react-native-arasan
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\syzygy.cpp.o.d
+  FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
+  OBJECT_DIR = CMakeFiles\react-native-arasan.dir
+  OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
+  TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
+  TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
+
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/tester.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/tester.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\tester.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/threadc.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/threadc.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\threadc.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
 build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/threadp.cpp.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/threadp.cpp || cmake_object_order_depends_target_react-native-arasan
-  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
   DEP_FILE = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan\threadp.cpp.o.d
   FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
-  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\910a5edbecebfb263f5045322e9b552d\modules\react-native-arasan\cpp\arasan
+  TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
+  TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
+
+build CMakeFiles/react-native-arasan.dir/f25b4ba1b2fac19ce3970be0277e625f/react-native-arasan/cpp/arasan/syzygy/src/tbprobe.c.o: CXX_COMPILER__react-native-arasan_Debug C$:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/cpp/arasan/syzygy/src/tbprobe.c || cmake_object_order_depends_target_react-native-arasan
+  DEFINES = -DARASAN_VERSION=25.4 -DNEON -DNETWORK=arasanv8-20260622.nnue -DSIMD -DSMP_STATS -DSYZYGY_TBS -DUSE_INTRINSICS -D_64BIT -Dreact_native_arasan_EXPORTS
+  DEP_FILE = CMakeFiles\react-native-arasan.dir\f25b4ba1b2fac19ce3970be0277e625f\react-native-arasan\cpp\arasan\syzygy\src\tbprobe.c.o.d
+  FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info  -fPIC
+  INCLUDES = -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/nnue -IC:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/../cpp/arasan/syzygy/src
+  OBJECT_DIR = CMakeFiles\react-native-arasan.dir
+  OBJECT_FILE_DIR = CMakeFiles\react-native-arasan.dir\f25b4ba1b2fac19ce3970be0277e625f\react-native-arasan\cpp\arasan\syzygy\src
   TARGET_COMPILE_PDB = CMakeFiles\react-native-arasan.dir\
   TARGET_PDB = ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.pdb
 
@@ -437,9 +457,9 @@ build CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/module
 #############################################
 # Link the shared library ..\..\..\..\build\intermediates\cxx\Debug\54691s4r\obj\arm64-v8a\libreact-native-arasan.so
 
-build ../../../../build/intermediates/cxx/Debug/54691s4r/obj/arm64-v8a/libreact-native-arasan.so: CXX_SHARED_LIBRARY_LINKER__react-native-arasan_Debug CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/react-native-arasan.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/stream_fix.cpp.o CMakeFiles/react-native-arasan.dir/cpp-adapter.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/arasanx.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/attacks.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/bench.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/bhash.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bitprobe.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bitutil.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/board.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/boardio.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bookread.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bookwrit.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/calctime.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/chess.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/chessio.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/eco.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/epdrec.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/evaluate.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/globals.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/hash.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/input.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/learn.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/legal.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/material.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/movearr.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/movegen.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/notation.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/options.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/protocol.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/scoring.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/search.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/searchc.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/see.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/stats.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/tester.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/threadc.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/threadp.cpp.o | C$:/Users/azizk/AppData/Local/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/24/liblog.so
+build ../../../../build/intermediates/cxx/Debug/54691s4r/obj/arm64-v8a/libreact-native-arasan.so: CXX_SHARED_LIBRARY_LINKER__react-native-arasan_Debug CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/react-native-arasan.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/stream_fix.cpp.o CMakeFiles/react-native-arasan.dir/cpp-adapter.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/arasanx.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/attacks.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/bench.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/bhash.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bitprobe.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bitutil.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/board.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/boardio.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bookread.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/bookwrit.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/calctime.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/chess.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/chessio.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/eco.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/epdrec.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/evaluate.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/globals.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/hash.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/input.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/learn.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/legal.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/material.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/movearr.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/movegen.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/notation.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/options.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/protocol.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/scoring.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/search.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/searchc.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/see.cpp.o CMakeFiles/react-native-arasan.dir/831f168a0b0e343f7479860631692ec3/mobile/modules/react-native-arasan/cpp/arasan/stats.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/syzygy.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/tester.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/threadc.cpp.o CMakeFiles/react-native-arasan.dir/910a5edbecebfb263f5045322e9b552d/modules/react-native-arasan/cpp/arasan/threadp.cpp.o CMakeFiles/react-native-arasan.dir/f25b4ba1b2fac19ce3970be0277e625f/react-native-arasan/cpp/arasan/syzygy/src/tbprobe.c.o | C$:/Users/azizk/AppData/Local/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/24/liblog.so
   LANGUAGE_COMPILE_FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -frtti -fexceptions -Wall -fstack-protector-all -fno-limit-debug-info
-  LINK_FLAGS = -static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments
+  LINK_FLAGS = -static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments    -Wl,-z,max-page-size=16384
   LINK_LIBRARIES = C:/Users/azizk/AppData/Local/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/24/liblog.so  -latomic -lm
   OBJECT_DIR = CMakeFiles\react-native-arasan.dir
   POST_BUILD = cd .

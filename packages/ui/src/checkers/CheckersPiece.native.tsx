@@ -1,22 +1,24 @@
 /**
- * CheckersPiece — React Native version.
- * Same public API as CheckersPiece.tsx (minus the web-only `className`).
+ * CheckersPiece — React Native version ("Game Pieces" design system, section
+ * 02). Same public API and markup as CheckersPiece.tsx, drawn with
+ * react-native-svg from the same CHECKERS_PIECE_STYLE tokens.
  *
  * Metro resolves *.native.tsx before *.tsx, so React Native apps automatically
  * pick up this file when they import { CheckersPiece } from '@gameexplorer/ui'.
- *
- * Colors come from the SAME shared token (CHECKERS_PIECE_COLORS) as the web
- * component, so both platforms render identical pieces from one source of truth.
- *
- * Requires `react-native-svg` in the mobile app (it is the standard SVG runtime
- * for React Native; this file is excluded from the web typecheck via the
- * ".native.tsx" exclude glob in packages/ui/tsconfig.json, so it adds no web dep).
  */
 
 import React from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
-import Svg, { Circle, Ellipse } from 'react-native-svg';
-import { CHECKERS_PIECE_COLORS } from './tokens';
+import type { StyleProp, ViewStyle } from 'react-native';
+import Svg, {
+  Circle,
+  Defs,
+  Ellipse,
+  LinearGradient,
+  RadialGradient,
+  Stop,
+  Text as SvgText,
+} from 'react-native-svg';
+import { CHECKERS_PIECE_STYLE } from './tokens';
 
 export type CheckersPieceType = 'man' | 'king';
 export type CheckersColor = 'white' | 'black';
@@ -30,29 +32,77 @@ export interface CheckersPieceProps {
 }
 
 export function CheckersPiece({ type, color, size = 45, style }: CheckersPieceProps) {
-  const { fill, stroke, highlight, shadow } = CHECKERS_PIECE_COLORS[color];
+  const s = CHECKERS_PIECE_STYLE[color];
+  const isKing = type === 'king';
+  const halo = isKing ? CHECKERS_PIECE_STYLE.promotionHalo : s.halo;
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 45 45" style={style}>
-      {/* Drop shadow */}
-      <Circle cx={23} cy={24.5} r={17} fill={shadow} opacity={0.35} />
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      style={style}
+      accessibilityLabel={`${color} ${type}`}
+    >
+      <Defs>
+        <RadialGradient id="halo" cx="50%" cy="50%" r="50%">
+          <Stop offset="0.55" stopColor={halo} />
+          <Stop offset="1" stopColor={halo} stopOpacity={0} />
+        </RadialGradient>
+        <RadialGradient id="body" cx="35%" cy="28%" r="80%">
+          {s.body.map((stop) => (
+            <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+          ))}
+        </RadialGradient>
+        <LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0.55" stopColor={s.shade} stopOpacity={0} />
+          <Stop offset="1" stopColor={s.shade} />
+        </LinearGradient>
+      </Defs>
 
-      {/* Main disc */}
-      <Circle cx={22.5} cy={22} r={17} fill={fill} stroke={stroke} strokeWidth={1.5} />
+      {/* Accent bloom — pink promotion halo on kings */}
+      <Circle cx={50} cy={50} r={50} fill="url(#halo)" opacity={isKing ? 0.6 : 0.45} />
 
-      {/* Highlight sheen (top-left quadrant) */}
-      <Ellipse cx={17} cy={16.5} rx={6.5} ry={4.5} fill={highlight} opacity={0.35} />
+      {/* Disc body + bottom inset shade + rim */}
+      <Circle cx={50} cy={50} r={40} fill="url(#body)" />
+      <Circle cx={50} cy={50} r={40} fill="url(#shade)" />
+      <Circle cx={50} cy={50} r={39.5} fill="none" stroke={s.border} strokeWidth={1.4} />
 
-      {/* King indicator: inner ring */}
-      {type === 'king' && (
+      {/* Top sheen */}
+      <Ellipse cx={38} cy={33} rx={16} ry={10} fill={s.sheen} opacity={0.35} />
+
+      {isKing ? (
+        <>
+          {/* Solid crown ring + ♛ face */}
+          <Circle
+            cx={50}
+            cy={50}
+            r={30}
+            fill="none"
+            stroke={CHECKERS_PIECE_STYLE.kingRing[color]}
+            strokeWidth={2.2}
+          />
+          <SvgText
+            x={50}
+            y={52}
+            textAnchor="middle"
+            alignmentBaseline="central"
+            fontSize={34}
+            fill={s.kingGlyph}
+          >
+            ♛
+          </SvgText>
+        </>
+      ) : (
+        /* A man is a clean disc with a dashed inner ring */
         <Circle
-          cx={22.5}
-          cy={22}
-          r={11}
+          cx={50}
+          cy={50}
+          r={27}
           fill="none"
-          stroke={stroke}
+          stroke={s.ring}
           strokeWidth={2}
-          opacity={0.8}
+          strokeDasharray="6 5"
         />
       )}
     </Svg>

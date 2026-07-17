@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">
-  <!-- placeholder: replace with your own white pawn artwork -->
-  <circle cx="22.5" cy="22.5" r="20" fill="#FAF9F7" stroke="#2c1b08" stroke-width="1.5"/>
-  <text x="22.5" y="30" font-family="Georgia, serif" font-size="20" font-weight="bold"
-        text-anchor="middle" fill="#2c1b08">P</text>
-</svg>

@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
 import { Screen, Button } from '@/components/ui';
+import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { markOnboarded } from '@/lib/onboarding';
 
 type GameId = 'chess' | 'checkers' | 'reversi';
 type Difficulty = 'relaxed' | 'balanced' | 'sharp';
 
-const GAMES: { id: GameId; name: string; icon: string; tagline: string }[] = [
-  { id: 'chess', name: 'Chess', icon: '♞', tagline: 'Timeless strategy' },
-  { id: 'checkers', name: 'Checkers', icon: '⛃', tagline: 'Easy to learn' },
-  { id: 'reversi', name: 'Reversi', icon: '⚫', tagline: 'Quick to master' },
+const GAMES: { id: GameId; name: string; tagline: string }[] = [
+  { id: 'chess', name: 'Chess', tagline: 'Timeless strategy' },
+  { id: 'checkers', name: 'Checkers', tagline: 'Easy to learn' },
+  { id: 'reversi', name: 'Reversi', tagline: 'Quick to master' },
 ];
 
 const DIFFICULTIES: { id: Difficulty; name: string; icon: string; tagline: string; accent: string }[] = [
@@ -28,7 +29,8 @@ function OptionRow({
   accent,
   onPress,
 }: {
-  icon: string;
+  /** An emoji string, or piece art for the game rows. */
+  icon: ReactNode;
   name: string;
   tagline: string;
   selected: boolean;
@@ -52,7 +54,7 @@ function OptionRow({
         backgroundColor: selected ? COLORS.surfaceHover : COLORS.surfaceAlt,
       }}
     >
-      <Text style={{ fontSize: 26 }}>{icon}</Text>
+      {typeof icon === 'string' ? <Text style={{ fontSize: 26 }}>{icon}</Text> : icon}
       <View style={{ flex: 1 }}>
         <Text style={{ color: COLORS.fg, fontSize: 16, fontWeight: '700' }}>{name}</Text>
         <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{tagline}</Text>
@@ -159,7 +161,7 @@ export default function WelcomeScreen() {
             {GAMES.map((g) => (
               <OptionRow
                 key={g.id}
-                icon={g.icon}
+                icon={<GamePieceIcon game={g.id} size={30} />}
                 name={g.name}
                 tagline={g.tagline}
                 selected={game === g.id}

@@ -11,9 +11,10 @@ import Svg, {
   TSpan,
 } from 'react-native-svg';
 import { useAuth } from '@gameexplorer/client';
-import { COLORS, GAME_ACCENTS, GRADIENTS_NATIVE, SHADOWS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, GRADIENTS_NATIVE } from '@gameexplorer/ui';
 
 import { GlowBackdrop } from '@/components/ui';
+import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { getLastPlayed } from '@/lib/lastPlayed';
 import { hasOnboarded } from '@/lib/onboarding';
 import { FONTS } from '@/theme/typography';
@@ -22,21 +23,18 @@ const GAMES = [
   {
     key: 'chess',
     label: 'Chess',
-    icon: '♞',
     tagline: 'Outplay the bot at every level.',
     accent: GAME_ACCENTS.chess,
   },
   {
     key: 'checkers',
     label: 'Checkers',
-    icon: '⛃',
     tagline: 'Fast, punchy, endlessly re-matchable.',
     accent: GAME_ACCENTS.checkers,
   },
   {
     key: 'reversi',
     label: 'Reversi',
-    icon: '⚫',
     tagline: 'Swing the whole board in one move.',
     accent: GAME_ACCENTS.reversi,
   },
@@ -203,7 +201,7 @@ export default function HomeScreen() {
                 borderRadius: 16,
                 paddingVertical: 16,
                 alignItems: 'center',
-                ...SHADOWS_NATIVE.glowAccent,
+                boxShadow: GLOWS_NATIVE.glowAccent,
               }}
             >
               <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 17, color: COLORS.onAccent }}>
@@ -256,9 +254,8 @@ export default function HomeScreen() {
                     borderRadius: 18,
                     borderWidth: 1,
                     borderColor: g.accent.tintBorder,
-                    // The design's tight neon bloom (0 0 34px -16px). RN's CSS
-                    // boxShadow honors blur+spread; the Android elevation-based
-                    // SHADOWS_NATIVE.glow* renders a rectangular halo plate here.
+                    // The design's per-card bloom — tighter than GLOWS_NATIVE's
+                    // shared halo, so it stays inline rather than tokenized.
                     boxShadow: `0 0 34px -16px ${g.accent.glow}`,
                   }}
                 >
@@ -275,7 +272,7 @@ export default function HomeScreen() {
                       boxShadow: `0 0 22px -6px ${g.accent.glow}`,
                     }}
                   >
-                    <Text style={{ fontSize: 28 }}>{g.icon}</Text>
+                    <GamePieceIcon game={g.key} size={34} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={{ fontFamily: FONTS.display, fontSize: 19, color: COLORS.fg }}>

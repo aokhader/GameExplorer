@@ -1,51 +1,41 @@
 /**
- * ChessPiece — web component for chess pieces.
+ * ChessPiece — web component ("Game Pieces" design system, section 01,
+ * July 17 revision).
  *
- * Images live in packages/ui/assets/pieces/ and are imported statically so
- * that Turbopack (web) and Metro (React Native) both bundle the same files.
- *
- * Naming convention:  {color}_{type}.svg
- *   white_king.svg   white_queen.svg   white_rook.svg
- *   white_bishop.svg white_knight.svg  white_pawn.svg
- *   black_king.svg   black_queen.svg   black_rook.svg
- *   black_bishop.svg black_knight.svg  black_pawn.svg
- *
- * Replace the placeholder SVGs in packages/ui/assets/pieces/ with your own
- * artwork. Both web and mobile automatically pick up the same files.
+ * The classic filled glyph at play scale with a vertical metallic gradient
+ * clipped to the glyph itself — no medallion tile. Light side: white→silver;
+ * dark side: slate→ink with a light-blue outline stroke so it reads on dark
+ * squares. Pure SVG driven by CHESS_PIECE_STYLE — no image assets.
+ * ChessPiece.native.tsx mirrors this markup; keep the two in step.
  */
 
 import React from 'react';
-
-// Static imports — Turbopack processes these into hashed asset URLs.
-import whitePawn   from '../../assets/pieces/white_pawn.svg';
-import whiteKnight from '../../assets/pieces/white_knight.svg';
-import whiteBishop from '../../assets/pieces/white_bishop.svg';
-import whiteRook   from '../../assets/pieces/white_rook.svg';
-import whiteQueen  from '../../assets/pieces/white_queen.svg';
-import whiteKing   from '../../assets/pieces/white_king.svg';
-import blackPawn   from '../../assets/pieces/black_pawn.svg';
-import blackKnight from '../../assets/pieces/black_knight.svg';
-import blackBishop from '../../assets/pieces/black_bishop.svg';
-import blackRook   from '../../assets/pieces/black_rook.svg';
-import blackQueen  from '../../assets/pieces/black_queen.svg';
-import blackKing   from '../../assets/pieces/black_king.svg';
+import { CHESS_PIECE_STYLE } from './tokens';
 
 export type PieceType = 'king' | 'queen' | 'rook' | 'bishop' | 'knight' | 'pawn';
 export type PieceColor = 'white' | 'black';
 
-const PIECE_IMAGES: Record<string, string> = {
-  white_pawn:   whitePawn,
-  white_knight: whiteKnight,
-  white_bishop: whiteBishop,
-  white_rook:   whiteRook,
-  white_queen:  whiteQueen,
-  white_king:   whiteKing,
-  black_pawn:   blackPawn,
-  black_knight: blackKnight,
-  black_bishop: blackBishop,
-  black_rook:   blackRook,
-  black_queen:  blackQueen,
-  black_king:   blackKing,
+/** Classic filled glyphs for both sides — the gradient fill carries the side. */
+export const PIECE_GLYPHS: Record<PieceType, string> = {
+  king: '♚',
+  queen: '♛',
+  rook: '♜',
+  bishop: '♝',
+  knight: '♞',
+  pawn: '♟',
+};
+
+/**
+ * Per-rank glyph scale in the 100-unit viewBox — the design's cell ratios
+ * (98/88/92/80 px glyphs in a 116px cell).
+ */
+const GLYPH_SIZE: Record<PieceType, number> = {
+  king: 84,
+  queen: 84,
+  rook: 76,
+  bishop: 79,
+  knight: 79,
+  pawn: 69,
 };
 
 export interface ChessPieceProps {
@@ -61,28 +51,46 @@ export interface ChessPieceProps {
 }
 
 export function ChessPiece({ type, color, size = 45, className, style }: ChessPieceProps) {
-  // Turbopack/webpack returns a StaticImageData object { src, width, height }
-  // for static image imports, not a plain string.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const raw: any = PIECE_IMAGES[`${color}_${type}`];
-  const src: string = typeof raw === 'string' ? raw : (raw?.src ?? '');
+  const s = CHESS_PIECE_STYLE[color];
+  const glyph = PIECE_GLYPHS[type];
+  const fontSize = GLYPH_SIZE[type];
+  // Same-side pieces share identical defs, so cross-instance id collisions on
+  // one page resolve to an identical gradient — only the side must differ.
+  const fillId = `cpx-fill-${color}`;
 
   return (
-    <img
-      src={src}
-      alt={`${color} ${type}`}
-      draggable={false}
+    <svg
+      viewBox="0 0 100 100"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label={`${color} ${type}`}
       className={className}
-      style={{
-        display: 'block',
-        // Use CSS for dimensions — HTML width/height attributes don't accept
-        // percentage strings, but CSS width/height do.
-        width: size,
-        height: size,
-        objectFit: 'contain',
-        ...style,
-      }}
-    />
+      style={{ display: 'block', width: size, height: size, ...style }}
+    >
+      <defs>
+        {/* Vertical metallic gradient over the glyph's own bounding box —
+            the SVG equivalent of the design's background-clip:text. */}
+        <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+          {s.fill.map((stop) => (
+            <stop key={stop.offset} offset={`${stop.offset * 100}%`} stopColor={stop.color} />
+          ))}
+        </linearGradient>
+      </defs>
+
+      <text
+        x="50"
+        y="52"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={fontSize}
+        fill={`url(#${fillId})`}
+        stroke={s.stroke ?? undefined}
+        strokeWidth={s.stroke ? 1 : undefined}
+        style={{ userSelect: 'none' }}
+      >
+        {glyph}
+      </text>
+    </svg>
   );
 }
 

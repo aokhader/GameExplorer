@@ -55,3 +55,7 @@ include_directories(
 
 find_library(log-lib log)
 target_link_libraries(react-native-arasan ${log-lib})
+
+# Google Play requires 16 KB page-size compatible libs; NDK r27 still defaults
+# to 4 KB max-page-size at link time (r28+ makes 16 KB the default).
+target_link_options(react-native-arasan PRIVATE "-Wl,-z,max-page-size=16384")

@@ -273,6 +273,27 @@ export const SHADOWS_NATIVE = {
 } as const satisfies Record<keyof typeof SHADOWS, NativeShadow>;
 
 /**
+ * Neon glows for React Native as `boxShadow` strings, carrying the same blur and
+ * negative spread as their `SHADOWS` counterparts (RN 0.76+ honors both).
+ *
+ * Prefer these over `SHADOWS_NATIVE.glow*` on rounded and circular views. The
+ * elevation-based tokens draw an Android shadow that follows the view's outline
+ * at full strength, so a circle reads as a hard halo ring rather than a bloom;
+ * the negative spread here pulls the falloff inward and it dissolves instead.
+ * The elevation tokens stay for square board tiles, where the plate is the
+ * intended shape, and for anything needing real Android z-ordering.
+ *
+ * The `0 0 0 1px` ring from `SHADOWS` is omitted — pair with a borderColor.
+ */
+export const GLOWS_NATIVE = {
+  glowAccent:   '0 0 34px -4px rgba(205,164,63,0.65)',
+  glowInfo:     '0 0 32px -4px rgba(59,130,246,0.55)',
+  glowChess:    '0 0 40px -8px rgba(59,130,246,0.65)',
+  glowCheckers: '0 0 40px -8px rgba(236,72,153,0.65)',
+  glowReversi:  '0 0 40px -8px rgba(163,230,53,0.55)',
+} as const;
+
+/**
  * React Native gradient equivalents of `GRADIENTS`, parsed into the shape
  * `expo-linear-gradient` / `react-native-linear-gradient` consume: a `colors`
  * array with matching `locations` (0–1) and `start`/`end` unit points. Angles are

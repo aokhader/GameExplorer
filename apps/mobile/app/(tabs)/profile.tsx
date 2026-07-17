@@ -14,12 +14,13 @@ import {
 import { useAuth } from '@gameexplorer/client';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
 import { Screen, Card, Button } from '@/components/ui';
+import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
 
-const GAME_META: Record<GameType, { label: string; icon: string; accent: string }> = {
-  chess: { label: 'Chess', icon: '♞', accent: GAME_ACCENTS.chess.base },
-  checkers: { label: 'Checkers', icon: '⛃', accent: GAME_ACCENTS.checkers.base },
-  reversi: { label: 'Reversi', icon: '⚫', accent: GAME_ACCENTS.reversi.base },
+const GAME_META: Record<GameType, { label: string; accent: string }> = {
+  chess: { label: 'Chess', accent: GAME_ACCENTS.chess.base },
+  checkers: { label: 'Checkers', accent: GAME_ACCENTS.checkers.base },
+  reversi: { label: 'Reversi', accent: GAME_ACCENTS.reversi.base },
 };
 
 function formatDate(iso: string) {
@@ -281,7 +282,7 @@ export default function YouScreen() {
           return (
             <Card key={type} style={{ padding: 16, borderLeftColor: meta.accent, borderLeftWidth: 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <Text style={{ fontSize: 22 }}>{meta.icon}</Text>
+                <GamePieceIcon game={type} size={26} />
                 <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.displaySemi }}>{meta.label}</Text>
               </View>
               {rated ? (
@@ -324,7 +325,7 @@ export default function YouScreen() {
         <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.displaySemi, marginBottom: 8 }}>Recent games</Text>
         {recent.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-            <Text style={{ fontSize: 28, marginBottom: 6 }}>♞</Text>
+            <GamePieceIcon game="chess" size={32} />
             <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.body }}>No games played yet</Text>
             <Text style={{ color: COLORS.fgSubtle, fontSize: 13, fontFamily: FONTS.body, marginTop: 2 }}>
               Win a rated bot game and it lands here.
@@ -362,7 +363,7 @@ export default function YouScreen() {
                 >
                   <Text style={{ color, fontSize: 11, fontFamily: FONTS.bodyBold, textTransform: 'uppercase' }}>{label}</Text>
                 </View>
-                <Text style={{ fontSize: 18 }}>{meta.icon}</Text>
+                <GamePieceIcon game={type} size={22} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodySemi }} numberOfLines={1}>
                     vs {game.opponent}

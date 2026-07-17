@@ -15,6 +15,23 @@ export interface GlowBloom {
 }
 
 /**
+ * Eased falloff from the bloom center to its edge, as `[offset, alphaScale]`.
+ *
+ * A plain two-stop gradient ramps opacity linearly, which the eye reads as a
+ * distinct disc: the center holds too much color and the rim terminates on a
+ * visible Mach band. These stops approximate a gaussian shoulder — a long, thin
+ * tail — so the bloom dissolves into the background with no discernible circle.
+ */
+const FALLOFF: readonly (readonly [number, number])[] = [
+  [0, 1],
+  [0.3, 0.66],
+  [0.5, 0.38],
+  [0.68, 0.18],
+  [0.84, 0.06],
+  [1, 0],
+];
+
+/**
  * Ambient radial color blooms behind screen content — the native equivalent of
  * web's `radial-gradient(...)` page washes (Arcade Glow). Absolutely fills its
  * parent and ignores touches; render it as the first child of a screen.
@@ -26,8 +43,14 @@ export function GlowBackdrop({ blooms }: { blooms: GlowBloom[] }) {
         <Defs>
           {blooms.map((b, i) => (
             <RadialGradient key={i} id={`glow-${i}`} cx="50%" cy="50%" rx="50%" ry="50%">
-              <Stop offset="0" stopColor={b.color} stopOpacity={b.opacity ?? 0.14} />
-              <Stop offset="1" stopColor={b.color} stopOpacity={0} />
+              {FALLOFF.map(([offset, alpha]) => (
+                <Stop
+                  key={offset}
+                  offset={offset}
+                  stopColor={b.color}
+                  stopOpacity={(b.opacity ?? 0.14) * alpha}
+                />
+              ))}
             </RadialGradient>
           ))}
         </Defs>

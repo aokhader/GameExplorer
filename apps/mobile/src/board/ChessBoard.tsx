@@ -24,7 +24,7 @@ interface ChessBoardProps {
   interactive?: boolean;
 }
 
-const PIECE_RATIO = 0.92;
+const PIECE_RATIO = 1.0;
 const CHECK_RING = 'rgba(244,63,94,0.9)';
 
 function isDark(row: number, col: number): boolean {

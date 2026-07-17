@@ -33,6 +33,7 @@
   },
   "cFileExtensions": [],
   "cppFileExtensions": [
-    "cpp"
+    "cpp",
+    "c"
   ]
 }

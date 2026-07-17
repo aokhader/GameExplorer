@@ -1,53 +1,46 @@
 /**
- * ChessPiece — React Native version.
- * Same public API as ChessPiece.tsx.
+ * ChessPiece — React Native version ("Game Pieces" design system, section 01,
+ * July 17 revision). Same public API and markup as ChessPiece.tsx, drawn with
+ * react-native-svg from the same CHESS_PIECE_STYLE tokens.
  *
- * Metro resolves *.native.tsx before *.tsx, so React Native apps
- * automatically pick up this file when they import from '@gameexplorer/ui'.
- *
- * Images are imported from the same packages/ui/assets/pieces/ directory as
- * the web version — one source of truth for both platforms. Metro requires
- * static require() / import calls (no dynamic paths), so they are listed here
- * explicitly, just like the web version.
+ * The classic filled glyph at play scale with a vertical metallic gradient
+ * clipped to the glyph — no medallion tile. Metro resolves *.native.tsx before
+ * *.tsx, so React Native apps automatically pick up this file when they import
+ * from '@gameexplorer/ui'.
  */
 
 import React from 'react';
-import type { ImageStyle, StyleProp } from 'react-native';
-// expo-image (not RN core Image) — its renderer decodes SVG assets on native.
-// RN's core <Image> only handles raster formats, so chess SVGs render blank.
-import { Image } from 'expo-image';
-
-// Same asset paths as ChessPiece.tsx — Metro bundles these at compile time.
-import whitePawn   from '../../assets/pieces/white_pawn.svg';
-import whiteKnight from '../../assets/pieces/white_knight.svg';
-import whiteBishop from '../../assets/pieces/white_bishop.svg';
-import whiteRook   from '../../assets/pieces/white_rook.svg';
-import whiteQueen  from '../../assets/pieces/white_queen.svg';
-import whiteKing   from '../../assets/pieces/white_king.svg';
-import blackPawn   from '../../assets/pieces/black_pawn.svg';
-import blackKnight from '../../assets/pieces/black_knight.svg';
-import blackBishop from '../../assets/pieces/black_bishop.svg';
-import blackRook   from '../../assets/pieces/black_rook.svg';
-import blackQueen  from '../../assets/pieces/black_queen.svg';
-import blackKing   from '../../assets/pieces/black_king.svg';
+import type { StyleProp, ViewStyle } from 'react-native';
+import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
+import { CHESS_PIECE_STYLE } from './tokens';
 
 export type PieceType = 'king' | 'queen' | 'rook' | 'bishop' | 'knight' | 'pawn';
 export type PieceColor = 'white' | 'black';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const PIECE_IMAGES: Record<string, any> = {
-  white_pawn:   whitePawn,
-  white_knight: whiteKnight,
-  white_bishop: whiteBishop,
-  white_rook:   whiteRook,
-  white_queen:  whiteQueen,
-  white_king:   whiteKing,
-  black_pawn:   blackPawn,
-  black_knight: blackKnight,
-  black_bishop: blackBishop,
-  black_rook:   blackRook,
-  black_queen:  blackQueen,
-  black_king:   blackKing,
+/** Classic filled glyphs for both sides — the gradient fill carries the side. */
+export const PIECE_GLYPHS: Record<PieceType, string> = {
+  king: '♚',
+  queen: '♛',
+  rook: '♜',
+  bishop: '♝',
+  knight: '♞',
+  pawn: '♟',
+};
+
+/**
+ * Per-rank glyph scale in the 100-unit viewBox. Sized so the glyph fills the
+ * board square the way the design's in-play board does (≈44px glyph in a 48px
+ * cell), keeping the design's per-rank proportions so ranks stay balanced. The
+ * headroom left at the top of the viewBox clears the king/queen crosses and the
+ * dark side's outline stroke.
+ */
+const GLYPH_SIZE: Record<PieceType, number> = {
+  king: 92,
+  queen: 92,
+  rook: 84,
+  bishop: 88,
+  knight: 88,
+  pawn: 80,
 };
 
 export interface ChessPieceProps {
@@ -55,19 +48,45 @@ export interface ChessPieceProps {
   color: PieceColor;
   /** Rendered size in logical pixels (square). Defaults to 45. */
   size?: number;
-  style?: StyleProp<ImageStyle>;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function ChessPiece({ type, color, size = 45, style }: ChessPieceProps) {
-  const source = PIECE_IMAGES[`${color}_${type}`];
+  const s = CHESS_PIECE_STYLE[color];
+  const glyph = PIECE_GLYPHS[type];
+  const fontSize = GLYPH_SIZE[type];
 
   return (
-    <Image
-      source={source}
-      style={[{ width: size, height: size }, style as ImageStyle]}
-      contentFit="contain"
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      style={style}
       accessibilityLabel={`${color} ${type}`}
-    />
+    >
+      <Defs>
+        {/* Vertical metallic gradient over the glyph's own bounding box —
+            the SVG equivalent of the design's background-clip:text. */}
+        <LinearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+          {s.fill.map((stop) => (
+            <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+          ))}
+        </LinearGradient>
+      </Defs>
+
+      <SvgText
+        x={50}
+        y={52}
+        textAnchor="middle"
+        alignmentBaseline="central"
+        fontSize={fontSize}
+        fill="url(#fill)"
+        stroke={s.stroke ?? undefined}
+        strokeWidth={s.stroke ? 1 : undefined}
+      >
+        {glyph}
+      </SvgText>
+    </Svg>
   );
 }
 

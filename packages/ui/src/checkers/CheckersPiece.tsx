@@ -1,5 +1,13 @@
+/**
+ * CheckersPiece — web component ("Game Pieces" design system, section 02).
+ *
+ * A glossy radial-gradient disc: gold = your side, blue = opponent. A man wears
+ * a dashed inner ring; a king gains the ♛ face, a solid ring, and the pink
+ * promotion halo (pink is the game's accent, not a piece color). Driven by
+ * CHECKERS_PIECE_STYLE — CheckersPiece.native.tsx mirrors this markup.
+ */
 import React from 'react';
-import { CHECKERS_PIECE_COLORS } from './tokens';
+import { CHECKERS_PIECE_STYLE } from './tokens';
 
 export type CheckersPieceType = 'man' | 'king';
 export type CheckersColor = 'white' | 'black';
@@ -19,38 +27,82 @@ export function CheckersPiece({
   className,
   style,
 }: CheckersPieceProps) {
-  // Consume the shared token so web + the native primitive (CheckersPiece.native.tsx)
-  // draw identical pieces from one source of truth.
-  const { fill, stroke, highlight, shadow } = CHECKERS_PIECE_COLORS[color];
+  const s = CHECKERS_PIECE_STYLE[color];
+  const isKing = type === 'king';
+  const halo = isKing ? CHECKERS_PIECE_STYLE.promotionHalo : s.halo;
+  const bodyId = `ckp-body-${color}`;
+  const haloId = `ckp-halo-${color}-${type}`;
+  const shadeId = `ckp-shade-${color}`;
 
   return (
     <svg
-      width={size}
-      height={size}
-      viewBox="0 0 45 45"
+      viewBox="0 0 100 100"
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label={`${color} ${type}`}
       className={className}
-      style={style}
+      style={{ display: 'block', width: size, height: size, ...style }}
     >
-      {/* Drop shadow */}
-      <circle cx="23" cy="24.5" r="17" fill={shadow} opacity="0.35" />
+      <defs>
+        <radialGradient id={haloId} cx="50%" cy="50%" r="50%">
+          <stop offset="55%" stopColor={halo} />
+          <stop offset="100%" stopColor={halo} stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={bodyId} cx="35%" cy="28%" r="80%">
+          {s.body.map((stop) => (
+            <stop key={stop.offset} offset={`${stop.offset * 100}%`} stopColor={stop.color} />
+          ))}
+        </radialGradient>
+        <linearGradient id={shadeId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="55%" stopColor={s.shade} stopOpacity="0" />
+          <stop offset="100%" stopColor={s.shade} />
+        </linearGradient>
+      </defs>
 
-      {/* Main disc */}
-      <circle cx="22.5" cy="22" r="17" fill={fill} stroke={stroke} strokeWidth="1.5" />
+      {/* Accent bloom — pink promotion halo on kings */}
+      <circle cx="50" cy="50" r="50" fill={`url(#${haloId})`} opacity={isKing ? 0.6 : 0.45} />
 
-      {/* Highlight sheen (top-left quadrant) */}
-      <ellipse cx="17" cy="16.5" rx="6.5" ry="4.5" fill={highlight} opacity="0.35" />
+      {/* Disc body + bottom inset shade + rim */}
+      <circle cx="50" cy="50" r="40" fill={`url(#${bodyId})`} />
+      <circle cx="50" cy="50" r="40" fill={`url(#${shadeId})`} />
+      <circle cx="50" cy="50" r="39.5" fill="none" stroke={s.border} strokeWidth="1.4" />
 
-      {/* King indicator: inner ring */}
-      {type === 'king' && (
+      {/* Top sheen */}
+      <ellipse cx="38" cy="33" rx="16" ry="10" fill={s.sheen} opacity="0.35" />
+
+      {isKing ? (
+        <>
+          {/* Solid crown ring + ♛ face */}
+          <circle
+            cx="50"
+            cy="50"
+            r="30"
+            fill="none"
+            stroke={CHECKERS_PIECE_STYLE.kingRing[color]}
+            strokeWidth="2.2"
+          />
+          <text
+            x="50"
+            y="52"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize="34"
+            fill={s.kingGlyph}
+            style={{ userSelect: 'none' }}
+          >
+            ♛
+          </text>
+        </>
+      ) : (
+        /* A man is a clean disc with a dashed inner ring */
         <circle
-          cx="22.5"
-          cy="22"
-          r="11"
+          cx="50"
+          cy="50"
+          r="27"
           fill="none"
-          stroke={stroke}
+          stroke={s.ring}
           strokeWidth="2"
-          opacity="0.8"
+          strokeDasharray="6 5"
         />
       )}
     </svg>

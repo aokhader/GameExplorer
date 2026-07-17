@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS_NATIVE, SHADOWS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE } from '@gameexplorer/ui';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -68,7 +68,8 @@ export function Button({
     opacity: isDisabled ? 0.5 : 1,
   };
 
-  const glowStyle = glow && !isDisabled ? SHADOWS_NATIVE.glowAccent : undefined;
+  const glowStyle: ViewStyle | undefined =
+    glow && !isDisabled ? { boxShadow: GLOWS_NATIVE.glowAccent } : undefined;
 
   if (variant === 'primary') {
     return (
