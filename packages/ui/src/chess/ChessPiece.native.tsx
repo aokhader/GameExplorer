@@ -43,6 +43,16 @@ const GLYPH_SIZE: Record<PieceType, number> = {
   pawn: 80,
 };
 
+/**
+ * Per-type vertical stretch. The pawn glyph is squat, so centered it leaves a
+ * gap under it; stretching it vertically around a high anchor (`originY`) keeps
+ * its head roughly in place and grows the base downward, seating it nearer the
+ * bottom of the square. `scaleY` 1 leaves a glyph untouched.
+ */
+const GLYPH_STRETCH: Partial<Record<PieceType, { scaleY: number; originY: number }>> = {
+  pawn: { scaleY: 1.2, originY: 30 },
+};
+
 export interface ChessPieceProps {
   type: PieceType;
   color: PieceColor;
@@ -55,6 +65,11 @@ export function ChessPiece({ type, color, size = 45, style }: ChessPieceProps) {
   const s = CHESS_PIECE_STYLE[color];
   const glyph = PIECE_GLYPHS[type];
   const fontSize = GLYPH_SIZE[type];
+  const stretch = GLYPH_STRETCH[type];
+  // Scale vertically about (50, originY) so the stretch grows downward.
+  const transform = stretch
+    ? `translate(50 ${stretch.originY}) scale(1 ${stretch.scaleY}) translate(-50 ${-stretch.originY})`
+    : undefined;
 
   return (
     <Svg
@@ -83,6 +98,7 @@ export function ChessPiece({ type, color, size = 45, style }: ChessPieceProps) {
         fill="url(#fill)"
         stroke={s.stroke ?? undefined}
         strokeWidth={s.stroke ? 1 : undefined}
+        transform={transform}
       >
         {glyph}
       </SvgText>
