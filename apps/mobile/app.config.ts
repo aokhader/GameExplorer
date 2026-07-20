@@ -16,6 +16,15 @@ const config: ExpoConfig = {
   version: '1.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'dark',
+  // EAS Update (expo-updates). `eas update:configure` can't write this dynamic
+  // TS config, so the URL + runtimeVersion are set by hand. The URL is the EAS
+  // project's update endpoint (projectId below). `appVersion` policy ties each
+  // OTA payload to `version` (1.0.0) so JS-only fixes ship to TestFlight without
+  // a rebuild, while a native/version bump forces a fresh binary.
+  runtimeVersion: { policy: 'appVersion' },
+  updates: {
+    url: 'https://u.expo.dev/455b736e-0a50-4a5d-90e2-448dc2e8ce83',
+  },
   // New Architecture is always-on in SDK 57 / RN 0.86 — the `newArchEnabled`
   // flag was removed from ExpoConfig.
   // Brand icon set (M5): the gold Play mark + three game dots on ink-900,
