@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
 import { STOCKFISH_MIN_ELO, type ChessGameState } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, ChessPiece } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
@@ -180,17 +180,9 @@ export function ChessScreen() {
                       borderColor: selected ? BLUE : COLORS.border,
                     }}
                   >
-                    <View
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 17,
-                        marginBottom: 8,
-                        backgroundColor: color === 'white' ? '#faf9f7' : '#2c1b08',
-                        borderWidth: 2,
-                        borderColor: color === 'white' ? '#c9c2b6' : '#e8d5b5',
-                      }}
-                    />
+                    <View style={{ marginBottom: 8 }}>
+                      <ChessPiece type="king" color={color} size={34} />
+                    </View>
                     <Text
                       style={{
                         color: selected ? BLUE : COLORS.fg,

@@ -19,44 +19,44 @@ export const BOARD_COLORS = {
   moveIndicatorCapture: 'rgba(34,211,170,0.55)',
 } as const;
 
-export const PIECE_FILLS = {
-  white: '#FAF9F7',
-  black: '#2c1b08',
-} as const;
-
-export const PIECE_STROKES = {
-  white: '#2c1b08',
-  black: '#e8d5b5',
-} as const;
-
 /**
- * "Game Pieces" design system — chess glyphs (design doc `Game Pieces.dc.html`,
- * section 01, July 17 revision). The medallion tiles are gone: each piece is
- * now the classic filled glyph (♚♛♜♝♞♟) at play scale with a vertical
- * metallic gradient clipped to the glyph itself — white→silver for the light
- * side, slate→ink with a light-blue outline stroke for the dark side (so it
- * reads on dark squares). Consumed by both ChessPiece.tsx (web) and
- * ChessPiece.native.tsx — one source of truth.
+ * "Game Pieces" design system — chess pieces. Keeps the design doc's per-side
+ * coloring (`Game Pieces.dc.html`, section 01): a vertical metallic gradient —
+ * white→silver for the light side, slate→ink with a light-blue outline stroke
+ * for the dark side (so it reads on dark squares).
+ *
+ * The shapes are now real vector paths (see `piecePaths.ts`) instead of Unicode
+ * font glyphs, so they render pixel-identical on web, iOS and Android with no
+ * font substitution. `body` layers take `fill`/`stroke`; `detail` (engraving)
+ * layers take `detail` — dark on the light side, light on the dark side.
+ * `strokeWidth` is in the pieces' 4096-unit viewBox. Consumed by both
+ * ChessPiece.tsx (web) and ChessPiece.native.tsx — one source of truth.
  */
 export const CHESS_PIECE_STYLE = {
   white: {
-    // linear-gradient(180deg, #ffffff, #eef2f8 55%, #ccd6e4) clipped to text
+    // linear-gradient(180deg, #ffffff, #eef2f8 55%, #ccd6e4)
     fill: [
       { offset: 0, color: '#ffffff' },
       { offset: 0.55, color: '#eef2f8' },
       { offset: 1, color: '#ccd6e4' },
     ],
-    /** No outline on the light side. */
+    /** No outline on the light side — the silver body reads on the dark board. */
     stroke: null,
+    strokeWidth: 0,
+    /** Dark engraving lines on the silver body. */
+    detail: '#2b3653',
   },
   black: {
-    // linear-gradient(180deg, #51617f, #293350 52%, #0d1526) clipped to text
+    // linear-gradient(180deg, #51617f, #293350 52%, #0d1526)
     fill: [
       { offset: 0, color: '#51617f' },
       { offset: 0.52, color: '#293350' },
       { offset: 1, color: '#0d1526' },
     ],
-    // -webkit-text-stroke: 1px rgba(150,178,222,.5)
+    // Light-blue outline (was -webkit-text-stroke: 1px rgba(150,178,222,.5)).
     stroke: 'rgba(150,178,222,0.5)',
+    strokeWidth: 34,
+    /** Light engraving lines on the navy body. */
+    detail: '#cdd9ef',
   },
 } as const;

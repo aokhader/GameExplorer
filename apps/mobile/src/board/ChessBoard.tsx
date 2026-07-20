@@ -24,7 +24,9 @@ interface ChessBoardProps {
   interactive?: boolean;
 }
 
-const PIECE_RATIO = 1.0;
+// The vector piece art fills ~89% of its viewBox; 0.9 seats it at play scale with
+// a small margin off the square edges (matches the web board's .piece sizing).
+const PIECE_RATIO = 0.9;
 const CHECK_RING = 'rgba(244,63,94,0.9)';
 
 function isDark(row: number, col: number): boolean {

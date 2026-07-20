@@ -45,6 +45,15 @@ SOFTWARE.
   separate Web Worker programs (mere use, not linking) — see
   `apps/web/public/stockfish/README.md`.
 
+## Third-party assets
+
+- **Chess piece shapes — "Merida" via Sashité (CC0 1.0).** The chess piece vector
+  paths in [`packages/ui/src/chess/piecePaths.ts`](packages/ui/src/chess/piecePaths.ts)
+  are derived from the [Sashité chess assets](https://sashite.dev/assets/chess/),
+  released into the public domain under CC0 1.0 Universal (no attribution required;
+  recorded here as a courtesy). They carry GameExplorer's own metallic-gradient
+  coloring at render time. CC0 is compatible with this repository's MIT license.
+
 ## Contributions
 
 By submitting a contribution you agree it is licensed under MIT.

@@ -14,9 +14,9 @@ import Svg, {
   Defs,
   Ellipse,
   LinearGradient,
+  Path,
   RadialGradient,
   Stop,
-  Text as SvgText,
 } from 'react-native-svg';
 import { CHECKERS_PIECE_STYLE } from './tokens';
 
@@ -82,16 +82,9 @@ export function CheckersPiece({ type, color, size = 45, style }: CheckersPiecePr
             stroke={CHECKERS_PIECE_STYLE.kingRing[color]}
             strokeWidth={2.2}
           />
-          <SvgText
-            x={50}
-            y={52}
-            textAnchor="middle"
-            alignmentBaseline="central"
-            fontSize={34}
-            fill={s.kingGlyph}
-          >
-            ♛
-          </SvgText>
+          {/* Crown mark — a vector path (not a ♛ font glyph) so it renders
+              identically on web + native. */}
+          <Path d="M36 61 L33 44 L42 51 L50 41 L58 51 L67 44 L64 61 Z" fill={s.kingGlyph} />
         </>
       ) : (
         /* A man is a clean disc with a dashed inner ring */

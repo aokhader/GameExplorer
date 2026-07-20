@@ -81,17 +81,12 @@ export function CheckersPiece({
             stroke={CHECKERS_PIECE_STYLE.kingRing[color]}
             strokeWidth="2.2"
           />
-          <text
-            x="50"
-            y="52"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize="34"
+          {/* Crown mark — a vector path (not a ♛ font glyph) so it renders
+              identically on web + native. */}
+          <path
+            d="M36 61 L33 44 L42 51 L50 41 L58 51 L67 44 L64 61 Z"
             fill={s.kingGlyph}
-            style={{ userSelect: 'none' }}
-          >
-            ♛
-          </text>
+          />
         </>
       ) : (
         /* A man is a clean disc with a dashed inner ring */

@@ -11,6 +11,7 @@ import {
   GameOutcome,
 } from '@gameexplorer/shared';
 import { ChessBoard, BoardArrow } from '@/components/chess/ChessBoard';
+import { ChessPiece } from '@gameexplorer/ui';
 import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useChessEngine } from '@/hooks/useChessEngine';
@@ -455,7 +456,7 @@ export default function ChessTrainingPage() {
                       : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                   }`}
                 >
-                  <div className="text-4xl mb-2">{color === 'white' ? '♔' : '♚'}</div>
+                  <div className="flex justify-center mb-2"><ChessPiece type="king" color={color} size={40} /></div>
                   <div className="font-semibold capitalize">{color}</div>
                   <div className={`text-sm ${playerColor === color ? 'text-on-accent/80' : 'text-fg-muted'}`}>
                     {color === 'white' ? 'You move first' : 'Bot moves first'}

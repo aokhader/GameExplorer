@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ChessGameState, Position, PieceType } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
+import { ChessPiece } from '@gameexplorer/ui';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useChessEngine } from '@/hooks/useChessEngine';
 import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
@@ -360,7 +361,7 @@ export default function ChessBotPage() {
                     : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                 }`}
               >
-                <div className="text-4xl mb-2">♔</div>
+                <div className="flex justify-center mb-2"><ChessPiece type="king" color="white" size={40} /></div>
                 <div className="font-semibold">White</div>
                 <div className={`text-sm ${playerColor === 'white' ? 'text-on-accent/80' : 'text-fg-muted'}`}>
                   You move first
@@ -374,7 +375,7 @@ export default function ChessBotPage() {
                     : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                 }`}
               >
-                <div className="text-4xl mb-2">♚</div>
+                <div className="flex justify-center mb-2"><ChessPiece type="king" color="black" size={40} /></div>
                 <div className="font-semibold">Black</div>
                 <div className={`text-sm ${playerColor === 'black' ? 'text-on-accent/80' : 'text-fg-muted'}`}>
                   Bot moves first

@@ -139,10 +139,12 @@
   filter: brightness(0.9);
 }
 
-/* Chess Pieces — SVG-based, sized as a fraction of the square */
+/* Chess Pieces — SVG-based, sized as a fraction of the square. The vector art
+   fills ~89% of its own viewBox, so ~90% here lands the piece at play scale with
+   a small margin off the square edges (matches the design doc + the native board). */
 .piece {
-  width: 82%;
-  height: 82%;
+  width: 90%;
+  height: 90%;
   display: flex;
   align-items: center;
   justify-content: center;
