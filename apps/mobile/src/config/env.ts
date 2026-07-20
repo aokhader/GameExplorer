@@ -19,7 +19,11 @@ export function bootstrapConfig(): void {
   if (bootstrapped) return;
   bootstrapped = true;
 
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
+  // Release builds must never point at localhost (iOS ATS blocks plain http
+  // anyway) — if the build-time env is missing, fall back to the deployed API.
+  const apiUrl =
+    process.env.EXPO_PUBLIC_API_URL ??
+    (__DEV__ ? 'http://localhost:4000' : 'https://gameexplorer-api.onrender.com');
   setApiUrl(apiUrl);
 
   // Deep link back into the app after OAuth, e.g. gameexplorer://auth/callback.

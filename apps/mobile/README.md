@@ -118,9 +118,13 @@ render on the emulator or a device.
 Env by profile: **local dev** reads `apps/mobile/.env.local` (Metro inlines
 `EXPO_PUBLIC_*`); the `eas.json` `development` profile's `env` is mostly inert for
 dev-client builds. **preview/production** builds need `EXPO_PUBLIC_API_URL` +
-`EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY` set via `eas env`
-(the home hub renders without them — `bootstrapConfig` falls back to
-`http://localhost:4000` — but any screen that talks to Supabase/the API needs them).
+`EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY` defined in the EAS
+server-side environments (`eas env:list --environment production` to inspect) —
+`.env.local` never reaches the EAS builders. Each build profile is pinned to its
+environment via the `environment` field in `eas.json`, and OTA publishes must pass
+it too: `eas update --channel production --environment production`. Without the
+vars, screens that talk to Supabase degrade to guest state and `bootstrapConfig`
+falls back to the deployed API URL (localhost in dev).
 
 ### iOS (from a Windows machine — deferred to ~M5)
 

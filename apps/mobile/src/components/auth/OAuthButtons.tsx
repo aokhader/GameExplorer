@@ -83,46 +83,56 @@ export function OAuthButtons({
         />
       )}
 
-      <Pressable
-        onPress={() => run('google')}
-        disabled={busy !== null}
-        style={({ pressed }) => ({
-          height: 48,
-          borderRadius: 12,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
-          borderWidth: 1,
-          borderColor: COLORS.border,
-          backgroundColor: COLORS.surfaceMuted,
-          opacity: busy !== null ? 0.6 : pressed ? 0.85 : 1,
-        })}
-      >
-        {busy === 'google' ? <ActivityIndicator size="small" color={COLORS.fg} /> : <GoogleIcon />}
-        <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '600' }}>
-          Continue with Google
-        </Text>
+      {/* Box styles live on an inner View (the Button.tsx pattern), NOT on the
+          Pressable's function-form `style` prop — that form gets dropped on the
+          production iOS build (buttons rendered unstyled), while plain object
+          styles render fine everywhere. */}
+      <Pressable onPress={() => run('google')} disabled={busy !== null}>
+        {({ pressed }) => (
+          <View
+            style={{
+              width: '100%',
+              height: 48,
+              borderRadius: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              backgroundColor: COLORS.surfaceMuted,
+              opacity: busy !== null ? 0.6 : pressed ? 0.85 : 1,
+            }}
+          >
+            {busy === 'google' ? <ActivityIndicator size="small" color={COLORS.fg} /> : <GoogleIcon />}
+            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '600' }}>
+              Continue with Google
+            </Text>
+          </View>
+        )}
       </Pressable>
 
-      <Pressable
-        onPress={() => run('facebook')}
-        disabled={busy !== null}
-        style={({ pressed }) => ({
-          height: 48,
-          borderRadius: 12,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
-          backgroundColor: '#1877F2',
-          opacity: busy !== null ? 0.6 : pressed ? 0.85 : 1,
-        })}
-      >
-        {busy === 'facebook' ? <ActivityIndicator size="small" color="#fff" /> : <FacebookIcon />}
-        <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
-          Continue with Facebook
-        </Text>
+      <Pressable onPress={() => run('facebook')} disabled={busy !== null}>
+        {({ pressed }) => (
+          <View
+            style={{
+              width: '100%',
+              height: 48,
+              borderRadius: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              backgroundColor: '#1877F2',
+              opacity: busy !== null ? 0.6 : pressed ? 0.85 : 1,
+            }}
+          >
+            {busy === 'facebook' ? <ActivityIndicator size="small" color="#fff" /> : <FacebookIcon />}
+            <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
+              Continue with Facebook
+            </Text>
+          </View>
+        )}
       </Pressable>
     </View>
   );

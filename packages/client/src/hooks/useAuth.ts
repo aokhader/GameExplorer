@@ -16,6 +16,16 @@ export function useAuth() {
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
 
+    // Any failure here (e.g. the Supabase client throwing because build-time
+    // env is missing) must still clear `loading`, or every loading-gated
+    // screen hangs forever with no way to reach sign-in. Degrade to guest.
+    const bail = (err: unknown) => {
+      console.warn('[useAuth] auth bootstrap failed; continuing as guest:', err);
+      if (cancelled) return;
+      setUser(null);
+      setLoading(false);
+    };
+
     import('@gameexplorer/db').then(({ supabase }) => {
       if (cancelled) return;
 
@@ -29,14 +39,14 @@ export function useAuth() {
         const u = data.session?.user;
         setUser(u ? { id: u.id, email: u.email! } : null);
         setLoading(false);
-      });
+      }).catch(bail);
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: unknown, session: { user: { id: string; email?: string } | null } | null) => {
         setUser(session?.user ? { id: session.user.id, email: session.user.email! } : null);
         setLoading(false);
       });
       unsubscribe = () => subscription.unsubscribe();
-    });
+    }).catch(bail);
 
     return () => {
       cancelled = true;
