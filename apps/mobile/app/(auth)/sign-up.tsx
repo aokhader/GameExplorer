@@ -8,8 +8,10 @@ import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
 
 /**
  * Email/password + OAuth sign-up. Mirrors the web `/auth/signup` page: create the
- * auth user, then insert a minimal profile row (id + username — the encrypted-email
- * columns aren't required for a client insert). On success, route to /profile.
+ * auth user and let the `on_auth_user_created` database trigger build the profile
+ * row from `options.data.username`. The profile can't be inserted from here — with
+ * email confirmation on, signUp returns no session, so RLS sees an anonymous
+ * caller. See project-docs/sql-queries/supabase-profile-trigger.sql.
  */
 export default function SignUpScreen() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [confirmSent, setConfirmSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const done = () => router.replace('/profile' as never);
@@ -26,19 +29,20 @@ export default function SignUpScreen() {
     setLoading(true);
     setError(null);
 
-    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { username: username.trim() } },
+    });
     if (error || !data.user) {
       setError(error?.message ?? 'Sign up failed');
       setLoading(false);
       return;
     }
 
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({ id: data.user.id, username: username.trim() });
-
-    if (profileError) {
-      setError('Account created but profile setup failed: ' + profileError.message);
+    // No session means Supabase is waiting on email confirmation.
+    if (!data.session) {
+      setConfirmSent(true);
       setLoading(false);
       return;
     }
@@ -85,6 +89,12 @@ export default function SignUpScreen() {
           onSubmitEditing={handleSignUp}
           returnKeyType="go"
         />
+
+        {confirmSent && (
+          <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>
+            Check {email.trim()} for a confirmation link, then sign in.
+          </Text>
+        )}
 
         {error && <Text style={{ color: COLORS.dangerHover, fontSize: 14 }}>{error}</Text>}
 

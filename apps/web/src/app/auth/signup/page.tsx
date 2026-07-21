@@ -14,25 +14,31 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmSent, setConfirmSent] = useState(false);
 
   const handleSignUp = async () => {
     setLoading(true);
     setError(null);
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // The username rides along in user metadata: the `on_auth_user_created`
+    // trigger reads it to build the profile row (see
+    // project-docs/sql-queries/supabase-profile-trigger.sql). We can't insert
+    // the profile from here — with email confirmation on, signUp returns no
+    // session, so RLS would see an anonymous caller and reject the row.
+    const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { username: username.trim() } },
+    });
     if (error || !data.user) {
         setError(error?.message ?? 'Sign up failed');
         setLoading(false);
         return;
     }
 
-    const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        username,
-    });
-
-    if (profileError) {
-        setError('Account created but profile setup failed: ' + profileError.message);
+    // No session means Supabase is waiting on email confirmation.
+    if (!data.session) {
+        setConfirmSent(true);
         setLoading(false);
         return;
     }
@@ -122,6 +128,13 @@ export default function SignUpPage() {
               className="w-full px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
+
+          {confirmSent && (
+            <p className="text-sm text-fg-muted">
+              Check <span className="text-fg">{email.trim()}</span> for a confirmation
+              link, then sign in.
+            </p>
+          )}
 
           {error && (
             <p className="text-sm text-danger-hover">{error}</p>

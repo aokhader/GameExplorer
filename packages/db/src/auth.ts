@@ -3,8 +3,6 @@
 // Never pass raw passwords anywhere except directly into these functions.
 
 import { supabase } from './client';
-import { encryptEmail, hashEmail } from './crypto';
-import type { ProfileRow } from './profiles';
 
 export interface AuthUser {
   id: string;
@@ -14,6 +12,8 @@ export interface AuthUser {
 export interface SignUpResult {
   user: AuthUser | null;
   error: string | null;
+  /** True when the account exists but Supabase is waiting on email confirmation. */
+  needsEmailConfirmation: boolean;
 }
 
 export interface SignInResult {
@@ -23,43 +23,36 @@ export interface SignInResult {
 
 /**
  * Sign up with email and password.
- * Also creates a profile row with encrypted email.
  * Supabase handles password hashing — we never see or store the raw password.
+ *
+ * The profile row is created by the `on_auth_user_created` database trigger,
+ * which reads the username out of user metadata (see
+ * project-docs/sql-queries/supabase-profile-trigger.sql). Inserting it from
+ * here does not work: when email confirmation is enabled `signUp` returns a
+ * user but no session, so RLS sees an anonymous caller and rejects the row.
+ *
+ * `needsEmailConfirmation` is true when Supabase is waiting on the user to
+ * click the link in their inbox — there is no session until they do.
  */
 export async function signUp(
   email: string,
   password: string,
   username: string
 ): Promise<SignUpResult> {
-  // 1. Create the auth user (Supabase hashes the password with bcrypt)
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { username } },
+  });
 
   if (error || !data.user) {
-    return { user: null, error: error?.message ?? 'Sign up failed' };
-  }
-
-  // 2. Create the profile with encrypted email
-  const emailEncrypted = await encryptEmail(email);
-  const emailHash = await hashEmail(email);
-
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .insert({
-      id: data.user.id,
-      username,
-      email_encrypted: emailEncrypted,
-      email_hash: emailHash,
-    } satisfies Omit<ProfileRow, 'created_at'>);
-
-  if (profileError) {
-    // Auth user was created but profile failed — log for investigation
-    console.error('Profile creation failed after sign up:', profileError);
-    return { user: null, error: 'Account created but profile setup failed. Please contact support.' };
+    return { user: null, error: error?.message ?? 'Sign up failed', needsEmailConfirmation: false };
   }
 
   return {
     user: { id: data.user.id, email },
     error: null,
+    needsEmailConfirmation: !data.session,
   };
 }
 
