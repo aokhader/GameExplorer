@@ -10,9 +10,9 @@ export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://game-explorer
 export const PRIVACY_URL = `${WEB_URL}/privacy`;
 
 /**
- * The public source repo — the app's GPL-3 source offer (the code is MIT, but
- * the app binary embeds Stockfish so it is conveyed under GPL terms and must
- * point at its source; see apps/mobile/LICENSE.md).
+ * The public source repo, linked from Settings → Open source. The binary is
+ * entirely MIT — Arasan replaced GPL Stockfish in July 2026, so there is no GPL
+ * source offer to honour any more; see apps/mobile/LICENSE.md for the notices.
  */
 export const SOURCE_REPO_URL = 'https://github.com/aokhader/GameExplorer';
 

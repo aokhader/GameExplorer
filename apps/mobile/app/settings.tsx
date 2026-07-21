@@ -172,11 +172,11 @@ export default function SettingsScreen() {
             WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => Linking.openURL(PRIVACY_URL));
           }}
         />
-        {/* GPL source offer: the app embeds Stockfish (GPL-3), so its complete
-            source must be reachable from the app itself (apps/mobile/LICENSE.md). */}
+        {/* Attribution for the bundled engine. The binary has been all-MIT since
+            Arasan replaced GPL Stockfish (July 2026) — see apps/mobile/LICENSE.md. */}
         <LinkRow
           title="Open source"
-          description="GPL-3.0 licensed · powered by the Stockfish chess engine. View the source code."
+          description="MIT licensed · powered by the Arasan chess engine. View the source and notices."
           onPress={() => {
             WebBrowser.openBrowserAsync(SOURCE_REPO_URL).catch(() => Linking.openURL(SOURCE_REPO_URL));
           }}

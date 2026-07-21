@@ -10,4 +10,7 @@ multi-threaded and single-threaded WASM variants), licensed under the
 
 The web app runs these builds as separate Web Worker programs, communicating
 over the UCI text protocol; they are aggregated with — not linked into — the
-web application, which carries its own license (see `apps/web/LICENSE.md`).
+web application, which is MIT-licensed (see the repository root `LICENSE.md`).
+
+These notices are surfaced to users at `/licenses`
+(`apps/web/src/app/licenses/page.tsx`) — keep the two in sync.

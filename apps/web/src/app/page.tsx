@@ -145,6 +145,9 @@ export default function HomePage() {
             <Link href="/privacy" className="hover:text-fg transition-colors">
               Privacy
             </Link>
+            <Link href="/licenses" className="hover:text-fg transition-colors">
+              Licenses
+            </Link>
             <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-fg transition-colors">
               Contact
             </a>
