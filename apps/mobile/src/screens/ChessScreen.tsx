@@ -113,6 +113,18 @@ export function ChessScreen() {
         <BackHeader fallbackHref="/" />
         <SetupHero game="chess" />
 
+        <Pressable
+          onPress={() => router.push('/learn/chess' as never)}
+          accessibilityRole="link"
+          accessibilityLabel="How to play chess"
+          hitSlop={8}
+          style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
+        >
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: BLUE }}>
+            New to chess? How to play →
+          </Text>
+        </Pressable>
+
         <OpponentPicker value={mode} onChange={setMode} accent={BLUE} tint={BLUE_TINT} />
 
         {!isPassAndPlay && (

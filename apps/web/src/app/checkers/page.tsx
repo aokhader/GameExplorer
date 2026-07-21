@@ -5,11 +5,23 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 
+type GameMode = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  href: string;
+  gradient: string;
+  available: boolean;
+  /** Card action label; defaults to "Start Playing". */
+  cta?: string;
+};
+
 export default function CheckersLandingPage() {
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   useAuth();
 
-  const gameModes = [
+  const gameModes: GameMode[] = [
     {
       id: 'bot',
       title: 'Play vs Bot',
@@ -36,6 +48,16 @@ export default function CheckersLandingPage() {
       href: '/checkers/play',
       gradient: 'from-accent to-info',
       available: true,
+    },
+    {
+      id: 'learn',
+      title: 'How to Play',
+      description: 'New to checkers? Learn the rules and pick up beginner tips in two minutes',
+      icon: '🎓',
+      href: '/checkers/learn',
+      gradient: 'from-success to-success-hover',
+      available: true,
+      cta: 'Start Learning',
     },
   ];
 
@@ -69,7 +91,7 @@ export default function CheckersLandingPage() {
 
         {/* Game modes */}
         <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {gameModes.map((mode, i) => (
               <Reveal
                 key={mode.id}
@@ -91,7 +113,7 @@ export default function CheckersLandingPage() {
                         </h2>
                         <p className="text-fg-muted mb-4 text-sm">{mode.description}</p>
                         <div className="flex items-center text-accent font-medium text-sm">
-                          <span className="group-hover:mr-2 transition-all">Start Playing</span>
+                          <span className="group-hover:mr-2 transition-all">{mode.cta ?? 'Start Playing'}</span>
                           <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                           </svg>
@@ -140,6 +162,11 @@ export default function CheckersLandingPage() {
               <div className="text-sm font-medium text-fg">Multi-Jump Chains</div>
               <div className="text-xs text-fg-muted mt-1">Chain multiple captures in a single turn</div>
             </div>
+          </div>
+          <div className="text-center mt-6">
+            <Link href="/checkers/learn" className="text-accent font-medium text-sm hover:underline">
+              Read the full guide →
+            </Link>
           </div>
         </div>
       </div>

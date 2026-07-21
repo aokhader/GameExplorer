@@ -95,6 +95,18 @@ export function CheckersScreen() {
         <BackHeader fallbackHref="/" />
         <SetupHero game="checkers" />
 
+        <Pressable
+          onPress={() => router.push('/learn/checkers' as never)}
+          accessibilityRole="link"
+          accessibilityLabel="How to play checkers"
+          hitSlop={8}
+          style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
+        >
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: PINK }}>
+            New to checkers? How to play →
+          </Text>
+        </Pressable>
+
         <OpponentPicker value={mode} onChange={setMode} accent={PINK} tint={PINK_TINT} />
 
         {!isPassAndPlay && (

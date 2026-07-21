@@ -95,6 +95,18 @@ export function ReversiScreen() {
         <BackHeader fallbackHref="/" />
         <SetupHero game="reversi" />
 
+        <Pressable
+          onPress={() => router.push('/learn/reversi' as never)}
+          accessibilityRole="link"
+          accessibilityLabel="How to play reversi"
+          hitSlop={8}
+          style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
+        >
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: LIME }}>
+            New to Reversi? How to play →
+          </Text>
+        </Pressable>
+
         <OpponentPicker value={mode} onChange={setMode} accent={LIME} tint={LIME_TINT} />
 
         {!isPassAndPlay && (

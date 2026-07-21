@@ -14,5 +14,8 @@ export * from './game-logic/reversi';
 // Socket event protocol
 export * from './types/socket.types';
 
+// "How to play" tutorial content (web + mobile)
+export * from './constants/tutorials';
+
 // Free-tier cost-control limits
 export * from './limits';

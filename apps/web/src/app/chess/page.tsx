@@ -5,11 +5,23 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 
+type GameMode = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  href: string;
+  gradient: string;
+  available: boolean;
+  /** Card action label; defaults to "Start Playing". */
+  cta?: string;
+};
+
 export default function ChessLandingPage() {
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   useAuth(); // initialise auth store
 
-  const gameModes = [
+  const gameModes: GameMode[] = [
     {
       id: 'bot',
       title: 'Play vs Bot',
@@ -63,6 +75,16 @@ export default function ChessLandingPage() {
       href: '/chess/local',
       gradient: 'from-success to-success-hover',
       available: false,
+    },
+    {
+      id: 'learn',
+      title: 'How to Play',
+      description: 'New to chess? Learn the rules and pick up beginner tips in five minutes',
+      icon: '🎓',
+      href: '/chess/learn',
+      gradient: 'from-info to-info-hover',
+      available: true,
+      cta: 'Start Learning',
     },
   ];
 
@@ -122,7 +144,7 @@ export default function ChessLandingPage() {
                           {mode.description}
                         </p>
                         <div className="flex items-center text-accent font-medium">
-                          <span className="group-hover:mr-2 transition-all">Start Playing</span>
+                          <span className="group-hover:mr-2 transition-all">{mode.cta ?? 'Start Playing'}</span>
                           <svg className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                           </svg>

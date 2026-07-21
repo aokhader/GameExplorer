@@ -19,5 +19,17 @@ for (const game of ['chess', 'checkers', 'reversi'] as const) {
     await expect(page.getByText('Online Multiplayer')).toBeVisible();
     // Bot mode is reachable from the card.
     await expect(page.locator(`a[href="/${game}/bot"]`).first()).toBeVisible();
+    // The How to Play tutorial is reachable from the hub.
+    await expect(page.locator(`a[href="/${game}/learn"]`).first()).toBeVisible();
+  });
+
+  test(`${game} tutorial page renders rules, diagrams and the bot CTA`, async ({ page }) => {
+    await page.goto(`/${game}/learn`);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('How to Play');
+    // Every diagram is a <figure> with a 64-cell board grid.
+    const boards = page.locator('figure [role="img"]');
+    expect(await boards.count()).toBeGreaterThan(2);
+    await expect(page.getByText('Beginner tips')).toBeVisible();
+    await expect(page.locator(`a[href="/${game}/bot"]`).first()).toBeVisible();
   });
 }
