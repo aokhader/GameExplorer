@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Keyboard, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS } from '@gameexplorer/ui';
@@ -12,17 +12,56 @@ interface ScreenProps {
 }
 
 /**
+ * Height of the on-screen keyboard, 0 while it's hidden.
+ *
+ * Needed because Android is edge-to-edge from SDK 54 on, which retires the old
+ * `adjustResize` window shrink: the window keeps its full height when the
+ * keyboard opens. A ScrollView whose content already fits therefore has nothing
+ * to scroll, so fields behind the keyboard can't be dragged into view — the
+ * content just springs back. Padding the scroll content by the keyboard height
+ * gives it somewhere to go.
+ */
+function useKeyboardHeight(): number {
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    // iOS reports the keyboard before it animates in; Android only after.
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setHeight(e.endCoordinates.height)
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setHeight(0)
+    );
+
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  return height;
+}
+
+/**
  * Page shell: safe-area inset + surface background, optional scroll. Content is
  * capped at a phone-ish column width and centered so tablets don't stretch
- * cards edge-to-edge (no effect on phones).
+ * cards edge-to-edge (no effect on phones). Scrolling screens stay usable with
+ * the keyboard open — see `useKeyboardHeight`.
  */
 export function Screen({ children, scroll = true, edges = ['top', 'bottom'] }: ScreenProps) {
   const column = { width: '100%' as const, maxWidth: 560, alignSelf: 'center' as const };
+  const keyboardHeight = useKeyboardHeight();
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.surface }} edges={edges}>
       {scroll ? (
         <ScrollView
-          contentContainerStyle={[{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 }, column]}
+          contentContainerStyle={[
+            { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 + keyboardHeight },
+            column,
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           {children}

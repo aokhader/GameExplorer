@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import { Text, TextInput, View, type TextInputProps } from 'react-native';
 import { COLORS } from '@gameexplorer/ui';
 
@@ -6,6 +6,8 @@ interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   label?: string;
   /** Danger outline for invalid/confirm inputs. */
   invalid?: boolean;
+  /** Forwarded to the inner TextInput so forms can chain focus between fields. */
+  ref?: Ref<TextInput>;
 }
 
 /**
@@ -13,7 +15,7 @@ interface TextFieldProps extends Omit<TextInputProps, 'style'> {
  * Focus lifts the border to the gold focus ring, mirroring the web inputs'
  * `focus:ring-accent`.
  */
-export function TextField({ label, invalid = false, ...props }: TextFieldProps) {
+export function TextField({ label, invalid = false, ref, ...props }: TextFieldProps) {
   const [focused, setFocused] = useState(false);
 
   const borderColor = invalid
@@ -28,6 +30,7 @@ export function TextField({ label, invalid = false, ...props }: TextFieldProps) 
         <Text style={{ color: COLORS.fgMuted, fontSize: 13, fontWeight: '600' }}>{label}</Text>
       )}
       <TextInput
+        ref={ref}
         placeholderTextColor={COLORS.fgSubtle}
         onFocus={(e) => {
           setFocused(true);

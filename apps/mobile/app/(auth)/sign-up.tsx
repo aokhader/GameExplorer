@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS } from '@gameexplorer/ui';
 import { supabase } from '@gameexplorer/db';
@@ -22,6 +22,11 @@ export default function SignUpScreen() {
   const [error, setError] = useState<string | null>(null);
   const [confirmSent, setConfirmSent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Return-key focus chaining, so reaching the password never depends on being
+  // able to scroll past the keyboard.
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   const done = () => router.replace('/profile' as never);
 
@@ -68,8 +73,12 @@ export default function SignUpScreen() {
           onChangeText={setUsername}
           autoCapitalize="none"
           autoCorrect={false}
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => emailRef.current?.focus()}
         />
         <TextField
+          ref={emailRef}
           label="Email"
           placeholder="you@example.com"
           value={email}
@@ -78,8 +87,12 @@ export default function SignUpScreen() {
           autoComplete="email"
           keyboardType="email-address"
           inputMode="email"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => passwordRef.current?.focus()}
         />
         <TextField
+          ref={passwordRef}
           label="Password"
           placeholder="Password"
           value={password}

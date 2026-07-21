@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '@gameexplorer/ui';
 import { supabase } from '@gameexplorer/db';
@@ -20,6 +20,8 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const passwordRef = useRef<TextInput>(null);
 
   const done = () => router.replace(target as never);
 
@@ -55,8 +57,12 @@ export default function SignInScreen() {
           autoComplete="email"
           keyboardType="email-address"
           inputMode="email"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => passwordRef.current?.focus()}
         />
         <TextField
+          ref={passwordRef}
           label="Password"
           placeholder="Password"
           value={password}
