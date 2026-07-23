@@ -76,7 +76,8 @@ const config: ExpoConfig = {
         resizeMode: 'contain',
       },
     ],
-    // Native Stockfish config plugin is added in M3 (chess >= 1400 ELO).
+    // The native chess engine ships as a local module (modules/react-native-arasan),
+    // not a config plugin — nothing to add here.
   ],
   experiments: {
     typedRoutes: true,

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  STOCKFISH_MIN_ELO,
+  ENGINE_MIN_ELO,
   buildUciPositionCommand,
   clampStockfishElo,
   parseUciBestMove,
-  stockfishMoveTimeMs,
+  engineMoveTimeMs,
   uciMoveString,
 } from './uci';
 
@@ -104,12 +104,12 @@ describe('clampStockfishElo', () => {
   });
 });
 
-describe('stockfishMoveTimeMs', () => {
-  it('gives the base budget at the Stockfish threshold', () => {
-    expect(stockfishMoveTimeMs(STOCKFISH_MIN_ELO)).toBe(500);
+describe('engineMoveTimeMs', () => {
+  it('gives the base budget at the engine threshold', () => {
+    expect(engineMoveTimeMs(ENGINE_MIN_ELO)).toBe(500);
   });
 
   it('scales up toward the ceiling', () => {
-    expect(stockfishMoveTimeMs(3000)).toBe(1500);
+    expect(engineMoveTimeMs(3000)).toBe(1500);
   });
 });

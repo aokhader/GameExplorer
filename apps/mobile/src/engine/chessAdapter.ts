@@ -1,13 +1,12 @@
 import {
   ChessEngine,
   getBestMoveElo,
-  STOCKFISH_MIN_ELO,
   type ChessGameState,
   type PieceType,
 } from '@gameexplorer/shared';
 import { saveGame } from '@gameexplorer/db';
 import type { LocalGameAdapter } from './useLocalGame';
-import { getEngineBestMove, engineNewGame } from './chessEngineNative';
+import { getEngineBestMove, engineNewGame, isEngineAvailable } from './chessEngineNative';
 
 /** Bot pacing by strength — mirrors web's `useStockfish` `thinkTimeForElo`. */
 function thinkTimeForElo(elo: number): number {
@@ -19,15 +18,47 @@ function thinkTimeForElo(elo: number): number {
 }
 
 /**
- * Chess binding for `useLocalGame`. Same split as web's bot page: below 1400
- * the in-house pure-TS `getBestMoveElo` engine plays (sync, offline, capped at
- * 1399 by its calibration); at 1400+ the native Arasan service takes over
- * (async, also offline — the engine ships in the app). Screens gate the bot
- * turn on `useEngineNative().isReady` so a strong request never fires
- * before the engine handshake completes.
+ * Odds a bot plays a random legal move instead of Arasan's choice — the
+ * weakening for the two tiers below Arasan's 1000 `UCI_Elo` floor, which can't
+ * be expressed by strength alone. Zero at 1000+, where Arasan's own strength
+ * limiting takes over. Beginner (600) hangs pieces about half its moves;
+ * Novice (900) blunders about a quarter.
+ */
+function blunderChanceForElo(elo: number): number {
+  if (elo >= 1000) return 0;
+  return elo <= 750 ? 0.5 : 0.25;
+}
+
+/**
+ * A uniformly random legal move for the side to move, or null in a terminal
+ * position. Auto-queens a promoting pawn (getAllLegalMoves reports promotions
+ * as their from/to only, and no picker runs for a bot move).
+ */
+function randomLegalMove(
+  state: ChessGameState,
+): { from: string; to: string; promotion?: string } | null {
+  const moves = ChessEngine.getAllLegalMoves(state);
+  if (moves.length === 0) return null;
+  const { from, to } = moves[Math.floor(Math.random() * moves.length)];
+  const piece = state.board[Number(from[1]) - 1][from.charCodeAt(0) - 97];
+  const toRank = Number(to[1]);
+  const promotion = piece?.type === 'pawn' && (toRank === 1 || toRank === 8) ? 'queen' : undefined;
+  return { from, to, promotion };
+}
+
+/**
+ * Chess binding for `useLocalGame`. Every bot tier plays through the native
+ * Arasan engine (async, offline — the engine ships in the app). Arasan's
+ * `UCI_Elo` floor is 1000, so the two sub-1000 tiers (Beginner 600, Novice 900)
+ * are weakened with occasional random moves (see `blunderChanceForElo`); 1200+
+ * map straight onto `UCI_Elo`. A dev client built before the engine was linked
+ * has no native module and falls back to the in-house TS engine, which the
+ * setup screen keeps to sub-1400 tiles to match its calibration.
  *
- * `validateMove` threads the optional promotion piece; the board resolves the
- * picker before it ever calls with a promotion move.
+ * Screens gate the bot turn on `useEngineNative().isReady` so a request never
+ * fires before the engine handshake completes. `validateMove` threads the
+ * optional promotion piece; the board resolves the picker before it ever calls
+ * with a promotion move.
  */
 export const chessAdapter: LocalGameAdapter<ChessGameState> = {
   gameType: 'chess',
@@ -45,10 +76,21 @@ export const chessAdapter: LocalGameAdapter<ChessGameState> = {
     const r = ChessEngine.validateMove(s, from, to, false, promotion as PieceType | undefined);
     return { valid: r.valid, resultingState: r.resultingState };
   },
-  getBotMove: (s, elo) => {
-    if (elo >= STOCKFISH_MIN_ELO) return getEngineBestMove(s, elo);
-    const m = getBestMoveElo(s, elo);
-    return { from: m.from, to: m.to, promotion: m.promotion };
+  getBotMove: async (s, elo) => {
+    // A dev client without the native module falls back to the in-house engine.
+    if (!isEngineAvailable()) {
+      const m = getBestMoveElo(s, elo);
+      return { from: m.from, to: m.to, promotion: m.promotion };
+    }
+    // Below Arasan's 1000 floor, occasionally substitute a random move so the
+    // beginner tiers still play weak; otherwise Arasan plays (clamped + short
+    // move time for the low tiers, see chessEngineNative).
+    const blunder = blunderChanceForElo(elo);
+    if (blunder > 0 && Math.random() < blunder) {
+      const rnd = randomLegalMove(s);
+      if (rnd) return rnd;
+    }
+    return getEngineBestMove(s, elo);
   },
   thinkTimeForElo,
   save: ({ state, playerColor, result, difficulty, userId, options }) =>
