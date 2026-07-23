@@ -10,10 +10,10 @@ import {
 
 /**
  * Screen-facing view of the native Arasan service — the mobile counterpart
- * of web's `useStockfish({ enabled })`. Pass `enabled` only when a ≥1400 bot
- * game actually needs the engine so the network install + engine spin-up
- * doesn't happen on the setup screen; once started, the engine stays up for
- * the app session (see chessEngineNative.ts).
+ * of web's `useStockfish({ enabled })`. Pass `enabled` only when a bot game
+ * actually needs the engine so the network install + engine spin-up doesn't
+ * happen on the setup screen; once started, the engine stays up for the app
+ * session (see chessEngineNative.ts).
  */
 export function useEngineNative({ enabled }: { enabled: boolean }) {
   const [isReady, setIsReady] = useState(isEngineReady);

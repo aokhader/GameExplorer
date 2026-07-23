@@ -34,7 +34,7 @@ export interface LocalGameAdapter<S> {
     to: string,
     promotion?: string,
   ): { valid: boolean; resultingState?: S };
-  /** Sync (in-house TS engines) or async (native Stockfish at 1400+). */
+  /** Sync (in-house TS engine fallback) or async (native Arasan engine). */
   getBotMove(
     state: S,
     elo: number,
@@ -74,10 +74,10 @@ export interface UseLocalGameOptions<S> {
   started: boolean;
   /**
    * The bot's engine is ready to answer (defaults to true). Screens whose
-   * strong bots need an async engine warm-up (native Stockfish) pass this so
-   * the bot turn waits for the handshake instead of firing into a dead engine
-   * — the effect refires when it flips true. Mirrors web's
-   * `stockfish.isReady` gate on the bot page.
+   * bots need an async engine warm-up (native Arasan) pass this so the bot
+   * turn waits for the handshake instead of firing into a dead engine — the
+   * effect refires when it flips true. Mirrors web's engine-ready gate on the
+   * bot page.
    */
   botReady?: boolean;
 }

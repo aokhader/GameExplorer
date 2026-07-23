@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ChessGameState, UciBestMove } from '@gameexplorer/shared';
 import {
-  STOCKFISH_MIN_ELO,
+  // The shared helpers are engine-neutral (mobile drives Arasan through them);
+  // this hook is web's real Stockfish, so alias them back to Stockfish names.
+  ENGINE_MIN_ELO as STOCKFISH_MIN_ELO,
   buildUciPositionCommand,
   clampStockfishElo,
   parseUciBestMove,
-  stockfishMoveTimeMs,
+  engineMoveTimeMs as stockfishMoveTimeMs,
 } from '@gameexplorer/shared';
 import {
   getStockfishEnginePath,
@@ -14,8 +16,8 @@ import {
 } from '../lib/stockfishEngine';
 
 /**
- * ELO threshold above which we hand off to Stockfish (re-exported from the
- * shared UCI helpers, which mobile's native engine service also uses).
+ * ELO threshold above which we hand off to Stockfish (the shared
+ * `ENGINE_MIN_ELO`, which mobile's native Arasan service also uses).
  * Below it, callers must use the chess engine worker's getBotMove
  * (useChessEngine) so the weak engine's minimax never runs on the main thread.
  */

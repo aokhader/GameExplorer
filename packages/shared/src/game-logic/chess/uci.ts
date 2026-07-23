@@ -1,16 +1,19 @@
 // UCI protocol helpers shared by web's Stockfish worker hook and mobile's
-// native Stockfish service. Pure string building/parsing only — no engine
+// native Arasan service. Pure string building/parsing only — no engine
 // lifecycle here, since transports differ (Web Worker postMessage vs native
 // TurboModule events).
 
 import type { Move, PieceType, Position } from '../../types/chess.types';
 
 /**
- * ELO threshold above which bots hand off to Stockfish. Below it the in-house
- * TS weak engine plays (its calibration tops out at 1399); Stockfish's own
- * UCI_Elo floor is 1320, so 1400 keeps a clean seam between the two.
+ * ELO seam between the in-house TS weak engine and a full UCI engine. On web,
+ * bots below it run in the TS engine worker and at/above it hand off to
+ * Stockfish. On mobile every tier now plays through the native Arasan engine,
+ * but this still bounds the fallback: a build without the native module offers
+ * only the sub-threshold tiles (the TS engine tops out at 1399). Stockfish's
+ * UCI_Elo floor is 1320 and Arasan's is 1000, so 1400 sits cleanly above both.
  */
-export const STOCKFISH_MIN_ELO = 1400;
+export const ENGINE_MIN_ELO = 1400;
 
 /** Stockfish's supported UCI_Elo range (see the official UCI docs). */
 export const STOCKFISH_UCI_ELO_MIN = 1320;
@@ -25,8 +28,8 @@ export function clampStockfishElo(targetElo: number): number {
  * reach the configured UCI_Elo strength; the formula matches what web shipped
  * with (500ms at 1400 rising to ~1500ms at 3000+).
  */
-export function stockfishMoveTimeMs(targetElo: number): number {
-  return Math.round(500 + ((targetElo - STOCKFISH_MIN_ELO) / 1600) * 1000);
+export function engineMoveTimeMs(targetElo: number): number {
+  return Math.round(500 + ((targetElo - ENGINE_MIN_ELO) / 1600) * 1000);
 }
 
 const PROMOTION_TO_UCI: Record<PieceType, string> = {

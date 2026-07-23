@@ -1,7 +1,7 @@
 import {
   buildUciPositionCommand,
   parseUciBestMove,
-  stockfishMoveTimeMs,
+  engineMoveTimeMs,
   type ChessGameState,
   type UciBestMove,
 } from '@gameexplorer/shared';
@@ -28,6 +28,10 @@ import {
 // Arasan's UCI_Elo range (options.h MIN_RATING/MAX_RATING).
 const ARASAN_UCI_ELO_MIN = 1000;
 const ARASAN_UCI_ELO_MAX = 3450;
+// The shared move-time formula returns ~0ms below 1400 (it was written for the
+// 1400+ engine seam). Floor it so the low tiers still get a real, if short,
+// search instead of an empty one.
+const MIN_MOVE_TIME_MS = 120;
 
 type EngineControls = {
   start: () => void;
@@ -173,6 +177,6 @@ export function getEngineBestMove(
     controls.send('setoption name UCI_LimitStrength value true');
     controls.send(`setoption name UCI_Elo value ${elo}`);
     controls.send(buildUciPositionCommand(gameState.moveHistory));
-    controls.send(`go movetime ${stockfishMoveTimeMs(targetElo)}`);
+    controls.send(`go movetime ${Math.max(MIN_MOVE_TIME_MS, engineMoveTimeMs(targetElo))}`);
   });
 }
