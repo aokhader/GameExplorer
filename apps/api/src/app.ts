@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
+import { corsOrigin } from './config/cors';
 
 const app: Application = express();
 
@@ -15,9 +16,10 @@ app.set('trust proxy', 1);
 // Security middleware
 app.use(helmet());
 
-// CORS configuration
+// CORS configuration — allows the production alias AND this project's Vercel
+// preview deployments (see config/cors.ts). Shared with the Socket.io server.
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: corsOrigin,
   credentials: true,
 }));
 

@@ -8,6 +8,7 @@ import { gameSessionService, TIME_CONTROL_CONFIGS } from '../services/gameSessio
 import { clockService }             from '../services/clock.service';
 import { matchmakingService }       from '../services/matchmaking.service';
 import { scanKeys }                 from '../config/redis';
+import { corsOrigin }               from '../config/cors';
 import type { ClientToServerEvents, ServerToClientEvents, GameResult } from '@gameexplorer/shared';
 
 let io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>;
@@ -49,7 +50,7 @@ async function runForfeit(gameId: string, userId: string): Promise<void> {
 export function initializeWebSocket(httpServer: HTTPServer) {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin:      process.env.CORS_ORIGIN || 'http://localhost:3000',
+      origin:      corsOrigin,
       credentials: true,
     },
   });
