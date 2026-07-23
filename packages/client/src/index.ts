@@ -3,6 +3,7 @@
 
 export { getApiUrl, setApiUrl } from './config';
 export { apiFetch } from './apiFetch';
+export { signInWithIdentifier, looksLikeEmail } from './auth';
 
 export { useAuthStore } from './stores/authStore';
 export { useGameStore } from './stores/gameStore';

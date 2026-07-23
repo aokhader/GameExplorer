@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '@gameexplorer/ui';
-import { supabase } from '@gameexplorer/db';
+import { signInWithIdentifier } from '@gameexplorer/client';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
 
@@ -16,7 +16,7 @@ export default function SignInScreen() {
   const { next } = useLocalSearchParams<{ next?: string }>();
   const target = next ?? '/profile';
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,9 +28,11 @@ export default function SignInScreen() {
   const handleSignIn = async () => {
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    // One field, either kind of credential — emails go straight to Supabase,
+    // usernames via the API (only it may resolve a username to an email).
+    const { error } = await signInWithIdentifier(identifier, password);
     if (error) {
-      setError(error.message);
+      setError(error);
       setLoading(false);
     } else {
       done();
@@ -49,14 +51,13 @@ export default function SignInScreen() {
         <OrDivider />
 
         <TextField
-          label="Email"
-          placeholder="you@example.com"
-          value={email}
-          onChangeText={setEmail}
+          label="Username or email"
+          placeholder="Your username or you@example.com"
+          value={identifier}
+          onChangeText={setIdentifier}
           autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          inputMode="email"
+          autoCorrect={false}
+          autoComplete="username"
           returnKeyType="next"
           submitBehavior="submit"
           onSubmitEditing={() => passwordRef.current?.focus()}
@@ -79,7 +80,7 @@ export default function SignInScreen() {
           label="Sign in"
           onPress={handleSignIn}
           loading={loading}
-          disabled={!email || !password}
+          disabled={!identifier || !password}
           glow
         />
 
