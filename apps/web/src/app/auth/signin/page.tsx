@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@gameexplorer/db';
+import { signInWithIdentifier } from '@gameexplorer/client';
 import { GradientText } from '@/components/visual';
 
 // useSearchParams() requires a Suspense boundary in Next.js App Router.
@@ -13,7 +14,7 @@ function SignInForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get('next') ?? '/profile';
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,9 +22,12 @@ function SignInForm() {
   const handleSignIn = async () => {
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // One field, either kind of credential — `signInWithIdentifier` sends
+    // emails straight to Supabase and routes usernames via the API, which is
+    // the only place that may resolve a username to an email.
+    const { error } = await signInWithIdentifier(identifier, password);
     if (error) {
-      setError(error.message);
+      setError(error);
       setLoading(false);
     } else {
       router.replace(next);
@@ -84,10 +88,13 @@ function SignInForm() {
       {/* Email + password */}
       <div className="space-y-3">
         <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
+          type="text"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="Username or email"
+          value={identifier}
+          onChange={e => setIdentifier(e.target.value)}
           className="w-full px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <input
@@ -106,7 +113,7 @@ function SignInForm() {
 
       <button
         onClick={handleSignIn}
-        disabled={loading || !email || !password}
+        disabled={loading || !identifier || !password}
         className="w-full py-2.5 rounded-lg bg-accent [background-image:var(--gradient-accent)] text-on-accent font-semibold [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 disabled:opacity-50 transition-all text-sm"
       >
         {loading ? 'Signing in...' : 'Sign in'}
