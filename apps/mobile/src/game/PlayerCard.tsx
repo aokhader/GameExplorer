@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -21,6 +21,12 @@ export interface PlayerCardProps {
   isYou?: boolean;
   /** Pulsing "to move" dot on the right. */
   active?: boolean;
+  /**
+   * Optional second row inside the card, under the name — chess uses it for the
+   * capture tray. Renders nothing (and adds no spacing) when omitted, so the
+   * other games keep the original one-line card.
+   */
+  footer?: ReactNode;
 }
 
 /**
@@ -29,7 +35,14 @@ export interface PlayerCardProps {
  * every in-game screen so single-player boards look identical to (future)
  * multiplayer ones.
  */
-export function PlayerCard({ name, initial, subline, isYou = false, active = false }: PlayerCardProps) {
+export function PlayerCard({
+  name,
+  initial,
+  subline,
+  isYou = false,
+  active = false,
+  footer,
+}: PlayerCardProps) {
   const { reducedMotion } = useSettings();
   const pulse = useSharedValue(1);
 
@@ -50,10 +63,7 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
   return (
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
+        gap: 8,
         borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 10,
@@ -62,43 +72,53 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
         borderColor: isYou ? 'rgba(205,164,63,0.35)' : COLORS.border,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1 }}>
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: isYou ? COLORS.accent : COLORS.info,
-          }}
-        >
-          <Text style={{ color: isYou ? COLORS.onAccent : '#fff', fontSize: 16, fontWeight: '800' }}>
-            {initial}
-          </Text>
-        </View>
-        <View style={{ flexShrink: 1 }}>
-          <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
-            {name}
-          </Text>
-          {subline && (
-            <Text
-              style={{ color: isYou ? COLORS.accent : COLORS.fgMuted, fontSize: 12, marginTop: 1 }}
-              numberOfLines={1}
-            >
-              {subline}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1 }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: isYou ? COLORS.accent : COLORS.info,
+            }}
+          >
+            <Text style={{ color: isYou ? COLORS.onAccent : '#fff', fontSize: 16, fontWeight: '800' }}>
+              {initial}
             </Text>
-          )}
+          </View>
+          <View style={{ flexShrink: 1 }}>
+            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
+              {name}
+            </Text>
+            {subline && (
+              <Text
+                style={{ color: isYou ? COLORS.accent : COLORS.fgMuted, fontSize: 12, marginTop: 1 }}
+                numberOfLines={1}
+              >
+                {subline}
+              </Text>
+            )}
+          </View>
         </View>
+        {active && (
+          <Animated.View
+            style={[
+              { width: 10, height: 10, borderRadius: 5, backgroundColor: dotColor },
+              dotStyle,
+            ]}
+          />
+        )}
       </View>
-      {active && (
-        <Animated.View
-          style={[
-            { width: 10, height: 10, borderRadius: 5, backgroundColor: dotColor },
-            dotStyle,
-          ]}
-        />
-      )}
+      {footer}
     </View>
   );
 }

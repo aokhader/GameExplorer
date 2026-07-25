@@ -1,18 +1,20 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
-import { ENGINE_MIN_ELO, type ChessGameState } from '@gameexplorer/shared';
+import { ENGINE_MIN_ELO, summarizeMaterial, type ChessGameState } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, ChessPiece } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
-import { StatusBanner } from '@/game/StatusBanner';
-import { GameActions } from '@/game/GameActions';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
 import { SetupHero } from '@/game/SetupHero';
+import { CustomEloPicker } from '@/game/CustomEloPicker';
+import { CapturedTray } from '@/game/CapturedTray';
+import { GameBar } from '@/game/GameBar';
+import { MoveBand } from '@/game/MoveBand';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { chessAdapter } from '@/engine/chessAdapter';
 import { useEngineNative } from '@/engine/useEngineNative';
@@ -37,21 +39,23 @@ const DIFFICULTY_LEVELS = [
   { elo: 2800, label: 'Master', description: 'Elite — extremely strong', icon: '🟣' },
 ] as const;
 
-function labelForElo(elo: number): string {
+/**
+ * Bounds for the Custom tier. The floor is where random-move weakening bottoms
+ * out (see chessAdapter's blunder ramp); the ceiling matches the Master preset,
+ * and drops below `ENGINE_MIN_ELO` on a build without the native engine, where
+ * only the in-house TS engine is available.
+ */
+const CUSTOM_ELO_MIN = 400;
+const CUSTOM_ELO_MAX = 2800;
+
+function labelForElo(elo: number, custom: boolean): string {
+  if (custom) return `Custom ${elo}`;
   return DIFFICULTY_LEVELS.find((l) => l.elo === elo)?.label ?? String(elo);
 }
 
 /** "white" → "White" for pass-and-play messages. */
 function cap(color: string): string {
   return color[0].toUpperCase() + color.slice(1);
-}
-
-function formatMove(move: ChessGameState['moveHistory'][number]): string {
-  const cap = move.capturedPiece || move.isEnPassant ? 'x' : '-';
-  const promo = move.promotion ? `=${move.promotion[0].toUpperCase()}` : '';
-  const suffix = move.isCheckmate ? '#' : move.isCheck ? '+' : '';
-  if (move.isCastling) return move.castlingSide === 'kingside' ? 'O-O' : 'O-O-O';
-  return `${move.from}${cap}${move.to}${promo}${suffix}`;
 }
 
 /**
@@ -70,10 +74,16 @@ export function ChessScreen() {
   const { settings } = useSettings();
 
   const [mode, setMode] = useState<LocalGameMode>('bot');
-  const [targetElo, setTargetElo] = useState(1200);
+  const [selectedElo, setSelectedElo] = useState(1200);
+  // Custom tier — the exact-rating picker replaces the preset tiles. Its starting
+  // value is whatever preset was highlighted, so the slider opens where you were.
+  const [isCustomTier, setIsCustomTier] = useState(false);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [rated, setRated] = useState(true);
   const [started, setStarted] = useState(false);
+  // Manual board flip from the game menu — inverts whatever orientation the mode
+  // would otherwise pick (see boardColor below).
+  const [flipped, setFlipped] = useState(false);
 
   const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
@@ -92,6 +102,13 @@ export function ChessScreen() {
     ? DIFFICULTY_LEVELS
     : DIFFICULTY_LEVELS.filter((l) => l.elo < ENGINE_MIN_ELO);
 
+  // Same ceiling the preset tiles are filtered by: without the native engine the
+  // in-house one tops out just under ENGINE_MIN_ELO.
+  const maxElo = engine.isAvailable ? CUSTOM_ELO_MAX : ENGINE_MIN_ELO - 1;
+  // Clamped here too, not just in the picker, so a value chosen in one build can
+  // never outrun what this binary's engine can actually play.
+  const targetElo = Math.max(CUSTOM_ELO_MIN, Math.min(maxElo, selectedElo));
+
   const game = useLocalGame<ChessGameState>({
     adapter: chessAdapter,
     mode,
@@ -106,6 +123,7 @@ export function ChessScreen() {
   const handleNewGame = () => {
     game.newGame();
     setStarted(false);
+    setFlipped(false);
   };
 
   // ── Setup screen ────────────────────────────────────────────────────────────
@@ -139,11 +157,14 @@ export function ChessScreen() {
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
               {levels.map((level) => {
-                const selected = targetElo === level.elo;
+                const selected = !isCustomTier && targetElo === level.elo;
                 return (
                   <Pressable
                     key={level.elo}
-                    onPress={() => setTargetElo(level.elo)}
+                    onPress={() => {
+                      setIsCustomTier(false);
+                      setSelectedElo(level.elo);
+                    }}
                     accessibilityRole="button"
                     accessibilityLabel={`${level.label} bot — ${level.description}`}
                     accessibilityState={{ selected }}
@@ -167,7 +188,44 @@ export function ChessScreen() {
                   </Pressable>
                 );
               })}
+
+              {/* Custom — pick the exact rating instead of a preset rung. */}
+              <Pressable
+                onPress={() => setIsCustomTier(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Custom bot rating — set an exact rating between ${CUSTOM_ELO_MIN} and ${maxElo}`}
+                accessibilityState={{ selected: isCustomTier }}
+                style={{
+                  flexGrow: 1,
+                  flexBasis: '47%',
+                  borderRadius: 14,
+                  borderWidth: 2,
+                  padding: 12,
+                  backgroundColor: isCustomTier ? BLUE_TINT : COLORS.surfaceAlt,
+                  borderColor: isCustomTier ? BLUE : COLORS.border,
+                }}
+              >
+                <Text style={{ fontSize: 20, marginBottom: 4 }}>🎚️</Text>
+                <Text style={{ color: isCustomTier ? BLUE : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                  Custom{isCustomTier ? ` · ${targetElo}` : ''}
+                </Text>
+                <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
+                  {`Any rating from ${CUSTOM_ELO_MIN} to ${maxElo}`}
+                </Text>
+              </Pressable>
             </View>
+
+            {isCustomTier && (
+              <CustomEloPicker
+                value={targetElo}
+                onChange={setSelectedElo}
+                min={CUSTOM_ELO_MIN}
+                max={maxElo}
+                accent={BLUE}
+                tint={BLUE_TINT}
+              />
+            )}
+
             <Text style={{ color: COLORS.fgSubtle, fontSize: 11, marginBottom: 24 }}>
               {engine.isAvailable
                 ? 'Bots are powered by the Arasan engine.'
@@ -307,17 +365,32 @@ export function ChessScreen() {
 
   const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
   const moverTurn = isAtLive && !gameOverMsg;
-  const botLabel = labelForElo(targetElo);
+  const botLabel = labelForElo(targetElo, isCustomTier);
+
+  // Captures follow the position on the board, so scrubbing back through the
+  // history rewinds the trays with it.
+  const material = summarizeMaterial(displayState);
+  const opponentColor: 'white' | 'black' = playerColor === 'white' ? 'black' : 'white';
+  // `advantage` is signed from White's side; each tray shows its own lead.
+  const leadFor = (color: 'white' | 'black') =>
+    color === 'white' ? material.advantage : -material.advantage;
   const interactive = isAtLive && !gameOverMsg;
-  const checkNow = liveState.isCheck && !liveState.isCheckmate;
+  // Check needs no caption: ChessBoard already rings the king in check.
   // Pass-and-play orientation: face the mover when the flip setting is on,
   // otherwise stay white-side-down. Follows the LIVE turn so reviewing history
-  // never spins the board.
-  const boardColor: 'white' | 'black' = isPassAndPlay
+  // never spins the board. The menu's "Flip board" inverts whichever side that
+  // lands on, so in pass-and-play it flips the pair rather than fighting the
+  // per-turn rotation.
+  const autoBoardColor: 'white' | 'black' = isPassAndPlay
     ? settings.flipBoardPassAndPlay
       ? mover
       : 'white'
     : playerColor;
+  const boardColor: 'white' | 'black' = flipped
+    ? autoBoardColor === 'white'
+      ? 'black'
+      : 'white'
+    : autoBoardColor;
 
   return (
     <>
@@ -325,27 +398,8 @@ export function ChessScreen() {
         accent="chess"
         backHref="/"
         title="Chess"
-        headerActions={
-          <>
-            {!isAtLive && (
-              <Pressable
-                onPress={() => game.setViewIndex(game.timeline.length - 1)}
-                accessibilityRole="button"
-                accessibilityLabel="Jump to live position"
-                style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: COLORS.accent }}
-              >
-                <Text style={{ color: COLORS.onAccent, fontSize: 12, fontWeight: '700' }}>Live ⇥</Text>
-              </Pressable>
-            )}
-            <Pressable
-              onPress={handleNewGame}
-              accessibilityRole="button"
-              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: COLORS.accent }}
-            >
-              <Text style={{ color: COLORS.onAccent, fontSize: 13, fontWeight: '700' }}>New Game</Text>
-            </Pressable>
-          </>
-        }
+        // Jump-to-live and New Game both used to sit up here; they're on the game
+        // bar now, which is always in reach (and clear of the dev-menu bubble).
         topCard={
           isPassAndPlay ? (
             <PlayerCard
@@ -353,13 +407,38 @@ export function ChessScreen() {
               initial="B"
               active={moverTurn && mover === 'black'}
               subline={`Black pieces${moverTurn && mover === 'black' ? ' · to move' : ''}`}
+              footer={
+                <CapturedTray
+                  pieces={material.black}
+                  color="white"
+                  advantage={leadFor('black')}
+                  ownerLabel="Black"
+                />
+              }
             />
           ) : (
             <PlayerCard
               name="Bot"
               initial="B"
-              active={isThinking}
-              subline={isThinking ? `${botLabel} · thinking…` : botLabel}
+              active={isThinking || engineWarming}
+              // The first bot game of the session waits on the engine's NNUE
+              // load. That used to be a banner; it belongs on the bot's own card,
+              // next to "thinking…", so the player knows why nothing is moving.
+              subline={
+                engineWarming
+                  ? `${botLabel} · warming up…`
+                  : isThinking
+                    ? `${botLabel} · thinking…`
+                    : botLabel
+              }
+              footer={
+                <CapturedTray
+                  pieces={material[opponentColor]}
+                  color={playerColor}
+                  advantage={leadFor(opponentColor)}
+                  ownerLabel="Bot"
+                />
+              }
             />
           )
         }
@@ -378,6 +457,14 @@ export function ChessScreen() {
               initial="W"
               active={moverTurn && mover === 'white'}
               subline={`White pieces${moverTurn && mover === 'white' ? ' · to move' : ''}`}
+              footer={
+                <CapturedTray
+                  pieces={material.white}
+                  color="black"
+                  advantage={leadFor('white')}
+                  ownerLabel="White"
+                />
+              }
             />
           ) : (
             <PlayerCard
@@ -386,42 +473,27 @@ export function ChessScreen() {
               isYou
               active={yourTurn}
               subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
+              footer={
+                <CapturedTray
+                  pieces={material[playerColor]}
+                  color={opponentColor}
+                  advantage={leadFor(playerColor)}
+                  ownerLabel="You"
+                />
+              }
             />
           )
         }
         sidebar={
           <>
-            <StatusBanner
+            {/* Where the status banner used to sit. It spent the game repeating
+                what the player cards already say, so the space now carries the
+                move ribbon instead — the Lichess/chess.com treatment. */}
+            <MoveBand
+              timeline={game.timeline}
+              viewIndex={game.viewIndex}
+              onSeek={game.setViewIndex}
               accent="chess"
-              title={
-                gameOverMsg ??
-                (isPassAndPlay
-                  ? moverTurn
-                    ? checkNow
-                      ? `Check! ${cap(mover)} to move`
-                      : `${cap(mover)} to move`
-                    : 'Reviewing history'
-                  : engineWarming && !yourTurn
-                    ? 'Warming up the engine…'
-                    : isThinking
-                      ? 'Bot is thinking…'
-                      : checkNow && yourTurn
-                        ? 'Check! Defend your king'
-                        : yourTurn
-                          ? 'Your move'
-                          : 'Reviewing history')
-              }
-              description={
-                gameOverMsg
-                  ? undefined
-                  : isPassAndPlay
-                    ? moverTurn
-                      ? 'Pass the device between turns.'
-                      : undefined
-                    : yourTurn
-                      ? 'Drag or tap a piece to move.'
-                      : undefined
-              }
             />
 
             {/* Info card */}
@@ -448,75 +520,20 @@ export function ChessScreen() {
               </View>
             </View>
 
-            {/* Move list + scrubber */}
-            <View
-              style={{
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: COLORS.border,
-                backgroundColor: COLORS.surfaceAlt,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderBottomWidth: 1,
-                  borderBottomColor: COLORS.border,
-                }}
-              >
-                <Text style={{ color: COLORS.fgMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>MOVES</Text>
-                <View style={{ flexDirection: 'row', gap: 4 }}>
-                  <NavBtn label="⇤" disabled={!game.canGoBack} onPress={() => game.setViewIndex(0)} />
-                  <NavBtn label="←" disabled={!game.canGoBack} onPress={() => game.setViewIndex(Math.max(0, game.viewIndex - 1))} />
-                  <NavBtn label="→" disabled={!game.canGoForward} onPress={() => game.setViewIndex(Math.min(game.timeline.length - 1, game.viewIndex + 1))} />
-                  <NavBtn label="⇥" disabled={!game.canGoForward} onPress={() => game.setViewIndex(game.timeline.length - 1)} />
-                </View>
-              </View>
-              <ScrollView style={{ maxHeight: 160 }} contentContainerStyle={{ padding: 10 }}>
-                {liveState.moveHistory.length === 0 ? (
-                  <Text style={{ color: COLORS.fgSubtle, fontSize: 12, textAlign: 'center', paddingVertical: 12 }}>
-                    No moves yet — make your first move
-                  </Text>
-                ) : (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
-                    {liveState.moveHistory.map((move, i) => {
-                      const stateIdx = i + 1;
-                      const isActive = game.viewIndex === stateIdx;
-                      return (
-                        <Pressable
-                          key={i}
-                          onPress={() => game.setViewIndex(stateIdx)}
-                          style={{
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 6,
-                            backgroundColor: isActive ? 'rgba(59,130,246,0.18)' : COLORS.surfaceMuted,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              color: isActive ? '#93c5fd' : COLORS.fgMuted,
-                              fontSize: 12,
-                              fontWeight: isActive ? '700' : '500',
-                            }}
-                          >
-                            {i % 2 === 0 ? `${Math.floor(i / 2) + 1}.` : ''} {formatMove(move)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-              </ScrollView>
-            </View>
-
-            <GameActions onDraw={game.agreeDraw} onResign={game.resign} disabled={!!gameOverMsg} />
           </>
+        }
+        bottomBar={
+          <GameBar
+            viewIndex={game.viewIndex}
+            total={game.timeline.length}
+            onSeek={game.setViewIndex}
+            accent="chess"
+            onFlipBoard={() => setFlipped((f) => !f)}
+            onAgreeDraw={game.agreeDraw}
+            onNewGame={handleNewGame}
+            onResign={game.resign}
+            gameOver={!!gameOverMsg}
+          />
         }
       />
 
@@ -566,34 +583,3 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
   );
 }
 
-const NAV_LABELS: Record<string, string> = {
-  '⇤': 'First move',
-  '←': 'Previous move',
-  '→': 'Next move',
-  '⇥': 'Latest move',
-};
-
-function NavBtn({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={NAV_LABELS[label] ?? label}
-      accessibilityState={{ disabled }}
-      style={{
-        width: 28,
-        height: 28,
-        borderRadius: 6,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: COLORS.surfaceMuted,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        opacity: disabled ? 0.3 : 1,
-      }}
-    >
-      <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}</Text>
-    </Pressable>
-  );
-}

@@ -21,6 +21,12 @@ export interface GameScreenLayoutProps {
   board: ReactNode;
   /** Status / info / move-list / controls stacked under the board. */
   sidebar?: ReactNode;
+  /**
+   * Pinned below the scroll area, above the bottom safe-area inset — chess uses
+   * it for the move-history bar. Anything here stays reachable no matter how far
+   * the page is scrolled, so reserve it for controls needed throughout the game.
+   */
+  bottomBar?: ReactNode;
 }
 
 /**
@@ -39,6 +45,7 @@ export function GameScreenLayout({
   bottomCard,
   board,
   sidebar,
+  bottomBar,
 }: GameScreenLayoutProps) {
   const router = useRouter();
   const accentColor = accent ? GAME_ACCENTS[accent].base : COLORS.accent;
@@ -89,6 +96,8 @@ export function GameScreenLayout({
         {bottomCard}
         {sidebar}
       </ScrollView>
+
+      {bottomBar}
     </SafeAreaView>
   );
 }
