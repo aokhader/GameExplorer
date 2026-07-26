@@ -14,6 +14,8 @@ export * from './utils/currency';
 // Checkers
 export * from './game-logic/checkers';
 export * from './game-logic/reversi';
+// Liquidate — cosmic property-trading game (2–6 players)
+export * from './game-logic/liquidate';
 
 // Socket event protocol
 export * from './types/socket.types';
