@@ -6,7 +6,12 @@ import {
 } from '@gameexplorer/shared';
 import { saveGame } from '@gameexplorer/db';
 import type { LocalGameAdapter } from './useLocalGame';
-import { getEngineBestMove, engineNewGame, isEngineAvailable } from './chessEngineNative';
+import {
+  getEngineBestMove,
+  engineNewGame,
+  isEngineAvailable,
+  cancelEngineSearch,
+} from './chessEngineNative';
 
 /** Bot pacing by strength — mirrors web's `useStockfish` `thinkTimeForElo`. */
 function thinkTimeForElo(elo: number): number {
@@ -19,14 +24,34 @@ function thinkTimeForElo(elo: number): number {
 
 /**
  * Odds a bot plays a random legal move instead of Arasan's choice — the
- * weakening for the two tiers below Arasan's 1000 `UCI_Elo` floor, which can't
- * be expressed by strength alone. Zero at 1000+, where Arasan's own strength
- * limiting takes over. Beginner (600) hangs pieces about half its moves;
- * Novice (900) blunders about a quarter.
+ * weakening below Arasan's 1000 `UCI_Elo` floor, which can't be expressed by
+ * strength alone. Zero at 1000+, where Arasan's own strength limiting takes
+ * over.
+ *
+ * A continuous ramp rather than a couple of buckets, because custom ratings can
+ * land anywhere: a player who dials in 850 should get a bot measurably stronger
+ * than one who dials in 650. The anchors keep the two presets exactly where they
+ * were calibrated — Beginner (600) hangs pieces about half its moves, Novice
+ * (900) blunders about a quarter — and interpolate between them.
  */
+const BLUNDER_ANCHORS: [elo: number, chance: number][] = [
+  [400, 0.6],
+  [600, 0.5],
+  [900, 0.25],
+  [1000, 0],
+];
+
 function blunderChanceForElo(elo: number): number {
   if (elo >= 1000) return 0;
-  return elo <= 750 ? 0.5 : 0.25;
+  if (elo <= 400) return 0.6;
+  for (let i = 1; i < BLUNDER_ANCHORS.length; i++) {
+    const [hiElo, hiChance] = BLUNDER_ANCHORS[i];
+    if (elo > hiElo) continue;
+    const [loElo, loChance] = BLUNDER_ANCHORS[i - 1];
+    const t = (elo - loElo) / (hiElo - loElo);
+    return loChance + t * (hiChance - loChance);
+  }
+  return 0;
 }
 
 /**
@@ -63,7 +88,10 @@ function randomLegalMove(
 export const chessAdapter: LocalGameAdapter<ChessGameState> = {
   gameType: 'chess',
   newGame: () => {
-    // Fresh game → clear the engine's tables (no-op when it isn't running).
+    // Abandon whatever the bot was thinking about — its answer applies to a
+    // position that no longer exists — then clear the engine's tables (both
+    // no-ops when it isn't running).
+    cancelEngineSearch('New game started');
     engineNewGame();
     return ChessEngine.newGame();
   },

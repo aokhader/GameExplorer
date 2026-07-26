@@ -1,18 +1,23 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
-import { ReversiEngine, type ReversiGameState, type ReversiColor } from '@gameexplorer/shared';
+import {
+  ReversiEngine,
+  moveHistoryToOthello,
+  type ReversiGameState,
+  type ReversiColor,
+} from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, REVERSI_DISC_COLORS } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ReversiBoard } from '@/board/ReversiBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
-import { StatusBanner } from '@/game/StatusBanner';
-import { GameActions } from '@/game/GameActions';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { OpponentPicker } from '@/game/OpponentPicker';
 import { SetupHero } from '@/game/SetupHero';
+import { MoveBand } from '@/game/MoveBand';
+import { GameBar } from '@/game/GameBar';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { reversiAdapter } from '@/engine/reversiAdapter';
 import { useIsOnline } from '@/lib/useIsOnline';
@@ -39,10 +44,6 @@ function cap(color: string): string {
   return color[0].toUpperCase() + color.slice(1);
 }
 
-function formatMove(move: ReversiGameState['moveHistory'][number]): string {
-  if (!move.position) return 'pass';
-  return move.flipped.length > 0 ? `${move.position} +${move.flipped.length}` : move.position;
-}
 
 /**
  * Reversi vs bot or pass-and-play — the tap-only board flow. A setup screen
@@ -84,6 +85,13 @@ export function ReversiScreen() {
     game.newGame();
     setStarted(false);
   };
+
+  // Standard Othello notation — just the square each disc went on.
+  // Above the setup-screen early return: hooks can't be called conditionally.
+  const othelloMoves = useMemo(
+    () => moveHistoryToOthello(game.timeline[game.timeline.length - 1].moveHistory),
+    [game.timeline],
+  );
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
@@ -291,47 +299,35 @@ export function ReversiScreen() {
   // gate, so it follows whoever is to move.
   const boardColor: ReversiColor = isPassAndPlay ? mover : playerColor;
 
+
+  // Reversi's one turn rule the board can't show by itself: a player with no
+  // legal move is skipped automatically. That used to be a status banner; it now
+  // rides on the card of whoever is being passed, next to "thinking…".
+  const passSuffix = (isMover: boolean) => (isMover && mustPass ? ' · no legal moves, passing…' : '');
+
+
   return (
     <>
       <GameScreenLayout
         accent="reversi"
         backHref="/"
         title="Reversi"
-        headerActions={
-          <>
-            {!isAtLive && (
-              <Pressable
-                onPress={() => game.setViewIndex(game.timeline.length - 1)}
-                accessibilityRole="button"
-                accessibilityLabel="Jump to live position"
-                style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: COLORS.accent }}
-              >
-                <Text style={{ color: COLORS.onAccent, fontSize: 12, fontWeight: '700' }}>Live ⇥</Text>
-              </Pressable>
-            )}
-            <Pressable
-              onPress={handleNewGame}
-              accessibilityRole="button"
-              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: COLORS.accent }}
-            >
-              <Text style={{ color: COLORS.onAccent, fontSize: 13, fontWeight: '700' }}>New Game</Text>
-            </Pressable>
-          </>
-        }
+        // Jump-to-live and New Game both used to sit up here; they're on the game
+        // bar now, which is always in reach (and clear of the dev-menu bubble).
         topCard={
           isPassAndPlay ? (
             <PlayerCard
               name="White"
               initial="W"
               active={moverTurn && mover === 'white'}
-              subline={`White discs${moverTurn && mover === 'white' ? ' · to move' : ''}`}
+              subline={`White discs${moverTurn && mover === 'white' ? ' · to move' : ''}${passSuffix(mover === 'white')}`}
             />
           ) : (
             <PlayerCard
               name="Bot"
               initial="B"
-              active={isThinking}
-              subline={isThinking ? `${botLabel} · thinking…` : botLabel}
+              active={isThinking || (mustPass && !yourTurn)}
+              subline={`${botLabel}${isThinking ? ' · thinking…' : ''}${passSuffix(liveState.currentTurn !== playerColor)}`}
             />
           )
         }
@@ -350,47 +346,28 @@ export function ReversiScreen() {
               name="Black"
               initial="B"
               active={moverTurn && mover === 'black'}
-              subline={`Black discs${moverTurn && mover === 'black' ? ' · to move' : ''}`}
+              subline={`Black discs${moverTurn && mover === 'black' ? ' · to move' : ''}${passSuffix(mover === 'black')}`}
             />
           ) : (
             <PlayerCard
               name="You"
               initial="Y"
               isYou
-              active={yourTurn}
-              subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
+              active={yourTurn || (mustPass && liveState.currentTurn === playerColor)}
+              subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}${passSuffix(liveState.currentTurn === playerColor)}`}
             />
           )
         }
         sidebar={
           <>
-            <StatusBanner
+            {/* Where the status banner used to sit — it repeated what the player
+                cards already say, so the space carries the move ribbon instead. */}
+            <MoveBand
+              moves={othelloMoves}
+              viewIndex={game.viewIndex}
+              onSeek={game.setViewIndex}
               accent="reversi"
-              title={
-                gameOverMsg ??
-                (mustPass
-                  ? `No legal moves — ${isPassAndPlay ? cap(mover) + ' passes' : 'passing'}…`
-                  : isPassAndPlay
-                    ? moverTurn
-                      ? `${cap(mover)} to move`
-                      : 'Reviewing history'
-                    : isThinking
-                      ? 'Bot is thinking…'
-                      : yourTurn
-                        ? 'Your move'
-                        : 'Reviewing history')
-              }
-              description={
-                gameOverMsg
-                  ? undefined
-                  : isPassAndPlay
-                    ? moverTurn && !mustPass
-                      ? 'Pass the device between turns.'
-                      : undefined
-                    : yourTurn
-                      ? 'Glowing dots mark every legal square.'
-                      : undefined
-              }
+              numbering="none"
             />
 
             {/* Info card */}
@@ -432,77 +409,20 @@ export function ReversiScreen() {
               </View>
             </View>
 
-            {/* Move list + scrubber */}
-            <View
-              style={{
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: COLORS.border,
-                backgroundColor: COLORS.surfaceAlt,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderBottomWidth: 1,
-                  borderBottomColor: COLORS.border,
-                }}
-              >
-                <Text style={{ color: COLORS.fgMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>MOVES</Text>
-                <View style={{ flexDirection: 'row', gap: 4 }}>
-                  <NavBtn label="⇤" disabled={!game.canGoBack} onPress={() => game.setViewIndex(0)} />
-                  <NavBtn label="←" disabled={!game.canGoBack} onPress={() => game.setViewIndex(Math.max(0, game.viewIndex - 1))} />
-                  <NavBtn label="→" disabled={!game.canGoForward} onPress={() => game.setViewIndex(Math.min(game.timeline.length - 1, game.viewIndex + 1))} />
-                  <NavBtn label="⇥" disabled={!game.canGoForward} onPress={() => game.setViewIndex(game.timeline.length - 1)} />
-                </View>
-              </View>
-              <ScrollView style={{ maxHeight: 160 }} contentContainerStyle={{ padding: 10 }}>
-                {liveState.moveHistory.length === 0 ? (
-                  <Text style={{ color: COLORS.fgSubtle, fontSize: 12, textAlign: 'center', paddingVertical: 12 }}>
-                    No moves yet — tap a glowing square
-                  </Text>
-                ) : (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
-                    {liveState.moveHistory.map((move, i) => {
-                      const stateIdx = i + 1;
-                      const isActive = game.viewIndex === stateIdx;
-                      return (
-                        <Pressable
-                          key={i}
-                          onPress={() => game.setViewIndex(stateIdx)}
-                          style={{
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 6,
-                            backgroundColor: isActive ? 'rgba(163,230,53,0.18)' : COLORS.surfaceMuted,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              color: isActive ? '#c7f36a' : COLORS.fgMuted,
-                              fontSize: 12,
-                              fontWeight: isActive ? '700' : '500',
-                            }}
-                          >
-                            {Math.floor(i / 2) + 1}
-                            {i % 2 === 0 ? '.' : '…'} {move.color === 'black' ? '⬤' : '○'} {formatMove(move)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-              </ScrollView>
-            </View>
-
-            {/* Reversi has no draw offers — resign only. */}
-            <GameActions onResign={game.resign} disabled={!!gameOverMsg} />
           </>
+        }
+        bottomBar={
+          <GameBar
+            viewIndex={game.viewIndex}
+            total={game.timeline.length}
+            onSeek={game.setViewIndex}
+            accent="reversi"
+            // No flip (playerColor is also the pass-and-play tap gate) and no
+            // draw offers — reversi always ends on a disc count.
+            onNewGame={handleNewGame}
+            onResign={game.resign}
+            gameOver={!!gameOverMsg}
+          />
         }
       />
 
@@ -555,34 +475,3 @@ function DiscCount({ color, border, count }: { color: string; border: string; co
   );
 }
 
-const NAV_LABELS: Record<string, string> = {
-  '⇤': 'First move',
-  '←': 'Previous move',
-  '→': 'Next move',
-  '⇥': 'Latest move',
-};
-
-function NavBtn({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={NAV_LABELS[label] ?? label}
-      accessibilityState={{ disabled }}
-      style={{
-        width: 28,
-        height: 28,
-        borderRadius: 6,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: COLORS.surfaceMuted,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        opacity: disabled ? 0.3 : 1,
-      }}
-    >
-      <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}</Text>
-    </Pressable>
-  );
-}

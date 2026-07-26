@@ -7,3 +7,5 @@ export * from './engine';
 export * from './weakEngine';
 export * from './fen';
 export * from './uci';
+export * from './material';
+export * from './san';
