@@ -11,6 +11,23 @@ export interface SaveGameOptions {
 }
 
 /**
+ * Signed-out guests are never persisted, and the writers below bail out before
+ * touching the network when `userId` is missing.
+ *
+ * The `games` insert policy only accepts rows where `auth.uid() = user_id`
+ * (project-docs/sql-queries/supabase-rls-lockdown.sql), so an anonymous insert
+ * is always rejected with 42501. Opening RLS up for it would be worse than
+ * useless: the SELECT policy is owner-scoped, so a `user_id IS NULL` row is
+ * invisible to every client, the per-user cap trigger
+ * (supabase-cost-caps.sql) skips it, and the anon key is public — an
+ * unauthenticated insert path is a free-tier storage hole. Guests are told
+ * up front to sign in if they want their games kept.
+ */
+function isSignedIn(userId?: string): userId is string {
+  return Boolean(userId);
+}
+
+/**
  * Deletes the oldest games of one type for a user when they exceed
  * LIMITS.GAMES_PER_TYPE. Called automatically after every save —
  * fire-and-forget, never throws.
@@ -34,6 +51,7 @@ async function pruneOldGames(userId: string, gameType: NewGame['game_type']): Pr
   }
 }
 
+/** No-ops (returns null, no request) for signed-out guests — see `isSignedIn`. */
 export async function saveGame(
   gameState: ChessGameState,
   playerColor: Color,
@@ -42,13 +60,15 @@ export async function saveGame(
   userId?: string,
   options?: SaveGameOptions,
 ): Promise<SavedGame | null> {
+  if (!isSignedIn(userId)) return null;
+
   const newGame: NewGame = {
     game_type: 'chess',
     player_color: playerColor,
     opponent: 'stockfish',
     result,
     difficulty,
-    user_id: userId ?? null,
+    user_id: userId,
     mode: options?.mode ?? 'casual',
     rating_before: options?.rating_before,
     rating_after: options?.rating_after,
@@ -76,7 +96,7 @@ export async function saveGame(
     return null;
   }
 
-  if (userId) pruneOldGames(userId, 'chess');
+  pruneOldGames(userId, 'chess');
   return data as SavedGame;
 }
 
@@ -109,6 +129,7 @@ export async function getGames(userId?: string): Promise<GameListItem[]> {
   }));
 }
 
+/** No-ops (returns null, no request) for signed-out guests — see `isSignedIn`. */
 export async function saveCheckersGame(
   gameState: CheckersGameState,
   playerColor: CheckersColor,
@@ -117,13 +138,15 @@ export async function saveCheckersGame(
   userId?: string,
   options?: SaveGameOptions,
 ): Promise<SavedGame | null> {
+  if (!isSignedIn(userId)) return null;
+
   const newGame: NewGame = {
     game_type: 'checkers',
     player_color: playerColor,
     opponent: 'bot',
     result,
     difficulty,
-    user_id: userId ?? null,
+    user_id: userId,
     mode: options?.mode ?? 'casual',
     rating_before: options?.rating_before,
     rating_after: options?.rating_after,
@@ -148,10 +171,11 @@ export async function saveCheckersGame(
     return null;
   }
 
-  if (userId) pruneOldGames(userId, 'checkers');
+  pruneOldGames(userId, 'checkers');
   return data as SavedGame;
 }
 
+/** No-ops (returns null, no request) for signed-out guests — see `isSignedIn`. */
 export async function saveReversiGame(
   gameState: ReversiGameState,
   playerColor: ReversiColor,
@@ -160,13 +184,15 @@ export async function saveReversiGame(
   userId?: string,
   options?: SaveGameOptions,
 ): Promise<SavedGame | null> {
+  if (!isSignedIn(userId)) return null;
+
   const newGame: NewGame = {
     game_type: 'reversi',
     player_color: playerColor,
     opponent: 'bot',
     result,
     difficulty,
-    user_id: userId ?? null,
+    user_id: userId,
     mode: options?.mode ?? 'casual',
     rating_before: options?.rating_before,
     rating_after: options?.rating_after,
@@ -189,7 +215,7 @@ export async function saveReversiGame(
     return null;
   }
 
-  if (userId) pruneOldGames(userId, 'reversi');
+  pruneOldGames(userId, 'reversi');
   return data as SavedGame;
 }
 
