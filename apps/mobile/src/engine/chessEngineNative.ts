@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import {
   buildUciPositionCommand,
   parseUciBestMove,
@@ -61,6 +62,19 @@ export function isEngineAvailable(): boolean {
 let cachedModule: { useArasan: unknown } | null | undefined;
 
 export function getEngineModule(): { useArasan: unknown } | null {
+  // iOS is treated as "engine not linked" until Arasan's startup is verified on
+  // a real device. Arasan is a port of the standalone CLI and calls `exit(-1)`
+  // on the HOST PROCESS when engine init fails — the `setrlimit(RLIMIT_STACK)`
+  // guard and the NNUE-load failure path in cpp/arasan/globals.cpp both do — so
+  // an init failure terminates the whole app instead of failing gracefully. That
+  // path has never run on real iOS hardware, and since v4.28 every bot game (not
+  // just ≥1400) warms the engine, so it crashes on the first bot game. Returning
+  // null here routes iOS through the same in-house TS-engine fallback a dev
+  // client without the module uses (EngineHost mounts nothing, isEngineAvailable
+  // is false, chessAdapter.getBotMove uses getBestMoveElo) — bot play works,
+  // capped to the TS engine's sub-1400 range. Remove this guard once the native
+  // iOS engine is confirmed to start and play on device.
+  if (Platform.OS === 'ios') return null;
   if (cachedModule === undefined) {
     try {
       // The TurboModule spec throws at require time when the native side isn't
