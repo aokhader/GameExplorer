@@ -6,7 +6,12 @@ import {
 } from '@gameexplorer/shared';
 import { saveGame } from '@gameexplorer/db';
 import type { LocalGameAdapter } from './useLocalGame';
-import { getEngineBestMove, engineNewGame, isEngineAvailable } from './chessEngineNative';
+import {
+  getEngineBestMove,
+  engineNewGame,
+  isEngineAvailable,
+  cancelEngineSearch,
+} from './chessEngineNative';
 
 /** Bot pacing by strength — mirrors web's `useStockfish` `thinkTimeForElo`. */
 function thinkTimeForElo(elo: number): number {
@@ -83,7 +88,10 @@ function randomLegalMove(
 export const chessAdapter: LocalGameAdapter<ChessGameState> = {
   gameType: 'chess',
   newGame: () => {
-    // Fresh game → clear the engine's tables (no-op when it isn't running).
+    // Abandon whatever the bot was thinking about — its answer applies to a
+    // position that no longer exists — then clear the engine's tables (both
+    // no-ops when it isn't running).
+    cancelEngineSearch('New game started');
     engineNewGame();
     return ChessEngine.newGame();
   },

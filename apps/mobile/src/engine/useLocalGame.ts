@@ -134,6 +134,10 @@ export function useLocalGame<S>({
   userRatingRef.current = userRating;
   const manualEndRef = useRef(manualEnd);
   manualEndRef.current = manualEnd;
+  // Id of the bot search that currently owns the turn, or null when idle.
+  // Mirrors `isThinking` but is readable synchronously — see makeBotMove.
+  const botRunRef = useRef<number | null>(null);
+  const nextBotRunId = useRef(0);
 
   // Load the player's current rating once we know who they are (rated bot games).
   useEffect(() => {
@@ -161,6 +165,21 @@ export function useLocalGame<S>({
 
   // ── Bot reply ─────────────────────────────────────────────────────────────────
   const makeBotMove = useCallback(async () => {
+    // Synchronous re-entry guard. The turn effect's `isThinking` check reads
+    // STATE, which React hasn't committed yet at the moment this is called — so
+    // any dep landing in the same batch re-runs the effect and starts a second
+    // search. On a single-channel UCI engine that aborts the first one ("bot
+    // error: superseded by a newer search"); on the fallback engine it can
+    // append two bot moves for one turn. Same reasoning as GameActions'
+    // confirmingRef.
+    //
+    // The guard is an id rather than a boolean because an aborted run finishes
+    // AFTER the run that replaced it started: comparing ids on the way out means
+    // a stale run can never release a live one's claim.
+    if (botRunRef.current !== null) return;
+    const runId = ++nextBotRunId.current;
+    botRunRef.current = runId;
+
     const current = timelineRef.current[timelineRef.current.length - 1];
     const elo = targetEloRef.current;
 
@@ -181,9 +200,16 @@ export function useLocalGame<S>({
       const result = adapter.validateMove(current, move.from, move.to, move.promotion);
       if (result.valid && result.resultingState) appendState(result.resultingState);
     } catch (err) {
-      console.error('Bot error:', err);
+      // An aborted search is routine — the game moved on (new game, or a
+      // superseded request) and nobody is waiting for this answer any more.
+      if ((err as Error)?.name !== 'AbortError') console.error('Bot error:', err);
     } finally {
-      setIsThinking(false);
+      // Only the run still holding the claim may release it (and stop the
+      // "thinking…" indicator) — a superseded one must leave both alone.
+      if (botRunRef.current === runId) {
+        botRunRef.current = null;
+        setIsThinking(false);
+      }
     }
   }, [adapter, appendState]);
 
@@ -301,6 +327,10 @@ export function useLocalGame<S>({
   );
 
   const newGame = useCallback(() => {
+    // adapter.newGame() aborts any in-flight search, so drop the claim with it —
+    // otherwise the next game's first bot turn would be locked out. The aborted
+    // run won't touch it on the way out: its id no longer matches.
+    botRunRef.current = null;
     setTimeline([adapter.newGame()]);
     setViewIndex(0);
     setIsThinking(false);

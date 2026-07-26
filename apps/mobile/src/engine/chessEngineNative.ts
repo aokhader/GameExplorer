@@ -154,6 +154,23 @@ export function handleEngineError(error: string): void {
 }
 
 /**
+ * Drop the in-flight search, if any, so its promise stops pending.
+ *
+ * Rejects with an `AbortError` — the DOM convention — because this is a normal
+ * outcome (the game moved on), not a failure. Callers key off `err.name` to stay
+ * quiet instead of logging it as a bot crash.
+ */
+export function cancelEngineSearch(reason = 'Search cancelled'): void {
+  if (!pendingReject) return;
+  const reject = pendingReject;
+  pendingResolve = null;
+  pendingReject = null;
+  const err = new Error(reason);
+  err.name = 'AbortError';
+  reject(err);
+}
+
+/**
  * Best move at the given strength — the same option/position/go sequence as
  * web's useStockfish.getBestMove, over the native transport.
  */
@@ -166,9 +183,10 @@ export function getEngineBestMove(
       reject(new Error('Engine not ready'));
       return;
     }
-    // A still-pending request means the previous game was abandoned mid-search
-    // (new game while the bot thought) — supersede it.
-    if (pendingReject) pendingReject(new Error('Superseded by a newer search'));
+    // A still-pending request means the previous search was abandoned (new game
+    // mid-think, or a turn effect that fired twice) — drop it, since only one
+    // bestmove line can be outstanding on the single UCI channel.
+    cancelEngineSearch('Superseded by a newer search');
 
     pendingResolve = resolve;
     pendingReject = reject;
