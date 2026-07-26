@@ -367,7 +367,6 @@ export function ReversiScreen() {
               viewIndex={game.viewIndex}
               onSeek={game.setViewIndex}
               accent="reversi"
-              numbering="none"
             />
 
             {/* Info card */}

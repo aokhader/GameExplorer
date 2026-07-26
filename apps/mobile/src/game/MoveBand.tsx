@@ -15,12 +15,6 @@ export interface MoveBandProps {
   /** Jump to a timeline index. */
   onSeek: (index: number) => void;
   accent: GameAccent;
-  /**
-   * `pairs` prefixes each full move with "1." … "12." — right for games that
-   * strictly alternate. Use `none` for reversi, where a pass hands the same
-   * player consecutive turns and a pair number would name the wrong side.
-   */
-  numbering?: 'pairs' | 'none';
 }
 
 /**
@@ -33,13 +27,7 @@ export interface MoveBandProps {
  * move" — something the player cards already show. Stepping controls live on
  * the bottom `GameBar`, so the band is display + jump only.
  */
-export function MoveBand({
-  moves: san,
-  viewIndex,
-  onSeek,
-  accent,
-  numbering = 'pairs',
-}: MoveBandProps) {
+export function MoveBand({ moves: san, viewIndex, onSeek, accent }: MoveBandProps) {
   const accentColor = GAME_ACCENTS[accent].base;
   const scrollRef = useRef<ScrollView>(null);
   // Chip x-offsets, captured on layout, so the auto-scroll can centre one.
@@ -98,7 +86,10 @@ export function MoveBand({
         {san.map((text, i) => {
           const stateIdx = i + 1;
           const isActive = viewIndex === stateIdx;
-          const isWhite = numbering === 'pairs' && i % 2 === 0;
+          // Every game's moveHistory strictly alternates (reversi records a pass
+          // as its own entry), so the first ply of each pair — white/gold, or
+          // black in reversi where it moves first — carries the move number.
+          const startsPair = i % 2 === 0;
           return (
             <View
               key={i}
@@ -107,7 +98,7 @@ export function MoveBand({
               }}
               style={{ flexDirection: 'row', alignItems: 'center' }}
             >
-              {isWhite && (
+              {startsPair && (
                 <Text style={{ color: COLORS.fgSubtle, fontSize: 13, marginLeft: i === 0 ? 0 : 8 }}>
                   {i / 2 + 1}.
                 </Text>

@@ -48,20 +48,15 @@ describe('MoveBand', () => {
     expect(screen.getByRole('button', { name: 'Move 3, 22x15' })).toBeSelected();
   });
 
-  it('drops move numbers when asked, for reversi', () => {
-    // A pass gives one player two turns in a row, so a pair number would name
-    // the wrong side — reversi lists its moves as a plain sequence.
+  it('numbers reversi pairs, keeping passes aligned', () => {
+    // Reversi records a pass as its own move entry, so moveHistory stays strictly
+    // alternating (black first) and pair numbers land correctly. Here black
+    // passes at ply 3: the "—" is white's pair-mate, and "2." still prefixes it.
     render(
-      <MoveBand
-        moves={['f5', 'd6', '—', 'c3']}
-        viewIndex={4}
-        onSeek={jest.fn()}
-        accent="reversi"
-        numbering="none"
-      />,
+      <MoveBand moves={['f5', 'd6', '—', 'c3']} viewIndex={4} onSeek={jest.fn()} accent="reversi" />,
     );
-    expect(screen.queryByText('1.')).toBeNull();
-    expect(screen.queryByText('2.')).toBeNull();
+    expect(screen.getByText('1.')).toBeOnTheScreen();
+    expect(screen.getByText('2.')).toBeOnTheScreen();
     expect(screen.getByText('f5')).toBeOnTheScreen();
     // The skipped turn still occupies a slot, so indices stay aligned.
     expect(screen.getByRole('button', { name: 'Move 3, —' })).toBeOnTheScreen();
