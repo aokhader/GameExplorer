@@ -13,7 +13,7 @@ const config: ExpoConfig = {
   // not the personal login — pin it so builds resolve the right owner.
   owner: 'gameexplorermobile',
   scheme: 'gameexplorer',
-  version: '1.0.0',
+  version: '1.1.0',
   orientation: 'portrait',
   userInterfaceStyle: 'dark',
   // EAS Update (expo-updates). `eas update:configure` can't write this dynamic

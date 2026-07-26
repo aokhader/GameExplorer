@@ -39,7 +39,9 @@ export function createRng(seed: number): RngState {
  * during play. Prefers `crypto` when available, falls back to `Math.random`.
  */
 export function randomSeed(): number {
-  const c = (globalThis as { crypto?: Crypto }).crypto;
+  // Structurally type only the one method we use, so this Node/RN/web-shared
+  // package needn't pull in the whole DOM lib just for the `Crypto` global.
+  const c = (globalThis as { crypto?: { getRandomValues?<T extends Uint32Array>(array: T): T } }).crypto;
   if (c?.getRandomValues) {
     return c.getRandomValues(new Uint32Array(1))[0] >>> 0;
   }
