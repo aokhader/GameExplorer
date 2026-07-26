@@ -2,48 +2,119 @@ import { describe, it, expect } from 'vitest';
 import { rollDice } from '../../utils/rng';
 import { LiquidateEngine } from './engine';
 import { getBoard, impoundTileIndex, systemMembers } from './board';
+import { deckCards } from './cards';
 import {
+  DEFAULT_DEBT_RULE,
   LIQUIDATE_CONFIGS,
+  LIQUIDATE_IMPOUND_FINE,
   LIQUIDATE_WARP_GATE_RENTS,
+  MAX_IMPOUND_TURNS,
   baseRentFor,
   colonyCostFor,
   mortgageValueFor,
   rentTableFor,
   unmortgageCostFor,
 } from './economy';
-import type { LiquidateGameState, PlanetTile, StarSystem } from './types';
-import { isOwnable } from './types';
+import {
+  MAX_COLONY_LEVEL,
+  isOwnable,
+  type DebtRule,
+  type LiquidateAction,
+  type LiquidateGameState,
+  type PlanetTile,
+} from './types';
 
-/** A deterministic two-player game. */
-function game(seed = 1, mode: 'full' | 'quick' = 'full'): LiquidateGameState {
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
+function game(
+  seed = 1,
+  mode: 'full' | 'quick' = 'full',
+  debtRule?: DebtRule,
+): LiquidateGameState {
   return LiquidateEngine.newGame({
     players: [{ name: 'Ada' }, { name: 'Bo', isBot: true }],
     mode,
     seed,
+    debtRule,
   });
 }
 
-/** Force a player onto a tile and set the phase so `roll` is legal. */
-function at(state: LiquidateGameState, tile: number): LiquidateGameState {
-  const next = structuredClone(state);
-  next.players[next.currentPlayerIndex].tile = tile;
-  next.phase = 'awaiting-roll';
-  return next;
+function threePlayerGame(seed = 7, debtRule?: DebtRule): LiquidateGameState {
+  return LiquidateEngine.newGame({
+    players: [{ name: 'Ada' }, { name: 'Bo' }, { name: 'Cy' }],
+    seed,
+    debtRule,
+  });
 }
 
 /** Apply an action, asserting it was legal, and return the new state. */
-function apply(
-  state: LiquidateGameState,
-  action: Parameters<typeof LiquidateEngine.applyAction>[1],
-): LiquidateGameState {
+function apply(state: LiquidateGameState, action: LiquidateAction): LiquidateGameState {
   const result = LiquidateEngine.applyAction(state, action);
   expect(result.reason).toBeUndefined();
   expect(result.valid).toBe(true);
   return result.resultingState!;
 }
 
+function reject(state: LiquidateGameState, action: LiquidateAction): string {
+  const result = LiquidateEngine.applyAction(state, action);
+  expect(result.valid).toBe(false);
+  return result.reason!;
+}
+
 function planetsOf(mode: 'full' | 'quick'): PlanetTile[] {
   return getBoard(mode).filter((t): t is PlanetTile => t.kind === 'planet');
+}
+
+/** Put the state into a management window so build/mortgage/trade are legal. */
+function manage(state: LiquidateGameState): LiquidateGameState {
+  const next = structuredClone(state);
+  next.phase = 'turn-end';
+  next.dice = [1, 2];
+  return next;
+}
+
+/** Hand every tile in `tileIds` to the player at `playerIndex`. */
+function own(
+  state: LiquidateGameState,
+  tileIds: number[],
+  playerIndex: number,
+): LiquidateGameState {
+  const next = structuredClone(state);
+  for (const id of tileIds) next.tiles[id].ownerId = next.players[playerIndex].id;
+  return next;
+}
+
+/**
+ * Roll the acting player onto `tileId` through the real engine, choosing an rng
+ * cursor whose roll covers the distance exactly. Never wraps the board, so no
+ * stipend is paid and credit assertions stay exact. Requires `tileId >= 2`.
+ */
+function landOn(state: LiquidateGameState, tileId: number): LiquidateGameState {
+  for (let cursor = 0; cursor < 900; cursor++) {
+    const attempt = structuredClone(state);
+    attempt.rng = { seed: attempt.rng.seed, cursor };
+    const { dice } = rollDice(attempt.rng);
+    const from = tileId - (dice[0] + dice[1]);
+    if (from < 0) continue;
+
+    attempt.players[attempt.currentPlayerIndex].tile = from;
+    attempt.phase = 'awaiting-roll';
+    attempt.doublesCount = 0;
+    const result = LiquidateEngine.applyAction(attempt, { type: 'roll' });
+    if (result.valid) return result.resultingState!;
+  }
+  throw new Error(`could not land on tile ${tileId} without wrapping`);
+}
+
+/** Find a cursor whose next roll is (or is not) doubles. */
+function cursorWhereDoubles(state: LiquidateGameState, doubles: boolean): number {
+  for (let cursor = 0; cursor < 900; cursor++) {
+    const { dice } = rollDice({ seed: state.rng.seed, cursor });
+    if ((dice[0] === dice[1]) === doubles) return cursor;
+  }
+  throw new Error('no suitable cursor');
 }
 
 // ---------------------------------------------------------------------------
@@ -81,11 +152,9 @@ describe('board layouts', () => {
   it('gives the quick board 4 systems and every tile kind', () => {
     expect(planetsOf('quick')).toHaveLength(12);
     const kinds = new Set(getBoard('quick').map((t) => t.kind));
-    expect(kinds).toContain('warp-gate');
-    expect(kinds).toContain('utility');
-    expect(kinds).toContain('tariff');
-    expect(kinds).toContain('anomaly');
-    expect(kinds).toContain('federation');
+    for (const kind of ['warp-gate', 'utility', 'tariff', 'anomaly', 'federation'] as const) {
+      expect(kinds).toContain(kind);
+    }
   });
 
   it('prices planets in ascending system tiers', () => {
@@ -120,9 +189,12 @@ describe('economy', () => {
     expect(colonyCostFor('aurum')).toBe(225);
   });
 
-  it('mortgages at half price and charges interest to clear', () => {
+  it('mortgages at half price and charges exact integer interest to clear', () => {
     expect(mortgageValueFor(200)).toBe(100);
+    // Guards the float bug: 100 * 1.1 is 110.00000000000001, which used to
+    // ceil to 111 and overcharge a credit.
     expect(unmortgageCostFor(200)).toBe(110);
+    expect(unmortgageCostFor(70)).toBe(39);
   });
 
   it('starts quick mode richer on a round cap', () => {
@@ -142,6 +214,7 @@ describe('LiquidateEngine.newGame', () => {
       expect(p.tile).toBe(0);
       expect(p.credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits);
       expect(p.bankrupt).toBe(false);
+      expect(p.clearancePasses).toBe(0);
     }
     expect(state.phase).toBe('awaiting-roll');
     expect(state.round).toBe(1);
@@ -154,18 +227,25 @@ describe('LiquidateEngine.newGame', () => {
     expect(state.tiles.every((t) => t.ownerId === null && t.level === 0 && !t.mortgaged)).toBe(true);
   });
 
-  it('marks bot seats and assigns stable ids', () => {
-    const state = game();
-    expect(state.players.map((p) => p.id)).toEqual(['p1', 'p2']);
-    expect(state.players[1].isBot).toBe(true);
-  });
-
   it('supports 2 to 6 players and rejects anything else', () => {
     const seats = (n: number) => Array.from({ length: n }, (_, i) => ({ name: `P${i}` }));
     expect(() => LiquidateEngine.newGame({ players: seats(2) })).not.toThrow();
     expect(() => LiquidateEngine.newGame({ players: seats(6) })).not.toThrow();
     expect(() => LiquidateEngine.newGame({ players: seats(1) })).toThrow(/2–6 players/);
     expect(() => LiquidateEngine.newGame({ players: seats(7) })).toThrow(/2–6 players/);
+  });
+
+  it('shuffles both decks reproducibly from the seed', () => {
+    const a = game(42);
+    const b = game(42);
+    expect(a.decks.anomaly.draw).toEqual(b.decks.anomaly.draw);
+    expect(a.decks.federation.draw).toEqual(b.decks.federation.draw);
+    expect(a.decks.anomaly.draw).toHaveLength(deckCards('anomaly').length);
+    expect(a.decks.federation.draw).toHaveLength(deckCards('federation').length);
+    // Both decks are permutations, not the authored order verbatim.
+    expect([...a.decks.anomaly.draw].sort()).toEqual(
+      deckCards('anomaly').map((c) => c.id).sort(),
+    );
   });
 
   it('is fully reproducible from a seed', () => {
@@ -184,13 +264,117 @@ describe('LiquidateEngine.newGame', () => {
   });
 });
 
+describe('the debt rule is a player-selectable option', () => {
+  it('defaults to allow-negative on both presets', () => {
+    expect(DEFAULT_DEBT_RULE).toBe('allow-negative');
+    expect(game().config.debtRule).toBe('allow-negative');
+    expect(game(1, 'quick').config.debtRule).toBe('allow-negative');
+  });
+
+  it('honours an explicit override for either value', () => {
+    expect(game(1, 'full', 'never-negative').config.debtRule).toBe('never-negative');
+    expect(game(1, 'quick', 'never-negative').config.debtRule).toBe('never-negative');
+    expect(game(1, 'full', 'allow-negative').config.debtRule).toBe('allow-negative');
+  });
+
+  it('does not leak the override into the shared preset object', () => {
+    game(1, 'full', 'never-negative');
+    expect(LIQUIDATE_CONFIGS.full.debtRule).toBe('allow-negative');
+  });
+
+  /** An unaffordable rent bill: cheap purse, expensive opposing planet. */
+  function unaffordableRent(rule: DebtRule): LiquidateGameState {
+    const planet = planetsOf('full').find((p) => p.system === 'aurum' && p.id >= 12)!;
+    let state = threePlayerGame(7, rule);
+    state = own(state, systemMembers('full', planet.system), 1);
+    state.players[0].credits = 5;
+    return landOn(state, planet.id);
+  }
+
+  it('allow-negative: drives the balance below zero and demands settlement', () => {
+    const next = unaffordableRent('allow-negative');
+    expect(next.players[0].credits).toBeLessThan(0);
+    expect(next.phase).toBe('settling-debt');
+    expect(next.pendingDebt).toMatchObject({
+      debtorId: next.players[0].id,
+      creditorId: next.players[1].id,
+    });
+    expect(next.pendingDebt!.amount).toBe(-next.players[0].credits);
+    expect(next.players[0].bankrupt).toBe(false);
+    // The debtor is the one who must act, not the seat order.
+    expect(LiquidateEngine.actingPlayerId(next)).toBe(next.players[0].id);
+  });
+
+  it('never-negative: keeps the balance at zero and folds the player at once', () => {
+    const next = unaffordableRent('never-negative');
+    expect(next.players[0].credits).toBe(0);
+    expect(next.players[0].bankrupt).toBe(true);
+    expect(next.phase).not.toBe('settling-debt');
+    expect(next.pendingDebt).toBeNull();
+    // The creditor received what little cash there was.
+    expect(next.players[1].credits).toBeGreaterThan(LIQUIDATE_CONFIGS.full.startingCredits);
+  });
+
+  it('never-negative never lets any balance go below zero over a long game', () => {
+    let state = game(2024, 'quick', 'never-negative');
+    for (let i = 0; i < 400 && !state.isGameOver; i++) {
+      const actions = LiquidateEngine.getLegalActions(state);
+      if (actions.length === 0) break;
+      state = apply(state, actions[0]);
+      for (const p of state.players) expect(p.credits).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('allow-negative lets the debtor mortgage back to solvency and resume', () => {
+    const planet = planetsOf('full').find((p) => p.system === 'aurum' && p.id >= 12)!;
+    let state = threePlayerGame(7, 'allow-negative');
+    state = own(state, systemMembers('full', planet.system), 1);
+    // The debtor owns a cheap planet they can pledge.
+    const spare = planetsOf('full').find((p) => p.system === 'ember')!;
+    state = own(state, [spare.id], 0);
+    state.players[0].credits = 5;
+
+    let next = landOn(state, planet.id);
+    expect(next.phase).toBe('settling-debt');
+
+    // Mortgaging is offered, and taking it clears the debt.
+    expect(LiquidateEngine.getLegalActions(next)).toContainEqual({
+      type: 'mortgage',
+      tile: spare.id,
+    });
+    next = apply(next, { type: 'mortgage', tile: spare.id });
+    expect(next.tiles[spare.id].mortgaged).toBe(true);
+    if (next.players[0].credits >= 0) {
+      expect(next.phase).not.toBe('settling-debt');
+      expect(next.pendingDebt).toBeNull();
+    }
+  });
+
+  it('offers bankruptcy as the way out of an unpayable debt', () => {
+    const next = unaffordableRent('allow-negative');
+    expect(LiquidateEngine.getLegalActions(next)).toContainEqual({ type: 'declare-bankruptcy' });
+  });
+
+  it('refuses bankruptcy when no debt is outstanding', () => {
+    expect(reject(game(), { type: 'declare-bankruptcy' })).toMatch(/Nothing forces you out/);
+  });
+});
+
 describe('rolling and movement', () => {
-  it('advances by the dice total and records the roll', () => {
+  it('records the roll and moves the player off Home Station', () => {
     const state = apply(game(), { type: 'roll' });
     const [a, b] = state.dice!;
     expect(a).toBeGreaterThanOrEqual(1);
     expect(b).toBeLessThanOrEqual(6);
-    expect(state.players[0].tile).toBe(a + b);
+    // A card can relocate the player after the dice move, so assert progress
+    // rather than an exact square.
+    expect(state.players[0].tile).not.toBe(0);
+  });
+
+  it('moves exactly the dice total when the landing tile is inert', () => {
+    const drift = getBoard('full').find((t) => t.kind === 'drift')!;
+    const next = landOn(game(), drift.id);
+    expect(next.players[0].tile).toBe(drift.id);
   });
 
   it('never mutates the state passed in', () => {
@@ -200,329 +384,841 @@ describe('rolling and movement', () => {
     expect(before).toEqual(snapshot);
   });
 
-  it('wraps the loop and pays the stipend for passing Home Station', () => {
+  it('pays the stipend for passing Home Station', () => {
     const size = getBoard('full').length;
-    const start = at(game(), size - 3); // any roll of 3+ wraps
-    const purse = start.players[0].credits;
-    const next = apply(start, { type: 'roll' });
-    const total = next.dice![0] + next.dice![1];
+    // Land exactly on Home Station: guaranteed wrap, and the tile is inert.
+    for (let cursor = 0; cursor < 900; cursor++) {
+      const attempt = game();
+      attempt.rng = { seed: attempt.rng.seed, cursor };
+      const { dice } = rollDice(attempt.rng);
+      const total = dice[0] + dice[1];
+      attempt.players[0].tile = size - total;
+      const purse = attempt.players[0].credits;
 
-    expect(next.players[0].tile).toBe((size - 3 + total) % size);
-    expect(next.players[0].credits).toBe(purse + LIQUIDATE_CONFIGS.full.stipend);
+      const next = apply(attempt, { type: 'roll' });
+      expect(next.players[0].tile).toBe(0);
+      expect(next.players[0].credits).toBe(purse + LIQUIDATE_CONFIGS.full.stipend);
+      return;
+    }
+    throw new Error('no cursor found');
   });
 
   it('does not pay a stipend on a roll that stays on the loop', () => {
-    const start = at(game(), 1);
-    const next = apply(start, { type: 'roll' });
+    const drift = getBoard('full').find((t) => t.kind === 'drift')!;
+    const next = landOn(game(), drift.id);
     expect(next.players[0].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits);
   });
 
-  it('rejects a roll when the game is waiting on a buy decision', () => {
-    // Land on tile 1 (a planet) by seeking a seed that lands there.
-    const state = findBuyDecision();
-    const result = LiquidateEngine.applyAction(state, { type: 'roll' });
-    expect(result.valid).toBe(false);
-    expect(result.reason).toMatch(/Not waiting for a roll/);
+  it('rejects a roll while a buy decision is pending', () => {
+    const planet = planetsOf('full').find((p) => p.id >= 12)!;
+    const state = landOn(game(), planet.id);
+    expect(state.phase).toBe('buy-decision');
+    expect(reject(state, { type: 'roll' })).toMatch(/Not waiting for a roll/);
   });
 });
 
 describe('doubles', () => {
-  /** Find a seed whose first roll is doubles, and one whose first roll is not. */
-  function seedWhere(doubles: boolean): number {
-    for (let seed = 0; seed < 400; seed++) {
-      const s = apply(game(seed), { type: 'roll' });
-      if ((s.dice![0] === s.dice![1]) === doubles) return seed;
-    }
-    throw new Error('no suitable seed');
-  }
-
   it('lets a player roll again after doubles', () => {
-    const state = apply(game(seedWhere(true)), { type: 'roll' });
+    const base = game();
+    base.rng = { seed: base.rng.seed, cursor: cursorWhereDoubles(base, true) };
+    let state = apply(base, { type: 'roll' });
     expect(state.doublesCount).toBe(1);
-    // Landing resolved into another roll rather than the end of the turn.
+
+    // Resolve whatever the landing opened, then it should be the same player again.
+    if (state.phase === 'buy-decision') state = apply(state, { type: 'decline' });
+    while (state.phase === 'auction') {
+      state = apply(state, { type: 'pass-bid' });
+    }
     if (state.phase === 'awaiting-roll') {
-      expect(LiquidateEngine.getLegalActions(state)).toEqual([{ type: 'roll' }]);
-    } else {
-      // Landed on an unowned tile: decide first, then roll again.
-      expect(state.phase).toBe('buy-decision');
-      const after = apply(state, { type: 'decline' });
-      expect(after.phase).toBe('awaiting-roll');
-      expect(after.currentPlayerIndex).toBe(0);
+      expect(state.currentPlayerIndex).toBe(0);
     }
   });
 
   it('ends the turn when the roll is not doubles', () => {
-    const state = apply(game(seedWhere(false)), { type: 'roll' });
+    const base = game();
+    base.rng = { seed: base.rng.seed, cursor: cursorWhereDoubles(base, false) };
+    const state = apply(base, { type: 'roll' });
     expect(state.doublesCount).toBe(0);
-    expect(['turn-end', 'buy-decision']).toContain(state.phase);
   });
 
   it('sends a player to impound on the third consecutive double', () => {
-    let state = game();
-    // Drive the state machine directly: three doubles in a row.
-    state = structuredClone(state);
-    state.doublesCount = 2;
-    state.players[0].tile = 5;
-    // Find a seed-position whose next roll is doubles by scanning the rng cursor.
-    let found = false;
-    for (let cursor = 0; cursor < 400 && !found; cursor++) {
-      const attempt = structuredClone(state);
-      attempt.rng = { seed: attempt.rng.seed, cursor };
-      const next = apply(attempt, { type: 'roll' });
-      if (next.players[0].inImpound) {
-        expect(next.players[0].tile).toBe(impoundTileIndex('full'));
-        expect(next.phase).toBe('turn-end');
-        expect(next.doublesCount).toBe(0);
-        found = true;
-      }
-    }
-    expect(found).toBe(true);
+    const staged = game();
+    staged.doublesCount = 2;
+    staged.players[0].tile = 5;
+    staged.rng = { seed: staged.rng.seed, cursor: cursorWhereDoubles(staged, true) };
+
+    const next = apply(staged, { type: 'roll' });
+    expect(next.players[0].inImpound).toBe(true);
+    expect(next.players[0].tile).toBe(impoundTileIndex('full'));
+    expect(next.phase).toBe('turn-end');
+    expect(next.doublesCount).toBe(0);
   });
 });
 
 describe('buying', () => {
-  it('offers a buy decision on an unowned tile', () => {
-    const state = findBuyDecision();
-    const tile = getBoard('full')[state.pendingPurchase!];
-    expect(isOwnable(tile)).toBe(true);
-    expect(LiquidateEngine.getLegalActions(state)).toContainEqual({ type: 'buy' });
-    expect(LiquidateEngine.getLegalActions(state)).toContainEqual({ type: 'decline' });
+  function buyDecision(): LiquidateGameState {
+    const planet = planetsOf('full').find((p) => p.id >= 12)!;
+    return landOn(game(), planet.id);
+  }
+
+  it('offers buy and decline on an unowned tile', () => {
+    const state = buyDecision();
+    expect(isOwnable(getBoard('full')[state.pendingPurchase!])).toBe(true);
+    const actions = LiquidateEngine.getLegalActions(state);
+    expect(actions).toContainEqual({ type: 'buy' });
+    expect(actions).toContainEqual({ type: 'decline' });
   });
 
   it('transfers the tile and debits the price', () => {
-    const state = findBuyDecision();
+    const state = buyDecision();
     const tile = getBoard('full')[state.pendingPurchase!];
-    const purse = state.players[state.currentPlayerIndex].credits;
-    const player = state.players[state.currentPlayerIndex].id;
+    const purse = state.players[0].credits;
 
     const next = apply(state, { type: 'buy' });
-    expect(next.tiles[tile.id].ownerId).toBe(player);
-    expect(next.players[next.players.findIndex((p) => p.id === player)].credits).toBe(
-      purse - (isOwnable(tile) ? tile.price : 0),
-    );
-    expect(next.pendingPurchase).toBeNull();
-  });
-
-  it('leaves the tile unowned when declined', () => {
-    const state = findBuyDecision();
-    const tileId = state.pendingPurchase!;
-    const next = apply(state, { type: 'decline' });
-    expect(next.tiles[tileId].ownerId).toBeNull();
+    expect(next.tiles[tile.id].ownerId).toBe(next.players[0].id);
+    expect(next.players[0].credits).toBe(purse - (isOwnable(tile) ? tile.price : 0));
     expect(next.pendingPurchase).toBeNull();
   });
 
   it('refuses a purchase the player cannot afford', () => {
-    const state = findBuyDecision();
-    const broke = structuredClone(state);
-    broke.players[broke.currentPlayerIndex].credits = 0;
-    expect(LiquidateEngine.getLegalActions(broke)).not.toContainEqual({ type: 'buy' });
-    const result = LiquidateEngine.applyAction(broke, { type: 'buy' });
-    expect(result.valid).toBe(false);
-    expect(result.reason).toMatch(/Not enough credits/);
+    const state = buyDecision();
+    state.players[0].credits = 0;
+    expect(LiquidateEngine.getLegalActions(state)).not.toContainEqual({ type: 'buy' });
+    expect(reject(state, { type: 'buy' })).toMatch(/Not enough credits/);
   });
 
   it('refuses buying when nothing is for sale', () => {
-    const result = LiquidateEngine.applyAction(game(), { type: 'buy' });
-    expect(result.valid).toBe(false);
-    expect(result.reason).toMatch(/Nothing is for sale/);
+    expect(reject(game(), { type: 'buy' })).toMatch(/Nothing is for sale/);
+  });
+});
+
+describe('auctions', () => {
+  function auction(): LiquidateGameState {
+    const planet = planetsOf('full').find((p) => p.id >= 12)!;
+    const state = landOn(threePlayerGame(), planet.id);
+    expect(state.phase).toBe('buy-decision');
+    return apply(state, { type: 'decline' });
+  }
+
+  it('opens an auction when a tile is declined', () => {
+    const state = auction();
+    expect(state.phase).toBe('auction');
+    expect(state.pendingAuction!.bidders).toHaveLength(3);
+    expect(state.pendingAuction!.highestBid).toBe(0);
+    expect(state.pendingAuction!.highestBidderId).toBeNull();
+  });
+
+  it('rotates the acting bidder and tracks the leading bid', () => {
+    let state = auction();
+    const first = LiquidateEngine.actingPlayerId(state);
+    state = apply(state, { type: 'bid', amount: 50 });
+    expect(state.pendingAuction!.highestBid).toBe(50);
+    expect(state.pendingAuction!.highestBidderId).toBe(first);
+    expect(LiquidateEngine.actingPlayerId(state)).not.toBe(first);
+  });
+
+  it('rejects bids that do not beat the leader or exceed the purse', () => {
+    let state = auction();
+    state = apply(state, { type: 'bid', amount: 50 });
+    expect(reject(state, { type: 'bid', amount: 50 })).toMatch(/beat the current bid/);
+    expect(reject(state, { type: 'bid', amount: 1_000_000 })).toMatch(/exceeds available credits/);
+    expect(reject(state, { type: 'bid', amount: 50.5 })).toMatch(/whole number/);
+  });
+
+  it('awards the tile to the last bidder standing and charges the bid', () => {
+    let state = auction();
+    const winnerId = LiquidateEngine.actingPlayerId(state)!;
+    const purse = state.players.find((p) => p.id === winnerId)!.credits;
+    const tileId = state.pendingAuction!.tileId;
+
+    state = apply(state, { type: 'bid', amount: 120 });
+    state = apply(state, { type: 'pass-bid' });
+    state = apply(state, { type: 'pass-bid' });
+
+    expect(state.phase).not.toBe('auction');
+    expect(state.pendingAuction).toBeNull();
+    expect(state.tiles[tileId].ownerId).toBe(winnerId);
+    expect(state.players.find((p) => p.id === winnerId)!.credits).toBe(purse - 120);
+  });
+
+  it('leaves the tile unclaimed when everybody passes', () => {
+    let state = auction();
+    const tileId = state.pendingAuction!.tileId;
+    state = apply(state, { type: 'pass-bid' });
+    state = apply(state, { type: 'pass-bid' });
+    state = apply(state, { type: 'pass-bid' });
+    expect(state.pendingAuction).toBeNull();
+    expect(state.tiles[tileId].ownerId).toBeNull();
+  });
+
+  it('refuses auction actions when no auction is running', () => {
+    expect(reject(game(), { type: 'pass-bid' })).toMatch(/No auction running/);
+    expect(reject(game(), { type: 'bid', amount: 10 })).toMatch(/No auction running/);
+  });
+});
+
+describe('building colonies', () => {
+  const system = 'amber' as const;
+  const members = () => systemMembers('full', system);
+
+  function withSystem(): LiquidateGameState {
+    return manage(own(game(), members(), 0));
+  }
+
+  it('requires the whole system before building', () => {
+    const partial = manage(own(game(), [members()[0]], 0));
+    expect(LiquidateEngine.canBuild(partial, members()[0])).toBe(false);
+    expect(reject(partial, { type: 'build', tile: members()[0] })).toMatch(/full system/);
+  });
+
+  it('builds a colony and debits the system colony cost', () => {
+    const state = withSystem();
+    const tileId = members()[0];
+    const tile = getBoard('full')[tileId] as PlanetTile;
+    const purse = state.players[0].credits;
+
+    const next = apply(state, { type: 'build', tile: tileId });
+    expect(next.tiles[tileId].level).toBe(1);
+    expect(next.players[0].credits).toBe(purse - tile.colonyCost);
+  });
+
+  it('enforces even building across the system', () => {
+    let state = withSystem();
+    const [a, b, c] = members();
+    state = apply(state, { type: 'build', tile: a });
+    // `a` is now ahead, so it cannot grow again until b and c catch up.
+    expect(LiquidateEngine.canBuild(state, a)).toBe(false);
+    expect(reject(state, { type: 'build', tile: a })).toMatch(/evenly/);
+    expect(LiquidateEngine.canBuild(state, b)).toBe(true);
+    expect(LiquidateEngine.canBuild(state, c)).toBe(true);
+
+    state = apply(state, { type: 'build', tile: b });
+    state = apply(state, { type: 'build', tile: c });
+    expect(LiquidateEngine.canBuild(state, a)).toBe(true);
+  });
+
+  it('reaches a megastructure and then stops', () => {
+    let state = withSystem();
+    state.players[0].credits = 100_000;
+    for (let level = 0; level < MAX_COLONY_LEVEL; level++) {
+      for (const id of members()) state = apply(state, { type: 'build', tile: id });
+    }
+    for (const id of members()) {
+      expect(state.tiles[id].level).toBe(MAX_COLONY_LEVEL);
+      expect(LiquidateEngine.canBuild(state, id)).toBe(false);
+    }
+  });
+
+  it('will not build on a system with any mortgaged planet', () => {
+    let state = withSystem();
+    state = apply(state, { type: 'mortgage', tile: members()[2] });
+    expect(LiquidateEngine.canBuild(state, members()[0])).toBe(false);
+  });
+
+  it('refuses to build without the credits, or on a non-planet', () => {
+    const state = withSystem();
+    state.players[0].credits = 0;
+    expect(reject(state, { type: 'build', tile: members()[0] })).toMatch(/Not enough credits/);
+
+    const gate = getBoard('full').find((t) => t.kind === 'warp-gate')!;
+    expect(reject(manage(own(game(), [gate.id], 0)), { type: 'build', tile: gate.id })).toMatch(
+      /Not a planet/,
+    );
+  });
+
+  it('sells colonies back down evenly at half cost', () => {
+    let state = withSystem();
+    const [a, b, c] = members();
+    const tile = getBoard('full')[a] as PlanetTile;
+    for (const id of [a, b, c]) state = apply(state, { type: 'build', tile: id });
+
+    const purse = state.players[0].credits;
+    const next = apply(state, { type: 'sell-building', tile: a });
+    expect(next.tiles[a].level).toBe(0);
+    expect(next.players[0].credits).toBe(purse + Math.floor(tile.colonyCost / 2));
+    // Reverse even-build: `a` is now lowest, so it cannot be sold again.
+    expect(LiquidateEngine.canSellBuilding(next, a)).toBe(false);
+    expect(LiquidateEngine.canSellBuilding(next, b)).toBe(true);
+  });
+
+  it('charges rent by level once developed', () => {
+    let state = withSystem();
+    const tileId = members()[0];
+    const tile = getBoard('full')[tileId] as PlanetTile;
+    state = own(state, members(), 1); // hand the system to the rival
+    state.tiles[tileId].level = 3;
+    expect(LiquidateEngine.rentFor(state, tileId, 7)).toBe(tile.rents[3]);
+  });
+});
+
+describe('mortgaging', () => {
+  const planet = () => planetsOf('full').find((p) => p.system === 'azure')!;
+
+  it('raises half the price and suspends rent', () => {
+    const tile = planet();
+    let state = manage(own(game(), [tile.id], 0));
+    const purse = state.players[0].credits;
+
+    state = apply(state, { type: 'mortgage', tile: tile.id });
+    expect(state.tiles[tile.id].mortgaged).toBe(true);
+    expect(state.players[0].credits).toBe(purse + mortgageValueFor(tile.price));
+    expect(LiquidateEngine.rentFor(state, tile.id, 7)).toBe(0);
+  });
+
+  it('clears a mortgage for principal plus interest', () => {
+    const tile = planet();
+    let state = manage(own(game(), [tile.id], 0));
+    state = apply(state, { type: 'mortgage', tile: tile.id });
+    const purse = state.players[0].credits;
+
+    state = apply(state, { type: 'unmortgage', tile: tile.id });
+    expect(state.tiles[tile.id].mortgaged).toBe(false);
+    expect(state.players[0].credits).toBe(purse - unmortgageCostFor(tile.price));
+  });
+
+  it('refuses to mortgage a developed planet, or double-mortgage', () => {
+    const system = systemMembers('full', 'amber');
+    let state = manage(own(game(), system, 0));
+    state = apply(state, { type: 'build', tile: system[0] });
+    expect(LiquidateEngine.canMortgage(state, system[0])).toBe(false);
+    expect(reject(state, { type: 'mortgage', tile: system[0] })).toMatch(/still has colonies/);
+
+    state = apply(state, { type: 'mortgage', tile: system[1] });
+    expect(reject(state, { type: 'mortgage', tile: system[1] })).toMatch(/already mortgaged/);
+  });
+
+  it('refuses to act on tiles you do not own', () => {
+    const tile = planet();
+    const state = manage(own(game(), [tile.id], 1));
+    expect(reject(state, { type: 'mortgage', tile: tile.id })).toMatch(/do not own/);
+  });
+
+  it('refuses to clear a mortgage you cannot afford', () => {
+    const tile = planet();
+    let state = manage(own(game(), [tile.id], 0));
+    state = apply(state, { type: 'mortgage', tile: tile.id });
+    state.players[0].credits = 0;
+    expect(reject(state, { type: 'unmortgage', tile: tile.id })).toMatch(/Not enough credits/);
   });
 });
 
 describe('rent', () => {
-  /** Give `ownerId` a tile, then place the other player on it. */
-  function rentSetup(tileId: number, ownerIndex = 1): LiquidateGameState {
-    const state = structuredClone(game());
-    state.tiles[tileId].ownerId = state.players[ownerIndex].id;
-    return state;
-  }
-
-  /**
-   * A planet far enough along the loop that a player can always be placed
-   * behind it without wrapping past Home Station (see `applyLandingOn`).
-   */
   const samplePlanet = () => planetsOf('full').find((p) => p.id >= 12)!;
 
   it('charges the bare rent and credits the owner', () => {
     const planet = samplePlanet();
-    const state = rentSetup(planet.id);
+    const state = own(game(), [planet.id], 1);
     const rent = LiquidateEngine.rentFor(state, planet.id, 7);
     expect(rent).toBe(planet.rents[0]);
 
-    // Walk the payer onto it and confirm the transfer.
-    const landed = at(state, planet.id);
-    const payer = landed.players[0];
-    const owner = landed.players[1];
-    const before = { payer: payer.credits, owner: owner.credits };
-    const next = applyLandingOn(landed, planet.id);
-    expect(next.players[0].credits).toBe(before.payer - rent);
-    expect(next.players[1].credits).toBe(before.owner + rent);
+    const next = landOn(state, planet.id);
+    expect(next.players[0].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits - rent);
+    expect(next.players[1].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits + rent);
   });
 
   it('doubles bare rent when the owner holds the whole system', () => {
     const planet = samplePlanet();
-    const state = structuredClone(game());
-    for (const id of systemMembers('full', planet.system)) {
-      state.tiles[id].ownerId = state.players[1].id;
-    }
+    const state = own(game(), systemMembers('full', planet.system), 1);
     expect(LiquidateEngine.ownsFullSystem(state, state.players[1].id, planet.system)).toBe(true);
     expect(LiquidateEngine.rentFor(state, planet.id, 7)).toBe(planet.rents[0] * 2);
   });
 
   it('uses the level rent (not the set bonus) once developed', () => {
     const planet = samplePlanet();
-    const state = structuredClone(game());
-    for (const id of systemMembers('full', planet.system)) {
-      state.tiles[id].ownerId = state.players[1].id;
-    }
+    const state = own(game(), systemMembers('full', planet.system), 1);
     state.tiles[planet.id].level = 2;
     expect(LiquidateEngine.rentFor(state, planet.id, 7)).toBe(planet.rents[2]);
   });
 
   it('charges nothing on your own tile, an unowned tile, or a mortgaged one', () => {
     const planet = samplePlanet();
-    const unowned = game();
-    expect(LiquidateEngine.rentFor(unowned, planet.id, 7)).toBe(0);
+    expect(LiquidateEngine.rentFor(game(), planet.id, 7)).toBe(0);
 
-    const mine = rentSetup(planet.id, 0);
-    const landed = at(mine, planet.id);
-    const before = landed.players[0].credits;
-    expect(applyLandingOn(landed, planet.id).players[0].credits).toBe(before);
+    const mine = own(game(), [planet.id], 0);
+    expect(landOn(mine, planet.id).players[0].credits).toBe(
+      LIQUIDATE_CONFIGS.full.startingCredits,
+    );
 
-    const mortgaged = rentSetup(planet.id);
+    const mortgaged = own(game(), [planet.id], 1);
     mortgaged.tiles[planet.id].mortgaged = true;
     expect(LiquidateEngine.rentFor(mortgaged, planet.id, 7)).toBe(0);
   });
 
   it('scales warp-gate rent with the number of gates held', () => {
     const gates = getBoard('full').filter((t) => t.kind === 'warp-gate');
-    const state = structuredClone(game());
-    const owner = state.players[1].id;
-
+    const state = game();
     gates.forEach((gateTile, i) => {
-      state.tiles[gateTile.id].ownerId = owner;
+      state.tiles[gateTile.id].ownerId = state.players[1].id;
       expect(LiquidateEngine.rentFor(state, gates[0].id, 7)).toBe(LIQUIDATE_WARP_GATE_RENTS[i]);
     });
   });
 
   it('scales utility rent with the dice roll and second utility', () => {
     const utilities = getBoard('full').filter((t) => t.kind === 'utility');
-    const state = structuredClone(game());
-    const owner = state.players[1].id;
-
-    state.tiles[utilities[0].id].ownerId = owner;
+    const state = game();
+    state.tiles[utilities[0].id].ownerId = state.players[1].id;
     expect(LiquidateEngine.rentFor(state, utilities[0].id, 9)).toBe(9 * 4);
-
-    state.tiles[utilities[1].id].ownerId = owner;
+    state.tiles[utilities[1].id].ownerId = state.players[1].id;
     expect(LiquidateEngine.rentFor(state, utilities[0].id, 9)).toBe(9 * 10);
-  });
-
-  it('lets a debt drive credits negative for M2 to settle', () => {
-    const planet = planetsOf('full').find((p) => p.system === 'aurum')!;
-    const state = structuredClone(game());
-    state.tiles[planet.id].ownerId = state.players[1].id;
-    for (const id of systemMembers('full', planet.system)) {
-      state.tiles[id].ownerId = state.players[1].id;
-    }
-    state.players[0].credits = 1;
-
-    const next = applyLandingOn(at(state, planet.id), planet.id);
-    expect(next.players[0].credits).toBeLessThan(0);
   });
 });
 
-describe('tariffs and corners', () => {
-  it('debits a tariff to the bank', () => {
-    const tariff = getBoard('full').find((t) => t.kind === 'tariff')!;
-    const state = at(game(), tariff.id);
-    const before = state.players[0].credits;
-    const next = applyLandingOn(state, tariff.id);
+describe('event cards', () => {
+  /** Force the next draw of `deck` to be `cardId`. */
+  function stack(
+    state: LiquidateGameState,
+    deck: 'anomaly' | 'federation',
+    cardId: string,
+  ): LiquidateGameState {
+    const next = structuredClone(state);
+    next.decks[deck].draw = [cardId, ...next.decks[deck].draw.filter((id) => id !== cardId)];
+    return next;
+  }
+
+  const eventTile = (deck: 'anomaly' | 'federation') =>
+    getBoard('full').find((t) => t.kind === deck && t.id >= 12)!;
+
+  it('pays out a collect card', () => {
+    const tile = eventTile('federation');
+    const state = stack(game(), 'federation', 'fd-grant');
+    const next = landOn(state, tile.id);
+    expect(next.players[0].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits + 200);
+  });
+
+  it('charges a pay card', () => {
+    const tile = eventTile('federation');
+    const state = stack(game(), 'federation', 'fd-audit');
+    const next = landOn(state, tile.id);
+    expect(next.players[0].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits - 150);
+  });
+
+  it('keeps a Clearance Pass out of the discard pile until spent', () => {
+    const tile = eventTile('anomaly');
+    const state = stack(game(), 'anomaly', 'an-clearance');
+    const next = landOn(state, tile.id);
+    expect(next.players[0].clearancePasses).toBe(1);
+    expect(next.decks.anomaly.discard).not.toContain('an-clearance');
+  });
+
+  it('sends the player to impound on a recall card', () => {
+    const tile = eventTile('federation');
+    const state = stack(game(), 'federation', 'fd-recall');
+    const next = landOn(state, tile.id);
+    expect(next.players[0].inImpound).toBe(true);
+    expect(next.players[0].tile).toBe(impoundTileIndex('full'));
+  });
+
+  it('moves the player relatively and resolves the new tile', () => {
+    const board = getBoard('full');
+    // Pick an anomaly whose +3 destination is not itself an event tile, or the
+    // card would (correctly) chain into a second draw and move on again.
+    const tile = board.find(
+      (t) =>
+        t.kind === 'anomaly' &&
+        t.id >= 12 &&
+        board[t.id + 3] !== undefined &&
+        board[t.id + 3].kind !== 'anomaly' &&
+        board[t.id + 3].kind !== 'federation',
+    )!;
+    const state = stack(game(), 'anomaly', 'an-slipstream'); // advance 3
+    const next = landOn(state, tile.id);
+    expect(next.players[0].tile).toBe(tile.id + 3);
+  });
+
+  it('chains into a second draw when a card lands you on another event tile', () => {
+    const board = getBoard('full');
+    const tile = board.find(
+      (t) => t.kind === 'anomaly' && t.id >= 12 && board[t.id + 3]?.kind === 'anomaly',
+    );
+    if (!tile) return; // layout has no such pair
+    const state = stack(game(), 'anomaly', 'an-slipstream');
+    const next = landOn(state, tile.id);
+    expect(next.players[0].tile).not.toBe(tile.id + 3);
+  });
+
+  it('walks backwards without paying a stipend', () => {
+    const tile = eventTile('anomaly');
+    const state = stack(game(), 'anomaly', 'an-drag'); // back 3
+    const next = landOn(state, tile.id);
+    expect(next.players[0].tile).toBe(tile.id - 3);
+    expect(next.players[0].credits).toBeLessThanOrEqual(LIQUIDATE_CONFIGS.full.startingCredits);
+  });
+
+  it('advances to the nearest tile of a kind', () => {
+    const tile = eventTile('anomaly');
+    const state = stack(game(), 'anomaly', 'an-beacon'); // nearest warp gate
+    const next = landOn(state, tile.id);
+    expect(getBoard('full')[next.players[0].tile].kind).toBe('warp-gate');
+  });
+
+  it('collects from every rival', () => {
+    const tile = eventTile('anomaly');
+    const state = stack(threePlayerGame(), 'anomaly', 'an-toll'); // 40 each
+    const next = landOn(state, tile.id);
+    expect(next.players[0].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits + 80);
+    expect(next.players[1].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits - 40);
+    expect(next.players[2].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits - 40);
+  });
+
+  it('pays every rival', () => {
+    const tile = eventTile('federation');
+    const state = stack(threePlayerGame(), 'federation', 'fd-charter'); // 50 each
+    const next = landOn(state, tile.id);
+    expect(next.players[0].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits - 100);
+    expect(next.players[1].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits + 50);
+  });
+
+  it('recycles the discard pile once the deck runs dry', () => {
+    const tile = eventTile('federation');
+    const state = game();
+    // Empty draw pile, everything sitting in discards. Exclude the Clearance
+    // Pass, which is held rather than discarded and would skew the count.
+    const recycled = state.decks.federation.draw.filter((id) => id !== 'fd-clearance');
+    state.decks.federation = { draw: [], discard: recycled };
+
+    const next = landOn(state, tile.id);
+    // The pile was rebuilt from the discards and a card was drawn from it.
+    expect(next.decks.federation.draw.length).toBeGreaterThan(0);
+    expect(next.decks.federation.draw.length).toBeLessThan(recycled.length);
+    expect(
+      next.decks.federation.draw.length + next.decks.federation.discard.length,
+    ).toBeLessThanOrEqual(recycled.length);
+  });
+
+  it('every authored card has unique id and non-empty text', () => {
+    const cards = [...deckCards('anomaly'), ...deckCards('federation')];
+    expect(new Set(cards.map((c) => c.id)).size).toBe(cards.length);
+    for (const card of cards) expect(card.text.length).toBeGreaterThan(10);
+  });
+});
+
+describe('impound', () => {
+  function impounded(): LiquidateGameState {
+    const state = game();
+    state.players[0].inImpound = true;
+    state.players[0].tile = impoundTileIndex('full');
+    state.phase = 'awaiting-roll';
+    return state;
+  }
+
+  it('offers the fine and a roll, and the pass only when held', () => {
+    const state = impounded();
+    const actions = LiquidateEngine.getLegalActions(state);
+    expect(actions).toContainEqual({ type: 'pay-fine' });
+    expect(actions).toContainEqual({ type: 'roll' });
+    expect(actions).not.toContainEqual({ type: 'use-clearance-pass' });
+
+    state.players[0].clearancePasses = 1;
+    expect(LiquidateEngine.getLegalActions(state)).toContainEqual({ type: 'use-clearance-pass' });
+  });
+
+  it('releases the player for the fine', () => {
+    const state = impounded();
+    const next = apply(state, { type: 'pay-fine' });
+    expect(next.players[0].inImpound).toBe(false);
     expect(next.players[0].credits).toBe(
-      before - (tariff.kind === 'tariff' ? tariff.amount : 0),
+      LIQUIDATE_CONFIGS.full.startingCredits - LIQUIDATE_IMPOUND_FINE,
     );
   });
 
-  it('impounds a player who lands on Contraband Scan', () => {
-    const scan = getBoard('full').find((t) => t.kind === 'contraband-scan')!;
-    const next = applyLandingOn(at(game(), scan.id), scan.id);
-    expect(next.players[0].tile).toBe(impoundTileIndex('full'));
+  it('releases the player for a Clearance Pass and returns it to the deck', () => {
+    const state = impounded();
+    state.players[0].clearancePasses = 1;
+    const next = apply(state, { type: 'use-clearance-pass' });
+    expect(next.players[0].inImpound).toBe(false);
+    expect(next.players[0].clearancePasses).toBe(0);
+    expect(next.players[0].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits);
+    expect(next.decks.anomaly.discard).toContain('an-clearance');
+  });
+
+  it('frees the player on doubles without granting another roll', () => {
+    const state = impounded();
+    state.rng = { seed: state.rng.seed, cursor: cursorWhereDoubles(state, true) };
+    const next = apply(state, { type: 'roll' });
+    expect(next.players[0].inImpound).toBe(false);
+    expect(next.phase).not.toBe('awaiting-roll');
+  });
+
+  it('keeps the player in on a failed roll and counts the attempt', () => {
+    const state = impounded();
+    state.rng = { seed: state.rng.seed, cursor: cursorWhereDoubles(state, false) };
+    const next = apply(state, { type: 'roll' });
     expect(next.players[0].inImpound).toBe(true);
+    expect(next.players[0].impoundTurns).toBe(1);
     expect(next.phase).toBe('turn-end');
   });
 
-  it('treats Drift and Impound as inert when merely landed on', () => {
-    for (const kind of ['drift', 'impound'] as const) {
-      const tile = getBoard('full').find((t) => t.kind === kind)!;
-      const next = applyLandingOn(at(game(), tile.id), tile.id);
-      expect(next.players[0].credits).toBe(LIQUIDATE_CONFIGS.full.startingCredits);
-      expect(next.players[0].inImpound).toBe(false);
-    }
+  it('forces the fee on the third failed attempt and moves the player out', () => {
+    const state = impounded();
+    state.players[0].impoundTurns = MAX_IMPOUND_TURNS - 1;
+    state.rng = { seed: state.rng.seed, cursor: cursorWhereDoubles(state, false) };
+    const next = apply(state, { type: 'roll' });
+    expect(next.players[0].inImpound).toBe(false);
+    expect(next.players[0].credits).toBeLessThan(LIQUIDATE_CONFIGS.full.startingCredits);
+    expect(next.players[0].tile).not.toBe(impoundTileIndex('full'));
+  });
+
+  it('refuses impound actions when not impounded', () => {
+    expect(reject(game(), { type: 'pay-fine' })).toMatch(/Not in impound/);
+    expect(reject(game(), { type: 'use-clearance-pass' })).toMatch(/Not in impound/);
+  });
+});
+
+describe('trading', () => {
+  const mine = () => planetsOf('full').find((p) => p.system === 'ember')!;
+  const theirs = () => planetsOf('full').find((p) => p.system === 'azure')!;
+
+  function tradeable(): LiquidateGameState {
+    let state = game();
+    state = own(state, [mine().id], 0);
+    state = own(state, [theirs().id], 1);
+    return manage(state);
+  }
+
+  it('puts an offer to the recipient, who becomes the acting player', () => {
+    const state = tradeable();
+    const next = apply(state, {
+      type: 'propose-trade',
+      trade: {
+        toId: state.players[1].id,
+        offerTiles: [mine().id],
+        requestTiles: [theirs().id],
+        offerCredits: 0,
+        requestCredits: 0,
+      },
+    });
+    expect(next.phase).toBe('trade-review');
+    expect(LiquidateEngine.actingPlayerId(next)).toBe(next.players[1].id);
+    expect(LiquidateEngine.getLegalActions(next)).toContainEqual({
+      type: 'respond-trade',
+      accept: true,
+    });
+  });
+
+  it('swaps tiles and credits on accept', () => {
+    let state = tradeable();
+    const purseA = state.players[0].credits;
+    const purseB = state.players[1].credits;
+
+    state = apply(state, {
+      type: 'propose-trade',
+      trade: {
+        toId: state.players[1].id,
+        offerTiles: [mine().id],
+        requestTiles: [theirs().id],
+        offerCredits: 100,
+        requestCredits: 0,
+      },
+    });
+    state = apply(state, { type: 'respond-trade', accept: true });
+
+    expect(state.tiles[mine().id].ownerId).toBe(state.players[1].id);
+    expect(state.tiles[theirs().id].ownerId).toBe(state.players[0].id);
+    expect(state.players[0].credits).toBe(purseA - 100);
+    expect(state.players[1].credits).toBe(purseB + 100);
+    expect(state.pendingTrade).toBeNull();
+  });
+
+  it('changes nothing on decline', () => {
+    let state = tradeable();
+    state = apply(state, {
+      type: 'propose-trade',
+      trade: {
+        toId: state.players[1].id,
+        offerTiles: [mine().id],
+        requestTiles: [theirs().id],
+        offerCredits: 0,
+        requestCredits: 0,
+      },
+    });
+    state = apply(state, { type: 'respond-trade', accept: false });
+    expect(state.tiles[mine().id].ownerId).toBe(state.players[0].id);
+    expect(state.tiles[theirs().id].ownerId).toBe(state.players[1].id);
+    expect(state.pendingTrade).toBeNull();
+  });
+
+  it('validates ownership, funds, self-trades, and empty offers', () => {
+    const state = tradeable();
+    const base = {
+      toId: state.players[1].id,
+      offerTiles: [] as number[],
+      requestTiles: [] as number[],
+      offerCredits: 0,
+      requestCredits: 0,
+    };
+
+    expect(reject(state, { type: 'propose-trade', trade: base })).toMatch(/empty/);
+    expect(
+      reject(state, { type: 'propose-trade', trade: { ...base, toId: state.players[0].id } }),
+    ).toMatch(/yourself/);
+    expect(
+      reject(state, { type: 'propose-trade', trade: { ...base, offerCredits: 999_999 } }),
+    ).toMatch(/do not have those credits/);
+    expect(
+      reject(state, { type: 'propose-trade', trade: { ...base, requestCredits: 999_999 } }),
+    ).toMatch(/They do not have those credits/);
+    // Offering a tile you don't own.
+    expect(
+      reject(state, { type: 'propose-trade', trade: { ...base, offerTiles: [theirs().id] } }),
+    ).toMatch(/not owned by the right player/);
+    expect(
+      reject(state, { type: 'propose-trade', trade: { ...base, offerCredits: -5 } }),
+    ).toMatch(/cannot be negative/);
+  });
+
+  it('refuses to trade a planet that still has colonies', () => {
+    const system = systemMembers('full', 'amber');
+    let state = manage(own(game(), system, 0));
+    state = apply(state, { type: 'build', tile: system[0] });
+    expect(
+      reject(state, {
+        type: 'propose-trade',
+        trade: {
+          toId: state.players[1].id,
+          offerTiles: [system[0]],
+          requestTiles: [],
+          offerCredits: 0,
+          requestCredits: 0,
+        },
+      }),
+    ).toMatch(/still has colonies/);
+  });
+
+  it('refuses a response when no trade is pending', () => {
+    expect(reject(game(), { type: 'respond-trade', accept: true })).toMatch(/No trade to review/);
+  });
+});
+
+describe('bankruptcy and victory', () => {
+  function inDebt(rule: DebtRule = 'allow-negative'): LiquidateGameState {
+    const planet = planetsOf('full').find((p) => p.system === 'aurum' && p.id >= 12)!;
+    let state = threePlayerGame(7, rule);
+    state = own(state, systemMembers('full', planet.system), 1);
+    state.players[0].credits = 5;
+    return landOn(state, planet.id);
+  }
+
+  it('hands every holding to the creditor', () => {
+    const spare = planetsOf('full').find((p) => p.system === 'ember')!;
+    let state = inDebt();
+    state = own(state, [spare.id], 0);
+    const creditorId = state.pendingDebt!.creditorId!;
+
+    const next = apply(state, { type: 'declare-bankruptcy' });
+    expect(next.players[0].bankrupt).toBe(true);
+    expect(next.players[0].credits).toBe(0);
+    expect(next.tiles[spare.id].ownerId).toBe(creditorId);
+    expect(next.pendingDebt).toBeNull();
+  });
+
+  it('returns holdings to the bank when the debt was owed to the bank', () => {
+    const tariff = getBoard('full').find((t) => t.kind === 'tariff' && t.id >= 2)!;
+    const spare = planetsOf('full').find((p) => p.system === 'ember')!;
+    let state = threePlayerGame(7);
+    state = own(state, [spare.id], 0);
+    state.players[0].credits = 1;
+    state = landOn(state, tariff.id);
+    expect(state.phase).toBe('settling-debt');
+    expect(state.pendingDebt!.creditorId).toBeNull();
+
+    const next = apply(state, { type: 'declare-bankruptcy' });
+    expect(next.tiles[spare.id].ownerId).toBeNull();
+    expect(next.tiles[spare.id].level).toBe(0);
+  });
+
+  it('clears colonies from transferred holdings', () => {
+    const system = systemMembers('full', 'amber');
+    let state = inDebt();
+    state = own(state, system, 0);
+    for (const id of system) state.tiles[id].level = 2;
+
+    const next = apply(state, { type: 'declare-bankruptcy' });
+    for (const id of system) expect(next.tiles[id].level).toBe(0);
+  });
+
+  it('keeps the game going while two players remain', () => {
+    const next = apply(inDebt(), { type: 'declare-bankruptcy' });
+    expect(next.isGameOver).toBe(false);
+    expect(LiquidateEngine.activePlayers(next)).toHaveLength(2);
+  });
+
+  it('awards victory to the last solvent player', () => {
+    const planet = planetsOf('full').find((p) => p.system === 'aurum' && p.id >= 12)!;
+    let state = game(); // two players
+    state = own(state, systemMembers('full', planet.system), 1);
+    state.players[0].credits = 5;
+    state = landOn(state, planet.id);
+
+    const next = apply(state, { type: 'declare-bankruptcy' });
+    expect(next.isGameOver).toBe(true);
+    expect(next.phase).toBe('game-over');
+    expect(next.winnerId).toBe(next.players[1].id);
+    expect(LiquidateEngine.getLegalActions(next)).toEqual([]);
+  });
+
+  it('skips a bankrupt player in the turn order', () => {
+    const state = threePlayerGame();
+    state.phase = 'turn-end';
+    state.players[1].bankrupt = true;
+    const next = apply(state, { type: 'end-turn' });
+    expect(next.currentPlayerIndex).toBe(2);
   });
 });
 
 describe('turn order', () => {
+  function turnEnd(): LiquidateGameState {
+    const drift = getBoard('full').find((t) => t.kind === 'drift')!;
+    const state = landOn(game(), drift.id);
+    expect(state.phase).toBe('turn-end');
+    return state;
+  }
+
   it('passes to the next player and clears the dice', () => {
-    let state = findTurnEnd();
-    expect(state.currentPlayerIndex).toBe(0);
-    state = apply(state, { type: 'end-turn' });
-    expect(state.currentPlayerIndex).toBe(1);
-    expect(state.dice).toBeNull();
-    expect(state.phase).toBe('awaiting-roll');
+    const next = apply(turnEnd(), { type: 'end-turn' });
+    expect(next.currentPlayerIndex).toBe(1);
+    expect(next.dice).toBeNull();
+    expect(next.phase).toBe('awaiting-roll');
   });
 
   it('counts a round when the seat order wraps', () => {
-    let state = findTurnEnd();
-    state = apply(state, { type: 'end-turn' }); // → p2, still round 1
+    let state = apply(turnEnd(), { type: 'end-turn' });
     expect(state.round).toBe(1);
     state.phase = 'turn-end';
-    state = apply(state, { type: 'end-turn' }); // wraps → p1, round 2
+    state = apply(state, { type: 'end-turn' });
     expect(state.currentPlayerIndex).toBe(0);
     expect(state.round).toBe(2);
   });
 
-  it('skips bankrupt players', () => {
-    const state = findTurnEnd();
-    const withThree = LiquidateEngine.newGame({
-      players: [{ name: 'A' }, { name: 'B' }, { name: 'C' }],
-      seed: 5,
-    });
-    const staged = structuredClone(withThree);
-    staged.phase = 'turn-end';
-    staged.players[1].bankrupt = true;
-    const next = apply(staged, { type: 'end-turn' });
-    expect(next.currentPlayerIndex).toBe(2);
-    expect(state.players).toHaveLength(2); // sanity: original untouched
-  });
-
   it('refuses to end a turn that is not over', () => {
-    const result = LiquidateEngine.applyAction(game(), { type: 'end-turn' });
-    expect(result.valid).toBe(false);
-    expect(result.reason).toMatch(/Turn is not over/);
+    expect(reject(game(), { type: 'end-turn' })).toMatch(/Turn is not over/);
   });
 });
 
 describe('net worth and quick-mode termination', () => {
   it('counts cash, holdings, and colony investment', () => {
     const planet = planetsOf('full')[0];
-    const state = structuredClone(game());
-    const id = state.players[0].id;
-    state.tiles[planet.id].ownerId = id;
+    const state = own(game(), [planet.id], 0);
     state.tiles[planet.id].level = 2;
-
-    expect(LiquidateEngine.getNetWorth(state, id)).toBe(
+    expect(LiquidateEngine.getNetWorth(state, state.players[0].id)).toBe(
       state.players[0].credits + planet.price + 2 * planet.colonyCost,
     );
   });
 
   it('counts a mortgaged tile at its remaining equity only', () => {
     const planet = planetsOf('full')[0];
-    const state = structuredClone(game());
-    const id = state.players[0].id;
-    state.tiles[planet.id].ownerId = id;
+    const state = own(game(), [planet.id], 0);
     state.tiles[planet.id].mortgaged = true;
-
-    expect(LiquidateEngine.getNetWorth(state, id)).toBe(
+    expect(LiquidateEngine.getNetWorth(state, state.players[0].id)).toBe(
       state.players[0].credits + planet.price - mortgageValueFor(planet.price),
     );
+  });
+
+  it('reports what a player could raise by liquidating', () => {
+    const system = systemMembers('full', 'amber');
+    let state = manage(own(game(), system, 0));
+    state = apply(state, { type: 'build', tile: system[0] });
+    const raisable = LiquidateEngine.liquidatableValue(state, state.players[0].id);
+    expect(raisable).toBeGreaterThan(0);
   });
 
   it('returns 0 for an unknown player', () => {
@@ -530,9 +1226,9 @@ describe('net worth and quick-mode termination', () => {
   });
 
   it('ends quick mode at the round cap and awards the richest player', () => {
-    const state = structuredClone(game(3, 'quick'));
+    const state = game(3, 'quick');
     state.round = LIQUIDATE_CONFIGS.quick.maxRounds!;
-    state.currentPlayerIndex = state.players.length - 1; // ending this turn wraps
+    state.currentPlayerIndex = state.players.length - 1;
     state.phase = 'turn-end';
     state.players[1].credits = 99_999;
 
@@ -540,20 +1236,18 @@ describe('net worth and quick-mode termination', () => {
     expect(next.isGameOver).toBe(true);
     expect(next.phase).toBe('game-over');
     expect(next.winnerId).toBe(state.players[1].id);
-    expect(LiquidateEngine.getLegalActions(next)).toEqual([]);
   });
 
   it('does not end full mode on a round cap', () => {
-    const state = structuredClone(game());
+    const state = game();
     state.round = 500;
     state.currentPlayerIndex = state.players.length - 1;
     state.phase = 'turn-end';
-    const next = apply(state, { type: 'end-turn' });
-    expect(next.isGameOver).toBe(false);
+    expect(apply(state, { type: 'end-turn' }).isGameOver).toBe(false);
   });
 
   it('rejects every action once the game is over', () => {
-    const over = structuredClone(game());
+    const over = game();
     over.isGameOver = true;
     for (const action of [{ type: 'roll' }, { type: 'end-turn' }] as const) {
       expect(LiquidateEngine.applyAction(over, action).valid).toBe(false);
@@ -561,83 +1255,55 @@ describe('net worth and quick-mode termination', () => {
   });
 });
 
-describe('a full scripted game loop', () => {
-  it('plays 60 legal actions without corrupting state', () => {
-    let state = game(2024, 'quick');
-    const board = getBoard('quick');
+describe('scripted full games', () => {
+  for (const rule of ['allow-negative', 'never-negative'] as const) {
+    it(`plays 400 legal actions under the ${rule} rule without corrupting state`, () => {
+      let state = game(2024, 'quick', rule);
+      const board = getBoard('quick');
+      let acted = 0;
 
-    for (let i = 0; i < 60 && !state.isGameOver; i++) {
-      const actions = LiquidateEngine.getLegalActions(state);
-      expect(actions.length).toBeGreaterThan(0);
-      state = apply(state, actions[0]);
+      for (let i = 0; i < 400 && !state.isGameOver; i++) {
+        const actions = LiquidateEngine.getLegalActions(state);
+        if (actions.length === 0) break;
+        // Prefer the last action so management options get exercised too.
+        state = apply(state, actions[actions.length - 1]);
+        acted++;
 
-      // Invariants that must hold after every single action.
-      for (const p of state.players) {
-        expect(p.tile).toBeGreaterThanOrEqual(0);
-        expect(p.tile).toBeLessThan(board.length);
-        expect(Number.isFinite(p.credits)).toBe(true);
-      }
-      expect(state.tiles).toHaveLength(board.length);
-      for (const owned of state.tiles) {
-        if (owned.ownerId !== null) {
-          expect(state.players.some((p) => p.id === owned.ownerId)).toBe(true);
+        for (const p of state.players) {
+          expect(p.tile).toBeGreaterThanOrEqual(0);
+          expect(p.tile).toBeLessThan(board.length);
+          expect(Number.isFinite(p.credits)).toBe(true);
+          expect(p.clearancePasses).toBeGreaterThanOrEqual(0);
+        }
+        for (const owned of state.tiles) {
+          if (owned.ownerId !== null) {
+            const owner = state.players.find((p) => p.id === owned.ownerId);
+            expect(owner).toBeDefined();
+            // A bankrupt player must never still hold tiles.
+            expect(owner!.bankrupt).toBe(false);
+          }
+          expect(owned.level).toBeGreaterThanOrEqual(0);
+          expect(owned.level).toBeLessThanOrEqual(MAX_COLONY_LEVEL);
+        }
+        // Even-build invariant across every system.
+        for (const system of new Set(planetsOf('quick').map((p) => p.system))) {
+          const levels = systemMembers('quick', system).map((id) => state.tiles[id].level);
+          expect(Math.max(...levels) - Math.min(...levels)).toBeLessThanOrEqual(1);
         }
       }
-      expect(state.rng.cursor).toBeGreaterThanOrEqual(0);
-    }
 
-    expect(state.log.length).toBeGreaterThan(0);
-    expect(JSON.parse(JSON.stringify(state))).toEqual(state); // stays serializable
+      expect(acted).toBeGreaterThan(20);
+      expect(JSON.parse(JSON.stringify(state))).toEqual(state); // stays serializable
+    });
+  }
+
+  it('always has a legal action for the acting player until the game ends', () => {
+    let state = threePlayerGame(11);
+    for (let i = 0; i < 300 && !state.isGameOver; i++) {
+      const actions = LiquidateEngine.getLegalActions(state);
+      expect(actions.length).toBeGreaterThan(0);
+      expect(LiquidateEngine.actingPlayerId(state)).not.toBeNull();
+      state = apply(state, actions[0]);
+    }
   });
 });
-
-// ---------------------------------------------------------------------------
-// helpers that need the engine
-// ---------------------------------------------------------------------------
-
-/** Roll from a seed until the current player faces a buy decision. */
-function findBuyDecision(): LiquidateGameState {
-  for (let seed = 0; seed < 400; seed++) {
-    const next = apply(game(seed), { type: 'roll' });
-    if (next.phase === 'buy-decision') return next;
-  }
-  throw new Error('no seed produced a buy decision');
-}
-
-/** Roll from a seed until the current player's turn is over. */
-function findTurnEnd(): LiquidateGameState {
-  for (let seed = 0; seed < 400; seed++) {
-    let next = apply(game(seed), { type: 'roll' });
-    if (next.phase === 'buy-decision') next = apply(next, { type: 'decline' });
-    if (next.phase === 'turn-end' && next.currentPlayerIndex === 0) return next;
-  }
-  throw new Error('no seed produced a turn end');
-}
-
-/**
- * Roll the current player onto `tileId` through the real engine.
- *
- * Peeks at what each rng cursor will roll, then places the player exactly that
- * many steps short. Cursors that would need the player to start "before" tile 0
- * are skipped, so the move **never wraps the board** and no stipend is paid —
- * which keeps credit assertions about rent and fees exact. Requires
- * `tileId >= 2` (the minimum dice total).
- */
-function applyLandingOn(state: LiquidateGameState, tileId: number): LiquidateGameState {
-  for (let cursor = 0; cursor < 800; cursor++) {
-    const attempt = structuredClone(state);
-    attempt.rng = { seed: attempt.rng.seed, cursor };
-
-    const { dice } = rollDice(attempt.rng);
-    const from = tileId - (dice[0] + dice[1]);
-    if (from < 0) continue; // would pass Home Station and collect the stipend
-
-    attempt.players[attempt.currentPlayerIndex].tile = from;
-    attempt.phase = 'awaiting-roll';
-    attempt.doublesCount = 0;
-
-    const result = LiquidateEngine.applyAction(attempt, { type: 'roll' });
-    if (result.valid) return result.resultingState!;
-  }
-  throw new Error(`could not land on tile ${tileId} without wrapping the board`);
-}

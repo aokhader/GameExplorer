@@ -28,6 +28,20 @@ export type ColonyLevel = 0 | 1 | 2 | 3 | 4 | 5;
 /** The highest `ColonyLevel` — a megastructure. */
 export const MAX_COLONY_LEVEL = 5;
 
+/**
+ * What happens when a player is charged more than they can pay — a **player-selectable
+ * house rule**, not a fixed behaviour.
+ *
+ * - `allow-negative` — the full charge goes through and the balance may drop below
+ *   zero. The debtor then *must* raise funds (mortgage or sell buildings) to climb
+ *   back to zero, or declare bankruptcy. More forgiving: a player with assets can
+ *   always trade their way out.
+ * - `never-negative` — a balance never displays below zero. The creditor takes
+ *   whatever cash the debtor has and the debtor is bankrupted on the spot. Harsher
+ *   and faster, which suits quick sessions.
+ */
+export type DebtRule = 'allow-negative' | 'never-negative';
+
 // ---------------------------------------------------------------------------
 // Board tiles (static definitions — never mutated during play)
 // ---------------------------------------------------------------------------
@@ -70,7 +84,7 @@ export interface TariffTile {
   amount: number;
 }
 
-/** Draws from one of the two event decks (deck effects land in M2). */
+/** Draws from one of the two event decks. */
 export interface EventTile {
   kind: 'anomaly' | 'federation';
   id: number;
@@ -107,6 +121,42 @@ export function isOwnable(tile: LiquidateTile): tile is OwnableTile {
 }
 
 // ---------------------------------------------------------------------------
+// Event cards
+// ---------------------------------------------------------------------------
+
+export type CardDeck = 'anomaly' | 'federation';
+
+/**
+ * Card effects are deliberately **layout-agnostic** (relative moves and tile-kind
+ * searches, never absolute indices) so the same decks work on the 44-tile and
+ * 28-tile boards.
+ */
+export type CardEffect =
+  | { kind: 'collect'; amount: number }
+  | { kind: 'pay'; amount: number }
+  | { kind: 'move-by'; steps: number }
+  | { kind: 'advance-to-home' }
+  | { kind: 'advance-to-nearest'; tileKind: 'warp-gate' | 'utility' }
+  | { kind: 'go-to-impound' }
+  | { kind: 'clearance-pass' }
+  | { kind: 'collect-from-each'; amount: number }
+  | { kind: 'pay-each'; amount: number };
+
+export interface LiquidateCard {
+  id: string;
+  deck: CardDeck;
+  /** Original flavour text shown to the player. */
+  text: string;
+  effect: CardEffect;
+}
+
+/** Draw and discard piles hold card ids; definitions live in `cards.ts`. */
+export interface DeckState {
+  draw: string[];
+  discard: string[];
+}
+
+// ---------------------------------------------------------------------------
 // Mutable game state
 // ---------------------------------------------------------------------------
 
@@ -121,29 +171,37 @@ export interface LiquidatePlayer {
   id: string;
   name: string;
   isBot: boolean;
-  /** May go negative while a debt is outstanding; M2 resolves via liquidation. */
+  /** Under `allow-negative` this may be below zero while a debt is outstanding. */
   credits: number;
   /** Current tile index around the loop. */
   tile: number;
   bankrupt: boolean;
-  /** Held in impound (escape mechanics land in M2). */
+  /** Held in impound — must pay, roll doubles, or spend a Clearance Pass to leave. */
   inImpound: boolean;
-  /** Turns spent in impound. */
+  /** Turns spent in impound; the third forces payment. */
   impoundTurns: number;
-  /** "Clearance Pass" cards held — spend to leave impound (M2). */
+  /** "Clearance Pass" cards held. */
   clearancePasses: number;
 }
 
 /**
  * What the game is waiting for.
- * - `awaiting-roll` — current player must roll.
+ * - `awaiting-roll` — current player must roll (or manage holdings / trade first).
  * - `buy-decision` — current player landed on an unowned tile.
+ * - `auction` — a declined tile is up for bid.
+ * - `settling-debt` — the debtor must raise funds or go bankrupt.
+ * - `trade-review` — the trade recipient must accept or decline.
  * - `turn-end` — landing resolved; current player must end the turn.
  * - `game-over` — terminal.
- *
- * M2 adds `auction`, `resolving-card`, and `settling-debt`.
  */
-export type LiquidatePhase = 'awaiting-roll' | 'buy-decision' | 'turn-end' | 'game-over';
+export type LiquidatePhase =
+  | 'awaiting-roll'
+  | 'buy-decision'
+  | 'auction'
+  | 'settling-debt'
+  | 'trade-review'
+  | 'turn-end'
+  | 'game-over';
 
 /** Which board to play and the economic dials. */
 export interface LiquidateConfig {
@@ -153,6 +211,40 @@ export interface LiquidateConfig {
   stipend: number;
   /** Quick mode: game ends after this many completed rounds. `null` = play to last solvent. */
   maxRounds: number | null;
+  /** Player-selectable: whether a balance may drop below zero. */
+  debtRule: DebtRule;
+}
+
+/** A live auction for a declined tile. */
+export interface AuctionState {
+  tileId: number;
+  highestBid: number;
+  highestBidderId: string | null;
+  /** Player ids still bidding, in bid order. */
+  bidders: string[];
+  /** Index into `bidders` for whoever must act. */
+  turnIndex: number;
+}
+
+/** A trade offer awaiting a response. Credits/tiles move only on accept. */
+export interface TradeOffer {
+  toId: string;
+  offerTiles: number[];
+  requestTiles: number[];
+  offerCredits: number;
+  requestCredits: number;
+}
+
+export interface TradeState extends TradeOffer {
+  fromId: string;
+}
+
+/** An unpaid charge. `creditorId: null` means the debt is owed to the bank. */
+export interface DebtState {
+  debtorId: string;
+  creditorId: string | null;
+  /** How far below zero the debtor is — what they must raise to survive. */
+  amount: number;
 }
 
 export interface LiquidateLogEntry {
@@ -175,6 +267,10 @@ export interface LiquidateGameState {
   phase: LiquidatePhase;
   /** Tile awaiting a buy/decline decision. */
   pendingPurchase: number | null;
+  decks: Record<CardDeck, DeckState>;
+  pendingAuction: AuctionState | null;
+  pendingTrade: TradeState | null;
+  pendingDebt: DebtState | null;
   /** Completed rounds. Increments when turn order wraps to the first active player. */
   round: number;
   log: LiquidateLogEntry[];
@@ -186,12 +282,22 @@ export interface LiquidateGameState {
 // Actions
 // ---------------------------------------------------------------------------
 
-/** M1 action set. M2 adds build/mortgage/bid/trade/bankruptcy actions. */
 export type LiquidateAction =
   | { type: 'roll' }
   | { type: 'buy' }
   | { type: 'decline' }
-  | { type: 'end-turn' };
+  | { type: 'end-turn' }
+  | { type: 'build'; tile: number }
+  | { type: 'sell-building'; tile: number }
+  | { type: 'mortgage'; tile: number }
+  | { type: 'unmortgage'; tile: number }
+  | { type: 'bid'; amount: number }
+  | { type: 'pass-bid' }
+  | { type: 'propose-trade'; trade: TradeOffer }
+  | { type: 'respond-trade'; accept: boolean }
+  | { type: 'pay-fine' }
+  | { type: 'use-clearance-pass' }
+  | { type: 'declare-bankruptcy' };
 
 /**
  * Result of applying an action. Mirrors the `validateMove` contract used by the

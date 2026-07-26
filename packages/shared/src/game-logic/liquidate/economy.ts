@@ -7,7 +7,7 @@
  * not individual planets.
  */
 
-import type { ColonyLevel, LiquidateConfig, StarSystem } from './types';
+import type { ColonyLevel, DebtRule, LiquidateConfig, StarSystem } from './types';
 
 /**
  * Rent multipliers applied to a planet's base rent, indexed by `ColonyLevel`
@@ -40,8 +40,11 @@ export const LIQUIDATE_UTILITY_PRICE = 150;
 export const MORTGAGE_RATE = 0.5;
 export const UNMORTGAGE_INTEREST_PERCENT = 10;
 
-/** Fine to leave impound (M2). */
+/** Fine to leave impound. */
 export const LIQUIDATE_IMPOUND_FINE = 100;
+
+/** Failed doubles attempts before the release fee is forced. */
+export const MAX_IMPOUND_TURNS = 3;
 
 /** Consecutive doubles that send a player to impound. */
 export const DOUBLES_LIMIT = 3;
@@ -117,8 +120,18 @@ export function planetRent(
 }
 
 /**
+ * Default debt rule. `allow-negative` is the more forgiving option — a player
+ * with assets can always mortgage their way out instead of being eliminated on
+ * the spot — so it is the default, and the setup screen exposes the toggle.
+ */
+export const DEFAULT_DEBT_RULE: DebtRule = 'allow-negative';
+
+/**
  * The two supported presets. Quick mode starts richer on a shorter loop and
  * ends on a round cap, so a session fits a phone sitting.
+ *
+ * `debtRule` here is only the preset default — `newGame` accepts an override so
+ * the player's choice always wins.
  */
 export const LIQUIDATE_CONFIGS: Record<'full' | 'quick', LiquidateConfig> = {
   full: {
@@ -126,12 +139,14 @@ export const LIQUIDATE_CONFIGS: Record<'full' | 'quick', LiquidateConfig> = {
     startingCredits: 1800,
     stipend: 250,
     maxRounds: null,
+    debtRule: DEFAULT_DEBT_RULE,
   },
   quick: {
     mode: 'quick',
     startingCredits: 2400,
     stipend: 350,
     maxRounds: 20,
+    debtRule: DEFAULT_DEBT_RULE,
   },
 };
 
