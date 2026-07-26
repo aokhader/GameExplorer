@@ -261,11 +261,18 @@ export function useLocalGame<S>({
     const difficulty = `elo-${targetEloRef.current}`;
     const current = userRatingRef.current;
 
-    // Casual: guests or an unrated bot game — save without Elo. Best-effort; a
-    // casual game must never surface a save error (it's the offline path).
-    if (!rated || !current || !userId) {
+    // Signed-out guests are never persisted: the `games` RLS policy rejects
+    // rows they don't own, and such a row would be invisible to every client
+    // anyway (see `isSignedIn` in packages/db). The setup screen already tells
+    // guests to sign in for rated play, and Profile for saved games.
+    if (!userId) return;
+
+    // Casual: an unrated bot game, or one whose rating row hasn't loaded — save
+    // without Elo. Best-effort; a casual game must never surface a save error
+    // (it's the offline path).
+    if (!rated || !current) {
       adapter
-        .save({ state: liveState, playerColor: pc, result, difficulty, userId: userId ?? undefined })
+        .save({ state: liveState, playerColor: pc, result, difficulty, userId })
         .catch((err) => console.error('Failed to save casual game:', err));
       return;
     }
