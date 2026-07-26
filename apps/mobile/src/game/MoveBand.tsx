@@ -1,17 +1,26 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
-import { timelineToSan, type ChessGameState } from '@gameexplorer/shared';
 import type { GameAccent } from '@/game/GameScreenLayout';
 
 export interface MoveBandProps {
-  /** One state per ply — `timeline[i]` is the position before move `i`. */
-  timeline: ChessGameState[];
+  /**
+   * The moves played, already in the game's own notation — SAN for chess, PDN
+   * for checkers, Othello squares for reversi. The band is deliberately
+   * notation-agnostic; each screen formats its own.
+   */
+  moves: string[];
   /** Which position is on the board (0 = start, so no chip is active). */
   viewIndex: number;
   /** Jump to a timeline index. */
   onSeek: (index: number) => void;
   accent: GameAccent;
+  /**
+   * `pairs` prefixes each full move with "1." … "12." — right for games that
+   * strictly alternate. Use `none` for reversi, where a pass hands the same
+   * player consecutive turns and a pair number would name the wrong side.
+   */
+  numbering?: 'pairs' | 'none';
 }
 
 /**
@@ -24,23 +33,45 @@ export interface MoveBandProps {
  * move" — something the player cards already show. Stepping controls live on
  * the bottom `GameBar`, so the band is display + jump only.
  */
-export function MoveBand({ timeline, viewIndex, onSeek, accent }: MoveBandProps) {
+export function MoveBand({
+  moves: san,
+  viewIndex,
+  onSeek,
+  accent,
+  numbering = 'pairs',
+}: MoveBandProps) {
   const accentColor = GAME_ACCENTS[accent].base;
   const scrollRef = useRef<ScrollView>(null);
   // Chip x-offsets, captured on layout, so the auto-scroll can centre one.
   const offsets = useRef<number[]>([]);
 
-  // Recomputed only when a move is added (or a new game resets the timeline);
-  // SAN needs a legal-move scan per move, too costly to redo every render.
-  const san = useMemo(() => timelineToSan(timeline), [timeline]);
+  // Keep the active move visible. `viewIndex` is a timeline index (1-based over
+  // moves), so chip `viewIndex - 1` produced the position on the board.
+  //
+  // The live tail scrolls to the end rather than to a measured offset: when a
+  // move is appended, this runs before the new chip's onLayout has recorded its
+  // x, so an offset lookup would miss and the newest move would sit half-clipped
+  // off the right edge until the next render. scrollToEnd needs no measurement.
+  const scrollToActive = () => {
+    const scroll = scrollRef.current;
+    if (!scroll) return;
+    if (viewIndex <= 0) {
+      scroll.scrollTo({ x: 0, animated: true });
+    } else if (viewIndex >= san.length) {
+      scroll.scrollToEnd({ animated: true });
+    } else {
+      const x = offsets.current[viewIndex - 1];
+      if (x !== undefined) scroll.scrollTo({ x: Math.max(0, x - 90), animated: true });
+    }
+  };
 
-  // Follow the active move. `viewIndex` is a timeline index (1-based over
-  // moves), so chip `viewIndex - 1` is the move that produced this position.
+  // Seeking within the existing moves (tapping a chip, stepping in history) fires
+  // this; appends are handled by the ScrollView's onContentSizeChange below,
+  // which runs *after* the new chip has been laid out and measured.
   useEffect(() => {
-    const x = offsets.current[viewIndex - 1];
-    if (x === undefined) return;
-    scrollRef.current?.scrollTo({ x: Math.max(0, x - 90), animated: true });
-  }, [viewIndex, san.length]);
+    scrollToActive();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewIndex]);
 
   if (san.length === 0) {
     return (
@@ -60,11 +91,14 @@ export function MoveBand({ timeline, viewIndex, onSeek, accent }: MoveBandProps)
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 10, gap: 2 }}
         accessibilityLabel="Moves played"
+        // Fires once the appended chips have been laid out, so the tail is fully
+        // measured before we chase it — see scrollToActive.
+        onContentSizeChange={scrollToActive}
       >
         {san.map((text, i) => {
           const stateIdx = i + 1;
           const isActive = viewIndex === stateIdx;
-          const isWhite = i % 2 === 0;
+          const isWhite = numbering === 'pairs' && i % 2 === 0;
           return (
             <View
               key={i}

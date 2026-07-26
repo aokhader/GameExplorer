@@ -15,10 +15,14 @@ export interface GameBarProps {
   onSeek: (index: number) => void;
   /** Game accent for the menu highlights. */
   accent: GameAccent;
-  /** Turn the board around. */
-  onFlipBoard: () => void;
-  /** End the game as a draw. */
-  onAgreeDraw: () => void;
+  /**
+   * Turn the board around. Omit for games that can't flip — reversi's
+   * `playerColor` doubles as its pass-and-play tap gate, so flipping it would
+   * hand the turn to the wrong player.
+   */
+  onFlipBoard?: () => void;
+  /** End the game as a draw. Omit for games without draws (reversi). */
+  onAgreeDraw?: () => void;
   /** Abandon this game and go back to setup. */
   onNewGame: () => void;
   /** Forfeit. Asks for a second tap first, so a stray touch can't throw a game. */
@@ -227,8 +231,8 @@ function GameMenu({
   accent: GameAccent;
   gameOver: boolean;
   onClose: () => void;
-  onFlipBoard: () => void;
-  onAgreeDraw: () => void;
+  onFlipBoard?: () => void;
+  onAgreeDraw?: () => void;
   onNewGame: () => void;
 }) {
   const accentColor = GAME_ACCENTS[accent].base;
@@ -273,14 +277,18 @@ function GameMenu({
                 }}
               />
 
-              <MenuRow glyph="🔄" label="Flip board" onPress={run(onFlipBoard)} accent={accentColor} />
-              <MenuRow
-                glyph="🤝"
-                label="Agree to a draw"
-                onPress={run(onAgreeDraw)}
-                disabled={gameOver}
-                accent={accentColor}
-              />
+              {onFlipBoard && (
+                <MenuRow glyph="🔄" label="Flip board" onPress={run(onFlipBoard)} accent={accentColor} />
+              )}
+              {onAgreeDraw && (
+                <MenuRow
+                  glyph="🤝"
+                  label="Agree to a draw"
+                  onPress={run(onAgreeDraw)}
+                  disabled={gameOver}
+                  accent={accentColor}
+                />
+              )}
               <MenuRow glyph="📈" label="Analysis" soon accent={accentColor} />
               <MenuRow glyph="♟️" label="New game" onPress={run(onNewGame)} accent={accentColor} />
             </View>

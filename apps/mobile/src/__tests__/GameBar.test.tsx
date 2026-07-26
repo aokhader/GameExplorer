@@ -166,6 +166,32 @@ describe('GameBar — menu', () => {
     expect(menuItem('New game')).toBeEnabled();
   });
 
+  it('omits rows the game does not support', async () => {
+    // Reversi passes neither handler: its board can't flip (playerColor doubles
+    // as the pass-and-play tap gate) and it has no draws.
+    const onSeek = jest.fn();
+    render(
+      <SettingsProvider>
+        <GameBar
+          viewIndex={4}
+          total={TOTAL}
+          accent="reversi"
+          onSeek={onSeek}
+          onNewGame={jest.fn()}
+          onResign={jest.fn()}
+        />
+      </SettingsProvider>,
+    );
+    await screen.findByRole('button', { name: 'Previous move' });
+    fireEvent.press(screen.getByRole('button', { name: 'Game menu' }));
+
+    expect(menuItemCount('Flip board')).toBe(0);
+    expect(menuItemCount('Agree to a draw')).toBe(0);
+    // The rest of the menu is unaffected.
+    expect(menuItem('New game')).toBeOnTheScreen();
+    expect(menuItem('Analysis (coming soon)')).toBeOnTheScreen();
+  });
+
   it('dismisses on a backdrop tap without acting', async () => {
     const { onFlipBoard, onNewGame } = await renderBar(4);
     fireEvent.press(screen.getByRole('button', { name: 'Game menu' }));

@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
-import { ENGINE_MIN_ELO, summarizeMaterial, type ChessGameState } from '@gameexplorer/shared';
+import {
+  ENGINE_MIN_ELO,
+  summarizeMaterial,
+  timelineToSan,
+  type ChessGameState,
+} from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, ChessPiece } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ChessBoard } from '@/board/ChessBoard';
@@ -125,6 +130,11 @@ export function ChessScreen() {
     setStarted(false);
     setFlipped(false);
   };
+
+  // SAN costs a legal-move scan per move (for disambiguation), so it's derived
+  // only when a move is added rather than on every render. Must sit above the
+  // setup-screen early return — hooks can't be called conditionally.
+  const sanMoves = useMemo(() => timelineToSan(game.timeline), [game.timeline]);
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
@@ -490,7 +500,7 @@ export function ChessScreen() {
                 what the player cards already say, so the space now carries the
                 move ribbon instead — the Lichess/chess.com treatment. */}
             <MoveBand
-              timeline={game.timeline}
+              moves={sanMoves}
               viewIndex={game.viewIndex}
               onSeek={game.setViewIndex}
               accent="chess"
