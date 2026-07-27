@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-export type GameAccent = 'chess' | 'checkers' | 'reversi';
+export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'liquidate';
 
 export interface GameScreenLayoutProps {
   /** Per-game neon accent — paints the ambient page glow (chess blue, checkers pink, reversi lime). */
@@ -22,6 +22,12 @@ export interface GameScreenLayoutProps {
   board: React.ReactNode;
   /** The right-hand panel contents (info, move list, controls). */
   sidebar: React.ReactNode;
+  /**
+   * Width of the board column. Defaults to the 460px that suits an 8×8 grid;
+   * boards with more cells per side (Liquidate's 12-per-side ring) need more
+   * room before their tile labels stop being legible.
+   */
+  boardColumnClassName?: string;
   className?: string;
 }
 
@@ -47,6 +53,7 @@ export function GameScreenLayout({
   bottomCard,
   board,
   sidebar,
+  boardColumnClassName = 'lg:w-[460px]',
   className,
 }: GameScreenLayoutProps) {
   return (
@@ -76,7 +83,7 @@ export function GameScreenLayout({
       <div className="flex-1 min-h-0 lg:overflow-hidden">
         <div className="container mx-auto lg:h-full px-4 py-4">
           <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-6 items-start lg:h-full">
-            <div className="flex flex-col gap-3 w-full lg:w-[460px] lg:shrink-0">
+            <div className={cn('flex flex-col gap-3 w-full lg:shrink-0', boardColumnClassName)}>
               {topCard}
               {board}
               {bottomCard}

@@ -10,6 +10,16 @@ import {
 } from '../../game-logic/checkers/utils';
 import { createInitialBoard as createInitialReversiBoard } from '../../game-logic/reversi/utils';
 import { createInitialGameState as createInitialChessState } from '../../game-logic/chess/utils';
+import {
+  DOUBLES_LIMIT,
+  FULL_SYSTEM_RENT_MULTIPLIER,
+  LIQUIDATE_MAX_PLAYERS,
+  LIQUIDATE_MIN_PLAYERS,
+  MAX_IMPOUND_TURNS,
+  MORTGAGE_RATE,
+  mortgageValueFor,
+  unmortgageCostFor,
+} from '../../game-logic/liquidate/economy';
 
 function allDiagrams(tutorial: GameTutorial): TutorialDiagram[] {
   return tutorial.sections.flatMap(s => s.diagrams ?? []);
@@ -44,6 +54,82 @@ describe('tutorial content integrity', () => {
       const ids = tutorial.sections.map(s => s.id);
       expect(new Set(ids).size).toBe(ids.length);
     }
+  });
+
+  /**
+   * Liquidate has no diagrams (a ring board has no 8×8 equivalent), so its claims
+   * are pinned against the engine's constants instead — the same intent as the
+   * per-game rule checks below: the prose must not drift from the code.
+   */
+  describe('liquidate tutorial matches the engine', () => {
+    const tutorial = TUTORIALS.liquidate;
+    const text = [
+      tutorial.intro,
+      ...tutorial.sections.flatMap(s => [s.heading, ...s.paragraphs]),
+      ...tutorial.tips,
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    it('carries no diagrams', () => {
+      expect(allDiagrams(tutorial)).toHaveLength(0);
+    });
+
+    it('states the real player range', () => {
+      expect(text).toContain('two to six players');
+      expect(LIQUIDATE_MIN_PLAYERS).toBe(2);
+      expect(LIQUIDATE_MAX_PLAYERS).toBe(6);
+    });
+
+    it('describes the doubles rule the engine enforces', () => {
+      expect(DOUBLES_LIMIT).toBe(3);
+      expect(text).toMatch(/three doubles in a row/);
+    });
+
+    it('describes the real mortgage terms', () => {
+      expect(mortgageValueFor(200)).toBe(200 * MORTGAGE_RATE);
+      expect(text).toMatch(/half its list price/);
+      expect(unmortgageCostFor(200)).toBeGreaterThan(mortgageValueFor(200));
+      expect(text).toMatch(/plus interest/);
+    });
+
+    it('describes the full-system rent bonus the engine applies', () => {
+      expect(FULL_SYSTEM_RENT_MULTIPLIER).toBe(2);
+      expect(text).toMatch(/doubles/);
+    });
+
+    it('describes the impound escape routes the engine offers', () => {
+      expect(MAX_IMPOUND_TURNS).toBe(3);
+      expect(text).toMatch(/pay the release fee/);
+      expect(text).toMatch(/roll doubles/);
+      expect(text).toMatch(/clearance pass/);
+    });
+
+    it('names both event decks', () => {
+      expect(text).toContain('anomal');
+      expect(text).toContain('federation');
+    });
+
+    it('explains both debt rules the setup screen offers', () => {
+      expect(text).toMatch(/below zero/);
+      expect(text).toMatch(/never lets a balance go below zero/);
+    });
+
+    it('avoids the trademarked vocabulary entirely', () => {
+      // The legal strategy is mechanics-only; none of this brand language may appear.
+      for (const banned of [
+        'monopoly',
+        'opoly',
+        'community chest',
+        'get out of jail',
+        'boardwalk',
+        'park place',
+        'hotel',
+        'houses',
+      ]) {
+        expect(text, `tutorial must not use "${banned}"`).not.toContain(banned);
+      }
+    });
   });
 
   it('every diagram square is on the board', () => {

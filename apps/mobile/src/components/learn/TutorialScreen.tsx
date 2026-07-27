@@ -14,13 +14,23 @@ const GLOWS = {
 } as const;
 
 /**
+ * The shared tutorial set is wider than what mobile ships — Liquidate is web-only
+ * for now — so narrow before indexing the native accent/glow/icon maps. Routing
+ * only ever passes a game this app can render; the fallback just keeps the
+ * screen total if that ever stops being true.
+ */
+type MobileTutorialGame = keyof typeof GLOWS;
+const isMobileGame = (game: GameTutorial['game']): game is MobileTutorialGame => game in GLOWS;
+
+/**
  * Scrollable "How to play" screen — the mobile rendering of the shared
  * tutorial content. Same shell language as the setup screens: accent bloom,
  * glowing icon badge, section headings, and a bot CTA at the end.
  */
 export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
   const router = useRouter();
-  const accent = GAME_ACCENTS[tutorial.game];
+  const game = isMobileGame(tutorial.game) ? tutorial.game : 'chess';
+  const accent = GAME_ACCENTS[game];
 
   return (
     <Screen>
@@ -42,10 +52,10 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
             borderWidth: 1,
             borderColor: accent.tintBorder,
             marginBottom: 16,
-            boxShadow: GLOWS[tutorial.game],
+            boxShadow: GLOWS[game],
           }}
         >
-          <GamePieceIcon game={tutorial.game} size={48} />
+          <GamePieceIcon game={game} size={48} />
         </View>
         <Text
           style={{

@@ -38,6 +38,7 @@
   --color-game-chess:     var(--c-game-chess);
   --color-game-checkers:  var(--c-game-checkers);
   --color-game-reversi:   var(--c-game-reversi);
+  --color-game-liquidate: var(--c-game-liquidate);
 
   --color-danger:         var(--c-danger);
   --color-danger-hover:   var(--c-danger-hover);
@@ -84,6 +85,8 @@
   --c-game-checkers-glow:  rgba(236, 72, 153, 0.45);
   --c-game-reversi:        #a3e635;
   --c-game-reversi-glow:   rgba(163, 230, 53, 0.42);
+  --c-game-liquidate:      #8b5cf6;
+  --c-game-liquidate-glow: rgba(139, 92, 246, 0.45);
 
   --c-danger:         #f43f5e;
   --c-danger-hover:   #fb7185;
@@ -110,6 +113,7 @@
   --shadow-glow-chess:    0 0 0 1px rgba(59,130,246,0.35), 0 0 40px -8px rgba(59,130,246,0.65);
   --shadow-glow-checkers: 0 0 0 1px rgba(236,72,153,0.35), 0 0 40px -8px rgba(236,72,153,0.65);
   --shadow-glow-reversi:  0 0 0 1px rgba(163,230,53,0.32), 0 0 40px -8px rgba(163,230,53,0.55);
+  --shadow-glow-liquidate: 0 0 0 1px rgba(139,92,246,0.35), 0 0 40px -8px rgba(139,92,246,0.65);
 
   /* Gradients (pair: GRADIENTS in tokens.ts). */
   --gradient-accent:  linear-gradient(180deg, #dcb456 0%, #cda43f 55%, #b8923a 100%);
@@ -231,12 +235,14 @@ html {
 .glow-chess    { box-shadow: var(--shadow-glow-chess); }
 .glow-checkers { box-shadow: var(--shadow-glow-checkers); }
 .glow-reversi  { box-shadow: var(--shadow-glow-reversi); }
+.glow-liquidate { box-shadow: var(--shadow-glow-liquidate); }
 
 /* Per-game ambient page glow — the in-game screens each carry a soft radial
  * wash of their accent at the top-left, per the Arcade Glow design. */
 .page-glow-chess,
 .page-glow-checkers,
 .page-glow-reversi,
+.page-glow-liquidate,
 .page-glow-gold,
 .page-glow-profile {
   background-repeat: no-repeat;
@@ -244,6 +250,7 @@ html {
 .page-glow-chess    { background-image: radial-gradient(900px 500px at 20% 0%, rgba(59,130,246,0.12),  transparent 55%); }
 .page-glow-checkers { background-image: radial-gradient(900px 500px at 20% 0%, rgba(236,72,153,0.13),  transparent 55%); }
 .page-glow-reversi  { background-image: radial-gradient(900px 500px at 20% 0%, rgba(163,230,53,0.12),  transparent 55%); }
+.page-glow-liquidate { background-image: radial-gradient(900px 500px at 20% 0%, rgba(139,92,246,0.13), transparent 55%); }
 .page-glow-gold     { background-image: radial-gradient(900px 500px at 50% 0%, rgba(205,164,63,0.10),  transparent 55%); }
 /* Profile carries the design's dual wash: blue top-left + pink top-right. */
 .page-glow-profile  {
@@ -307,6 +314,13 @@ html {
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-8px); }
+}
+/* Liquidate: the dice landing. Short and non-looping — it replays on every new
+   roll via a React key, so anything longer would stack up during a bot's turn. */
+@keyframes dice-settle {
+  0%   { transform: scale(0.86) rotate(-7deg); }
+  55%  { transform: scale(1.06) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
 /* Entrance animations are gated behind a `[data-animate]` marker so they run

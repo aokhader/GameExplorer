@@ -17,6 +17,7 @@ const ACCENTS: Record<GameAccent | 'gold', string> = {
   chess: 'bg-[rgba(59,130,246,0.08)] border-[rgba(59,130,246,0.3)] [&>[data-title]]:text-[#7db1ff]',
   checkers: 'bg-[rgba(236,72,153,0.08)] border-[rgba(236,72,153,0.3)] [&>[data-title]]:text-[#ff8fc4]',
   reversi: 'bg-[rgba(163,230,53,0.08)] border-[rgba(163,230,53,0.3)] [&>[data-title]]:text-[#bef264]',
+  liquidate: 'bg-[rgba(139,92,246,0.08)] border-[rgba(139,92,246,0.3)] [&>[data-title]]:text-[#c4b5fd]',
   gold: 'bg-accent-muted border-accent/35 [&>[data-title]]:text-accent',
 };
 

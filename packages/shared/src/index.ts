@@ -14,12 +14,16 @@ export * from './utils/currency';
 // Checkers
 export * from './game-logic/checkers';
 export * from './game-logic/reversi';
+// Liquidate — cosmic property-trading game (2–6 players)
+export * from './game-logic/liquidate';
 
 // Socket event protocol
 export * from './types/socket.types';
 
 // "How to play" tutorial content (web + mobile)
 export * from './constants/tutorials';
+// Game catalog (id, players, modes) — see the scope note in the module
+export * from './constants/games';
 
 // Free-tier cost-control limits
 export * from './limits';

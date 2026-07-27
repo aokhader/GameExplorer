@@ -43,6 +43,8 @@ const PALETTE = {
   pinkLight: '#ff8fc4',
   lime:      '#a3e635', // reversi — acid lime
   limeLight: '#bef264',
+  violet:      '#8b5cf6', // liquidate — nebula violet
+  violetLight: '#c4b5fd',
   // Status
   rose600:  '#f43f5e', // danger — arcade rose
   rose500:  '#fb7185',
@@ -149,7 +151,7 @@ export interface GameAccent {
   tintBorder: string;
 }
 
-export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi', GameAccent> = {
+export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'liquidate', GameAccent> = {
   // The tint ramp (bg/bgSoft/border) powers the Arcade Glow card treatment on
   // mobile home/hub screens; web mirrors as `--c-game-*-tint*` vars if adopted.
   chess: {
@@ -163,6 +165,10 @@ export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi', GameAccent> 
   reversi: {
     base: PALETTE.lime, glow: 'rgba(163,230,53,0.42)', light: PALETTE.limeLight,
     tintBg: 'rgba(163,230,53,0.15)', tintBgSoft: 'rgba(163,230,53,0.03)', tintBorder: 'rgba(163,230,53,0.38)',
+  },
+  liquidate: {
+    base: PALETTE.violet, glow: 'rgba(139,92,246,0.45)', light: PALETTE.violetLight,
+    tintBg: 'rgba(139,92,246,0.16)', tintBgSoft: 'rgba(139,92,246,0.03)', tintBorder: 'rgba(139,92,246,0.40)',
   },
 } as const;
 
@@ -222,6 +228,7 @@ export const SHADOWS = {
   glowChess:    '0 0 0 1px rgba(59,130,246,0.35), 0 0 40px -8px rgba(59,130,246,0.65)',
   glowCheckers: '0 0 0 1px rgba(236,72,153,0.35), 0 0 40px -8px rgba(236,72,153,0.65)',
   glowReversi:  '0 0 0 1px rgba(163,230,53,0.32), 0 0 40px -8px rgba(163,230,53,0.55)',
+  glowLiquidate:'0 0 0 1px rgba(139,92,246,0.35), 0 0 40px -8px rgba(139,92,246,0.65)',
 } as const;
 
 /**
@@ -237,6 +244,7 @@ export const GRADIENTS = {
   heroChess:    'linear-gradient(135deg, #3b82f6 0%, #ec4899 100%)',
   heroCheckers: 'linear-gradient(135deg, #ec4899 0%, #cda43f 100%)',
   heroReversi:  'linear-gradient(135deg, #a3e635 0%, #22d3aa 100%)',
+  heroLiquidate:'linear-gradient(135deg, #8b5cf6 0%, #38bdf8 100%)',
   heroBrand:    'linear-gradient(135deg, #3b82f6 0%, #ec4899 100%)',
 } as const;
 
@@ -270,6 +278,7 @@ export const SHADOWS_NATIVE = {
   glowChess:    { shadowColor: PALETTE.blue, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
   glowCheckers: { shadowColor: PALETTE.pink, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
   glowReversi:  { shadowColor: PALETTE.lime, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 20, elevation: 12 },
+  glowLiquidate:{ shadowColor: PALETTE.violet, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
 } as const satisfies Record<keyof typeof SHADOWS, NativeShadow>;
 
 /**
@@ -291,6 +300,7 @@ export const GLOWS_NATIVE = {
   glowChess:    '0 0 40px -8px rgba(59,130,246,0.65)',
   glowCheckers: '0 0 40px -8px rgba(236,72,153,0.65)',
   glowReversi:  '0 0 40px -8px rgba(163,230,53,0.55)',
+  glowLiquidate:'0 0 40px -8px rgba(139,92,246,0.65)',
 } as const;
 
 /**
@@ -316,6 +326,7 @@ export const GRADIENTS_NATIVE = {
   heroChess:    { colors: ['#3b82f6', '#ec4899'], locations: [0, 1], ...DIAGONAL },
   heroCheckers: { colors: ['#ec4899', '#cda43f'], locations: [0, 1], ...DIAGONAL },
   heroReversi:  { colors: ['#a3e635', '#22d3aa'], locations: [0, 1], ...DIAGONAL },
+  heroLiquidate:{ colors: ['#8b5cf6', '#38bdf8'], locations: [0, 1], ...DIAGONAL },
   heroBrand:    { colors: ['#3b82f6', '#ec4899'], locations: [0, 1], ...DIAGONAL },
 } as const satisfies Record<keyof typeof GRADIENTS, NativeGradient>;
 
