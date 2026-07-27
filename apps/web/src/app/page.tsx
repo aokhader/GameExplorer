@@ -8,7 +8,7 @@ import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY } from '@/lib/onboarding';
 import { SUPPORT_EMAIL } from '@/lib/support';
 
-type GameHue = 'chess' | 'checkers' | 'reversi';
+type GameHue = 'chess' | 'checkers' | 'reversi' | 'liquidate';
 
 export default function HomePage() {
   const [hoveredGame, setHoveredGame] = useState<string | null>(null);
@@ -55,6 +55,15 @@ export default function HomePage() {
       hue: 'reversi' as GameHue,
       available: true,
       path: '/reversi',
+    },
+    {
+      id: 'liquidate',
+      name: 'Liquidate',
+      description: 'Claim planets, charge rent, and bankrupt your rivals. 2–6 players.',
+      icon: '🪐',
+      hue: 'liquidate' as GameHue,
+      available: true,
+      path: '/liquidate',
     },
   ];
 
@@ -180,6 +189,7 @@ function GameCard({
   const glowClass =
     game.hue === 'chess' ? 'group-hover:[box-shadow:var(--shadow-glow-chess)]'
     : game.hue === 'checkers' ? 'group-hover:[box-shadow:var(--shadow-glow-checkers)]'
+    : game.hue === 'liquidate' ? 'group-hover:[box-shadow:var(--shadow-glow-liquidate)]'
     : 'group-hover:[box-shadow:var(--shadow-glow-reversi)]';
 
   return (

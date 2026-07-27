@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/chess', label: 'Chess' },
   { href: '/checkers', label: 'Checkers' },
   { href: '/reversi', label: 'Reversi' },
+  { href: '/liquidate', label: 'Liquidate' },
   { href: '/spectate', label: 'Watch' },
 ];
 

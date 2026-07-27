@@ -26,3 +26,11 @@ export { CHECKERS_BOARD_COLORS, CHECKERS_PIECE_COLORS, CHECKERS_PIECE_STYLE } fr
 export { ReversiDisc } from './reversi/ReversiDisc';
 export type { ReversiDiscProps, ReversiDiscColor } from './reversi/ReversiDisc';
 export { REVERSI_BOARD_COLORS, REVERSI_DISC_COLORS, REVERSI_DISC_STYLE } from './reversi/tokens';
+
+export {
+  LIQUIDATE_BOARD_COLORS,
+  LIQUIDATE_DECK_STYLE,
+  LIQUIDATE_SEAT_COLORS,
+  LIQUIDATE_SYSTEM_COLORS,
+} from './liquidate/tokens';
+export type { LiquidateSystemKey } from './liquidate/tokens';
