@@ -143,21 +143,24 @@ std::string globals::appendPath(const std::string &base, const std::string &file
 }
 
 bool globals::initGlobals() {
-#ifndef _WIN32
+    // This raises the MAIN-thread stack rlimit for the standalone CLI. In this
+    // fork Arasan is a *library* inside a host app, so two changes vs upstream:
+    //  - Skip it on Apple. iOS/macOS reject setrlimit(RLIMIT_STACK) on a running
+    //    process, and it isn't needed anyway — arasan_main runs on a host thread
+    //    with an explicit 4MB stack (see Arasan.mm) and the search workers set
+    //    their own via pthread_attr_setstacksize (threadp.cpp). Attempting it on
+    //    iOS is what crashed the app: the failure path below called exit(-1),
+    //    which terminates the whole host process.
+    //  - Never exit() on failure. A library must not kill its host; warn instead.
+#if !defined(_WIN32) && !defined(__APPLE__)
     struct rlimit rl;
     const rlim_t STACK_MAX = static_cast<rlim_t>(LINUX_STACK_SIZE);
-    auto result = getrlimit(RLIMIT_STACK, &rl);
-    if (result == 0)
+    if (getrlimit(RLIMIT_STACK, &rl) == 0 && rl.rlim_cur < STACK_MAX)
     {
-        if (rl.rlim_cur < STACK_MAX)
+        rl.rlim_cur = STACK_MAX;
+        if (setrlimit(RLIMIT_STACK, &rl) != 0)
         {
-            rl.rlim_cur = STACK_MAX;
-            result = setrlimit(RLIMIT_STACK, &rl);
-            if (result)
-            {
-                std::cerr << "failed to increase stack size" << std::endl;
-                exit(-1);
-            }
+            std::cerr << "warning: failed to increase stack size" << std::endl;
         }
     }
 #endif
@@ -311,9 +314,15 @@ void globals::delayedInit(bool verbose) {
                       << std::endl;
         }
         if (!nnueInitDone) {
-            // This is now a fatal error
-            std::cerr << "failed to load network, terminating." << std::endl;
-            exit(-1);
+            // Upstream treats this as fatal and exit(-1)s. That is catastrophic
+            // when embedded in a host app — it kills the whole process (this is
+            // how iOS bot play crashed). Instead emit a marker on the UCI channel
+            // so the host (react-native-arasan) knows the engine is unusable and
+            // can fall back to its own move generator, then return without
+            // searching. The host never sends `go` after seeing the marker, so
+            // the missing network is never dereferenced.
+            std::cerr << "failed to load network" << std::endl;
+            std::cout << "enginefail nnue" << std::endl;
         }
     }
     // also initialize the book here

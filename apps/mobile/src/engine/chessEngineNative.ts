@@ -43,8 +43,14 @@ let controls: EngineControls | null = null;
 let started = false;
 let ready = false;
 let networkPath: string | null = null;
+// Set when the native engine reports it can't run (e.g. NNUE failed to load).
+// Sticky for the app session — the engine is never restarted, so a failed init
+// won't recover. Flips the engine to "unavailable" so callers fall back to the
+// in-house TS engine instead of driving a broken native engine.
+let failed = false;
 
 const readyListeners = new Set<(ready: boolean) => void>();
+const failedListeners = new Set<() => void>();
 
 let pendingResolve: ((move: UciBestMove) => void) | null = null;
 let pendingReject: ((err: Error) => void) | null = null;
@@ -55,7 +61,7 @@ let pendingReject: ((err: Error) => void) | null = null;
  * link) — callers hide ≥1400 tiers instead of crashing at import time.
  */
 export function isEngineAvailable(): boolean {
-  return getEngineModule() != null;
+  return !failed && getEngineModule() != null;
 }
 
 let cachedModule: { useArasan: unknown } | null | undefined;
@@ -94,6 +100,25 @@ function setReady(next: boolean): void {
   readyListeners.forEach((l) => l(next));
 }
 
+/** Notified when the engine goes permanently unavailable — see `failed`. */
+export function subscribeEngineFailed(listener: () => void): () => void {
+  failedListeners.add(listener);
+  return () => failedListeners.delete(listener);
+}
+
+/**
+ * The native engine reported it can't run. Mark it unavailable so `getBotMove`
+ * falls back to the in-house engine, drop any in-flight request, and notify
+ * subscribers so screens re-read `isEngineAvailable()`. Idempotent.
+ */
+function markFailed(reason: string): void {
+  if (failed) return;
+  failed = true;
+  console.warn('Arasan unavailable:', reason);
+  cancelEngineSearch(`Engine unavailable: ${reason}`);
+  failedListeners.forEach((l) => l());
+}
+
 /**
  * Start the engine if it isn't running yet. Safe to call repeatedly; readiness
  * is signalled through subscribeEngineReady once the network is installed and
@@ -128,6 +153,14 @@ export function handleEngineOutput(output: string): void {
   for (const raw of output.split('\n')) {
     const line = raw.trim();
     if (!line) continue;
+
+    // Native side couldn't initialize (e.g. NNUE load failed). It keeps running
+    // idle rather than exiting the app; we mark it unavailable so callers use the
+    // in-house engine and never send it a `go`. See globals.cpp delayedInit.
+    if (line.startsWith('enginefail')) {
+      markFailed(line.slice('enginefail'.length).trim() || 'init failed');
+      continue;
+    }
 
     if (line === 'uciok') {
       if (networkPath) controls?.send(`setoption name NNUE File value ${networkPath}`);
