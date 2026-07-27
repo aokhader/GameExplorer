@@ -271,6 +271,15 @@ export interface LiquidateGameState {
   pendingAuction: AuctionState | null;
   pendingTrade: TradeState | null;
   pendingDebt: DebtState | null;
+  /**
+   * Trade offers made by the current seat this turn.
+   *
+   * Capped by the engine so a propose → decline → propose cycle cannot spin
+   * forever. That is a real risk with bot proposers (the same class of bug as
+   * the M3 mortgage/unmortgage loop) and it also stops a pass-and-play player
+   * from stalling the table.
+   */
+  tradesProposedThisTurn: number;
   /** Completed rounds. Increments when turn order wraps to the first active player. */
   round: number;
   log: LiquidateLogEntry[];

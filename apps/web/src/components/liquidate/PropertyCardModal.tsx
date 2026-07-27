@@ -19,25 +19,18 @@ export interface PropertyCardModalProps {
   /** Tile to show, or `null` to close. */
   tileId: number | null;
   onClose: () => void;
-  /** Present only when this is a live buy decision for the acting player. */
-  onBuy?: () => void;
-  onDecline?: () => void;
 }
 
 const LEVEL_LABEL = ['Bare claim', 'Colony I', 'Colony II', 'Colony III', 'Colony IV', 'Megastructure'];
 
 /**
- * The deed card: full rent schedule plus, when the tile has just been landed on,
- * the buy/decline decision. Declining sends it to auction, which the copy says
- * outright so the choice is never a surprise.
+ * The deed card: the full rent schedule for one tile.
+ *
+ * Browse-only, and always dismissable. The buy/decline decision it used to carry
+ * moved to the sidebar rail — a forced dialog over the board is the worst place
+ * to ask a question whose answer depends on the board.
  */
-export function PropertyCardModal({
-  state,
-  tileId,
-  onClose,
-  onBuy,
-  onDecline,
-}: PropertyCardModalProps) {
+export function PropertyCardModal({ state, tileId, onClose }: PropertyCardModalProps) {
   if (tileId === null) return null;
   const tile = LiquidateEngine.board(state)[tileId];
   if (!tile) return null;
@@ -45,13 +38,11 @@ export function PropertyCardModal({
   const owned = state.tiles[tileId];
   const ownerSeat = owned.ownerId ? state.players.findIndex((p) => p.id === owned.ownerId) : -1;
   const owner = ownerSeat >= 0 ? state.players[ownerSeat] : null;
-  const decision = Boolean(onBuy || onDecline);
 
   return (
     <Modal
       open
       onClose={onClose}
-      dismissable={!decision}
       size="sm"
       title={
         <span className="flex items-center gap-2">
@@ -66,22 +57,9 @@ export function PropertyCardModal({
         </span>
       }
       footer={
-        decision ? (
-          <>
-            <Button variant="secondary" onClick={onDecline}>
-              Decline → auction
-            </Button>
-            {onBuy && (
-              <Button onClick={onBuy}>
-                Buy for {formatCredits('price' in tile ? tile.price : 0)}
-              </Button>
-            )}
-          </>
-        ) : (
-          <Button variant="secondary" onClick={onClose}>
-            Close
-          </Button>
-        )
+        <Button variant="secondary" onClick={onClose}>
+          Close
+        </Button>
       }
     >
       <div className="flex flex-col gap-3 text-sm">

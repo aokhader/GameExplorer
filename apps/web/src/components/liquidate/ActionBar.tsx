@@ -43,6 +43,10 @@ export function ActionBar({ state, humanTurn, dispatch, onManage, onTrade }: Act
     );
   }
 
+  // The one move that carries the turn forward, given full width so it is
+  // unmistakable; everything else is a secondary option beside it.
+  const primary = has('roll') ? 'roll' : has('end-turn') ? 'end-turn' : null;
+
   const canManage = legal.some((a) =>
     ['build', 'sell-building', 'mortgage', 'unmortgage'].includes(a.type),
   );
@@ -56,38 +60,49 @@ export function ActionBar({ state, humanTurn, dispatch, onManage, onTrade }: Act
         </p>
       )}
 
+      {primary === 'roll' && (
+        <Button fullWidth onClick={() => dispatch({ type: 'roll' })}>
+          {actor?.inImpound ? 'Roll for doubles' : 'Roll dice'}
+        </Button>
+      )}
+      {primary === 'end-turn' && (
+        <Button fullWidth onClick={() => dispatch({ type: 'end-turn' })}>
+          End turn
+        </Button>
+      )}
+
       <div className="flex flex-wrap gap-2">
-        {has('roll') && (
-          <Button onClick={() => dispatch({ type: 'roll' })}>
-            {actor?.inImpound ? 'Roll for doubles' : 'Roll dice'}
-          </Button>
-        )}
         {has('pay-fine') && (
-          <Button variant="secondary" onClick={() => dispatch({ type: 'pay-fine' })}>
+          <Button size="sm" variant="secondary" onClick={() => dispatch({ type: 'pay-fine' })}>
             Pay {formatCredits(LIQUIDATE_IMPOUND_FINE)} fine
           </Button>
         )}
         {has('use-clearance-pass') && (
-          <Button variant="secondary" onClick={() => dispatch({ type: 'use-clearance-pass' })}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => dispatch({ type: 'use-clearance-pass' })}
+          >
             Use Clearance Pass
           </Button>
         )}
-        {has('end-turn') && (
-          <Button onClick={() => dispatch({ type: 'end-turn' })}>End turn</Button>
-        )}
         {canManage && (
-          <Button variant="secondary" onClick={onManage}>
+          <Button size="sm" variant="secondary" onClick={onManage}>
             Manage holdings
           </Button>
         )}
         {/* Trading is only legal on your own turn, so mirror that here. */}
         {(state.phase === 'awaiting-roll' || state.phase === 'turn-end') && (
-          <Button variant="secondary" onClick={onTrade}>
+          <Button size="sm" variant="secondary" onClick={onTrade}>
             Trade
           </Button>
         )}
         {has('declare-bankruptcy') && (
-          <Button variant="danger" onClick={() => dispatch({ type: 'declare-bankruptcy' })}>
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={() => dispatch({ type: 'declare-bankruptcy' })}
+          >
             Fold
           </Button>
         )}

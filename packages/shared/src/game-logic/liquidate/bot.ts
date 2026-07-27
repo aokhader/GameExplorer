@@ -242,13 +242,17 @@ export function getBotAction(
   return actions[0];
 }
 
-/** Bids carry a computed amount, so they are validated rather than matched. */
+/**
+ * Bids and trade offers carry computed payloads and are not enumerable in
+ * `getLegalActions`, so they are validated by asking the engine directly rather
+ * than matched against the legal list.
+ */
 function isAvailable(
   state: LiquidateGameState,
   action: LiquidateAction,
   actions: LiquidateAction[],
 ): boolean {
-  if (action.type === 'bid') {
+  if (action.type === 'bid' || action.type === 'propose-trade') {
     return LiquidateEngine.applyAction(state, action).valid;
   }
   return actions.some((a) => {
@@ -279,7 +283,11 @@ function decide(
     case 'awaiting-roll':
       return decideTurnStart(state, actions, actorId, profile);
     case 'turn-end':
-      return decideManagement(state, actions, actorId, profile) ?? { type: 'end-turn' };
+      return (
+        decideManagement(state, actions, actorId, profile) ??
+        decideTradeProposal(state, actorId, profile) ??
+        { type: 'end-turn' }
+      );
     default:
       return null;
   }
@@ -418,7 +426,69 @@ function decideTurnStart(
   }
 
   // Develop before rolling: rent collected this lap needs the colony standing.
-  return decideManagement(state, actions, actorId, profile) ?? { type: 'roll' };
+  return (
+    decideManagement(state, actions, actorId, profile) ??
+    decideTradeProposal(state, actorId, profile) ??
+    { type: 'roll' }
+  );
+}
+
+/**
+ * Offer cash for the one tile that would complete a star system.
+ *
+ * Without this the bots cannot consolidate, and the M6 simulation showed why it
+ * matters: at 4–6 players the board fragments so completely that *no* system was
+ * ever cornered, nothing was ever built, rents stayed at bare rates, and games
+ * ran to the round cap instead of ending in bankruptcy. Buying the last tile of
+ * a set is the one trade that reliably breaks that deadlock.
+ *
+ * Deliberately narrow — cash for a single tile, at most once per turn, only when
+ * it completes a set. The engine also caps proposals per turn, so a
+ * propose → decline → propose cycle is impossible either way.
+ */
+function decideTradeProposal(
+  state: LiquidateGameState,
+  actorId: string,
+  profile: BotProfile,
+): LiquidateAction | null {
+  if (state.tradesProposedThisTurn > 0) return null;
+
+  const actor = state.players.find((p) => p.id === actorId)!;
+  const board = getBoard(state.config.mode);
+  const reserve = reserveFor(state, profile);
+
+  for (const tile of board) {
+    if (tile.kind !== 'planet') continue;
+    const owned = state.tiles[tile.id];
+    const holder = owned.ownerId;
+    if (!holder || holder === actorId) continue;
+    // The engine refuses to trade a developed planet, and a mortgaged one is a
+    // poor buy at full price.
+    if (owned.level > 0 || owned.mortgaged) continue;
+
+    const members = systemMembers(state.config.mode, tile.system);
+    const mine = members.filter((id) => state.tiles[id].ownerId === actorId).length;
+    if (mine !== members.length - 1) continue; // not one away from the set
+
+    // Pay over the odds: the seller values it at their own assessment, and the
+    // set it unlocks is worth far more to us than the premium.
+    const theirValue = assessTile(state, tile.id, holder);
+    const budget = Math.floor(actor.credits - reserve);
+    const price = Math.min(Math.round(theirValue * 1.7) + 60, budget);
+    if (price <= 0) continue;
+
+    return {
+      type: 'propose-trade',
+      trade: {
+        toId: holder,
+        offerTiles: [],
+        requestTiles: [tile.id],
+        offerCredits: price,
+        requestCredits: 0,
+      },
+    };
+  }
+  return null;
 }
 
 /**

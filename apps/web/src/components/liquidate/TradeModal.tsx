@@ -13,6 +13,7 @@ import {
 } from '@gameexplorer/shared';
 import { Button, Modal } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { AmountInput } from './AmountInput';
 
 export interface TradeModalProps {
   open: boolean;
@@ -186,15 +187,13 @@ export function TradeModal({ open, onClose, state, fromId, dispatch }: TradeModa
               <span className="text-xs text-fg-muted">
                 Credits (you hold {formatCredits(me.credits)})
               </span>
-              <input
-                type="number"
+              <AmountInput
+                value={offerCredits}
+                onChange={setOfferCredits}
                 min={0}
                 max={Math.max(0, me.credits)}
-                value={offerCredits}
-                onChange={(e) =>
-                  setOfferCredits(Math.max(0, Math.floor(Number(e.target.value) || 0)))
-                }
-                className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-fg outline-none focus:border-accent"
+                aria-label="Credits you give"
+                className="py-1.5"
               />
             </label>
           </div>
@@ -221,15 +220,13 @@ export function TradeModal({ open, onClose, state, fromId, dispatch }: TradeModa
               <span className="text-xs text-fg-muted">
                 Credits ({them.name} holds {formatCredits(them.credits)})
               </span>
-              <input
-                type="number"
+              <AmountInput
+                value={requestCredits}
+                onChange={setRequestCredits}
                 min={0}
                 max={Math.max(0, them.credits)}
-                value={requestCredits}
-                onChange={(e) =>
-                  setRequestCredits(Math.max(0, Math.floor(Number(e.target.value) || 0)))
-                }
-                className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-fg outline-none focus:border-accent"
+                aria-label={`Credits ${them.name} gives`}
+                className="py-1.5"
               />
             </label>
           </div>

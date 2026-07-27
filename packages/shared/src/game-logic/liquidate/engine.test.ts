@@ -180,8 +180,25 @@ describe('economy', () => {
   });
 
   it('floors base rent so the cheapest planets still charge', () => {
-    expect(baseRentFor(10)).toBeGreaterThanOrEqual(4);
-    expect(baseRentFor(420)).toBe(25);
+    expect(baseRentFor(10)).toBeGreaterThanOrEqual(6);
+    expect(baseRentFor(420)).toBe(38);
+  });
+
+  /**
+   * The stipend/rent ratio is the balance lever that decides whether a game can
+   * end at all: a lap of the full board averages ~6 turns, so each player earns
+   * `stipend / 6` per turn, and if bare rents cannot claw back a comparable
+   * amount nobody ever goes bankrupt. M6 measured exactly that failure.
+   */
+  it('keeps the stipend from out-earning the board', () => {
+    const stipend = LIQUIDATE_CONFIGS.full.stipend;
+    const planets = getBoard('full').filter((t): t is PlanetTile => t.kind === 'planet');
+    const avgBareRent =
+      planets.reduce((sum, p) => sum + p.rents[0], 0) / planets.length;
+    const incomePerTurn = stipend / 6;
+    // Not a strict inequality — the stipend should still lead early on, or the
+    // opening would be unplayably tight. It just must not dwarf rent.
+    expect(incomePerTurn).toBeLessThan(avgBareRent * 2);
   });
 
   it('scales colony cost with the system tier', () => {
@@ -197,12 +214,18 @@ describe('economy', () => {
     expect(unmortgageCostFor(70)).toBe(39);
   });
 
-  it('starts quick mode richer on a round cap', () => {
+  it('starts quick mode richer on a much shorter cap', () => {
     expect(LIQUIDATE_CONFIGS.quick.startingCredits).toBeGreaterThan(
       LIQUIDATE_CONFIGS.full.startingCredits,
     );
     expect(LIQUIDATE_CONFIGS.quick.maxRounds).toBe(20);
-    expect(LIQUIDATE_CONFIGS.full.maxRounds).toBeNull();
+    // Full mode is won by outlasting everyone; its cap is only a safety net, so
+    // it must sit far above a normal game's length (M6 measured a median of ~88
+    // rounds at two players).
+    expect(LIQUIDATE_CONFIGS.full.maxRounds).toBe(140);
+    expect(LIQUIDATE_CONFIGS.full.maxRounds!).toBeGreaterThan(
+      LIQUIDATE_CONFIGS.quick.maxRounds! * 5,
+    );
   });
 });
 
@@ -1238,12 +1261,22 @@ describe('net worth and quick-mode termination', () => {
     expect(next.winnerId).toBe(state.players[1].id);
   });
 
-  it('does not end full mode on a round cap', () => {
+  it('runs full mode well past a normal game before its safety cap bites', () => {
     const state = game();
-    state.round = 500;
+    state.round = 100; // above the measured median, still under the cap
     state.currentPlayerIndex = state.players.length - 1;
     state.phase = 'turn-end';
     expect(apply(state, { type: 'end-turn' }).isGameOver).toBe(false);
+  });
+
+  it('ends full mode at its safety cap so a stalemate cannot run forever', () => {
+    const state = game();
+    state.round = LIQUIDATE_CONFIGS.full.maxRounds!;
+    state.currentPlayerIndex = state.players.length - 1;
+    state.phase = 'turn-end';
+    const next = apply(state, { type: 'end-turn' });
+    expect(next.isGameOver).toBe(true);
+    expect(next.winnerId).not.toBeNull();
   });
 
   it('rejects every action once the game is over', () => {

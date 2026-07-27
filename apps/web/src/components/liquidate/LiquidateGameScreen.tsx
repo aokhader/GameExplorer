@@ -14,19 +14,17 @@ import {
   type LiquidateSeat,
 } from '@gameexplorer/shared';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
-import { Button, Card } from '@/components/ui';
+import { Button, Card, CardHeader } from '@/components/ui';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useLiquidateGame } from '@/hooks/useLiquidateGame';
 import { TradeModal } from './TradeModal';
-import { TradeReviewModal } from './TradeReviewModal';
-import { ActionBar } from './ActionBar';
 import { ActionLog } from './ActionLog';
-import { AuctionModal } from './AuctionModal';
-import { Dice } from './Dice';
+import { BoardWell } from './BoardWell';
 import { HoldingsModal } from './HoldingsModal';
 import { LiquidateBoard } from './LiquidateBoard';
 import { PlayerPanel } from './PlayerPanel';
 import { PropertyCardModal } from './PropertyCardModal';
+import { TurnRail } from './TurnRail';
 
 const GameResultScreen = dynamic(
   () => import('@/components/game/GameResultScreen').then((m) => m.GameResultScreen),
@@ -218,9 +216,17 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
       ? state.players.map((p) => p.id)
       : state.players.filter((p) => !p.isBot).map((p) => p.id);
   const humanTurn = Boolean(actingPlayer && humanIds.includes(actingPlayer.id));
-  const buyTileId = state.phase === 'buy-decision' ? state.pendingPurchase : null;
   const winner = state.players.find((p) => p.id === state.winnerId) ?? null;
   const youWon = winner ? humanIds.includes(winner.id) : false;
+
+  /**
+   * Whose ship the board marks "you are here". Against bots that is the one
+   * human seat, and it must stay put while the bots take their turns — the seat
+   * you are following is the whole point of the marker. Pass-and-play has no
+   * single "you", so it follows whoever is up.
+   */
+  const youId =
+    mode === 'local' ? (actingPlayer?.id ?? humanIds[0] ?? null) : (humanIds[0] ?? null);
 
   return (
     <>
@@ -246,66 +252,53 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
           </Button>
         }
         board={
-          <LiquidateBoard state={state} onSelectTile={setSelectedTile}>
-            <div className="flex w-full flex-col items-center gap-2 overflow-hidden">
-              <Dice dice={state.dice} rolling={!humanTurn && state.phase === 'awaiting-roll'} />
-              {actingPlayer && (
-                <p className="text-center text-xs text-fg-muted">
-                  <span className="font-medium text-fg">{actingPlayer.name}</span> ·{' '}
-                  {formatCredits(actingPlayer.credits)}
-                </p>
-              )}
-              <ActionLog
-                state={state}
-                limit={40}
-                className="max-h-[38%] w-full overflow-y-auto px-1"
-              />
-            </div>
+          <LiquidateBoard state={state} onSelectTile={setSelectedTile} youId={youId}>
+            <BoardWell
+              state={state}
+              actingPlayer={actingPlayer}
+              youId={youId}
+              humanTurn={humanTurn}
+              onViewDeed={setSelectedTile}
+            />
           </LiquidateBoard>
         }
         sidebar={
           <>
-            <Card className="p-3">
-              <ActionBar
-                state={state}
-                humanTurn={humanTurn}
-                dispatch={dispatch}
-                onManage={() => setHoldingsOpen(true)}
-                onTrade={() => setTradeOpen(true)}
-              />
-              {lastError && <p className="mt-2 text-xs text-danger">{lastError}</p>}
-            </Card>
+            {/* Actions first and always in the same place — never over the board. */}
+            <TurnRail
+              state={state}
+              actingPlayer={actingPlayer}
+              humanTurn={humanTurn}
+              dispatch={dispatch}
+              lastError={lastError}
+              onManage={() => setHoldingsOpen(true)}
+              onTrade={() => setTradeOpen(true)}
+              onViewDeed={setSelectedTile}
+            />
             <Card className="p-3">
               <PlayerPanel state={state} humanIds={humanIds} />
+            </Card>
+            {/* The running commentary, out of the board's middle. */}
+            <Card className="flex min-h-0 flex-col p-3 lg:flex-1">
+              <CardHeader title="Game log" className="mb-2" />
+              <ActionLog
+                state={state}
+                limit={60}
+                className="max-h-56 min-h-0 overflow-y-auto pr-1 lg:max-h-none lg:flex-1"
+              />
             </Card>
           </>
         }
       />
 
-      {/* Buy decision — the live one takes priority over browsing a tile. */}
-      {buyTileId !== null && humanTurn ? (
-        <PropertyCardModal
-          state={state}
-          tileId={buyTileId}
-          onClose={() => undefined}
-          onBuy={
-            LiquidateEngine.getLegalActions(state).some((a) => a.type === 'buy')
-              ? () => dispatch({ type: 'buy' })
-              : undefined
-          }
-          onDecline={() => dispatch({ type: 'decline' })}
-        />
-      ) : (
-        <PropertyCardModal
-          state={state}
-          tileId={selectedTile}
-          onClose={() => setSelectedTile(null)}
-        />
-      )}
-
-      {state.phase === 'auction' && (
-        <AuctionModal state={state} humanTurn={humanTurn} dispatch={dispatch} />
-      )}
+      {/* The deed card is now browse-only: every decision that used to be forced
+          through a dialog is answered in the sidebar rail instead, so nothing
+          covers the board unless the player asked to see it. */}
+      <PropertyCardModal
+        state={state}
+        tileId={selectedTile}
+        onClose={() => setSelectedTile(null)}
+      />
 
       {actingPlayer && (
         <HoldingsModal
@@ -325,10 +318,6 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
           fromId={actingPlayer.id}
           dispatch={dispatch}
         />
-      )}
-
-      {state.phase === 'trade-review' && (
-        <TradeReviewModal state={state} humanTurn={humanTurn} dispatch={dispatch} />
       )}
 
       <GameResultScreen

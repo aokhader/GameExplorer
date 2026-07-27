@@ -25,10 +25,18 @@ const CORNER_GLYPH: Record<string, string> = {
 
 /** Which side of the tile the system colour band hugs, so bands face inward. */
 const BAND_SIDE: Record<BoardEdge, string> = {
-  bottom: 'top-0 left-0 right-0 h-[18%]',
-  top: 'bottom-0 left-0 right-0 h-[18%]',
-  left: 'top-0 bottom-0 right-0 w-[18%]',
-  right: 'top-0 bottom-0 left-0 w-[18%]',
+  bottom: 'top-0 left-0 right-0 h-[20%]',
+  top: 'bottom-0 left-0 right-0 h-[20%]',
+  left: 'top-0 bottom-0 right-0 w-[20%]',
+  right: 'top-0 bottom-0 left-0 w-[20%]',
+};
+
+/** Padding that keeps the label clear of the inward-facing colour band. */
+const LABEL_INSET: Record<BoardEdge, string> = {
+  bottom: 'pt-[20%]',
+  top: 'pb-[20%]',
+  left: 'pr-[20%]',
+  right: 'pl-[20%]',
 };
 
 export interface LiquidateTileProps {
@@ -36,24 +44,34 @@ export interface LiquidateTileProps {
   owned: TileOwnership;
   /** Tiles per side, for corner/edge detection. */
   n: number;
+  /** Measured edge length of this cell in px — drives every type size below. */
+  cellPx: number;
   /** Seat indices of players standing here. */
   occupants: number[];
   /** Highlight because it is the acting player's current square. */
   active?: boolean;
+  /** Seat index of the player this device is following, when standing here. */
+  youSeat?: number;
   onSelect?: (tileId: number) => void;
 }
 
 /**
  * One tile on the ring. Cells are uniform squares (a deliberate departure from
  * the tall-thin proportions of the classic board), so the colour band plus a
- * two-line label has to carry identification at ~50px.
+ * two-line label has to carry identification.
+ *
+ * Type is sized from the **measured** cell rather than from viewport units. The
+ * viewport-unit version collapsed to its 6px floor on a 68px cell, which is the
+ * main reason the board could not be read at all.
  */
 export const LiquidateTileCell = React.memo(function LiquidateTileCell({
   tile,
   owned,
   n,
+  cellPx,
   occupants,
   active,
+  youSeat,
   onSelect,
 }: LiquidateTileProps) {
   const corner = isCornerIndex(tile.id, n);
@@ -63,8 +81,26 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
     tile.kind === 'anomaly' || tile.kind === 'federation' ? LIQUIDATE_DECK_STYLE[tile.kind] : null;
   const price = 'price' in tile ? tile.price : null;
   const ownerSeat = owned.ownerId ? Number(owned.ownerId.replace(/\D/g, '')) - 1 : -1;
+  const ownerColor =
+    ownerSeat >= 0
+      ? (LIQUIDATE_SEAT_COLORS[ownerSeat % LIQUIDATE_SEAT_COLORS.length] ?? '#ffffff')
+      : null;
 
   const glyph = deck?.glyph ?? CORNER_GLYPH[tile.kind] ?? null;
+  const youHere = youSeat !== undefined;
+
+  // A single scale factor keeps the whole tile in proportion at any board size.
+  const clamp = (min: number, v: number, max: number) => Math.max(min, Math.min(max, v));
+  const nameSize = clamp(8, cellPx * 0.15, 14);
+  const priceSize = clamp(7, cellPx * 0.13, 12);
+  const glyphSize = clamp(10, cellPx * 0.26, 22);
+  const shipSize = clamp(9, cellPx * (occupants.length > 2 ? 0.22 : 0.32), 22);
+
+  // Below roughly a phone-sized cell there is only room for one line, and the
+  // name is what identifies the square — the price is in the deed card either
+  // way, so it is the first thing to go.
+  const showPrice = price !== null && cellPx >= 46;
+  const showGlyph = Boolean(glyph) && cellPx >= 34;
 
   return (
     <button
@@ -73,16 +109,19 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
       title={`${tile.name}${price !== null ? ` — ₡${price}` : ''}`}
       aria-label={`${tile.name}${price !== null ? `, price ${price} credits` : ''}${
         owned.ownerId ? ', owned' : ''
-      }`}
+      }${youHere ? ', your ship is here' : ''}`}
+      aria-current={youHere ? 'location' : undefined}
       className={cn(
-        'relative flex flex-col items-center justify-center overflow-hidden',
-        'border text-center transition-colors',
+        'relative flex h-full w-full flex-col items-center justify-center overflow-hidden',
+        'rounded-[3px] border text-center transition-[filter,box-shadow] duration-200',
         onSelect ? 'cursor-pointer hover:brightness-125' : 'cursor-default',
       )}
       style={{
         background: corner ? LIQUIDATE_BOARD_COLORS.corner : LIQUIDATE_BOARD_COLORS.tile,
         borderColor: active ? LIQUIDATE_BOARD_COLORS.activeRing : LIQUIDATE_BOARD_COLORS.border,
-        boxShadow: active ? `inset 0 0 0 2px ${LIQUIDATE_BOARD_COLORS.activeRing}` : undefined,
+        boxShadow: active
+          ? `inset 0 0 0 2px ${LIQUIDATE_BOARD_COLORS.activeRing}, 0 0 12px -2px ${LIQUIDATE_BOARD_COLORS.activeRing}`
+          : undefined,
       }}
     >
       {/* System colour band, rotated to face the middle of the board. */}
@@ -94,16 +133,21 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
         />
       )}
 
-      {/* Owner stripe — a thin bar in the owner's seat colour. */}
-      {ownerSeat >= 0 && (
-        <span
-          className="absolute inset-x-0 bottom-0 h-[7%]"
-          style={{
-            background:
-              LIQUIDATE_SEAT_COLORS[ownerSeat % LIQUIDATE_SEAT_COLORS.length] ?? '#ffffff',
-          }}
-          aria-hidden="true"
-        />
+      {/* Owner wash + stripe, in the owner's seat colour — who holds what has to
+          be readable from the board, not only from the roster. */}
+      {ownerColor && (
+        <>
+          <span
+            className="absolute inset-0"
+            style={{ background: ownerColor, opacity: 0.16 }}
+            aria-hidden="true"
+          />
+          <span
+            className="absolute inset-x-0 bottom-0"
+            style={{ height: Math.max(3, cellPx * 0.07), background: ownerColor }}
+            aria-hidden="true"
+          />
+        </>
       )}
 
       {/* Mortgaged wash. */}
@@ -115,33 +159,46 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
         />
       )}
 
-      <span className="relative z-10 flex flex-col items-center gap-[1px] px-[2px] leading-none">
-        {glyph && (
+      <span
+        className={cn(
+          'relative z-10 flex w-full flex-col items-center gap-[2px] px-[3px] leading-tight',
+          LABEL_INSET[edge],
+        )}
+      >
+        {showGlyph && (
           <span
-            className="text-[max(9px,0.7vw)]"
-            style={{ color: deck?.base ?? '#9aa6bd' }}
+            style={{ fontSize: glyphSize, color: deck?.base ?? '#9aa6bd', lineHeight: 1 }}
             aria-hidden="true"
           >
             {glyph}
           </span>
         )}
-        <span className="text-[max(6px,0.46vw)] font-medium text-fg/90 line-clamp-2 break-words">
+        <span
+          className="line-clamp-2 w-full break-words font-semibold text-fg"
+          style={{ fontSize: nameSize }}
+        >
           {tile.name}
         </span>
-        {price !== null && (
-          <span className="text-[max(6px,0.42vw)] text-fg-muted tabular-nums">₡{price}</span>
+        {showPrice && (
+          <span className="tabular-nums text-fg-muted" style={{ fontSize: priceSize }}>
+            ₡{price}
+          </span>
         )}
-        {/* Colony pips; a filled ring marks the megastructure. */}
+        {/* Colony pips; a filled star marks the megastructure. */}
         {owned.level > 0 && (
           <span className="flex items-center gap-[1px]" aria-hidden="true">
             {owned.level === MAX_COLONY_LEVEL ? (
-              <span className="text-[max(7px,0.5vw)] text-accent">★</span>
+              <span style={{ fontSize: priceSize, color: '#cda43f', lineHeight: 1 }}>★</span>
             ) : (
               Array.from({ length: owned.level }, (_, i) => (
                 <span
                   key={i}
                   className="inline-block rounded-full"
-                  style={{ width: 3, height: 3, background: '#cda43f' }}
+                  style={{
+                    width: Math.max(3, cellPx * 0.06),
+                    height: Math.max(3, cellPx * 0.06),
+                    background: '#cda43f',
+                  }}
                 />
               ))
             )}
@@ -151,16 +208,26 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
 
       {/* Ships, laid side by side so several on one tile stay countable. */}
       {occupants.length > 0 && (
-        <span className="absolute bottom-[8%] left-0 right-0 z-20 flex flex-wrap justify-center gap-[1px]">
-          {occupants.map((seat) => (
-            <ShipToken
-              key={seat}
-              seat={seat}
-              size={occupants.length > 3 ? 9 : 13}
-              active={active}
-            />
+        <span className="absolute inset-x-0 bottom-[9%] z-20 flex flex-wrap justify-center gap-[1px]">
+          {occupants.map((s) => (
+            <ShipToken key={s} seat={s} size={shipSize} active={active} you={s === youSeat} />
           ))}
         </span>
+      )}
+
+      {/* "You are here" — a hard, animated ring that reads at a glance, kept
+          distinct from the gold acting-player ring so following a bot's turn
+          never loses track of your own ship. */}
+      {youHere && (
+        <span
+          className="pointer-events-none absolute inset-0 rounded-[3px] motion-safe:animate-pulse"
+          style={{
+            boxShadow: `inset 0 0 0 2px ${
+              LIQUIDATE_SEAT_COLORS[youSeat % LIQUIDATE_SEAT_COLORS.length]
+            }`,
+          }}
+          aria-hidden="true"
+        />
       )}
     </button>
   );

@@ -9,6 +9,8 @@ export interface ShipTokenProps {
   size?: number;
   /** Lifts the active player's ship above the rest. */
   active?: boolean;
+  /** Rings the ship this device is following, so it can be picked out instantly. */
+  you?: boolean;
   title?: string;
 }
 
@@ -24,6 +26,7 @@ export const ShipToken = React.memo(function ShipToken({
   seat,
   size = 14,
   active = false,
+  you = false,
   title,
 }: ShipTokenProps) {
   const color = LIQUIDATE_SEAT_COLORS[seat % LIQUIDATE_SEAT_COLORS.length];
@@ -42,6 +45,9 @@ export const ShipToken = React.memo(function ShipToken({
         overflow: 'visible',
       }}
     >
+      {/* A white halo behind your own hull — the seat colours alone are not
+          enough to find yourself on a six-player board at a glance. */}
+      {you && <circle cx="12" cy="12" r="11" fill="rgba(255,255,255,0.22)" />}
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#ffffff" stopOpacity={0.85} />

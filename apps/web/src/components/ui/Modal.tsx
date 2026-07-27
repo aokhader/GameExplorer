@@ -52,13 +52,25 @@ export function Modal({
     // Lock background scroll while open.
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    // Move focus into the dialog.
-    panelRef.current?.focus();
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
     };
   }, [open, dismissable, onClose]);
+
+  /**
+   * Move focus into the dialog — on OPEN only.
+   *
+   * Deliberately its own effect keyed on `open` alone: callers routinely pass an
+   * inline `onClose` arrow, so a shared effect re-ran on every render and yanked
+   * focus back to the panel. That made a text field inside a dialog accept one
+   * keystroke before going dead, which is how the auction bid box could only be
+   * typed one digit at a time.
+   */
+  React.useEffect(() => {
+    if (!open) return;
+    panelRef.current?.focus();
+  }, [open]);
 
   if (!mounted || !open) return null;
 

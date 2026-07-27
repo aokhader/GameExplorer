@@ -27,6 +27,7 @@ import {
   LIQUIDATE_UTILITY_MULTIPLIER_ONE,
   LIQUIDATE_WARP_GATE_RENTS,
   MAX_IMPOUND_TURNS,
+  MAX_TRADE_PROPOSALS_PER_TURN,
   mortgageValueFor,
   planetRent,
   unmortgageCostFor,
@@ -157,6 +158,7 @@ export class LiquidateEngine {
       pendingAuction: null,
       pendingTrade: null,
       pendingDebt: null,
+      tradesProposedThisTurn: 0,
       round: 1,
       log: [],
       isGameOver: false,
@@ -1001,6 +1003,9 @@ export class LiquidateEngine {
     if (state.phase !== 'awaiting-roll' && state.phase !== 'turn-end') {
       return fail('Can only trade during your own turn');
     }
+    if (state.tradesProposedThisTurn >= MAX_TRADE_PROPOSALS_PER_TURN) {
+      return fail('No more trade offers this turn');
+    }
     const from = LiquidateEngine.currentPlayer(state);
     const to = state.players.find((p) => p.id === offer.toId);
     if (!to) return fail('Unknown trade partner');
@@ -1036,6 +1041,7 @@ export class LiquidateEngine {
     }
 
     const next = cloneState(state);
+    next.tradesProposedThisTurn += 1;
     next.pendingTrade = { ...offer, fromId: from.id, offerTiles: [...offer.offerTiles], requestTiles: [...offer.requestTiles] };
     next.phase = 'trade-review';
     log(next, from.id, `${from.name} offers ${to.name} a trade`);
@@ -1181,6 +1187,7 @@ export class LiquidateEngine {
     state.dice = null;
     state.doublesCount = 0;
     state.pendingPurchase = null;
+    state.tradesProposedThisTurn = 0;
 
     const size = state.players.length;
     let index = state.currentPlayerIndex;

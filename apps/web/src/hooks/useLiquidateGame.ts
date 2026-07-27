@@ -51,8 +51,12 @@ function readSave(key: string): SavedGame | null {
     const raw = window.localStorage.getItem(STORAGE_PREFIX + key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SavedGame;
-    // A snapshot from an older board or schema would desync the engine.
-    if (!parsed?.state?.players?.length || !parsed.state.config) return null;
+    // A snapshot from an older board or schema would desync the engine. Every
+    // field the engine relies on is checked, so a save written before a state
+    // change is discarded rather than resumed into undefined behaviour.
+    const s = parsed?.state;
+    if (!s?.players?.length || !s.config || !s.decks || !s.rng) return null;
+    if (typeof s.tradesProposedThisTurn !== 'number') return null;
     return parsed;
   } catch {
     return null;

@@ -16,9 +16,17 @@ import type { ColonyLevel, DebtRule, LiquidateConfig, StarSystem } from './types
  */
 export const LIQUIDATE_RENT_MULTIPLIERS = [1, 5, 15, 40, 60, 80] as const;
 
-/** Base rent as a fraction of list price, with a floor so cheap planets still bite. */
-const BASE_RENT_RATE = 0.06;
-const MIN_BASE_RENT = 4;
+/**
+ * Base rent as a fraction of list price, with a floor so cheap planets still bite.
+ *
+ * Balanced against the stipend, not chosen in isolation: a lap of the full board
+ * averages ~6 turns, so each player earns `stipend / 6` per turn. If bare rents
+ * do not claw a comparable amount back, credits only ever accumulate and a game
+ * with no completed systems cannot end — which is exactly what the M6 simulation
+ * found at 4–6 players. See `LIQUIDATE_CONFIGS`.
+ */
+const BASE_RENT_RATE = 0.09;
+const MIN_BASE_RENT = 6;
 
 /** A bare planet earns double rent when its owner holds the whole system. */
 export const FULL_SYSTEM_RENT_MULTIPLIER = 2;
@@ -48,6 +56,15 @@ export const MAX_IMPOUND_TURNS = 3;
 
 /** Consecutive doubles that send a player to impound. */
 export const DOUBLES_LIMIT = 3;
+
+/**
+ * Trade offers one seat may make per turn.
+ *
+ * A hard structural cap: without it a bot proposer can fall into
+ * propose → decline → propose forever (the same failure mode as the M3
+ * mortgage/unmortgage cycle), and a pass-and-play player could stall the table.
+ */
+export const MAX_TRADE_PROPOSALS_PER_TURN = 2;
 
 /** Star systems in ascending price tier. Index doubles as the tier number. */
 export const STAR_SYSTEM_ORDER: readonly StarSystem[] = [
@@ -137,14 +154,20 @@ export const LIQUIDATE_CONFIGS: Record<'full' | 'quick', LiquidateConfig> = {
   full: {
     mode: 'full',
     startingCredits: 1800,
-    stipend: 250,
-    maxRounds: null,
+    // Tuned in M6. At 250 the stipend out-earned all rent on the board, so
+    // credits only ever accumulated and 4–6 player games never terminated.
+    stipend: 160,
+    // Full mode is won by outlasting everyone, but a game where the survivors
+    // are all solvent can otherwise run indefinitely. This is a safety net, not
+    // the intended finish: it is far above a normal game's length, and when it
+    // does trigger the richest player takes it.
+    maxRounds: 140,
     debtRule: DEFAULT_DEBT_RULE,
   },
   quick: {
     mode: 'quick',
     startingCredits: 2400,
-    stipend: 350,
+    stipend: 260,
     maxRounds: 20,
     debtRule: DEFAULT_DEBT_RULE,
   },

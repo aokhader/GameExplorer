@@ -27,15 +27,13 @@ export interface BoardFrameProps {
  *
  * Boards render their 8×8 grid as a `w-full h-full` child of this frame.
  */
-export function BoardFrame({
-  children,
-  maxPx = 600,
-  vhCap = 80,
-  className,
-  style,
-}: BoardFrameProps) {
+export const BoardFrame = React.forwardRef<HTMLDivElement, BoardFrameProps>(function BoardFrame(
+  { children, maxPx = 600, vhCap = 80, className, style },
+  ref,
+) {
   return (
     <div
+      ref={ref}
       className={cn('relative mx-auto', className)}
       style={{
         width: `min(${vhCap}svh, ${maxPx}px, 100%)`,
@@ -46,4 +44,4 @@ export function BoardFrame({
       {children}
     </div>
   );
-}
+});
