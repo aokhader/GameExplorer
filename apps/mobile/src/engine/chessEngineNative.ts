@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import {
   buildUciPositionCommand,
   parseUciBestMove,
@@ -44,8 +43,14 @@ let controls: EngineControls | null = null;
 let started = false;
 let ready = false;
 let networkPath: string | null = null;
+// Set when the native engine reports it can't run (e.g. NNUE failed to load).
+// Sticky for the app session — the engine is never restarted, so a failed init
+// won't recover. Flips the engine to "unavailable" so callers fall back to the
+// in-house TS engine instead of driving a broken native engine.
+let failed = false;
 
 const readyListeners = new Set<(ready: boolean) => void>();
+const failedListeners = new Set<() => void>();
 
 let pendingResolve: ((move: UciBestMove) => void) | null = null;
 let pendingReject: ((err: Error) => void) | null = null;
@@ -56,25 +61,12 @@ let pendingReject: ((err: Error) => void) | null = null;
  * link) — callers hide ≥1400 tiers instead of crashing at import time.
  */
 export function isEngineAvailable(): boolean {
-  return getEngineModule() != null;
+  return !failed && getEngineModule() != null;
 }
 
 let cachedModule: { useArasan: unknown } | null | undefined;
 
 export function getEngineModule(): { useArasan: unknown } | null {
-  // iOS is treated as "engine not linked" until Arasan's startup is verified on
-  // a real device. Arasan is a port of the standalone CLI and calls `exit(-1)`
-  // on the HOST PROCESS when engine init fails — the `setrlimit(RLIMIT_STACK)`
-  // guard and the NNUE-load failure path in cpp/arasan/globals.cpp both do — so
-  // an init failure terminates the whole app instead of failing gracefully. That
-  // path has never run on real iOS hardware, and since v4.28 every bot game (not
-  // just ≥1400) warms the engine, so it crashes on the first bot game. Returning
-  // null here routes iOS through the same in-house TS-engine fallback a dev
-  // client without the module uses (EngineHost mounts nothing, isEngineAvailable
-  // is false, chessAdapter.getBotMove uses getBestMoveElo) — bot play works,
-  // capped to the TS engine's sub-1400 range. Remove this guard once the native
-  // iOS engine is confirmed to start and play on device.
-  if (Platform.OS === 'ios') return null;
   if (cachedModule === undefined) {
     try {
       // The TurboModule spec throws at require time when the native side isn't
@@ -106,6 +98,25 @@ function setReady(next: boolean): void {
   if (ready === next) return;
   ready = next;
   readyListeners.forEach((l) => l(next));
+}
+
+/** Notified when the engine goes permanently unavailable — see `failed`. */
+export function subscribeEngineFailed(listener: () => void): () => void {
+  failedListeners.add(listener);
+  return () => failedListeners.delete(listener);
+}
+
+/**
+ * The native engine reported it can't run. Mark it unavailable so `getBotMove`
+ * falls back to the in-house engine, drop any in-flight request, and notify
+ * subscribers so screens re-read `isEngineAvailable()`. Idempotent.
+ */
+function markFailed(reason: string): void {
+  if (failed) return;
+  failed = true;
+  console.warn('Arasan unavailable:', reason);
+  cancelEngineSearch(`Engine unavailable: ${reason}`);
+  failedListeners.forEach((l) => l());
 }
 
 /**
@@ -142,6 +153,14 @@ export function handleEngineOutput(output: string): void {
   for (const raw of output.split('\n')) {
     const line = raw.trim();
     if (!line) continue;
+
+    // Native side couldn't initialize (e.g. NNUE load failed). It keeps running
+    // idle rather than exiting the app; we mark it unavailable so callers use the
+    // in-house engine and never send it a `go`. See globals.cpp delayedInit.
+    if (line.startsWith('enginefail')) {
+      markFailed(line.slice('enginefail'.length).trim() || 'init failed');
+      continue;
+    }
 
     if (line === 'uciok') {
       if (networkPath) controls?.send(`setoption name NNUE File value ${networkPath}`);

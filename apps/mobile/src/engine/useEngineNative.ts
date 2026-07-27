@@ -6,6 +6,7 @@ import {
   isEngineAvailable,
   isEngineReady,
   subscribeEngineReady,
+  subscribeEngineFailed,
 } from './chessEngineNative';
 
 /**
@@ -17,8 +18,12 @@ import {
  */
 export function useEngineNative({ enabled }: { enabled: boolean }) {
   const [isReady, setIsReady] = useState(isEngineReady);
+  // Reactive so a mid-session failure (e.g. NNUE load) flips tiers + the bot
+  // path to the in-house engine without a manual refresh.
+  const [isAvailable, setIsAvailable] = useState(isEngineAvailable);
 
   useEffect(() => subscribeEngineReady(setIsReady), []);
+  useEffect(() => subscribeEngineFailed(() => setIsAvailable(isEngineAvailable())), []);
 
   useEffect(() => {
     if (enabled) ensureEngineStarted();
@@ -30,5 +35,5 @@ export function useEngineNative({ enabled }: { enabled: boolean }) {
     [],
   );
 
-  return { isAvailable: isEngineAvailable(), isReady, getBestMove };
+  return { isAvailable, isReady, getBestMove };
 }
