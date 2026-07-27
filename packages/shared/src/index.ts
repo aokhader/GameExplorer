@@ -22,6 +22,8 @@ export * from './types/socket.types';
 
 // "How to play" tutorial content (web + mobile)
 export * from './constants/tutorials';
+// Game catalog (id, players, modes) — see the scope note in the module
+export * from './constants/games';
 
 // Free-tier cost-control limits
 export * from './limits';

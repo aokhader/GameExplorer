@@ -15,7 +15,10 @@ import {
 } from '@gameexplorer/shared';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { Button, Card } from '@/components/ui';
+import { useGameSfx } from '@/hooks/useGameSfx';
 import { useLiquidateGame } from '@/hooks/useLiquidateGame';
+import { TradeModal } from './TradeModal';
+import { TradeReviewModal } from './TradeReviewModal';
 import { ActionBar } from './ActionBar';
 import { ActionLog } from './ActionLog';
 import { AuctionModal } from './AuctionModal';
@@ -49,10 +52,33 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
   const [botLevel, setBotLevel] = React.useState<LiquidateBotLevel>('steady');
   const [selectedTile, setSelectedTile] = React.useState<number | null>(null);
   const [holdingsOpen, setHoldingsOpen] = React.useState(false);
+  const [tradeOpen, setTradeOpen] = React.useState(false);
   const [resultDismissed, setResultDismissed] = React.useState(false);
 
   const { state, actingPlayer, lastError, dispatch, newGame, resume, savedGame, quit } =
     useLiquidateGame({ storageKey: mode, botLevel });
+
+  /**
+   * Sound + haptics, driven off the newest log line rather than off individual
+   * dispatches — bot actions never pass through this component, and the log is
+   * the one place every event (human or bot) shows up exactly once.
+   */
+  const sfx = useGameSfx();
+  const lastLoggedRef = React.useRef(0);
+  React.useEffect(() => {
+    if (!state) return;
+    const line = state.log[state.log.length - 1];
+    if (!line || state.log.length === lastLoggedRef.current) return;
+    lastLoggedRef.current = state.log.length;
+
+    const m = line.message;
+    if (/ rolls /.test(m)) sfx.play('jump');
+    else if (/ claims | wins .* at auction/.test(m)) sfx.play('promote');
+    else if (/ rent | pays /.test(m)) sfx.play('capture');
+    else if (/ folds /.test(m)) sfx.play('loss');
+    else if (/ wins$| wins with /.test(m)) sfx.play('win');
+    else if (/impound/i.test(m)) sfx.play('check');
+  }, [state, sfx]);
 
   const start = () => {
     const seats: LiquidateSeat[] = Array.from({ length: playerCount }, (_, i) => {
@@ -245,6 +271,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
                 humanTurn={humanTurn}
                 dispatch={dispatch}
                 onManage={() => setHoldingsOpen(true)}
+                onTrade={() => setTradeOpen(true)}
               />
               {lastError && <p className="mt-2 text-xs text-danger">{lastError}</p>}
             </Card>
@@ -288,6 +315,20 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
           playerId={actingPlayer.id}
           dispatch={dispatch}
         />
+      )}
+
+      {actingPlayer && humanTurn && (
+        <TradeModal
+          open={tradeOpen}
+          onClose={() => setTradeOpen(false)}
+          state={state}
+          fromId={actingPlayer.id}
+          dispatch={dispatch}
+        />
+      )}
+
+      {state.phase === 'trade-review' && (
+        <TradeReviewModal state={state} humanTurn={humanTurn} dispatch={dispatch} />
       )}
 
       <GameResultScreen

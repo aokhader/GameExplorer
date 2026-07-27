@@ -50,7 +50,7 @@ const gameModes: GameMode[] = [
     icon: '🎓',
     href: '/liquidate/learn',
     gradient: 'from-success to-success-hover',
-    available: false,
+    available: true,
     cta: 'Start Learning',
   },
 ];

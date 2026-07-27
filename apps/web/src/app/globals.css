@@ -315,6 +315,13 @@ html {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-8px); }
 }
+/* Liquidate: the dice landing. Short and non-looping — it replays on every new
+   roll via a React key, so anything longer would stack up during a bot's turn. */
+@keyframes dice-settle {
+  0%   { transform: scale(0.86) rotate(-7deg); }
+  55%  { transform: scale(1.06) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
 
 /* Entrance animations are gated behind a `[data-animate]` marker so they run
    ONLY on client-side navigation — never on the initial document load. On first

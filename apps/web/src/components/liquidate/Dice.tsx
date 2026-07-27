@@ -53,9 +53,20 @@ export function Dice({ dice, rolling = false, size = 34 }: DiceProps) {
   const shown = dice ?? [1, 1];
   const total = dice ? dice[0] + dice[1] : null;
 
+  // Re-key on the roll so the settle animation replays for every new result,
+  // including a repeat of the same faces. `motion-safe:` gates it on the user's
+  // reduced-motion preference, matching the rest of the app.
+  const rollKey = dice ? `${dice[0]}-${dice[1]}-${total}` : 'idle';
+
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className={cn('flex items-center gap-2', rolling && 'motion-safe:animate-pulse')}>
+      <div
+        key={rollKey}
+        className={cn(
+          'flex items-center gap-2',
+          rolling ? 'motion-safe:animate-pulse' : 'motion-safe:animate-dice-settle',
+        )}
+      >
         <Face value={shown[0]} size={size} />
         <Face value={shown[1]} size={size} />
       </div>

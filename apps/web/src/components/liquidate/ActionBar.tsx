@@ -16,6 +16,7 @@ export interface ActionBarProps {
   humanTurn: boolean;
   dispatch: (action: LiquidateAction) => void;
   onManage: () => void;
+  onTrade: () => void;
 }
 
 /**
@@ -25,7 +26,7 @@ export interface ActionBarProps {
  * the engine would reject — the engine stays the single source of truth for the
  * rules and this component only decides presentation and ordering.
  */
-export function ActionBar({ state, humanTurn, dispatch, onManage }: ActionBarProps) {
+export function ActionBar({ state, humanTurn, dispatch, onManage, onTrade }: ActionBarProps) {
   const legal = LiquidateEngine.getLegalActions(state);
   const has = (type: LiquidateAction['type']) => legal.some((a) => a.type === type);
   const actor = state.players.find((p) => p.id === LiquidateEngine.actingPlayerId(state));
@@ -77,6 +78,12 @@ export function ActionBar({ state, humanTurn, dispatch, onManage }: ActionBarPro
         {canManage && (
           <Button variant="secondary" onClick={onManage}>
             Manage holdings
+          </Button>
+        )}
+        {/* Trading is only legal on your own turn, so mirror that here. */}
+        {(state.phase === 'awaiting-roll' || state.phase === 'turn-end') && (
+          <Button variant="secondary" onClick={onTrade}>
+            Trade
           </Button>
         )}
         {has('declare-bankruptcy') && (

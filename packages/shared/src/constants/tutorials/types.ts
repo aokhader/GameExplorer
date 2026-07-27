@@ -7,7 +7,7 @@
  * platform-side, only the label is shared.
  */
 
-export type TutorialGame = 'chess' | 'checkers' | 'reversi';
+export type TutorialGame = 'chess' | 'checkers' | 'reversi' | 'liquidate';
 
 /** Board square in the app-wide 'a1'..'h8' convention (col = letter, row = rank − 1). */
 export type TutorialSquare = string;

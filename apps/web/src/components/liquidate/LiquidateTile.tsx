@@ -10,6 +10,7 @@ import {
 import { MAX_COLONY_LEVEL, type LiquidateTile as Tile, type TileOwnership } from '@gameexplorer/shared';
 import { cn } from '@/lib/utils';
 import { edgeOf, isCornerIndex, type BoardEdge } from './geometry';
+import { ShipToken } from './ShipToken';
 
 /** Glyphs for the non-property tiles. Original marks, not any existing game's. */
 const CORNER_GLYPH: Record<string, string> = {
@@ -148,18 +149,15 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
         )}
       </span>
 
-      {/* Player tokens, offset so several on one tile stay countable. */}
+      {/* Ships, laid side by side so several on one tile stay countable. */}
       {occupants.length > 0 && (
-        <span className="absolute bottom-[8%] left-0 right-0 z-20 flex justify-center gap-[1px]">
+        <span className="absolute bottom-[8%] left-0 right-0 z-20 flex flex-wrap justify-center gap-[1px]">
           {occupants.map((seat) => (
-            <span
+            <ShipToken
               key={seat}
-              className="inline-block rounded-full border border-black/50"
-              style={{
-                width: 6,
-                height: 6,
-                background: LIQUIDATE_SEAT_COLORS[seat % LIQUIDATE_SEAT_COLORS.length],
-              }}
+              seat={seat}
+              size={occupants.length > 3 ? 9 : 13}
+              active={active}
             />
           ))}
         </span>
