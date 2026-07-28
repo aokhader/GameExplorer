@@ -75,6 +75,13 @@ function AnalysisPageInner() {
   const stockfish = useStockfishAnalysis();
   const { getLegalMoves, replayMoves } = useChessCompute();
 
+  // Pulled out of `stockfish` deliberately: the hook returns a fresh object
+  // every render, so depending on `stockfish` itself in the loader effect below
+  // would re-run it on every render — refetching the game and yanking the board
+  // back to the last move mid-browse. `newGame` is a useCallback with no deps,
+  // so it's stable and safe to depend on.
+  const { newGame: resetEngineGame } = stockfish;
+
   // If a gameId is in the URL, load that game and jump straight to analyze mode.
   // The per-move replay runs in the chess engine worker so a long game doesn't
   // block the main thread while the page loads.
@@ -85,13 +92,13 @@ function AnalysisPageInner() {
       if (!game || cancelled) return;
       const tl = await replayMoves(game.moves);
       if (cancelled || tl.length === 0) return;
-      stockfish.newGame();
+      resetEngineGame();
       setTimeline(tl);
       setCurrentIndex(tl.length - 1);
       setMode('analyze');
     });
     return () => { cancelled = true; };
-  }, [gameId, replayMoves, stockfish.newGame]);
+  }, [gameId, replayMoves, resetEngineGame]);
 
   // Sync FEN input with editState in edit mode
   useEffect(() => {

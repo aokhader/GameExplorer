@@ -22,8 +22,6 @@ interface ReversiiBoardProps {
 function posFromCoords(row: number, col: number): string {
   return String.fromCharCode(97 + col) + (row + 1);
 }
-function rowOf(pos: string): number { return parseInt(pos[1]) - 1; }
-function colOf(pos: string): number { return pos.charCodeAt(0) - 97; }
 
 // Memoized — see ChessBoard: skips the play screens' 100 ms clock re-renders
 // when gameState/onMove are stable.

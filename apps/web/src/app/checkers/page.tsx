@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 
@@ -18,7 +17,6 @@ type GameMode = {
 };
 
 export default function CheckersLandingPage() {
-  const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   useAuth();
 
   const gameModes: GameMode[] = [
@@ -96,8 +94,6 @@ export default function CheckersLandingPage() {
               <Reveal
                 key={mode.id}
                 delay={i * 80}
-                onMouseEnter={() => setHoveredMode(mode.id)}
-                onMouseLeave={() => setHoveredMode(null)}
                 className="group relative"
               >
                 {mode.available ? (

@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 
@@ -18,7 +17,6 @@ type GameMode = {
 };
 
 export default function ChessLandingPage() {
-  const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   useAuth(); // initialise auth store
 
   const gameModes: GameMode[] = [
@@ -125,8 +123,6 @@ export default function ChessLandingPage() {
               <Reveal
                 key={mode.id}
                 delay={i * 70}
-                onMouseEnter={() => setHoveredMode(mode.id)}
-                onMouseLeave={() => setHoveredMode(null)}
                 className="group relative"
               >
                 {mode.available ? (

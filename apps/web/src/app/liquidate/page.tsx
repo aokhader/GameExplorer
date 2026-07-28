@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import { GradientText, Reveal } from '@/components/visual';
 
 type GameMode = {
@@ -56,8 +55,6 @@ const gameModes: GameMode[] = [
 ];
 
 export default function LiquidateLandingPage() {
-  const [, setHoveredMode] = useState<string | null>(null);
-
   return (
     <div className="relative min-h-screen pt-16 page-glow-liquidate">
       <div className="container mx-auto px-4 pt-8">
@@ -98,8 +95,6 @@ export default function LiquidateLandingPage() {
               <Reveal
                 key={mode.id}
                 delay={i * 80}
-                onMouseEnter={() => setHoveredMode(mode.id)}
-                onMouseLeave={() => setHoveredMode(null)}
                 className="group relative"
               >
                 {mode.available ? (
