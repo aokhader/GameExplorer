@@ -290,9 +290,9 @@ function AnalysisPageInner() {
       backHref={gameId ? '/chess/replays' : '/chess'}
       backLabel={gameId ? 'Replays' : 'Back'}
       // No player cards here, so the column can use the height they'd occupy.
-      // The extra 100px also covers the eval bar, which eats into the board's
+      // The extra width also covers the eval bar, which eats into the board's
       // share of the column and otherwise left it smaller than every other board.
-      boardColumnClassName="lg:w-[560px]"
+      boardColumnClassName="lg:w-[560px] xl:w-[640px] 2xl:w-[712px]"
       headerCenter={
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-fg">Analysis Board</span>

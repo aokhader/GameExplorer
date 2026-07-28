@@ -496,7 +496,7 @@ export const ChessBoard = React.memo(function ChessBoard({
 
   return (
     <div className="chess-board-wrapper" style={BOARD_CSS_VARS}>
-      <BoardFrame maxPx={compact ? 520 : 600} vhCap={compact ? 70 : 80}>
+      <BoardFrame maxPx={compact ? 520 : 680} vhCap={compact ? 70 : 80}>
         <div className="relative w-full h-full">
         <div
           className={`chess-board${myTurn ? ' my-turn' : ''}`}

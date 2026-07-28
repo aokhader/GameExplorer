@@ -235,7 +235,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
         backHref="/liquidate"
         backLabel="Liquidate"
         // A 12-per-side ring needs more width than the default 8×8 column.
-        boardColumnClassName="lg:w-[620px]"
+        boardColumnClassName="lg:w-[600px] xl:w-[680px]"
         headerCenter={
           <div className="text-sm text-fg-muted">
             {/* The engine advances the round before testing the cap, so the raw

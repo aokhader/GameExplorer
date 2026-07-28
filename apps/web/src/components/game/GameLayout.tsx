@@ -333,9 +333,11 @@ export function GameLayout({
       {/* Game view — board + player cards on the left, info/actions on the right,
           matching the Arcade Glow in-game layout. */}
       {inGame && s.gameState && (
-        <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start">
-          {/* Board column (fixed on desktop; the sidebar takes the remaining width) */}
-          <div className="flex flex-col gap-3 w-full lg:w-[460px] lg:shrink-0">
+        <div className="w-full max-w-6xl 2xl:max-w-7xl flex flex-col lg:flex-row lg:justify-center gap-4 xl:gap-6 items-start">
+          {/* Board column (fixed on desktop; the sidebar takes the remaining
+              width). Sized to match the single-player GameScreenLayout so a
+              game looks the same whoever you're playing. */}
+          <div className="flex flex-col gap-3 w-full lg:w-[520px] xl:w-[600px] 2xl:w-[680px] lg:shrink-0">
             {topExtras}
 
             <PlayerCard
@@ -377,7 +379,7 @@ export function GameLayout({
           </div>
 
           {/* Sidebar */}
-          <div className="w-full lg:flex-1 flex flex-col gap-4">
+          <div className="w-full lg:flex-1 lg:max-w-[460px] flex flex-col gap-4">
             <Card elevation="raised">
               <h3 className="text-sm font-semibold text-fg-muted mb-2 uppercase tracking-wide">Moves</h3>
               <div className="overflow-y-auto max-h-[28svh] lg:max-h-64 text-sm font-mono">{moveList}</div>

@@ -21,19 +21,23 @@ export interface PlayerCardProps {
  * bot, training): an avatar tile + name + status subline, with a clock or a
  * "to move" pulse on the right. Keeping it in one place is what makes the
  * board screens look identical across single- and multi-player.
+ *
+ * Deliberately slim (46px): it frames the board rather than competing with it,
+ * and every pixel it gives back is a pixel the square board grows by on a short
+ * screen. `GameScreenLayout` budgets its column height against that number.
  */
 export function PlayerCard({ name, initial, subline, isYou = false, active = false, right }: PlayerCardProps) {
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 border',
+        'flex items-center justify-between gap-2.5 rounded-xl px-2.5 py-1.5 border',
         isYou ? 'bg-accent-muted border-accent/35' : 'glass border-white/10',
       )}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-2.5 min-w-0">
         <span
           className={cn(
-            'font-display grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base font-bold',
+            'font-display grid h-8 w-8 shrink-0 place-items-center rounded-lg text-sm font-bold',
             isYou ? 'text-on-accent' : 'text-white',
           )}
           style={{
@@ -46,9 +50,9 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
           {initial}
         </span>
         <div className="min-w-0">
-          <div className="font-semibold text-[15px] leading-tight truncate">{name}</div>
+          <div className="font-semibold text-sm leading-tight truncate">{name}</div>
           {subline && (
-            <div className={cn('text-xs leading-tight truncate', isYou ? 'text-accent' : 'text-fg-muted')}>
+            <div className={cn('text-[11px] leading-tight truncate', isYou ? 'text-accent' : 'text-fg-muted')}>
               {subline}
             </div>
           )}

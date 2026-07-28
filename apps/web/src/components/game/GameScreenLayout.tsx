@@ -31,9 +31,9 @@ export interface GameScreenLayoutProps {
   /** The right-hand panel contents (info, move list, controls). */
   sidebar: React.ReactNode;
   /**
-   * Width of the board column. Defaults to the 460px that suits an 8×8 grid;
-   * boards with more cells per side (Liquidate's 12-per-side ring) need more
-   * room before their tile labels stop being legible.
+   * Width of the board column. The board is the page, so the default takes as
+   * much of the shell as it can while leaving the sidebar usable; boards with
+   * more cells per side (Liquidate's 12-per-side ring) ask for more still.
    *
    * This is an upper bound: on a short screen the column is additionally capped
    * by `--gx-board-cap` below, so it always fits without clipping.
@@ -44,13 +44,14 @@ export interface GameScreenLayoutProps {
 
 /**
  * Vertical space the shell itself eats on desktop: `pt-16` (64) + the header
- * row (61) + the body's `py-4` (32). Everything left over is the board column's
- * height budget — and since the board is square, its *width* budget too.
+ * row (53) + the body's `py-3` (24). Everything left over is the board column's
+ * height budget — and since the board is square, its *width* budget too. Every
+ * pixel trimmed from the chrome here is a pixel the board grows by.
  */
-const SHELL_CHROME_PX = 157;
+const SHELL_CHROME_PX = 141;
 
-/** A player card (62px) plus the column's `gap-3` (12px) above or below it. */
-const PLAYER_CARD_PX = 74;
+/** A player card (46px) plus the column's `gap-3` (12px) above or below it. */
+const PLAYER_CARD_PX = 58;
 
 /** The disc-count strip (40px) plus its `gap-3`. */
 const TOP_EXTRAS_PX = 52;
@@ -78,7 +79,7 @@ export function GameScreenLayout({
   bottomCard,
   board,
   sidebar,
-  boardColumnClassName = 'lg:w-[460px]',
+  boardColumnClassName = 'lg:w-[520px] xl:w-[600px] 2xl:w-[680px]',
   className,
 }: GameScreenLayoutProps) {
   // The desktop shell is `lg:h-screen lg:overflow-hidden`, so a board column
@@ -101,7 +102,7 @@ export function GameScreenLayout({
       )}
     >
       {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-border bg-surface-alt/50 backdrop-blur-sm">
+      <div className="shrink-0 px-4 py-2 border-b border-border bg-surface-alt/50 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-between gap-3">
           <Link
             href={backHref}
@@ -117,8 +118,11 @@ export function GameScreenLayout({
 
       {/* Body — board column (fixed) + flexible sidebar, matching the multiplayer layout. */}
       <div className="flex-1 min-h-0 lg:overflow-hidden">
-        <div className="container mx-auto lg:h-full px-4 py-4">
-          <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-6 items-start lg:h-full">
+        <div className="container mx-auto lg:h-full px-4 py-3">
+          {/* lg:justify-center + a capped sidebar keep the board the widest
+              thing on screen even when a short viewport shrinks its column —
+              without it the sidebar swallows the leftover width. */}
+          <div className="w-full max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col lg:flex-row lg:justify-center gap-4 xl:gap-6 items-start lg:h-full">
             <div
               className={cn(
                 'flex flex-col gap-3 w-full lg:shrink-0 lg:max-w-[var(--gx-board-cap)]',
@@ -131,7 +135,7 @@ export function GameScreenLayout({
               {board}
               {bottomCard}
             </div>
-            <div className="w-full lg:flex-1 flex flex-col gap-3 lg:min-h-0 lg:h-full">
+            <div className="w-full lg:flex-1 lg:max-w-[460px] flex flex-col gap-3 lg:min-h-0 lg:h-full">
               {sidebar}
             </div>
           </div>

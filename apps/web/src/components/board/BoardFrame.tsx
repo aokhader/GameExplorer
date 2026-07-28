@@ -21,6 +21,9 @@ export interface BoardFrameProps {
  *                     mobile layout or short landscape (svh = small viewport
  *                     height, stable across mobile browser-chrome show/hide)
  *   - `maxPx`       → never larger than is comfortable on a wide desktop
+ *                     (680: the board is the page, so this is deliberately
+ *                     generous — the layout's own column width is what usually
+ *                     binds first)
  *
  * The square `aspect-ratio` reserves space so the layout doesn't shift while a
  * board is empty/loading. `mx-auto` keeps it centered in any parent.
@@ -28,7 +31,7 @@ export interface BoardFrameProps {
  * Boards render their 8×8 grid as a `w-full h-full` child of this frame.
  */
 export const BoardFrame = React.forwardRef<HTMLDivElement, BoardFrameProps>(function BoardFrame(
-  { children, maxPx = 600, vhCap = 80, className, style },
+  { children, maxPx = 680, vhCap = 80, className, style },
   ref,
 ) {
   return (
