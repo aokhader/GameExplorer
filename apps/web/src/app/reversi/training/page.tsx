@@ -487,17 +487,15 @@ export default function ReversiTrainingPage() {
           </>
         }
         topCard={
-          <>
-            <PlayerCard
-              name="Bot"
-              initial="B"
-              active={isThinking}
-              subline={isThinking ? `${botElo} · thinking…` : `${botElo} · ${eloLabel(botElo)}`}
-            />
-            {/* Live disc-count bar above the board, per the design. */}
-            <DiscCountBar black={counts.black} white={counts.white} />
-          </>
+          <PlayerCard
+            name="Bot"
+            initial="B"
+            active={isThinking}
+            subline={isThinking ? `${botElo} · thinking…` : `${botElo} · ${eloLabel(botElo)}`}
+          />
         }
+        // Live disc-count bar above the board, per the design.
+        topExtras={<DiscCountBar black={counts.black} white={counts.white} />}
         board={
           <ReversiBoard
             gameState={displayState}

@@ -91,7 +91,8 @@ export default function LiquidateLandingPage() {
           </Reveal>
         </div>
 
-        <div className="mx-auto max-w-4xl">
+        {/* max-w-6xl matches the chess landing page's card size. */}
+        <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {gameModes.map((mode, i) => (
               <Reveal
@@ -116,13 +117,13 @@ export default function LiquidateLandingPage() {
                         <h2 className="mb-2 text-2xl font-bold text-fg transition-all group-hover:bg-linear-to-r group-hover:from-accent group-hover:to-accent-hover group-hover:bg-clip-text group-hover:text-transparent">
                           {mode.title}
                         </h2>
-                        <p className="mb-4 text-sm text-fg-muted">{mode.description}</p>
-                        <div className="flex items-center text-sm font-medium text-accent">
+                        <p className="mb-4 text-fg-muted">{mode.description}</p>
+                        <div className="flex items-center font-medium text-accent">
                           <span className="transition-all group-hover:mr-2">
                             {mode.cta ?? 'Start Playing'}
                           </span>
                           <svg
-                            className="h-4 w-4 transform opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100"
+                            className="h-5 w-5 transform opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -142,7 +143,7 @@ export default function LiquidateLandingPage() {
                         <span className="text-4xl">{mode.icon}</span>
                       </div>
                       <h2 className="mb-2 text-2xl font-bold text-fg">{mode.title}</h2>
-                      <p className="mb-4 text-sm text-fg-muted">{mode.description}</p>
+                      <p className="mb-4 text-fg-muted">{mode.description}</p>
                       <div className="inline-flex items-center rounded-full bg-surface-muted px-3 py-1 text-sm font-medium text-fg-muted">
                         <svg className="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

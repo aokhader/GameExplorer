@@ -16,6 +16,14 @@ export interface GameScreenLayoutProps {
   headerActions?: React.ReactNode;
   /** Card above the board — the opponent / bot. Omit for boards with no players (analysis). */
   topCard?: React.ReactNode;
+  /**
+   * A single strip between the top card and the board (reversi's disc counts),
+   * named to match the multiplayer `GameLayout` prop that does the same job.
+   * Give it its own slot rather than folding it into `topCard`: the column's
+   * height budget below counts slots, and content smuggled into another slot
+   * would push the bottom card off a short screen.
+   */
+  topExtras?: React.ReactNode;
   /** Card below the board — you. */
   bottomCard?: React.ReactNode;
   /** The board element (already sized by its own BoardFrame). */
@@ -26,10 +34,26 @@ export interface GameScreenLayoutProps {
    * Width of the board column. Defaults to the 460px that suits an 8×8 grid;
    * boards with more cells per side (Liquidate's 12-per-side ring) need more
    * room before their tile labels stop being legible.
+   *
+   * This is an upper bound: on a short screen the column is additionally capped
+   * by `--gx-board-cap` below, so it always fits without clipping.
    */
   boardColumnClassName?: string;
   className?: string;
 }
+
+/**
+ * Vertical space the shell itself eats on desktop: `pt-16` (64) + the header
+ * row (61) + the body's `py-4` (32). Everything left over is the board column's
+ * height budget — and since the board is square, its *width* budget too.
+ */
+const SHELL_CHROME_PX = 157;
+
+/** A player card (62px) plus the column's `gap-3` (12px) above or below it. */
+const PLAYER_CARD_PX = 74;
+
+/** The disc-count strip (40px) plus its `gap-3`. */
+const TOP_EXTRAS_PX = 52;
 
 const BackArrow = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -50,12 +74,24 @@ export function GameScreenLayout({
   headerCenter,
   headerActions,
   topCard,
+  topExtras,
   bottomCard,
   board,
   sidebar,
   boardColumnClassName = 'lg:w-[460px]',
   className,
 }: GameScreenLayoutProps) {
+  // The desktop shell is `lg:h-screen lg:overflow-hidden`, so a board column
+  // taller than the viewport doesn't scroll — it gets silently cut off (which
+  // is what used to hide the "You" player card on ~720px-tall laptop screens).
+  // Cap the column by the height actually available and the square board
+  // shrinks to fit instead, cards and all.
+  const reservedPx =
+    SHELL_CHROME_PX +
+    (topCard ? PLAYER_CARD_PX : 0) +
+    (topExtras ? TOP_EXTRAS_PX : 0) +
+    (bottomCard ? PLAYER_CARD_PX : 0);
+
   return (
     <div
       className={cn(
@@ -83,8 +119,15 @@ export function GameScreenLayout({
       <div className="flex-1 min-h-0 lg:overflow-hidden">
         <div className="container mx-auto lg:h-full px-4 py-4">
           <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-6 items-start lg:h-full">
-            <div className={cn('flex flex-col gap-3 w-full lg:shrink-0', boardColumnClassName)}>
+            <div
+              className={cn(
+                'flex flex-col gap-3 w-full lg:shrink-0 lg:max-w-[var(--gx-board-cap)]',
+                boardColumnClassName,
+              )}
+              style={{ '--gx-board-cap': `calc(100svh - ${reservedPx}px)` } as React.CSSProperties}
+            >
               {topCard}
+              {topExtras}
               {board}
               {bottomCard}
             </div>

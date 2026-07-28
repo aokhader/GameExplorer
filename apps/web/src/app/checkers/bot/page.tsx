@@ -13,7 +13,6 @@ import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
-import { StatusBanner } from '@/components/game/StatusBanner';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -452,16 +451,9 @@ export default function CheckersBotPage() {
         }
         sidebar={
           <>
-              {/* Turn / result status — the accent banner from the design. */}
-              <StatusBanner
-                accent="checkers"
-                title={
-                  gameOverMsg ?? (isThinking ? 'Bot is thinking…' : yourTurn ? 'Your move' : 'Reviewing history')
-                }
-                description={
-                  gameOverMsg ? undefined : yourTurn ? 'Captures are forced — chain your jumps.' : undefined
-                }
-              />
+              {/* No status banner: the player cards flanking the board already
+                  carry whose turn it is (pulse + subline), and the result gets
+                  its own celebration screen. */}
 
               {/* Info card */}
               <div className="shrink-0 bg-white/[0.04] rounded-xl border border-white/10 p-3">
