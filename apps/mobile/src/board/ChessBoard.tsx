@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { ChessEngine } from '@gameexplorer/shared';
 import type { ChessGameState, PieceType } from '@gameexplorer/shared';
-import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE } from '@gameexplorer/ui';
+import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -148,6 +148,9 @@ function PromotionPicker({
   size: number;
   onSelect: (piece: PieceType) => void;
 }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const pieces: PieceType[] = ['queen', 'rook', 'bishop', 'knight'];
   return (
     <View

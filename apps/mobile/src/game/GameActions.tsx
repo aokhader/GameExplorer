@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View, type ViewStyle } from 'react-native';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 
 export interface GameActionsProps {
   /** Agree a draw (vs bot). Omit for games without draws (reversi). */
@@ -27,6 +27,9 @@ export function GameActions({
   disabled = false,
   style,
 }: GameActionsProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const [confirming, setConfirming] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Source of truth for the two-tap confirm, read synchronously. `confirming`

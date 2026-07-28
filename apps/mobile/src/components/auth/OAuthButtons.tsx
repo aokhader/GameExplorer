@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { signInWithAppleNative, signInWithOAuthNative } from '@/lib/oauth';
 
 function GoogleIcon() {
@@ -39,6 +39,9 @@ export function OAuthButtons({
   onSuccess: () => void;
   onError: (message: string) => void;
 }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const [busy, setBusy] = useState<null | 'google' | 'facebook' | 'apple'>(null);
 
   const run = async (provider: 'google' | 'facebook') => {
@@ -140,6 +143,9 @@ export function OAuthButtons({
 
 /** "or" divider used between OAuth and email/password. */
 export function OrDivider() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 4 }}>
       <View style={{ flex: 1, height: 1, backgroundColor: COLORS.border }} />

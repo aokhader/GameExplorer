@@ -1,12 +1,14 @@
 import { Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
 
+// Colors are looked up during render, never captured here — the token objects
+// are live views, so a module-scope read freezes them at import (see themeRuntime).
 const META = {
-  chess: { name: 'Chess', glow: GLOWS_NATIVE.glowChess },
-  checkers: { name: 'Checkers', glow: GLOWS_NATIVE.glowCheckers },
-  reversi: { name: 'Reversi', glow: GLOWS_NATIVE.glowReversi },
+  chess: { name: 'Chess', glowKey: 'glowChess' },
+  checkers: { name: 'Checkers', glowKey: 'glowCheckers' },
+  reversi: { name: 'Reversi', glowKey: 'glowReversi' },
 } as const;
 
 export type SetupHeroGame = keyof typeof META;
@@ -17,6 +19,9 @@ export type SetupHeroGame = keyof typeof META;
  * pair it with a `GlowBackdrop` bloom in the same accent.
  */
 export function SetupHero({ game }: { game: SetupHeroGame }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const accent = GAME_ACCENTS[game];
   const meta = META[game];
   return (
@@ -32,7 +37,7 @@ export function SetupHero({ game }: { game: SetupHeroGame }) {
           borderWidth: 1,
           borderColor: accent.tintBorder,
           marginBottom: 16,
-          boxShadow: meta.glow,
+          boxShadow: GLOWS_NATIVE[meta.glowKey],
         }}
       >
         <GamePieceIcon game={game} size={48} />

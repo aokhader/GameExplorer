@@ -30,11 +30,13 @@ export interface GameResultScreenProps {
   actions: React.ReactNode;
 }
 
-const COPY: Record<GameResult, { emoji: string; heading: string; headingColor: string }> = {
-  win: { emoji: '🏆', heading: 'You Won!', headingColor: COLORS.accentHover },
-  loss: { emoji: '💪', heading: 'Good Game', headingColor: COLORS.fg },
-  draw: { emoji: '🤝', heading: 'Draw', headingColor: COLORS.fg },
-  aborted: { emoji: '🛑', heading: 'Game Aborted', headingColor: COLORS.fg },
+// Colors are looked up during render, never captured here — the token objects
+// are live views, so a module-scope read freezes them at import (see themeRuntime).
+const COPY: Record<GameResult, { emoji: string; heading: string; accentHeading?: true }> = {
+  win: { emoji: '🏆', heading: 'You Won!', accentHeading: true },
+  loss: { emoji: '💪', heading: 'Good Game' },
+  draw: { emoji: '🤝', heading: 'Draw' },
+  aborted: { emoji: '🛑', heading: 'Game Aborted' },
 };
 
 /** Animate an integer from `from` to `to` while `active` (rAF-based). */
@@ -148,7 +150,7 @@ export function GameResultScreen({
             {copy.emoji}
           </Animated.Text>
 
-          <Text style={{ color: copy.headingColor, fontSize: 28, fontWeight: '800', marginBottom: 2 }}>
+          <Text style={{ color: copy.accentHeading ? COLORS.accentHover : COLORS.fg, fontSize: 28, fontWeight: '800', marginBottom: 2 }}>
             {title ?? copy.heading}
           </Text>
           {subtitle && (

@@ -12,12 +12,17 @@ export interface StatusBannerProps {
   className?: string;
 }
 
-/** Per-accent tint (bg / border / title text), straight from the design doc. */
+/**
+ * Per-accent tint (bg / border / title text). Mixed from the theme's own game hue
+ * at the design doc's alphas rather than written as literals, so the banner
+ * follows the active theme; the title takes the theme's readable step for that hue
+ * (`--c-game-*-light`), which on a light theme is a deepened tone, not a neon one.
+ */
 const ACCENTS: Record<GameAccent | 'gold', string> = {
-  chess: 'bg-[rgba(59,130,246,0.08)] border-[rgba(59,130,246,0.3)] [&>[data-title]]:text-[#7db1ff]',
-  checkers: 'bg-[rgba(236,72,153,0.08)] border-[rgba(236,72,153,0.3)] [&>[data-title]]:text-[#ff8fc4]',
-  reversi: 'bg-[rgba(163,230,53,0.08)] border-[rgba(163,230,53,0.3)] [&>[data-title]]:text-[#bef264]',
-  liquidate: 'bg-[rgba(139,92,246,0.08)] border-[rgba(139,92,246,0.3)] [&>[data-title]]:text-[#c4b5fd]',
+  chess: 'bg-[color-mix(in_srgb,var(--c-game-chess)_8%,transparent)] border-[color-mix(in_srgb,var(--c-game-chess)_30%,transparent)] [&>[data-title]]:text-[var(--c-game-chess-light)]',
+  checkers: 'bg-[color-mix(in_srgb,var(--c-game-checkers)_8%,transparent)] border-[color-mix(in_srgb,var(--c-game-checkers)_30%,transparent)] [&>[data-title]]:text-[var(--c-game-checkers-light)]',
+  reversi: 'bg-[color-mix(in_srgb,var(--c-game-reversi)_8%,transparent)] border-[color-mix(in_srgb,var(--c-game-reversi)_30%,transparent)] [&>[data-title]]:text-[var(--c-game-reversi-light)]',
+  liquidate: 'bg-[color-mix(in_srgb,var(--c-game-liquidate)_8%,transparent)] border-[color-mix(in_srgb,var(--c-game-liquidate)_30%,transparent)] [&>[data-title]]:text-[var(--c-game-liquidate-light)]',
   gold: 'bg-accent-muted border-accent/35 [&>[data-title]]:text-accent',
 };
 

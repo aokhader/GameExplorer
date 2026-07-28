@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Screen, Button } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { markOnboarded } from '@/lib/onboarding';
@@ -15,10 +15,14 @@ const GAMES: { id: GameId; name: string; tagline: string }[] = [
   { id: 'reversi', name: 'Reversi', tagline: 'Quick to master' },
 ];
 
-const DIFFICULTIES: { id: Difficulty; name: string; icon: string; tagline: string; accent: string }[] = [
-  { id: 'relaxed', name: 'Relaxed', icon: '😌', tagline: 'Forgiving — great to learn', accent: COLORS.successHover },
-  { id: 'balanced', name: 'Balanced', icon: '🙂', tagline: 'A fair fight', accent: COLORS.info },
-  { id: 'sharp', name: 'Sharp', icon: '🔥', tagline: 'Bring your A-game', accent: COLORS.dangerHover },
+// Colors are looked up during render, never captured here — the token objects
+// are live views, so a module-scope read freezes them at import (see themeRuntime).
+const DIFFICULTIES: {
+  id: Difficulty; name: string; icon: string; tagline: string; accentKey: keyof typeof COLORS;
+}[] = [
+  { id: 'relaxed', name: 'Relaxed', icon: '😌', tagline: 'Forgiving — great to learn', accentKey: 'successHover' },
+  { id: 'balanced', name: 'Balanced', icon: '🙂', tagline: 'A fair fight', accentKey: 'info' },
+  { id: 'sharp', name: 'Sharp', icon: '🔥', tagline: 'Bring your A-game', accentKey: 'dangerHover' },
 ];
 
 function OptionRow({
@@ -37,6 +41,9 @@ function OptionRow({
   accent: string;
   onPress: () => void;
 }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -84,6 +91,9 @@ function OptionRow({
  * (a placeholder until the native boards land in M2/M3).
  */
 export default function WelcomeScreen() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [game, setGame] = useState<GameId>('chess');
@@ -190,7 +200,7 @@ export default function WelcomeScreen() {
                 name={d.name}
                 tagline={d.tagline}
                 selected={difficulty === d.id}
-                accent={d.accent}
+                accent={COLORS[d.accentKey]}
                 onPress={() => setDifficulty(d.id)}
               />
             ))}

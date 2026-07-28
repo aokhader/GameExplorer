@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 
 export type GameAccent = 'chess' | 'checkers' | 'reversi';
 
@@ -47,6 +47,9 @@ export function GameScreenLayout({
   sidebar,
   bottomBar,
 }: GameScreenLayoutProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
   const accentColor = accent ? GAME_ACCENTS[accent].base : COLORS.accent;
 

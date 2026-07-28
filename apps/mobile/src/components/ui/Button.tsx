@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplorer/ui';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -30,6 +30,9 @@ export function Button({
   glow = false,
   style,
 }: ButtonProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const isDisabled = disabled || loading;
 
   const content = (
@@ -83,8 +86,8 @@ export function Button({
       >
         {({ pressed }) => (
           <LinearGradient
-            colors={GRADIENTS_NATIVE.accent.colors as [string, string, ...string[]]}
-            locations={GRADIENTS_NATIVE.accent.locations as [number, number, ...number[]]}
+            colors={GRADIENTS_NATIVE.accent.colors}
+            locations={GRADIENTS_NATIVE.accent.locations}
             start={GRADIENTS_NATIVE.accent.start}
             end={GRADIENTS_NATIVE.accent.end}
             style={[base, { opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1 }]}

@@ -11,7 +11,7 @@ import Svg, {
   TSpan,
 } from 'react-native-svg';
 import { useAuth } from '@gameexplorer/client';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, GRADIENTS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplorer/ui';
 
 import { GlowBackdrop } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
@@ -19,25 +19,13 @@ import { getLastPlayed } from '@/lib/lastPlayed';
 import { hasOnboarded } from '@/lib/onboarding';
 import { FONTS } from '@/theme/typography';
 
+// Only the game's identity lives at module scope. Storing `accent:
+// GAME_ACCENTS.chess` here would freeze the accent at import time — the token
+// objects are live views, so they have to be read during render.
 const GAMES = [
-  {
-    key: 'chess',
-    label: 'Chess',
-    tagline: 'Outplay the bot at every level.',
-    accent: GAME_ACCENTS.chess,
-  },
-  {
-    key: 'checkers',
-    label: 'Checkers',
-    tagline: 'Fast, punchy, endlessly re-matchable.',
-    accent: GAME_ACCENTS.checkers,
-  },
-  {
-    key: 'reversi',
-    label: 'Reversi',
-    tagline: 'Swing the whole board in one move.',
-    accent: GAME_ACCENTS.reversi,
-  },
+  { key: 'chess', label: 'Chess', tagline: 'Outplay the bot at every level.' },
+  { key: 'checkers', label: 'Checkers', tagline: 'Fast, punchy, endlessly re-matchable.' },
+  { key: 'reversi', label: 'Reversi', tagline: 'Swing the whole board in one move.' },
 ] as const;
 
 const FEATURES = [
@@ -53,6 +41,9 @@ const FEATURES = [
  * welcome tour once (mirrors web's onboarding redirect).
  */
 export default function HomeScreen() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
   const { user, loading } = useAuth();
   const [checkedOnboarding, setCheckedOnboarding] = useState(false);
@@ -243,7 +234,7 @@ export default function HomeScreen() {
                 style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
               >
                 <LinearGradient
-                  colors={[g.accent.tintBg, g.accent.tintBgSoft]}
+                  colors={[GAME_ACCENTS[g.key].tintBg, GAME_ACCENTS[g.key].tintBgSoft]}
                   start={{ x: 0.5, y: 0 }}
                   end={{ x: 0.5, y: 1 }}
                   style={{
@@ -253,10 +244,10 @@ export default function HomeScreen() {
                     padding: 16,
                     borderRadius: 18,
                     borderWidth: 1,
-                    borderColor: g.accent.tintBorder,
+                    borderColor: GAME_ACCENTS[g.key].tintBorder,
                     // The design's per-card bloom — tighter than GLOWS_NATIVE's
                     // shared halo, so it stays inline rather than tokenized.
-                    boxShadow: `0 0 34px -16px ${g.accent.glow}`,
+                    boxShadow: `0 0 34px -16px ${GAME_ACCENTS[g.key].glow}`,
                   }}
                 >
                   <View
@@ -266,10 +257,10 @@ export default function HomeScreen() {
                       borderRadius: 15,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: g.accent.tintBg,
+                      backgroundColor: GAME_ACCENTS[g.key].tintBg,
                       borderWidth: 1,
-                      borderColor: g.accent.tintBorder,
-                      boxShadow: `0 0 22px -6px ${g.accent.glow}`,
+                      borderColor: GAME_ACCENTS[g.key].tintBorder,
+                      boxShadow: `0 0 22px -6px ${GAME_ACCENTS[g.key].glow}`,
                     }}
                   >
                     <GamePieceIcon game={g.key} size={34} />
@@ -290,7 +281,7 @@ export default function HomeScreen() {
                       {g.tagline}
                     </Text>
                   </View>
-                  <Text style={{ color: g.accent.light, fontSize: 24, fontFamily: FONTS.bodyBold }}>
+                  <Text style={{ color: GAME_ACCENTS[g.key].light, fontSize: 24, fontFamily: FONTS.bodyBold }}>
                     ›
                   </Text>
                 </LinearGradient>

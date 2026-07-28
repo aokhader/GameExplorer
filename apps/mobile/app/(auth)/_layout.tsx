@@ -1,8 +1,11 @@
 import { Stack } from 'expo-router';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 
 /** Auth group — sign in / sign up, presented as a modal stack over the hub. */
 export default function AuthLayout() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <Stack
       screenOptions={{

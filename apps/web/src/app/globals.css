@@ -88,6 +88,44 @@
   --c-game-liquidate:      #8b5cf6;
   --c-game-liquidate-glow: rgba(139, 92, 246, 0.45);
 
+  /* Per-game TINT ramp — the tinted-card treatment (profile rating cards): a hue
+     wash fading to a tail, a hue hairline, a matching bloom, and a lightened hue
+     for the numeral sitting on it. Mirrors `GAME_ACCENTS.tint*` / `.light` in
+     tokens.ts, which mobile reads; the alphas here are the web page's own and run
+     a touch softer. */
+  --c-game-chess-light:        #7db1ff;
+  --c-game-chess-tint:         rgba(59, 130, 246, 0.14);
+  --c-game-chess-tint-border:  rgba(59, 130, 246, 0.35);
+  --c-game-chess-card-glow:    0 0 30px -16px rgba(59, 130, 246, 0.7);
+  --c-game-checkers-light:       #ff8fc4;
+  --c-game-checkers-tint:        rgba(236, 72, 153, 0.14);
+  --c-game-checkers-tint-border: rgba(236, 72, 153, 0.35);
+  --c-game-checkers-card-glow:   0 0 30px -16px rgba(236, 72, 153, 0.7);
+  --c-game-reversi-light:        #bef264;
+  --c-game-reversi-tint:         rgba(163, 230, 53, 0.12);
+  --c-game-reversi-tint-border:  rgba(163, 230, 53, 0.32);
+  --c-game-reversi-card-glow:    0 0 30px -16px rgba(163, 230, 53, 0.6);
+  --c-game-liquidate-light:       #c4b5fd;
+  --c-game-liquidate-tint:        rgba(139, 92, 246, 0.14);
+  --c-game-liquidate-tint-border: rgba(139, 92, 246, 0.35);
+  --c-game-liquidate-card-glow:   0 0 30px -16px rgba(139, 92, 246, 0.7);
+  /* Shared tail the tint fades into — a white lift on dark, a warm shade on light. */
+  --c-game-tint-tail:            rgba(255, 255, 255, 0.02);
+
+  /* Brand accent tuned for use AS TEXT (big numerals, active pills), where the
+     accent fill color itself is either too dim or too loud. */
+  --c-accent-text:    #f0d589;
+  /* Ringless accent bloom under a primary CTA — `--shadow-glow-accent` with its
+     1px ring dropped, for buttons that already have their own edge. */
+  --c-accent-bloom:   0 0 30px -6px rgba(205, 164, 63, 0.7);
+  /* Hero wash on the onboarding welcome card (step 1 only). */
+  --c-welcome-wash:
+    radial-gradient(600px 300px at 50% -10%, rgba(59,130,246,0.20), transparent 60%),
+    radial-gradient(500px 260px at 90% 10%,  rgba(236,72,153,0.14), transparent 60%);
+  /* Profile avatar monogram tile. */
+  --c-avatar-gradient: linear-gradient(160deg, #3b82f6, #8b5cf6);
+  --c-avatar-glow:     0 0 40px -8px rgba(99, 102, 241, 0.8);
+
   --c-danger:         #f43f5e;
   --c-danger-hover:   #fb7185;
   --c-danger-muted:   rgba(244, 63, 94, 0.14);
@@ -151,6 +189,7 @@
   --gx-board-lastmove-dark:  rgba(205, 164, 63, 0.52);
   --gx-board-move:           rgba(34, 211, 170, 0.85);
   --gx-board-move-capture:   rgba(34, 211, 170, 0.55);
+  --gx-board-turn-glow:      0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(59,130,246,0.6), 0 0 30px -2px rgba(59,130,246,0.55);
 
   --gx-checkers-board-light:          #445576;
   --gx-checkers-board-dark:           #2a3550;
@@ -169,6 +208,19 @@
   --gx-reversi-board-valid-white: rgba(255, 255, 255, 0.32);
   --gx-reversi-board-lastmove-ring: rgba(190, 242, 100, 0.85);
   --gx-reversi-board-turn-glow:   0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(163,230,53,0.6), 0 0 30px -2px rgba(163,230,53,0.5);
+
+  /* Liquidate board — pairs with LIQUIDATE_BOARD_COLORS in the ui package. The
+     board is dark board-art in every theme (like reversi's felt), so text sitting
+     ON it gets its own fg pair rather than the page's, which inverts per theme. */
+  --c-liquidate-frame:       #0b0e17;
+  --c-liquidate-tile:        #141b2d;
+  --c-liquidate-corner:      #1a2338;
+  --c-liquidate-well:        #0d1220;
+  --c-liquidate-border:      #2b3652;
+  --c-liquidate-active-ring: #cda43f;
+  --c-liquidate-mortgaged:   rgba(244, 63, 94, 0.22);
+  --c-liquidate-tile-fg:       var(--c-fg);
+  --c-liquidate-tile-fg-muted: var(--c-fg-muted);
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -223,6 +275,40 @@
      Arcade ink, so the warm hues stay warm. */
   --c-game-card-shade:     #2c1a0c;
 
+  /* Tint ramp: the numeral takes the SATURATED hue, not a lightened one — on
+     parchment the Arcade "light" step (#7db1ff etc.) is what made these cards
+     read as neon. The bloom becomes a soft warm drop shadow; a colored halo on
+     cream just looks like a printing error. */
+  --c-game-chess-light:        #74491f;
+  --c-game-chess-tint:         rgba(139, 90, 43, 0.10);
+  --c-game-chess-tint-border:  rgba(169, 116, 63, 0.45);
+  --c-game-chess-card-glow:    0 8px 20px -14px rgba(124, 82, 48, 0.5);
+  --c-game-checkers-light:       #23543b;
+  --c-game-checkers-tint:        rgba(47, 110, 78, 0.10);
+  --c-game-checkers-tint-border: rgba(47, 110, 78, 0.42);
+  --c-game-checkers-card-glow:   0 8px 20px -14px rgba(47, 110, 78, 0.5);
+  --c-game-reversi-light:        #3b2e21;
+  --c-game-reversi-tint:         rgba(59, 46, 33, 0.09);
+  --c-game-reversi-tint-border:  rgba(59, 46, 33, 0.38);
+  --c-game-reversi-card-glow:    0 8px 20px -14px rgba(59, 46, 33, 0.45);
+  --c-game-liquidate-light:       #8a4526;
+  --c-game-liquidate-tint:        rgba(184, 114, 74, 0.11);
+  --c-game-liquidate-tint-border: rgba(184, 114, 74, 0.42);
+  --c-game-liquidate-card-glow:   0 8px 20px -14px rgba(184, 114, 74, 0.5);
+  --c-game-tint-tail:            rgba(139, 90, 43, 0.02);
+
+  /* Deeper than `--c-accent` — this tone also carries 12px pill labels sitting on
+     an `accent-muted` fill, where the button green itself lands at ~4.1:1. */
+  --c-accent-text:     #23543b;
+  --c-accent-bloom:    0 8px 22px -10px rgba(47, 110, 78, 0.55);
+  --c-welcome-wash:
+    radial-gradient(600px 300px at 50% -10%, rgba(169,116,63,0.16), transparent 60%),
+    radial-gradient(500px 260px at 90% 10%,  rgba(47,110,78,0.10),  transparent 60%);
+  /* Deeper than the walnut elsewhere: this tile carries a white monogram down to
+     14px, and the lighter walnut put it at 4.0:1. */
+  --c-avatar-gradient: linear-gradient(160deg, #96622f, #5e3f22);
+  --c-avatar-glow:     0 10px 24px -12px rgba(110, 74, 42, 0.65);
+
   --c-danger:         #a2482e;
   --c-danger-hover:   #85391f;
   --c-danger-muted:   rgba(162, 72, 46, 0.12);
@@ -235,11 +321,16 @@
   --c-success-hover:  #275c41;
 
   --c-fg:             #2c2117;
-  /* The design's secondary tone is #6f6350; darkened one step so it still clears
-     AA (4.9:1) on `surface-muted`, the tone under pills and inputs, where the
-     original landed at 4.3:1. On the page surface both read the same. */
-  --c-fg-muted:       #665a47;
-  --c-fg-subtle:      #9c8f79;
+  /* The design's secondary tone is #6f6350. Darkened so it clears AA on the
+     DARKEST surface it lands on — the tinted profile rating cards (4.7:1), which
+     sit under the page's ambient wash as well as a hue tint. On the plain page
+     surface it reads at 5.8:1, close enough to the design's intent. */
+  --c-fg-muted:       #5e5341;
+  /* Also darker than the design's #9c8f79. `fg-subtle` is the deliberately-dim
+     tertiary tone and doesn't clear AA in either theme, but at #9c8f79 it sat at
+     2.5:1 on cream versus ~3.3:1 for its Arcade counterpart — this restores parity
+     rather than making the tone louder than the system intends. */
+  --c-fg-subtle:      #857761;
   --c-fg-inverse:     #faf4e8;
 
   --c-focus-ring:     #2f6e4e;
@@ -259,7 +350,9 @@
   --shadow-glow-reversi:  0 0 0 1px rgba(59,46,33,0.40),   0 10px 24px -10px rgba(59,46,33,0.45);
   --shadow-glow-liquidate:0 0 0 1px rgba(184,114,74,0.45), 0 10px 24px -10px rgba(184,114,74,0.50);
 
-  --gradient-accent:  linear-gradient(180deg, #3f8a63 0%, #2f6e4e 55%, #275c41 100%);
+  /* Top stop is darker than the hover green: this gradient is a CTA fill carrying
+     `on-accent` cream down to 14px, and a lighter lit edge dropped it to 3.5:1. */
+  --gradient-accent:  linear-gradient(180deg, #337157 0%, #2f6e4e 55%, #275c41 100%);
   /* Sheen inverts: on a light card the lit edge comes from white, but the *body*
      needs a faint warm shade at the bottom or the card floats with no volume. */
   --gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(139,90,43,0.03) 100%);
@@ -270,14 +363,19 @@
   --grain-opacity: 0.06;
   --gradient-text-accent: linear-gradient(135deg, #8b5a2b 0%, #2f6e4e 60%, #275c41 100%);
   --gradient-text-brand:  linear-gradient(90deg, #8b5a2b 0%, #2f6e4e 100%);
-  --page-glow-chess:     radial-gradient(900px 500px at 20% 0%, rgba(169,116,63,0.22), transparent 60%);
-  --page-glow-checkers:  radial-gradient(900px 500px at 20% 0%, rgba(47,110,78,0.16),  transparent 60%);
-  --page-glow-reversi:   radial-gradient(900px 500px at 20% 0%, rgba(59,46,33,0.13),   transparent 60%);
-  --page-glow-liquidate: radial-gradient(900px 500px at 20% 0%, rgba(184,114,74,0.18), transparent 60%);
-  --page-glow-gold:      radial-gradient(1000px 500px at 50% -10%, rgba(169,116,63,0.22), transparent 60%);
+  /* Ambient washes run lighter than Arcade Glow's. A dark theme's glow ADDS light,
+     so text contrast improves under it; on parchment the wash subtracts light from
+     an already-light surface, and at the design doc's ~0.22 it pulled `fg-muted`
+     under AA at the hot spot. These are the strongest values that keep every text
+     tone legible at the peak of the bloom. */
+  --page-glow-chess:     radial-gradient(900px 500px at 20% 0%, rgba(169,116,63,0.15), transparent 60%);
+  --page-glow-checkers:  radial-gradient(900px 500px at 20% 0%, rgba(47,110,78,0.12),  transparent 60%);
+  --page-glow-reversi:   radial-gradient(900px 500px at 20% 0%, rgba(59,46,33,0.10),   transparent 60%);
+  --page-glow-liquidate: radial-gradient(900px 500px at 20% 0%, rgba(184,114,74,0.13), transparent 60%);
+  --page-glow-gold:      radial-gradient(1000px 500px at 50% -10%, rgba(169,116,63,0.14), transparent 60%);
   --page-glow-profile:
-    radial-gradient(900px 480px at 15% -10%, rgba(169,116,63,0.20), transparent 58%),
-    radial-gradient(700px 400px at 95% 0%,   rgba(47,110,78,0.12),  transparent 58%);
+    radial-gradient(900px 480px at 15% -10%, rgba(169,116,63,0.13), transparent 58%),
+    radial-gradient(700px 400px at 95% 0%,   rgba(47,110,78,0.09),  transparent 58%);
 
   /* ── Boards & pieces ──────────────────────────────────────────────────────
    * The board/piece components carry their Arcade Glow values as literal CSS
@@ -294,6 +392,7 @@
   --gx-board-lastmove-dark:  rgba(47, 110, 78, 0.50);
   --gx-board-move:           rgba(47, 110, 78, 0.65);
   --gx-board-move-capture:   rgba(47, 110, 78, 0.50);
+  --gx-board-turn-glow:      0 12px 28px -6px rgba(60,40,20,0.35), 0 0 0 2px rgba(47,110,78,0.75);
 
   --gx-checkers-board-light:          #e7c9a0;
   --gx-checkers-board-dark:           #a9743f;
@@ -366,6 +465,19 @@
   --gx-reversi-disc-black-halo:   rgba(0, 0, 0, 0.55);
   --gx-reversi-disc-black-sheen:  rgba(214, 190, 160, 0.30);
   --gx-reversi-disc-black-shade:  rgba(0, 0, 0, 0.45);
+
+  /* Liquidate becomes a wooden board rather than a blue-slate one. It stays dark
+     — a lit board on a lit page has nothing to sit against — so its own fg pair
+     stays light while the page's flips. */
+  --c-liquidate-frame:       #2c1a0c;
+  --c-liquidate-tile:        #3f3021;
+  --c-liquidate-corner:      #513f2c;
+  --c-liquidate-well:        #241408;
+  --c-liquidate-border:      #5a4636;
+  --c-liquidate-active-ring: #d9a94e;
+  --c-liquidate-mortgaged:   rgba(192, 104, 90, 0.28);
+  --c-liquidate-tile-fg:       #f4ecd9;
+  --c-liquidate-tile-fg-muted: #c4b99e;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -396,6 +508,13 @@
 [data-theme='cozy'] [class~='bg-white/20']     { background-color: rgba(139, 90, 43, 0.14); }
 [data-theme='cozy'] [class~='hover:bg-white/5']:hover  { background-color: rgba(139, 90, 43, 0.06); }
 [data-theme='cozy'] [class~='hover:bg-white/10']:hover { background-color: rgba(139, 90, 43, 0.10); }
+/* Arbitrary-value spellings of the same gesture (`bg-white/[0.04]`). Tailwind
+   treats these as distinct classes, so they need their own entries. */
+[data-theme='cozy'] [class~='border-white/[0.06]'] { border-color: rgba(139, 90, 43, 0.14); }
+[data-theme='cozy'] [class~='border-white/[0.08]'] { border-color: rgba(139, 90, 43, 0.17); }
+[data-theme='cozy'] [class~='bg-white/[0.03]']     { background-color: rgba(139, 90, 43, 0.035); }
+[data-theme='cozy'] [class~='bg-white/[0.04]']     { background-color: rgba(139, 90, 43, 0.045); }
+[data-theme='cozy'] [class~='hover:bg-white/[0.07]']:hover { background-color: rgba(139, 90, 43, 0.075); }
 
 /* In-game emote reactions (multiplayer) */
 @keyframes emoteFloat {

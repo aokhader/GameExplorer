@@ -1,16 +1,18 @@
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { GameTutorial } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, Card, GlowBackdrop } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
 import { TutorialBoard } from './TutorialBoard';
 
-const GLOWS = {
-  chess: GLOWS_NATIVE.glowChess,
-  checkers: GLOWS_NATIVE.glowCheckers,
-  reversi: GLOWS_NATIVE.glowReversi,
+// Colors are looked up during render, never captured here — the token objects
+// are live views, so a module-scope read freezes them at import (see themeRuntime).
+const GLOW_KEY = {
+  chess: 'glowChess',
+  checkers: 'glowCheckers',
+  reversi: 'glowReversi',
 } as const;
 
 /**
@@ -19,8 +21,9 @@ const GLOWS = {
  * only ever passes a game this app can render; the fallback just keeps the
  * screen total if that ever stops being true.
  */
-type MobileTutorialGame = keyof typeof GLOWS;
-const isMobileGame = (game: GameTutorial['game']): game is MobileTutorialGame => game in GLOWS;
+type MobileTutorialGame = keyof typeof GLOW_KEY;
+const isMobileGame = (game: GameTutorial['game']): game is MobileTutorialGame =>
+  game in GLOW_KEY;
 
 /**
  * Scrollable "How to play" screen — the mobile rendering of the shared
@@ -28,6 +31,9 @@ const isMobileGame = (game: GameTutorial['game']): game is MobileTutorialGame =>
  * glowing icon badge, section headings, and a bot CTA at the end.
  */
 export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
   const game = isMobileGame(tutorial.game) ? tutorial.game : 'chess';
   const accent = GAME_ACCENTS[game];
@@ -52,7 +58,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
             borderWidth: 1,
             borderColor: accent.tintBorder,
             marginBottom: 16,
-            boxShadow: GLOWS[game],
+            boxShadow: GLOWS_NATIVE[GLOW_KEY[game]],
           }}
         >
           <GamePieceIcon game={game} size={48} />

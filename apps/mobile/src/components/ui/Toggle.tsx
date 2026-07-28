@@ -1,5 +1,5 @@
 import { Pressable, View } from 'react-native';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 
 interface ToggleProps {
   value: boolean;
@@ -14,6 +14,9 @@ interface ToggleProps {
  * than RN's `Switch` so the track/knob colors come from tokens on both platforms.
  */
 export function Toggle({ value, onValueChange, label, disabled = false }: ToggleProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <Pressable
       accessibilityRole="switch"

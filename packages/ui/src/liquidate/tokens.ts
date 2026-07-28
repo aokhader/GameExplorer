@@ -10,6 +10,8 @@
  * so a player can rank a system at a glance without reading the price.
  */
 
+import { liveView } from '../themeRuntime';
+
 export const LIQUIDATE_SYSTEM_COLORS = {
   ember:   '#ef4444',
   rust:    '#f97316',
@@ -24,7 +26,7 @@ export const LIQUIDATE_SYSTEM_COLORS = {
 export type LiquidateSystemKey = keyof typeof LIQUIDATE_SYSTEM_COLORS;
 
 /** Board surfaces. Deliberately dark — the system bands supply the colour. */
-export const LIQUIDATE_BOARD_COLORS = {
+const DARK_LIQUIDATE_BOARD_COLORS = {
   /** The board's outer frame / gutter between tiles. */
   frame: '#0b0e17',
   /** A normal tile face. */
@@ -39,7 +41,30 @@ export const LIQUIDATE_BOARD_COLORS = {
   activeRing: '#cda43f',
   /** Tint over a mortgaged holding. */
   mortgaged: 'rgba(244,63,94,0.22)',
+  /** Text on a tile. The board is dark art in EVERY theme, so this never flips
+   *  with the page's foreground — that is what turns tile labels invisible. */
+  tileFg: '#e7ecf6',
+  tileFgMuted: '#9aa6bd',
 } as const;
+
+/**
+ * Cozy: a wooden board rather than a blue-slate one. It stays dark — a lit board
+ * on a lit page has nothing to sit against — so its own fg pair stays light.
+ */
+const COZY_LIQUIDATE_BOARD_COLORS = {
+  frame: '#2c1a0c',
+  tile: '#3f3021',
+  corner: '#513f2c',
+  well: '#241408',
+  border: '#5a4636',
+  activeRing: '#d9a94e',
+  mortgaged: 'rgba(192,104,90,0.28)',
+  tileFg: '#f4ecd9',
+  tileFgMuted: '#c4b99e',
+} as const;
+
+export const LIQUIDATE_BOARD_COLORS =
+  liveView({ dark: DARK_LIQUIDATE_BOARD_COLORS, cozy: COZY_LIQUIDATE_BOARD_COLORS });
 
 /** Per-seat token colours, in seat order — up to six players. */
 export const LIQUIDATE_SEAT_COLORS = [

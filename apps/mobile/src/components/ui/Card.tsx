@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
-import { COLORS, SHADOWS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, SHADOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
 
 interface CardProps {
   children: ReactNode;
@@ -14,6 +14,9 @@ interface CardProps {
  * hairline border, rounded-2xl. `raised` adds the elevation shadow token.
  */
 export function Card({ children, raised = false, style }: CardProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <View
       style={[

@@ -207,8 +207,8 @@
     animation: capture-burst 0.32s ease-out forwards;
     background: radial-gradient(
       circle,
-      rgba(205, 164, 63, 0.75) 0%,
-      rgba(205, 164, 63, 0.35) 45%,
+      color-mix(in srgb, var(--gx-board-selected, #cda43f) 75%, transparent) 0%,
+      color-mix(in srgb, var(--gx-board-selected, #cda43f) 35%, transparent) 45%,
       transparent 70%
     );
   }
@@ -237,11 +237,15 @@
 .chess-board {
   transition: box-shadow 0.3s ease;
 }
+/* "It's your move" halo. Pairs with the checkers/reversi turn glows, which take
+   the same var treatment (see their board components). */
 .chess-board.my-turn {
-  box-shadow:
+  box-shadow: var(
+    --gx-board-turn-glow,
     0 12px 28px -6px rgba(0, 0, 0, 0.5),
     0 0 0 2px rgba(59, 130, 246, 0.6),
-    0 0 30px -2px rgba(59, 130, 246, 0.55);
+    0 0 30px -2px rgba(59, 130, 246, 0.55)
+  );
 }
 
 @media (prefers-reduced-motion: no-preference) {

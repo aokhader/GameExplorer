@@ -7,7 +7,7 @@ import {
   moveHistoryToPdn,
   type CheckersGameState,
 } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { CheckersBoard } from '@/board/CheckersBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
@@ -23,8 +23,6 @@ import { useSettings } from '@/providers/SettingsProvider';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
 
-const PINK = GAME_ACCENTS.checkers.base;
-const PINK_TINT = 'rgba(236,72,153,0.12)';
 
 const DIFFICULTY_LEVELS = [
   { elo: 500, label: 'Beginner', description: 'Misses captures, blunders pieces', icon: '🟢' },
@@ -101,7 +99,7 @@ export function CheckersScreen() {
     return (
       <Screen>
         <GlowBackdrop
-          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: PINK, opacity: 0.16 }]}
+          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.checkers.base, opacity: 0.16 }]}
         />
         <BackHeader fallbackHref="/" />
         <SetupHero game="checkers" />
@@ -113,12 +111,12 @@ export function CheckersScreen() {
           hitSlop={8}
           style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
         >
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: PINK }}>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: GAME_ACCENTS.checkers.base }}>
             New to checkers? How to play →
           </Text>
         </Pressable>
 
-        <OpponentPicker value={mode} onChange={setMode} accent={PINK} tint={PINK_TINT} />
+        <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.checkers.base} tint={GAME_ACCENTS.checkers.tintBg} />
 
         {!isPassAndPlay && (
           <>
@@ -141,12 +139,12 @@ export function CheckersScreen() {
                       borderRadius: 14,
                       borderWidth: 2,
                       padding: 12,
-                      backgroundColor: selected ? PINK_TINT : COLORS.surfaceAlt,
-                      borderColor: selected ? PINK : COLORS.border,
+                      backgroundColor: selected ? GAME_ACCENTS.checkers.tintBg : COLORS.surfaceAlt,
+                      borderColor: selected ? GAME_ACCENTS.checkers.base : COLORS.border,
                     }}
                   >
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? PINK : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
                       {level.label}
                     </Text>
                     <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
@@ -176,8 +174,8 @@ export function CheckersScreen() {
                       borderWidth: 2,
                       padding: 16,
                       alignItems: 'center',
-                      backgroundColor: selected ? PINK_TINT : COLORS.surfaceAlt,
-                      borderColor: selected ? PINK : COLORS.border,
+                      backgroundColor: selected ? GAME_ACCENTS.checkers.tintBg : COLORS.surfaceAlt,
+                      borderColor: selected ? GAME_ACCENTS.checkers.base : COLORS.border,
                     }}
                   >
                     <View
@@ -191,7 +189,7 @@ export function CheckersScreen() {
                         borderColor: color === 'white' ? '#8a6a1f' : '#1e40af',
                       }}
                     />
-                    <Text style={{ color: selected ? PINK : COLORS.fg, fontSize: 15, fontWeight: '700', textTransform: 'capitalize' }}>
+                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: 15, fontWeight: '700', textTransform: 'capitalize' }}>
                       {color}
                     </Text>
                     <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
@@ -460,6 +458,9 @@ export function CheckersScreen() {
 }
 
 function InfoCell({ label, value, capitalize }: { label: string; value: string; capitalize?: boolean }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <View style={{ flexDirection: 'row', gap: 6, width: '50%', paddingVertical: 2 }}>
       <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}:</Text>
@@ -471,6 +472,9 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
 }
 
 function PieceCount({ color, border, count }: { color: string; border: string; count: number }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
       <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: color, borderWidth: 2, borderColor: border }} />

@@ -532,14 +532,14 @@ export default function CheckersTrainingPage() {
                 <div className="mt-2 pt-2 border-t border-white/10 flex justify-around text-xs">
                   <div className="flex items-center gap-1.5">
                     <svg width="14" height="14" viewBox="0 0 45 45">
-                      <circle cx="22.5" cy="22" r="17" fill="#f4d270" stroke="#8a6a1f" strokeWidth="2" />
+                      <circle cx="22.5" cy="22" r="17" fill="var(--gx-checkers-piece-white-2, #f4d270)" stroke="var(--gx-checkers-piece-white-3, #8a6a1f)" strokeWidth="2" />
                     </svg>
                     <span className="font-semibold text-fg">{counts.white}</span>
                   </div>
                   <div className="text-fg-muted">vs</div>
                   <div className="flex items-center gap-1.5">
                     <svg width="14" height="14" viewBox="0 0 45 45">
-                      <circle cx="22.5" cy="22" r="17" fill="#3b82f6" stroke="#1e40af" strokeWidth="2" />
+                      <circle cx="22.5" cy="22" r="17" fill="var(--gx-checkers-piece-black-2, #3b82f6)" stroke="var(--gx-checkers-piece-black-3, #1e40af)" strokeWidth="2" />
                     </svg>
                     <span className="font-semibold text-fg">{counts.black}</span>
                   </div>
@@ -610,7 +610,7 @@ export default function CheckersTrainingPage() {
                               onClick={() => setViewIndex(stateIdx)}
                               className={`flex-1 text-left px-2 py-0.5 rounded transition-colors truncate ${
                                 isActive
-                                  ? 'bg-[rgba(205,164,63,0.18)] text-[#f0d589] font-semibold'
+                                  ? 'bg-[color-mix(in_srgb,var(--c-accent)_18%,transparent)] text-[var(--c-accent-text)] font-semibold'
                                   : 'text-fg-muted hover:bg-white/5'
                               }`}
                             >

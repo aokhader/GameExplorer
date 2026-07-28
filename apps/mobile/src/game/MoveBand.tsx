@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import type { GameAccent } from '@/game/GameScreenLayout';
 
 export interface MoveBandProps {
@@ -28,6 +28,9 @@ export interface MoveBandProps {
  * the bottom `GameBar`, so the band is display + jump only.
  */
 export function MoveBand({ moves: san, viewIndex, onSeek, accent }: MoveBandProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const accentColor = GAME_ACCENTS[accent].base;
   const scrollRef = useRef<ScrollView>(null);
   // Chip x-offsets, captured on layout, so the auto-scroll can centre one.
@@ -63,7 +66,7 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent }: MoveBandProp
 
   if (san.length === 0) {
     return (
-      <View style={bandStyle}>
+      <View style={bandStyle()}>
         <Text style={{ color: COLORS.fgSubtle, fontSize: 13, paddingHorizontal: 10 }}>
           No moves yet — make your first move
         </Text>
@@ -72,7 +75,7 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent }: MoveBandProp
   }
 
   return (
-    <View style={bandStyle}>
+    <View style={bandStyle()}>
       <ScrollView
         ref={scrollRef}
         horizontal
@@ -137,12 +140,15 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent }: MoveBandProp
   );
 }
 
-const bandStyle = {
-  height: 44,
-  justifyContent: 'center',
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: COLORS.border,
-  backgroundColor: COLORS.surfaceAlt,
-  paddingHorizontal: 4,
-} as const;
+// Colors are looked up during render, never captured here — the token objects
+// are live views, so a module-scope read freezes them at import (see themeRuntime).
+const bandStyle = () =>
+  ({
+    height: 44,
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceAlt,
+    paddingHorizontal: 4,
+  }) as const;

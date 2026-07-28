@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader } from '@/components/ui';
 import { setLastPlayed, type GameKey } from '@/lib/lastPlayed';
 import { CheckersScreen } from '@/screens/CheckersScreen';
@@ -20,6 +20,9 @@ const LABELS: Record<string, string> = {
  * unknown game key.
  */
 export default function GameScreen() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const { game } = useLocalSearchParams<{ game: string }>();
   const key = (game ?? 'chess').toLowerCase();
 

@@ -1,10 +1,15 @@
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, RADIUS, type ThemeName, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader, Card, Toggle } from '@/components/ui';
 import { useSettings, type Settings } from '@/providers/SettingsProvider';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
 import { PRIVACY_URL, SOURCE_REPO_URL, SUPPORT_EMAIL, supportMailtoUrl } from '@/config/support';
+
+/** Settings a Toggle can drive — the boolean ones. */
+type BooleanSettingKey = {
+  [K in keyof Settings]: Settings[K] extends boolean ? K : never;
+}[keyof Settings];
 
 function SettingRow({
   title,
@@ -14,7 +19,7 @@ function SettingRow({
 }: {
   title: string;
   description: string;
-  settingKey: keyof Settings;
+  settingKey: BooleanSettingKey;
   first?: boolean;
 }) {
   const { settings, setSetting } = useSettings();
@@ -54,6 +59,9 @@ function LinkRow({
   onPress: () => void;
   first?: boolean;
 }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <Pressable
       onPress={onPress}
@@ -79,7 +87,174 @@ function LinkRow({
   );
 }
 
+/**
+ * Theme picker. Each card previews its own theme, so the swatches are literal hex
+ * rather than tokens — a card has to show its palette while the *other* theme is
+ * the active one, which a live token can't do. Keep in step with `THEMES` in
+ * `packages/ui/src/tokens.ts` if a palette moves.
+ */
+interface ThemeOption {
+  id: ThemeName;
+  name: string;
+  tagline: string;
+  surface: string;
+  surfaceAlt: string;
+  border: string;
+  fg: string;
+  fgMuted: string;
+  accent: string;
+  boardLight: string;
+  boardDark: string;
+}
+
+const THEME_OPTIONS: ThemeOption[] = [
+  {
+    id: 'dark',
+    name: 'Arcade Glow',
+    tagline: 'Neon on near-black, gold action.',
+    surface: '#0b0e17',
+    surfaceAlt: '#141b2d',
+    border: '#2b3652',
+    fg: '#e7ecf6',
+    fgMuted: '#9aa6bd',
+    accent: '#cda43f',
+    boardLight: '#445576',
+    boardDark: '#2a3550',
+  },
+  {
+    id: 'cozy',
+    name: 'Cozy Tabletop',
+    tagline: 'Warm wood and felt, green action.',
+    surface: '#efe6d3',
+    surfaceAlt: '#faf4e8',
+    border: '#cdbb98',
+    fg: '#2c2117',
+    fgMuted: '#5e5341',
+    accent: '#2f6e4e',
+    boardLight: '#e7c9a0',
+    boardDark: '#a9743f',
+  },
+];
+
+function ThemeCard({ option, selected, onSelect }: {
+  option: ThemeOption;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
+  return (
+    <Pressable
+      onPress={onSelect}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${option.name}. ${option.tagline}`}
+      style={{
+        flex: 1,
+        borderRadius: RADIUS.lg,
+        padding: 10,
+        borderWidth: selected ? 2 : 1,
+        borderColor: selected ? COLORS.accent : COLORS.border,
+        backgroundColor: COLORS.surfaceAlt,
+      }}
+    >
+      {/* Miniature of the theme: a board corner, a card, an action pill. */}
+      <View
+        style={{
+          borderRadius: RADIUS.md,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: option.border,
+          backgroundColor: option.surface,
+          padding: 8,
+          flexDirection: 'row',
+          gap: 8,
+          marginBottom: 10,
+        }}
+      >
+        <View style={{ width: 44, height: 44, flexDirection: 'row', flexWrap: 'wrap' }}>
+          {Array.from({ length: 16 }, (_, i) => (
+            <View
+              key={i}
+              style={{
+                width: 11,
+                height: 11,
+                backgroundColor:
+                  ((i >> 2) + i) % 2 === 0 ? option.boardLight : option.boardDark,
+              }}
+            />
+          ))}
+        </View>
+        <View
+          style={{
+            flex: 1,
+            borderRadius: RADIUS.sm,
+            backgroundColor: option.surfaceAlt,
+            borderWidth: 1,
+            borderColor: option.border,
+            padding: 6,
+            justifyContent: 'space-between',
+          }}
+        >
+          <View style={{ gap: 3 }}>
+            <View style={{ height: 4, width: '62%', borderRadius: 2, backgroundColor: option.fg }} />
+            <View style={{ height: 3, width: '86%', borderRadius: 2, backgroundColor: option.fgMuted }} />
+          </View>
+          <View style={{ height: 9, width: 34, borderRadius: 3, backgroundColor: option.accent }} />
+        </View>
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Text style={{ color: COLORS.fg, fontSize: 14, fontWeight: '700', flexShrink: 1 }}>
+          {option.name}
+        </Text>
+        {selected && (
+          <Text
+            style={{
+              color: COLORS.onAccent,
+              backgroundColor: COLORS.accent,
+              fontSize: 10,
+              fontWeight: '800',
+              paddingHorizontal: 6,
+              paddingVertical: 1,
+              borderRadius: 999,
+              overflow: 'hidden',
+            }}
+          >
+            Active
+          </Text>
+        )}
+      </View>
+      <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>{option.tagline}</Text>
+    </Pressable>
+  );
+}
+
+function ThemePicker() {
+  const { settings, setSetting } = useSettings();
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Theme"
+      style={{ flexDirection: 'row', gap: 10, paddingVertical: 4 }}
+    >
+      {THEME_OPTIONS.map((option) => (
+        <ThemeCard
+          key={option.id}
+          option={option}
+          selected={settings.theme === option.id}
+          onSelect={() => setSetting('theme', option.id)}
+        />
+      ))}
+    </View>
+  );
+}
+
 function SectionLabel({ children }: { children: string }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <Text
       style={{
@@ -103,6 +278,9 @@ function SectionLabel({ children }: { children: string }) {
  * only appears when signed in.
  */
 export default function SettingsScreen() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <Screen>
       <BackHeader fallbackHref="/" />
@@ -110,6 +288,14 @@ export default function SettingsScreen() {
       <Text style={{ color: COLORS.fgMuted, fontSize: 14, marginTop: 4, marginBottom: 20 }}>
         Preferences are saved on this device.
       </Text>
+
+      <SectionLabel>Appearance</SectionLabel>
+      <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginBottom: 10 }}>
+        Applies everywhere — screens, boards and pieces.
+      </Text>
+      <View style={{ marginBottom: 20 }}>
+        <ThemePicker />
+      </View>
 
       <SectionLabel>Sound &amp; feedback</SectionLabel>
       <Card style={{ paddingHorizontal: 16, marginBottom: 20 }}>

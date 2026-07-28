@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { COLORS, ChessPiece } from '@gameexplorer/ui';
+import { COLORS, ChessPiece, useThemeName } from '@gameexplorer/ui';
 import type { PieceType } from '@gameexplorer/shared';
 
 export interface CapturedTrayProps {
@@ -30,6 +30,9 @@ const OVERLAP = -5;
  * after a promotion — that is the truthful number, not a mismatch.
  */
 export function CapturedTray({ pieces, color, advantage, ownerLabel }: CapturedTrayProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   // Nothing to say yet — keep the card compact until the first capture.
   if (pieces.length === 0 && advantage <= 0) return null;
 

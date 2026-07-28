@@ -4,7 +4,9 @@
  * vivid green so the neon discs and lime bloom pop against it. Consumed by web +
  * mobile.
  */
-export const REVERSI_BOARD_COLORS = {
+import { liveView } from '../themeRuntime';
+
+const DARK_REVERSI_BOARD_COLORS = {
   cell:            '#12503a',       // deep arcade felt
   cellBorder:      'rgba(0,0,0,0.35)',
   boardBorder:     '#0c3324',
@@ -12,6 +14,19 @@ export const REVERSI_BOARD_COLORS = {
   validMoveWhite:  'rgba(255,255,255,0.32)',
   lastMoveRing:    'rgba(190,242,100,0.85)', // lime last-move ring
 };
+
+/** Cozy: the design's brighter green felt in a dark wooden frame. */
+const COZY_REVERSI_BOARD_COLORS = {
+  cell:            '#2f6e4e',
+  cellBorder:      'rgba(0,0,0,0.28)',
+  boardBorder:     '#23503a',
+  validMoveBlack:  'rgba(0,0,0,0.35)',
+  validMoveWhite:  'rgba(255,255,255,0.35)',
+  lastMoveRing:    'rgba(250,244,232,0.90)',
+};
+
+export const REVERSI_BOARD_COLORS =
+  liveView({ dark: DARK_REVERSI_BOARD_COLORS, cozy: COZY_REVERSI_BOARD_COLORS });
 
 export const REVERSI_DISC_COLORS = {
   black: {
@@ -34,7 +49,7 @@ export const REVERSI_DISC_COLORS = {
  * accent glow, dark face sitting in its own shadow. Consumed by both
  * ReversiDisc variants; the flip animation lives in the boards.
  */
-export const REVERSI_DISC_STYLE = {
+const DARK_REVERSI_DISC_STYLE = {
   white: {
     // radial-gradient(circle at 34% 26%, #fff, #c7d2e0 78%)
     body: [
@@ -60,3 +75,32 @@ export const REVERSI_DISC_STYLE = {
     shade: 'rgba(0,0,0,0.55)',
   },
 } as const;
+
+/** Cozy discs — bone vs dark walnut, sitting on green felt. */
+const COZY_REVERSI_DISC_STYLE = {
+  white: {
+    body: [
+      { offset: 0, color: '#fdf6e8' },
+      { offset: 0.78, color: '#ded0b0' },
+      { offset: 1, color: '#cbbb98' },
+    ],
+    border: 'rgba(120,80,40,0.30)',
+    halo: 'rgba(250,244,232,0.45)',
+    sheen: 'rgba(255,255,255,0.85)',
+    shade: 'rgba(60,40,20,0.22)',
+  },
+  black: {
+    body: [
+      { offset: 0, color: '#5a4636' },
+      { offset: 0.8, color: '#241408' },
+      { offset: 1, color: '#1a0e05' },
+    ],
+    border: 'rgba(255,255,255,0.10)',
+    halo: 'rgba(0,0,0,0.55)',
+    sheen: 'rgba(214,190,160,0.30)',
+    shade: 'rgba(0,0,0,0.45)',
+  },
+} as const;
+
+export const REVERSI_DISC_STYLE =
+  liveView({ dark: DARK_REVERSI_DISC_STYLE, cozy: COZY_REVERSI_DISC_STYLE });

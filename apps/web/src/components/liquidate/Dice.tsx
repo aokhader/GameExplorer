@@ -21,15 +21,18 @@ function Face({ value, size }: { value: number; size: number }) {
       style={{
         width: size,
         height: size,
-        background: LIQUIDATE_BOARD_COLORS.corner,
-        borderColor: LIQUIDATE_BOARD_COLORS.border,
+        background: `var(--c-liquidate-corner, ${LIQUIDATE_BOARD_COLORS.corner})`,
+        borderColor: `var(--c-liquidate-border, ${LIQUIDATE_BOARD_COLORS.border})`,
       }}
       aria-hidden="true"
     >
       {Array.from({ length: 9 }, (_, i) => (
         <span key={i} className="flex items-center justify-center">
           {PIPS[value]?.includes(i) && (
-            <span className="block rounded-full bg-fg" style={{ width: '58%', height: '58%' }} />
+            <span
+              className="block rounded-full"
+              style={{ width: '58%', height: '58%', background: 'var(--c-liquidate-tile-fg, var(--c-fg))' }}
+            />
           )}
         </span>
       ))}
@@ -70,7 +73,13 @@ export function Dice({ dice, rolling = false, size = 34 }: DiceProps) {
         <Face value={shown[0]} size={size} />
         <Face value={shown[1]} size={size} />
       </div>
-      <span className="text-xs text-fg-muted tabular-nums" aria-live="polite">
+      {/* The dice sit in the board well, which stays dark in every theme, so the
+          caption takes the board's muted tone rather than the page's. */}
+      <span
+        className="text-xs tabular-nums"
+        style={{ color: 'var(--c-liquidate-tile-fg-muted, var(--c-fg-muted))' }}
+        aria-live="polite"
+      >
         {rolling ? 'Rolling…' : total !== null ? `Rolled ${total}` : 'Ready to roll'}
       </span>
     </div>

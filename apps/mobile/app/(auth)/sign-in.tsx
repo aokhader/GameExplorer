@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { signInWithIdentifier } from '@gameexplorer/client';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
@@ -12,6 +12,9 @@ import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
  * (mounted by AuthBootstrap) updates the store; the redirect just moves the UI.
  */
 export default function SignInScreen() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
   const { next } = useLocalSearchParams<{ next?: string }>();
   const target = next ?? '/profile';

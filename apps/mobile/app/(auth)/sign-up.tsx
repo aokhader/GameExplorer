@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { supabase } from '@gameexplorer/db';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
@@ -14,6 +14,9 @@ import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
  * caller. See project-docs/sql-queries/supabase-profile-trigger.sql.
  */
 export default function SignUpScreen() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
 
   const [username, setUsername] = useState('');

@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Keyboard, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 
 interface ScreenProps {
   children: ReactNode;
@@ -51,6 +51,9 @@ function useKeyboardHeight(): number {
  * the keyboard open — see `useKeyboardHeight`.
  */
 export function Screen({ children, scroll = true, edges = ['top', 'bottom'] }: ScreenProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const column = { width: '100%' as const, maxWidth: 560, alignSelf: 'center' as const };
   const keyboardHeight = useKeyboardHeight();
 
@@ -78,6 +81,9 @@ export function Screen({ children, scroll = true, edges = ['top', 'bottom'] }: S
  * falls back to a caller-supplied route (deep-link cold starts have no history).
  */
 export function BackHeader({ title, fallbackHref }: { title?: string; fallbackHref?: string }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
 
   const goBack = () => {

@@ -96,7 +96,7 @@ export function BoardWell({
               style={{ background: LIQUIDATE_SEAT_COLORS[seat % LIQUIDATE_SEAT_COLORS.length] }}
               aria-hidden="true"
             />
-            <span className="text-[10px] uppercase tracking-wide text-fg-muted">
+            <span className="text-[10px] uppercase tracking-wide text-[var(--c-liquidate-tile-fg-muted,var(--c-fg-muted))]">
               {you.name} is at
             </span>
           </div>
@@ -108,15 +108,15 @@ export function BoardWell({
                 aria-hidden="true"
               />
             )}
-            <span className="truncate text-sm font-semibold text-fg">{tile.name}</span>
+            <span className="truncate text-sm font-semibold text-[var(--c-liquidate-tile-fg,var(--c-fg))]">{tile.name}</span>
           </div>
-          <div className="truncate text-[11px] text-fg-muted">{describe(state, tile.id)}</div>
+          <div className="truncate text-[11px] text-[var(--c-liquidate-tile-fg-muted,var(--c-fg-muted))]">{describe(state, tile.id)}</div>
         </button>
       )}
 
       {actingPlayer && actingPlayer.id !== youId && (
-        <p className="text-center text-[11px] text-fg-muted">
-          <span className="font-medium text-fg">{actingPlayer.name}</span> to move ·{' '}
+        <p className="text-center text-[11px] text-[var(--c-liquidate-tile-fg-muted,var(--c-fg-muted))]">
+          <span className="font-medium text-[var(--c-liquidate-tile-fg,var(--c-fg))]">{actingPlayer.name}</span> to move ·{' '}
           {formatCredits(actingPlayer.credits)}
         </p>
       )}

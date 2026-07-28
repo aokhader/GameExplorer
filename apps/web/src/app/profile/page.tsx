@@ -37,20 +37,22 @@ const END_REASON_LABELS: Record<string, string> = {
   no_moves: 'no moves',
 };
 
-// Per-game accents from the Arcade Glow design (profile screen): tinted rating
-// cards with a matching glow, and an accent color for the big rating numeral.
+// Per-game accents: a tinted rating card with a matching bloom, and an accent
+// color for the big rating numeral. Every value reads the theme's tint ramp
+// (`--c-game-*-tint*` in globals.css) rather than a literal, so the cards follow
+// the active theme — they were the last neon left on this page under Cozy.
 const GAME_META: Record<GameType, { label: string; icon: string; text: string; card: string }> = {
   chess: {
-    label: 'Chess', icon: '♞', text: 'text-[#7db1ff]',
-    card: 'bg-[linear-gradient(180deg,rgba(59,130,246,0.14),rgba(255,255,255,0.02))] border-[rgba(59,130,246,0.35)] [box-shadow:0_0_30px_-16px_rgba(59,130,246,0.7)]',
+    label: 'Chess', icon: '♞', text: 'text-[var(--c-game-chess-light)]',
+    card: 'bg-[linear-gradient(180deg,var(--c-game-chess-tint),var(--c-game-tint-tail))] border-[var(--c-game-chess-tint-border)] [box-shadow:var(--c-game-chess-card-glow)]',
   },
   checkers: {
-    label: 'Checkers', icon: '⛃', text: 'text-[#ff8fc4]',
-    card: 'bg-[linear-gradient(180deg,rgba(236,72,153,0.14),rgba(255,255,255,0.02))] border-[rgba(236,72,153,0.35)] [box-shadow:0_0_30px_-16px_rgba(236,72,153,0.7)]',
+    label: 'Checkers', icon: '⛃', text: 'text-[var(--c-game-checkers-light)]',
+    card: 'bg-[linear-gradient(180deg,var(--c-game-checkers-tint),var(--c-game-tint-tail))] border-[var(--c-game-checkers-tint-border)] [box-shadow:var(--c-game-checkers-card-glow)]',
   },
   reversi: {
-    label: 'Reversi', icon: '⚫', text: 'text-[#bef264]',
-    card: 'bg-[linear-gradient(180deg,rgba(163,230,53,0.12),rgba(255,255,255,0.02))] border-[rgba(163,230,53,0.32)] [box-shadow:0_0_30px_-16px_rgba(163,230,53,0.6)]',
+    label: 'Reversi', icon: '⚫', text: 'text-[var(--c-game-reversi-light)]',
+    card: 'bg-[linear-gradient(180deg,var(--c-game-reversi-tint),var(--c-game-tint-tail))] border-[var(--c-game-reversi-tint-border)] [box-shadow:var(--c-game-reversi-card-glow)]',
   },
 };
 
@@ -237,7 +239,7 @@ export default function ProfilePage() {
 
         {/* Header — avatar, identity, settings */}
         <div className="flex items-center gap-5 mb-8 flex-wrap">
-          <div className="w-20 h-20 rounded-3xl bg-[linear-gradient(160deg,#3b82f6,#8b5cf6)] [box-shadow:0_0_40px_-8px_rgba(99,102,241,0.8)] flex items-center justify-center text-white font-display text-4xl font-bold shrink-0 select-none">
+          <div className="w-20 h-20 rounded-3xl bg-[image:var(--c-avatar-gradient)] [box-shadow:var(--c-avatar-glow)] flex items-center justify-center text-white font-display text-4xl font-bold shrink-0 select-none">
             {profile.username[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-[200px]">
@@ -262,7 +264,7 @@ export default function ProfilePage() {
           <StatTile label="Games played" value={games.length} />
           <StatTile label="Win rate" value={`${winRate}%`} valueClass="text-success-hover" />
           <StatTile label="Best streak" value={bestStreak} />
-          <StatTile label="Top rating" value={topRating > 0 ? topRating : '—'} valueClass="text-[#f0d589]" />
+          <StatTile label="Top rating" value={topRating > 0 ? topRating : '—'} valueClass="text-[var(--c-accent-text)]" />
         </div>
 
         {/* Per-game ratings */}
@@ -299,7 +301,10 @@ export default function ProfilePage() {
                   </>
                 ) : (
                   <>
-                    <div className={`font-display text-3xl font-bold ${meta.text} opacity-50`}>—</div>
+                    {/* Empty state reads as absent data, not as a faded game hue —
+                        the signature color belongs to a rating that exists. (A 50%
+                        game hue also fell far under AA on the light theme's card.) */}
+                    <div className="font-display text-3xl font-bold text-fg-muted">—</div>
                     <div className="text-[13px] text-fg-muted mt-1.5">No rated games yet</div>
                     <Link href={`/${type}/training`} className={`text-xs hover:underline ${meta.text}`}>
                       Play training →
@@ -323,7 +328,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-[rgba(205,164,63,0.18)] text-[#f0d589]'
+                      ? 'bg-accent-muted text-[var(--c-accent-text)]'
                       : 'text-fg-muted hover:text-fg hover:bg-white/5'
                   }`}
                 >

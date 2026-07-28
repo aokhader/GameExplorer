@@ -8,7 +8,7 @@ import {
   timelineToSan,
   type ChessGameState,
 } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, ChessPiece } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, ChessPiece, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
@@ -27,8 +27,6 @@ import { useSettings } from '@/providers/SettingsProvider';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
 
-const BLUE = GAME_ACCENTS.chess.base;
-const BLUE_TINT = 'rgba(59,130,246,0.12)';
 
 // The same six-preset ladder as web's chess/bot page. Every tier now plays
 // through the native Arasan service (see chessAdapter / chessEngineNative); the
@@ -141,7 +139,7 @@ export function ChessScreen() {
     return (
       <Screen>
         <GlowBackdrop
-          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: BLUE, opacity: 0.16 }]}
+          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.chess.base, opacity: 0.16 }]}
         />
         <BackHeader fallbackHref="/" />
         <SetupHero game="chess" />
@@ -153,12 +151,12 @@ export function ChessScreen() {
           hitSlop={8}
           style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
         >
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: BLUE }}>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: GAME_ACCENTS.chess.base }}>
             New to chess? How to play →
           </Text>
         </Pressable>
 
-        <OpponentPicker value={mode} onChange={setMode} accent={BLUE} tint={BLUE_TINT} />
+        <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.chess.base} tint={GAME_ACCENTS.chess.tintBg} />
 
         {!isPassAndPlay && (
           <>
@@ -184,12 +182,12 @@ export function ChessScreen() {
                       borderRadius: 14,
                       borderWidth: 2,
                       padding: 12,
-                      backgroundColor: selected ? BLUE_TINT : COLORS.surfaceAlt,
-                      borderColor: selected ? BLUE : COLORS.border,
+                      backgroundColor: selected ? GAME_ACCENTS.chess.tintBg : COLORS.surfaceAlt,
+                      borderColor: selected ? GAME_ACCENTS.chess.base : COLORS.border,
                     }}
                   >
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? BLUE : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                    <Text style={{ color: selected ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
                       {level.label} · {level.elo}
                     </Text>
                     <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
@@ -211,12 +209,12 @@ export function ChessScreen() {
                   borderRadius: 14,
                   borderWidth: 2,
                   padding: 12,
-                  backgroundColor: isCustomTier ? BLUE_TINT : COLORS.surfaceAlt,
-                  borderColor: isCustomTier ? BLUE : COLORS.border,
+                  backgroundColor: isCustomTier ? GAME_ACCENTS.chess.tintBg : COLORS.surfaceAlt,
+                  borderColor: isCustomTier ? GAME_ACCENTS.chess.base : COLORS.border,
                 }}
               >
                 <Text style={{ fontSize: 20, marginBottom: 4 }}>🎚️</Text>
-                <Text style={{ color: isCustomTier ? BLUE : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                <Text style={{ color: isCustomTier ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
                   Custom{isCustomTier ? ` · ${targetElo}` : ''}
                 </Text>
                 <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
@@ -231,8 +229,8 @@ export function ChessScreen() {
                 onChange={setSelectedElo}
                 min={CUSTOM_ELO_MIN}
                 max={maxElo}
-                accent={BLUE}
-                tint={BLUE_TINT}
+                accent={GAME_ACCENTS.chess.base}
+                tint={GAME_ACCENTS.chess.tintBg}
               />
             )}
 
@@ -261,8 +259,8 @@ export function ChessScreen() {
                       borderWidth: 2,
                       padding: 16,
                       alignItems: 'center',
-                      backgroundColor: selected ? BLUE_TINT : COLORS.surfaceAlt,
-                      borderColor: selected ? BLUE : COLORS.border,
+                      backgroundColor: selected ? GAME_ACCENTS.chess.tintBg : COLORS.surfaceAlt,
+                      borderColor: selected ? GAME_ACCENTS.chess.base : COLORS.border,
                     }}
                   >
                     <View style={{ marginBottom: 8 }}>
@@ -270,7 +268,7 @@ export function ChessScreen() {
                     </View>
                     <Text
                       style={{
-                        color: selected ? BLUE : COLORS.fg,
+                        color: selected ? GAME_ACCENTS.chess.base : COLORS.fg,
                         fontSize: 15,
                         fontWeight: '700',
                         textTransform: 'capitalize',
@@ -583,6 +581,9 @@ export function ChessScreen() {
 }
 
 function InfoCell({ label, value, capitalize }: { label: string; value: string; capitalize?: boolean }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <View style={{ flexDirection: 'row', gap: 6, width: '50%', paddingVertical: 2 }}>
       <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}:</Text>

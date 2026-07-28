@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { Toggle } from '@/components/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
@@ -29,6 +29,9 @@ const OPTIONS: { mode: LocalGameMode; icon: string; label: string; description: 
  * game screens so the tiles look identical; only the accent differs per game.
  */
 export function OpponentPicker({ value, onChange, accent, tint }: OpponentPickerProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <>
       <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>

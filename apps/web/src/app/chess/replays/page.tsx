@@ -90,11 +90,14 @@ export default function ReplaysPage() {
                 href={`/chess/replays/${game.id}`}
                 className="flex items-center gap-4 p-4 bg-white/[0.04] rounded-xl border border-white/10 hover:bg-white/[0.07] hover:border-white/20 transition-all hover:-translate-y-0.5"
               >
-                {/* Color indicator */}
+                {/* Color indicator — which side you played. Takes the theme's own
+                    piece fills so the swatch matches the board, and always sets a
+                    contrasting glyph color: inheriting `text-fg` put dark-on-dark
+                    on the black swatch under a light theme. */}
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0 border border-white/10 ${
                   game.player_color === 'white'
-                    ? 'bg-white/10'
-                    : 'bg-[#0b0e17]'
+                    ? 'bg-[var(--gx-chess-piece-white-1,#ffffff)] text-[var(--gx-chess-piece-black-2,#293350)]'
+                    : 'bg-[var(--gx-chess-piece-black-2,#293350)] text-[var(--gx-chess-piece-white-1,#ffffff)]'
                 }`}>
                   {game.player_color === 'white' ? '♔' : '♚'}
                 </div>

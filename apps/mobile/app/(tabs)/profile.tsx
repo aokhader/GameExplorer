@@ -12,15 +12,17 @@ import {
   type GameType,
 } from '@gameexplorer/db';
 import { useAuth } from '@gameexplorer/client';
-import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Screen, Card, Button } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
 
-const GAME_META: Record<GameType, { label: string; accent: string }> = {
-  chess: { label: 'Chess', accent: GAME_ACCENTS.chess.base },
-  checkers: { label: 'Checkers', accent: GAME_ACCENTS.checkers.base },
-  reversi: { label: 'Reversi', accent: GAME_ACCENTS.reversi.base },
+// Colors are looked up during render, never captured here — the token objects
+// are live views, so a module-scope read freezes them at import (see themeRuntime).
+const GAME_META: Record<GameType, { label: string }> = {
+  chess: { label: 'Chess' },
+  checkers: { label: 'Checkers' },
+  reversi: { label: 'Reversi' },
 };
 
 function formatDate(iso: string) {
@@ -45,6 +47,9 @@ function ratingDelta(g: GameListItem): number | null {
 }
 
 function StatTile({ label, value, valueColor }: { label: string; value: string | number; valueColor?: string }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <View
       style={{
@@ -65,6 +70,9 @@ function StatTile({ label, value, valueColor }: { label: string; value: string |
 
 /** Tab header: screen title + settings entry (settings lives off the tab bar). */
 function YouHeader({ onSettings }: { onSettings: () => void }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <View
       style={{
@@ -105,6 +113,9 @@ function YouHeader({ onSettings }: { onSettings: () => void }) {
  * game shows up without an app restart.
  */
 export default function YouScreen() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Pick<Profile, 'id' | 'username' | 'created_at'> | null>(null);
@@ -280,7 +291,7 @@ export default function YouScreen() {
           const delta = deltaFor(type);
           const rated = rating.games_played > 0;
           return (
-            <Card key={type} style={{ padding: 16, borderLeftColor: meta.accent, borderLeftWidth: 4 }}>
+            <Card key={type} style={{ padding: 16, borderLeftColor: GAME_ACCENTS[type].base, borderLeftWidth: 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <GamePieceIcon game={type} size={26} />
                 <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.displaySemi }}>{meta.label}</Text>
@@ -288,7 +299,7 @@ export default function YouScreen() {
               {rated ? (
                 <>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-                    <Text style={{ color: meta.accent, fontSize: 28, fontFamily: FONTS.display }}>{rating.rating}</Text>
+                    <Text style={{ color: GAME_ACCENTS[type].base, fontSize: 28, fontFamily: FONTS.display }}>{rating.rating}</Text>
                     {delta !== null && delta !== 0 && (
                       <Text
                         style={{
@@ -311,7 +322,7 @@ export default function YouScreen() {
                 </>
               ) : (
                 <>
-                  <Text style={{ color: meta.accent, fontSize: 28, fontFamily: FONTS.display, opacity: 0.5 }}>—</Text>
+                  <Text style={{ color: GAME_ACCENTS[type].base, fontSize: 28, fontFamily: FONTS.display, opacity: 0.5 }}>—</Text>
                   <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 4, fontFamily: FONTS.body }}>No rated games yet</Text>
                 </>
               )}

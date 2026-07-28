@@ -41,9 +41,11 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
             isYou ? 'text-on-accent' : 'text-white',
           )}
           style={{
+            // Your tile is the brand accent, the opponent's is the neutral avatar
+            // tile — both theme-driven so they stay in palette.
             backgroundImage: isYou
-              ? 'linear-gradient(160deg,#cda43f,#b8923a)'
-              : 'linear-gradient(160deg,#3b82f6,#8b5cf6)',
+              ? 'var(--gradient-accent)'
+              : 'var(--c-avatar-gradient)',
           }}
           aria-hidden="true"
         >
@@ -51,8 +53,10 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
         </span>
         <div className="min-w-0">
           <div className="font-semibold text-sm leading-tight truncate">{name}</div>
+          {/* `accent-text`, not `accent`: this is 11px, and the accent fill color
+              is tuned for buttons rather than small type. */}
           {subline && (
-            <div className={cn('text-[11px] leading-tight truncate', isYou ? 'text-accent' : 'text-fg-muted')}>
+            <div className={cn('text-[11px] leading-tight truncate', isYou ? 'text-[var(--c-accent-text)]' : 'text-fg-muted')}>
               {subline}
             </div>
           )}
@@ -65,7 +69,11 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
               'h-2.5 w-2.5 shrink-0 rounded-full motion-safe:animate-glow-pulse',
               isYou ? 'bg-accent' : 'bg-success',
             )}
-            style={{ boxShadow: isYou ? '0 0 10px rgba(205,164,63,0.8)' : '0 0 10px rgba(34,211,170,0.8)' }}
+            style={{
+              boxShadow: isYou
+                ? '0 0 10px color-mix(in srgb, var(--c-accent) 80%, transparent)'
+                : '0 0 10px color-mix(in srgb, var(--c-success-hover) 80%, transparent)',
+            }}
             aria-hidden="true"
           />
         ))}

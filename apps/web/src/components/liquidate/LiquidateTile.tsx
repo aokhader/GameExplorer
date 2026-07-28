@@ -12,6 +12,19 @@ import { cn } from '@/lib/utils';
 import { edgeOf, isCornerIndex, type BoardEdge } from './geometry';
 import { ShipToken } from './ShipToken';
 
+/**
+ * Board surfaces, read from the `--c-liquidate-*` variables globals.css declares
+ * per theme (Arcade's blue-slate board, Cozy's wooden one), with the shared token
+ * as the fallback. Mobile reads LIQUIDATE_BOARD_COLORS directly — it has no themes.
+ */
+const BOARD = {
+  tile:       `var(--c-liquidate-tile, ${LIQUIDATE_BOARD_COLORS.tile})`,
+  corner:     `var(--c-liquidate-corner, ${LIQUIDATE_BOARD_COLORS.corner})`,
+  border:     `var(--c-liquidate-border, ${LIQUIDATE_BOARD_COLORS.border})`,
+  activeRing: `var(--c-liquidate-active-ring, ${LIQUIDATE_BOARD_COLORS.activeRing})`,
+  mortgaged:  `var(--c-liquidate-mortgaged, ${LIQUIDATE_BOARD_COLORS.mortgaged})`,
+};
+
 /** Glyphs for the non-property tiles. Original marks, not any existing game's. */
 const CORNER_GLYPH: Record<string, string> = {
   'home-station': '⌂',
@@ -117,10 +130,10 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
         onSelect ? 'cursor-pointer hover:brightness-125' : 'cursor-default',
       )}
       style={{
-        background: corner ? LIQUIDATE_BOARD_COLORS.corner : LIQUIDATE_BOARD_COLORS.tile,
-        borderColor: active ? LIQUIDATE_BOARD_COLORS.activeRing : LIQUIDATE_BOARD_COLORS.border,
+        background: corner ? BOARD.corner : BOARD.tile,
+        borderColor: active ? BOARD.activeRing : BOARD.border,
         boxShadow: active
-          ? `inset 0 0 0 2px ${LIQUIDATE_BOARD_COLORS.activeRing}, 0 0 12px -2px ${LIQUIDATE_BOARD_COLORS.activeRing}`
+          ? `inset 0 0 0 2px ${BOARD.activeRing}, 0 0 12px -2px ${BOARD.activeRing}`
           : undefined,
       }}
     >
@@ -154,7 +167,7 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
       {owned.mortgaged && (
         <span
           className="absolute inset-0"
-          style={{ background: LIQUIDATE_BOARD_COLORS.mortgaged }}
+          style={{ background: BOARD.mortgaged }}
           aria-hidden="true"
         />
       )}
@@ -167,20 +180,26 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
       >
         {showGlyph && (
           <span
-            style={{ fontSize: glyphSize, color: deck?.base ?? '#9aa6bd', lineHeight: 1 }}
+            style={{
+              fontSize: glyphSize,
+              // Fall back to the board's own muted tone, not the page's — this
+              // glyph sits on a tile, which stays dark in every theme.
+              color: deck?.base ?? 'var(--c-liquidate-tile-fg-muted, var(--c-fg-muted))',
+              lineHeight: 1,
+            }}
             aria-hidden="true"
           >
             {glyph}
           </span>
         )}
         <span
-          className="line-clamp-2 w-full break-words font-semibold text-fg"
+          className="line-clamp-2 w-full break-words font-semibold text-[var(--c-liquidate-tile-fg,var(--c-fg))]"
           style={{ fontSize: nameSize }}
         >
           {tile.name}
         </span>
         {showPrice && (
-          <span className="tabular-nums text-fg-muted" style={{ fontSize: priceSize }}>
+          <span className="tabular-nums text-[var(--c-liquidate-tile-fg-muted,var(--c-fg-muted))]" style={{ fontSize: priceSize }}>
             ₡{price}
           </span>
         )}
@@ -188,7 +207,7 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
         {owned.level > 0 && (
           <span className="flex items-center gap-[1px]" aria-hidden="true">
             {owned.level === MAX_COLONY_LEVEL ? (
-              <span style={{ fontSize: priceSize, color: '#cda43f', lineHeight: 1 }}>★</span>
+              <span style={{ fontSize: priceSize, color: 'var(--c-accent)', lineHeight: 1 }}>★</span>
             ) : (
               Array.from({ length: owned.level }, (_, i) => (
                 <span
@@ -197,7 +216,7 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
                   style={{
                     width: Math.max(3, cellPx * 0.06),
                     height: Math.max(3, cellPx * 0.06),
-                    background: '#cda43f',
+                    background: 'var(--c-accent)',
                   }}
                 />
               ))

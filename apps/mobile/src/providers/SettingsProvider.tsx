@@ -1,6 +1,7 @@
 import React from 'react';
 import { AccessibilityInfo } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setActiveTheme, type ThemeName } from '@gameexplorer/ui';
 
 /**
  * App-wide user preferences (device-local, persisted to AsyncStorage).
@@ -28,6 +29,8 @@ export interface Settings {
   /** Flip the board between turns in pass-and-play (M4). Kept here so the store
    *  shape is stable; unused until pass-and-play ships. */
   flipBoardPassAndPlay: boolean;
+  /** Visual theme. Applied by pushing it into the shared token runtime. */
+  theme: ThemeName;
 }
 
 const DEFAULTS: Settings = {
@@ -36,6 +39,7 @@ const DEFAULTS: Settings = {
   reduceMotion: false,
   showCoordinates: true,
   flipBoardPassAndPlay: true,
+  theme: 'dark',
 };
 
 const STORAGE_KEY = 'gx:settings';
@@ -71,7 +75,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         if (raw) {
           try {
-            setSettings({ ...DEFAULTS, ...JSON.parse(raw) });
+            const stored = { ...DEFAULTS, ...JSON.parse(raw) } as Settings;
+            // A theme written by a newer build would leave every token resolving
+            // to undefined — fall back rather than render an unpainted app.
+            if (stored.theme !== 'cozy') stored.theme = 'dark';
+            // Push before the state update so the first painted frame is already
+            // in the right theme, with no flash of the default.
+            setActiveTheme(stored.theme);
+            setSettings(stored);
           } catch {
             /* corrupt storage — keep defaults */
           }
@@ -107,6 +118,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     <K extends keyof Settings>(key: K, value: Settings[K]) => {
       setSettings((prev) => {
         const next = { ...prev, [key]: value };
+        // The token runtime is the thing that actually repaints the app; context
+        // state just keeps the picker in sync and persists the choice.
+        if (key === 'theme') setActiveTheme(next.theme);
         // Fire-and-forget persist; UI state is the source of truth in-session.
         AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
         return next;

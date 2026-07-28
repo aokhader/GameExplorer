@@ -14,7 +14,10 @@ export {
   GLOWS_NATIVE,
   Z_INDEX,
 } from './tokens';
-export type { Theme, ThemeName, GameAccent, NativeShadow, NativeGradient } from './tokens';
+export type { Theme, GameAccent, NativeShadow, NativeGradient } from './tokens';
+export { setActiveTheme, getActiveTheme, subscribeTheme, liveView } from './themeRuntime';
+export type { ThemeName } from './themeRuntime';
+export { useThemeName } from './useThemeName';
 
 export { ChessPiece } from './chess/ChessPiece';
 export type { ChessPieceProps, PieceType, PieceColor } from './chess/ChessPiece';

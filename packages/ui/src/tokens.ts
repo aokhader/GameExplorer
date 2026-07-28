@@ -12,12 +12,18 @@
  *
  * Theming: `THEMES` holds one block per theme, keyed identically. `dark` (Arcade
  * Glow) is the default; `cozy` (Cozy Tabletop — warm parchment + walnut + felt
- * green) is a user-selectable alternative on web, applied as `[data-theme="cozy"]`
- * overriding the same `--c-*` vars in globals.css. Consumers read semantic names,
- * not raw hex, so a new theme is a new block here + a new block there.
+ * green) is user-selectable on both platforms. Consumers read semantic names, not
+ * raw hex, so a new theme is a new block here + a new block there.
  *
- * Mobile still imports `COLORS` (= `THEMES.dark`) statically and is not themed.
+ * The two platforms switch themes by different mechanisms:
+ *   - web overrides the same `--c-*` vars under `[data-theme="cozy"]` and never
+ *     touches the runtime, so every export below stays pinned to `dark`;
+ *   - mobile has no cascade, so `COLORS` and friends are LIVE VIEWS whose keys
+ *     read from the active theme (see `themeRuntime.ts`).
+ * Either way a call site just reads `COLORS.surface` and gets the right value.
  */
+
+import { liveView } from './themeRuntime';
 
 /** Raw palette primitives. Reference these from theme blocks, not from UI code. */
 const PALETTE = {
@@ -71,11 +77,13 @@ const COZY_PALETTE = {
   parchment300: '#e6dcc4', // muted fills / inputs
   parchment400: '#e2d3b6', // hairline border
   parchment500: '#cdbb98', // strong border / divider
-  // Ink ramp — text on parchment.
+  // Ink ramp — text on parchment. The secondary and tertiary steps run darker
+  // than the design doc's (#6f6350 / #9c8f79): those sat at 4.3:1 and 2.5:1 on
+  // the tinted surfaces they land on, where the Arcade equivalents clear it.
   bark900: '#2c2117', // primary text
   bark700: '#3b2e21', // body text / reversi signature (slate-dark wood)
-  bark500: '#6f6350', // secondary text
-  bark400: '#9c8f79', // tertiary / placeholder
+  bark500: '#5e5341', // secondary text
+  bark400: '#857761', // tertiary / placeholder
   // Walnut (chess signature + secondary/info chrome).
   walnut:      '#8b5a2b',
   walnutLight: '#a9743f',
@@ -83,13 +91,16 @@ const COZY_PALETTE = {
   // Forest green (primary action + checkers signature + success).
   forest:      '#2f6e4e',
   forestLight: '#3f8a63',
+  forestDeep:  '#275c41', // hover — light themes darken rather than lighten
   forestInk:   '#f4ecd9', // text/icon on a forest fill
-  // Brass (highlight / warning).
-  brass:      '#c9a24a',
-  brassLight: '#d9a94e',
+  // Brass (highlight / warning) — deepened so it survives as small text on cream.
+  brass:      '#8a661d',
+  brassLight: '#c9a24a',
+  brassDeep:  '#6f5115',
   // Terracotta (danger) + a lighter clay for liquidate.
   clay:      '#a2482e',
   clayLight: '#c0685a',
+  clayDeep:  '#85391f',
   claySoft:  '#b8724a',
 } as const;
 
@@ -178,22 +189,27 @@ const COZY: Theme = {
   border:       COZY_PALETTE.parchment400,
   borderStrong: COZY_PALETTE.parchment500,
 
+  // Hover goes DARKER here, the opposite of Arcade Glow: on a dark theme
+  // "brighter" reads as raised, on parchment it reads as receding — and these
+  // hues double as text colors, where lightening drops them under AA.
   accent:       COZY_PALETTE.forest,
-  accentHover:  COZY_PALETTE.forestLight,
+  accentHover:  COZY_PALETTE.forestDeep,
   accentMuted:  'rgba(47,110,78,0.14)',
   onAccent:     COZY_PALETTE.forestInk,
 
   info:         COZY_PALETTE.walnut,
-  infoHover:    COZY_PALETTE.walnutLight,
+  infoHover:    COZY_PALETTE.walnutDeep,
   infoMuted:    'rgba(139,90,43,0.12)',
 
   danger:       COZY_PALETTE.clay,
-  dangerHover:  COZY_PALETTE.clayLight,
+  dangerHover:  COZY_PALETTE.clayDeep,
   dangerMuted:  'rgba(162,72,46,0.12)',
+  // Deeper than the design's brass #c9a24a: warning is only ever small text on a
+  // warning tint, and brass-on-cream is 2.2:1.
   warning:      COZY_PALETTE.brass,
-  warningHover: COZY_PALETTE.brassLight,
+  warningHover: COZY_PALETTE.brassDeep,
   success:      COZY_PALETTE.forest,
-  successHover: COZY_PALETTE.forestLight,
+  successHover: COZY_PALETTE.forestDeep,
 
   fg:           COZY_PALETTE.bark900,
   fgMuted:      COZY_PALETTE.bark500,
@@ -206,13 +222,20 @@ const COZY: Theme = {
 
 /**
  * All themes, keyed by name. `dark` is the default; `cozy` is user-selectable on
- * web (Settings → Appearance). Adding another = a block here + a matching
- * `[data-theme="…"]` block in `apps/web/src/app/globals.css`.
+ * both platforms. Adding another = a block here, a matching `[data-theme="…"]`
+ * block in `apps/web/src/app/globals.css`, and an entry in every `liveView` below.
  */
 export const THEMES = {
   dark: DARK,
   cozy: COZY,
 } as const;
+
+/**
+ * The active semantic palette — a LIVE view (see `themeRuntime.ts`). On mobile
+ * `COLORS.surface` returns whichever theme is active; on web it stays `dark`,
+ * because web themes through CSS variables and never calls `setActiveTheme`.
+ */
+export const COLORS: Theme = liveView({ dark: DARK, cozy: COZY });
 
 /**
  * Per-game signature accent — a base hue + a translucent glow used for ambient
@@ -233,7 +256,7 @@ export interface GameAccent {
   tintBorder: string;
 }
 
-export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'liquidate', GameAccent> = {
+const DARK_GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'liquidate', GameAccent> = {
   // The tint ramp (bg/bgSoft/border) powers the Arcade Glow card treatment on
   // mobile home/hub screens; web mirrors as `--c-game-*-tint*` vars if adopted.
   chess: {
@@ -260,7 +283,7 @@ export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'liquidate'
  * weaker than Arcade Glow's: on a cream page a neon bloom reads as a smudge, so
  * these are tints that warm the surface rather than halos that radiate off it.
  */
-export const COZY_GAME_ACCENTS: Record<keyof typeof GAME_ACCENTS, GameAccent> = {
+export const COZY_GAME_ACCENTS: Record<keyof typeof DARK_GAME_ACCENTS, GameAccent> = {
   chess: {
     base: COZY_PALETTE.walnut, glow: 'rgba(169,116,63,0.30)', light: COZY_PALETTE.walnutLight,
     tintBg: 'rgba(139,90,43,0.10)', tintBgSoft: 'rgba(139,90,43,0.02)', tintBorder: 'rgba(169,116,63,0.45)',
@@ -279,10 +302,11 @@ export const COZY_GAME_ACCENTS: Record<keyof typeof GAME_ACCENTS, GameAccent> = 
   },
 } as const;
 
-export type ThemeName = keyof typeof THEMES;
+/** Active per-game accents — live view (see `COLORS` above). */
+export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'liquidate', GameAccent> =
+  liveView({ dark: DARK_GAME_ACCENTS, cozy: COZY_GAME_ACCENTS });
 
-/** The active semantic palette. UI code imports this. */
-export const COLORS: Theme = THEMES.dark;
+export type { ThemeName } from './themeRuntime';
 
 export const SPACING = {
   xs: 4,
@@ -370,7 +394,7 @@ export interface NativeShadow {
   elevation: number;
 }
 
-export const SHADOWS_NATIVE = {
+const DARK_SHADOWS_NATIVE = {
   sm: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.3, shadowRadius: 2, elevation: 1 },
   md: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 4 },
   lg: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 14, elevation: 8 },
@@ -389,6 +413,32 @@ export const SHADOWS_NATIVE = {
 } as const satisfies Record<keyof typeof SHADOWS, NativeShadow>;
 
 /**
+ * Cozy Tabletop's native shadows. Two differences from Arcade Glow, both because
+ * the surface underneath is light: the drop shadows are warm brown at much lower
+ * opacity (pure black on cream reads as grime), and the "glows" become ordinary
+ * downward shadows — an evenly-radiating colored halo needs a dark backdrop to
+ * bloom against, and on parchment just looks like a printing misregistration.
+ */
+const COZY_SHADOW = '#5a3a1c';
+const COZY_SHADOWS_NATIVE = {
+  sm: { shadowColor: COZY_SHADOW, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.10, shadowRadius: 2, elevation: 1 },
+  md: { shadowColor: COZY_SHADOW, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 6, elevation: 4 },
+  lg: { shadowColor: COZY_SHADOW, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 14, elevation: 8 },
+  xl: { shadowColor: COZY_SHADOW, shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.22, shadowRadius: 25, elevation: 12 },
+  elevation:   { shadowColor: COZY_SHADOW, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 15, elevation: 8 },
+  elevationLg: { shadowColor: COZY_SHADOW, shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.24, shadowRadius: 30, elevation: 14 },
+  glowAccent:   { shadowColor: COZY_PALETTE.forest,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 8 },
+  glowInfo:     { shadowColor: COZY_PALETTE.walnut,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.30, shadowRadius: 12, elevation: 8 },
+  glowChess:    { shadowColor: COZY_PALETTE.walnut,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 10 },
+  glowCheckers: { shadowColor: COZY_PALETTE.forest,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 10 },
+  glowReversi:  { shadowColor: COZY_PALETTE.bark700, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.30, shadowRadius: 14, elevation: 10 },
+  glowLiquidate:{ shadowColor: COZY_PALETTE.claySoft,shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 10 },
+} as const satisfies Record<keyof typeof SHADOWS, NativeShadow>;
+
+export const SHADOWS_NATIVE: Record<keyof typeof SHADOWS, NativeShadow> =
+  liveView({ dark: DARK_SHADOWS_NATIVE, cozy: COZY_SHADOWS_NATIVE });
+
+/**
  * Neon glows for React Native as `boxShadow` strings, carrying the same blur and
  * negative spread as their `SHADOWS` counterparts (RN 0.76+ honors both).
  *
@@ -401,7 +451,7 @@ export const SHADOWS_NATIVE = {
  *
  * The `0 0 0 1px` ring from `SHADOWS` is omitted — pair with a borderColor.
  */
-export const GLOWS_NATIVE = {
+const DARK_GLOWS_NATIVE = {
   glowAccent:   '0 0 34px -4px rgba(205,164,63,0.65)',
   glowInfo:     '0 0 32px -4px rgba(59,130,246,0.55)',
   glowChess:    '0 0 40px -8px rgba(59,130,246,0.65)',
@@ -409,6 +459,19 @@ export const GLOWS_NATIVE = {
   glowReversi:  '0 0 40px -8px rgba(163,230,53,0.55)',
   glowLiquidate:'0 0 40px -8px rgba(139,92,246,0.65)',
 } as const;
+
+/** Cozy: warm downward shadows rather than halos — see COZY_SHADOWS_NATIVE. */
+const COZY_GLOWS_NATIVE = {
+  glowAccent:   '0 8px 20px -10px rgba(47,110,78,0.55)',
+  glowInfo:     '0 8px 20px -10px rgba(139,90,43,0.50)',
+  glowChess:    '0 8px 22px -10px rgba(124,82,48,0.55)',
+  glowCheckers: '0 8px 22px -10px rgba(47,110,78,0.55)',
+  glowReversi:  '0 8px 22px -10px rgba(59,46,33,0.45)',
+  glowLiquidate:'0 8px 22px -10px rgba(184,114,74,0.55)',
+} as const;
+
+export const GLOWS_NATIVE: Record<keyof typeof DARK_GLOWS_NATIVE, string> =
+  liveView({ dark: DARK_GLOWS_NATIVE, cozy: COZY_GLOWS_NATIVE });
 
 /**
  * React Native gradient equivalents of `GRADIENTS`, parsed into the shape
@@ -418,8 +481,8 @@ export const GLOWS_NATIVE = {
  * bottom-right (0,0)→(1,1).
  */
 export interface NativeGradient {
-  colors: string[];
-  locations: number[];
+  colors: readonly string[];
+  locations: readonly number[];
   start: { x: number; y: number };
   end: { x: number; y: number };
 }
@@ -427,7 +490,7 @@ export interface NativeGradient {
 const VERTICAL = { start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 } } as const;
 const DIAGONAL = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
 
-export const GRADIENTS_NATIVE = {
+const DARK_GRADIENTS_NATIVE = {
   accent:  { colors: ['#dcb456', '#cda43f', '#b8923a'], locations: [0, 0.55, 1], ...VERTICAL },
   surface: { colors: ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'], locations: [0, 0.4], ...VERTICAL },
   heroChess:    { colors: ['#3b82f6', '#ec4899'], locations: [0, 1], ...DIAGONAL },
@@ -436,6 +499,24 @@ export const GRADIENTS_NATIVE = {
   heroLiquidate:{ colors: ['#8b5cf6', '#38bdf8'], locations: [0, 1], ...DIAGONAL },
   heroBrand:    { colors: ['#3b82f6', '#ec4899'], locations: [0, 1], ...DIAGONAL },
 } as const satisfies Record<keyof typeof GRADIENTS, NativeGradient>;
+
+/**
+ * Cozy gradients. The `surface` sheen flips sign — on a light card the lift comes
+ * from white at the top fading to a faint warm shade, not a white wash — and the
+ * hero pairs walk the wood-and-felt range instead of two neons.
+ */
+const COZY_GRADIENTS_NATIVE = {
+  accent:  { colors: ['#337157', '#2f6e4e', '#275c41'], locations: [0, 0.55, 1], ...VERTICAL },
+  surface: { colors: ['rgba(255,255,255,0.55)', 'rgba(139,90,43,0.03)'], locations: [0, 1], ...VERTICAL },
+  heroChess:    { colors: ['#a9743f', '#6e4a2a'], locations: [0, 1], ...DIAGONAL },
+  heroCheckers: { colors: ['#3f8a63', '#23503a'], locations: [0, 1], ...DIAGONAL },
+  heroReversi:  { colors: ['#6f6350', '#3b2e21'], locations: [0, 1], ...DIAGONAL },
+  heroLiquidate:{ colors: ['#c0685a', '#7c2d1e'], locations: [0, 1], ...DIAGONAL },
+  heroBrand:    { colors: ['#a9743f', '#2f6e4e'], locations: [0, 1], ...DIAGONAL },
+} as const satisfies Record<keyof typeof GRADIENTS, NativeGradient>;
+
+export const GRADIENTS_NATIVE =
+  liveView({ dark: DARK_GRADIENTS_NATIVE, cozy: COZY_GRADIENTS_NATIVE });
 
 export const Z_INDEX = {
   base: 0,

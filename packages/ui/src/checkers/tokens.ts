@@ -9,7 +9,9 @@
  * dark tone. Import in web + mobile.
  */
 
-export const CHECKERS_BOARD_COLORS = {
+import { liveView } from '../themeRuntime';
+
+const DARK_CHECKERS_BOARD_COLORS = {
   lightSquare: '#445576',          // arcade blue-slate (light)
   darkSquare:  '#2a3550',          // arcade blue-slate (dark)
   selectedSquare: '#cda43f',       // gold (shared brand)
@@ -17,7 +19,23 @@ export const CHECKERS_BOARD_COLORS = {
   lastMoveDark:  'rgba(205,164,63,0.52)',
   moveIndicator: 'rgba(236,72,153,0.85)',   // pink hint on the dark board
   captureIndicator: 'rgba(236,72,153,0.75)',
+  frame: '#2b3652',
 };
+
+/** Cozy: the same walnut table as chess, with green carrying every hint. */
+const COZY_CHECKERS_BOARD_COLORS = {
+  lightSquare: '#e7c9a0',
+  darkSquare:  '#a9743f',
+  selectedSquare: '#2f6e4e',
+  lastMoveLight: 'rgba(47,110,78,0.38)',
+  lastMoveDark:  'rgba(47,110,78,0.50)',
+  moveIndicator: 'rgba(47,110,78,0.85)',
+  captureIndicator: 'rgba(47,110,78,0.90)',
+  frame: '#6e4a2a',
+};
+
+export const CHECKERS_BOARD_COLORS =
+  liveView({ dark: DARK_CHECKERS_BOARD_COLORS, cozy: COZY_CHECKERS_BOARD_COLORS });
 
 export const CHECKERS_PIECE_COLORS = {
   white: {
@@ -41,7 +59,7 @@ export const CHECKERS_PIECE_COLORS = {
  * solid ring, and the pink promotion halo (pink is the game's accent, not a
  * piece color). Consumed by both CheckersPiece variants.
  */
-export const CHECKERS_PIECE_STYLE = {
+const DARK_CHECKERS_PIECE_STYLE = {
   white: {
     // radial-gradient(circle at 35% 28%, #fbe39a, #b8923a 74%)
     body: [
@@ -75,3 +93,42 @@ export const CHECKERS_PIECE_STYLE = {
   /** King ring reads brighter than the man's dashed ring. */
   kingRing: { white: 'rgba(90,63,16,0.4)', black: 'rgba(255,209,236,0.55)' },
 } as const;
+
+/**
+ * Cozy discs — carved cream vs terracotta, straight from the design's board.
+ * Crowns take the opposite tone, and the promotion halo becomes the theme's
+ * green (pink is an Arcade Glow signature that has no place on wood).
+ */
+const COZY_CHECKERS_PIECE_STYLE = {
+  white: {
+    body: [
+      { offset: 0, color: '#fefaf0' },
+      { offset: 0.74, color: '#d9c39a' },
+      { offset: 1, color: '#c4ab7e' },
+    ],
+    border: 'rgba(120,80,40,0.35)',
+    ring: 'rgba(139,90,43,0.35)',
+    kingGlyph: '#8b5a2b',
+    halo: 'rgba(201,162,74,0.55)',
+    sheen: 'rgba(255,255,255,0.75)',
+    shade: 'rgba(90,60,30,0.28)',
+  },
+  black: {
+    body: [
+      { offset: 0, color: '#d08678' },
+      { offset: 0.74, color: '#7c2d1e' },
+      { offset: 1, color: '#6a2416' },
+    ],
+    border: 'rgba(255,255,255,0.22)',
+    ring: 'rgba(255,255,255,0.30)',
+    kingGlyph: '#fbe6df',
+    halo: 'rgba(162,72,46,0.60)',
+    sheen: 'rgba(255,255,255,0.35)',
+    shade: 'rgba(0,0,0,0.38)',
+  },
+  promotionHalo: 'rgba(47,110,78,0.50)',
+  kingRing: { white: 'rgba(139,90,43,0.45)', black: 'rgba(255,225,215,0.60)' },
+} as const;
+
+export const CHECKERS_PIECE_STYLE =
+  liveView({ dark: DARK_CHECKERS_PIECE_STYLE, cozy: COZY_CHECKERS_PIECE_STYLE });

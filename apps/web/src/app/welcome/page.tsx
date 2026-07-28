@@ -108,7 +108,7 @@ export default function WelcomePage() {
             step === 0
               ? {
                   backgroundImage:
-                    'radial-gradient(600px 300px at 50% -10%, rgba(59,130,246,.2), transparent 60%), radial-gradient(500px 260px at 90% 10%, rgba(236,72,153,.14), transparent 60%), var(--gradient-surface)',
+                    'var(--c-welcome-wash), var(--gradient-surface)',
                 }
               : undefined
           }
@@ -155,7 +155,7 @@ export default function WelcomePage() {
               <div className="mt-auto flex flex-col gap-3">
                 <button
                   onClick={advance}
-                  className="w-full py-3.5 rounded-[14px] bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-base [box-shadow:0_0_30px_-6px_rgba(205,164,63,.7)] hover:brightness-110 transition-all"
+                  className="w-full py-3.5 rounded-[14px] bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-base [box-shadow:var(--c-accent-bloom)] hover:brightness-110 transition-all"
                 >
                   Let&rsquo;s play →
                 </button>
@@ -318,7 +318,7 @@ function ContinueButton({
     <button
       onClick={onClick}
       className="mt-5 w-full py-3.5 rounded-[14px] bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-base hover:brightness-110 transition-all"
-      style={glow ? { boxShadow: '0 0 30px -6px rgba(205,164,63,.7)' } : undefined}
+      style={glow ? { boxShadow: 'var(--c-accent-bloom)' } : undefined}
     >
       {children}
     </button>

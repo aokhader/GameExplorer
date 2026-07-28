@@ -98,7 +98,7 @@ export function ChessMoveList({
   const moveBtn = (active: boolean, isWhiteMove: boolean) =>
     `flex-1 text-left px-2 py-0.5 rounded transition-colors ${
       active
-        ? 'bg-[rgba(205,164,63,0.18)] text-[#f0d589] font-semibold'
+        ? 'bg-[color-mix(in_srgb,var(--c-accent)_18%,transparent)] text-[var(--c-accent-text)] font-semibold'
         : isWhiteMove
           ? 'text-fg font-medium hover:bg-white/5'
           : 'text-fg-muted hover:bg-white/5'

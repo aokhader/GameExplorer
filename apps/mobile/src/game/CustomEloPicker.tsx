@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface CustomEloPickerProps {
@@ -41,6 +41,9 @@ export function CustomEloPicker({
   accent,
   tint,
 }: CustomEloPickerProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   // Raw text while the readout is being edited; null when it isn't. Committing
   // on every keystroke would fight the user ("16" clamps to the 400 floor before
   // they can finish typing "1650").

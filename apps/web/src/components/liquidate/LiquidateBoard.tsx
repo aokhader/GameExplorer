@@ -102,7 +102,7 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
       <div
         className="absolute inset-0 grid rounded-xl"
         style={{
-          background: LIQUIDATE_BOARD_COLORS.frame,
+          background: `var(--c-liquidate-frame, ${LIQUIDATE_BOARD_COLORS.frame})`,
           gap: GAP_PX,
           padding: GAP_PX,
           gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`,
@@ -133,7 +133,7 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
           style={{
             gridRow: `2 / ${n}`,
             gridColumn: `2 / ${n}`,
-            background: LIQUIDATE_BOARD_COLORS.well,
+            background: `var(--c-liquidate-well, ${LIQUIDATE_BOARD_COLORS.well})`,
           }}
         >
           {children}

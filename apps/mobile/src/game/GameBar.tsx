@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { FONTS } from '@/theme/typography';
 import type { GameAccent } from '@/game/GameScreenLayout';
@@ -58,6 +58,9 @@ export function GameBar({
   onResign,
   gameOver = false,
 }: GameBarProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const { play } = useGameSfx();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -172,6 +175,9 @@ function BarButton({
   disabled?: boolean;
   danger?: boolean;
 }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   // `style` stays a plain object and the pressed state is read from the children
   // function, matching `Button`/`GameActions`. A function-form `style` is
   // silently dropped on this app's Pressable (NativeWind wraps it), which shows
@@ -235,6 +241,9 @@ function GameMenu({
   onAgreeDraw?: () => void;
   onNewGame: () => void;
 }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const accentColor = GAME_ACCENTS[accent].base;
 
   const run = (action: () => void) => () => {
@@ -316,6 +325,9 @@ function MenuRow({
   disabled?: boolean;
   accent: string;
 }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const inactive = soon || disabled;
   return (
     <Pressable

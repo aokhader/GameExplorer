@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, apiFetch } from '@gameexplorer/client';
 import { supabase } from '@gameexplorer/db';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { Card, Button, TextField } from '@/components/ui';
 
 const CONFIRM_WORD = 'DELETE';
@@ -14,6 +14,9 @@ const CONFIRM_WORD = 'DELETE';
  * + type-to-confirm because this is irreversible. Only rendered when signed in.
  */
 export function DeleteAccountCard() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
   const { user, loading } = useAuth();
   const [expanded, setExpanded] = useState(false);

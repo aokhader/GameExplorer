@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Tabs, type BottomTabBarProps } from 'expo-router/tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE } from '@gameexplorer/ui';
+import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplorer/ui';
 
 import { FONTS } from '@/theme/typography';
 import { getLastPlayed } from '@/lib/lastPlayed';
@@ -24,6 +24,9 @@ const TAB_ICONS: Record<string, string> = {
  * touches outside a parent's box).
  */
 function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -135,6 +138,9 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <Tabs
       tabBar={(props) => <DeckTabBar {...props} />}

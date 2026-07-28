@@ -1,15 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@gameexplorer/shared';
-import {
-  ChessPiece,
-  CheckersPiece,
-  ReversiDisc,
-  BOARD_COLORS,
-  CHECKERS_BOARD_COLORS,
-  REVERSI_BOARD_COLORS,
-  COLORS,
-} from '@gameexplorer/ui';
+import { ChessPiece, CheckersPiece, ReversiDisc, BOARD_COLORS, CHECKERS_BOARD_COLORS, REVERSI_BOARD_COLORS, COLORS, useThemeName } from '@gameexplorer/ui';
 import { BoardFrame } from '@/board/BoardFrame';
 import { FONTS } from '@/theme/typography';
 
@@ -75,23 +67,25 @@ interface SquarePalette {
   capture: string;
 }
 
-const CHESS_PALETTE: SquarePalette = {
+// Colors are looked up during render, never captured here — the token objects
+// are live views, so a module-scope read freezes them at import (see themeRuntime).
+const chessPalette = (): SquarePalette => ({
   light: BOARD_COLORS.lightSquare,
   dark: BOARD_COLORS.darkSquare,
   lastMoveLight: BOARD_COLORS.lastMoveLight,
   lastMoveDark: BOARD_COLORS.lastMoveDark,
   move: BOARD_COLORS.moveIndicator,
   capture: BOARD_COLORS.moveIndicatorCapture,
-};
+});
 
-const CHECKERS_PALETTE: SquarePalette = {
+const checkersPalette = (): SquarePalette => ({
   light: CHECKERS_BOARD_COLORS.lightSquare,
   dark: CHECKERS_BOARD_COLORS.darkSquare,
   lastMoveLight: CHECKERS_BOARD_COLORS.lastMoveLight,
   lastMoveDark: CHECKERS_BOARD_COLORS.lastMoveDark,
   move: CHECKERS_BOARD_COLORS.moveIndicator,
   capture: CHECKERS_BOARD_COLORS.captureIndicator,
-};
+});
 
 function pieceFor(diagram: TutorialDiagram, square: string, size: number) {
   if (diagram.game === 'chess') {
@@ -107,8 +101,11 @@ function pieceFor(diagram: TutorialDiagram, square: string, size: number) {
 }
 
 export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const isReversi = diagram.game === 'reversi';
-  const palette = diagram.game === 'chess' ? CHESS_PALETTE : CHECKERS_PALETTE;
+  const palette = diagram.game === 'chess' ? chessPalette() : checkersPalette();
 
   const highlightsBySquare = new Map<string, DiagramHighlight['kind'][]>();
   for (const h of diagram.highlights ?? []) {

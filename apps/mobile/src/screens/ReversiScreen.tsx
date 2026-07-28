@@ -8,7 +8,7 @@ import {
   type ReversiGameState,
   type ReversiColor,
 } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, REVERSI_DISC_COLORS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, REVERSI_DISC_COLORS, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ReversiBoard } from '@/board/ReversiBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
@@ -23,8 +23,6 @@ import { reversiAdapter } from '@/engine/reversiAdapter';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
 
-const LIME = GAME_ACCENTS.reversi.base;
-const LIME_TINT = 'rgba(163,230,53,0.12)';
 
 const DIFFICULTY_LEVELS = [
   { elo: 500, label: 'Beginner', description: 'Plays randomly, ignores corners', icon: '🟢' },
@@ -56,6 +54,9 @@ function cap(color: string): string {
  * per-turn change is which color may tap.
  */
 export function ReversiScreen() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   const router = useRouter();
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -98,7 +99,7 @@ export function ReversiScreen() {
     return (
       <Screen>
         <GlowBackdrop
-          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: LIME, opacity: 0.16 }]}
+          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.reversi.base, opacity: 0.16 }]}
         />
         <BackHeader fallbackHref="/" />
         <SetupHero game="reversi" />
@@ -110,12 +111,12 @@ export function ReversiScreen() {
           hitSlop={8}
           style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
         >
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: LIME }}>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: GAME_ACCENTS.reversi.base }}>
             New to Reversi? How to play →
           </Text>
         </Pressable>
 
-        <OpponentPicker value={mode} onChange={setMode} accent={LIME} tint={LIME_TINT} />
+        <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.reversi.base} tint={GAME_ACCENTS.reversi.tintBg} />
 
         {!isPassAndPlay && (
           <>
@@ -138,12 +139,12 @@ export function ReversiScreen() {
                       borderRadius: 14,
                       borderWidth: 2,
                       padding: 12,
-                      backgroundColor: selected ? LIME_TINT : COLORS.surfaceAlt,
-                      borderColor: selected ? LIME : COLORS.border,
+                      backgroundColor: selected ? GAME_ACCENTS.reversi.tintBg : COLORS.surfaceAlt,
+                      borderColor: selected ? GAME_ACCENTS.reversi.base : COLORS.border,
                     }}
                   >
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? LIME : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                    <Text style={{ color: selected ? GAME_ACCENTS.reversi.base : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
                       {level.label}
                     </Text>
                     <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
@@ -174,8 +175,8 @@ export function ReversiScreen() {
                       borderWidth: 2,
                       padding: 16,
                       alignItems: 'center',
-                      backgroundColor: selected ? LIME_TINT : COLORS.surfaceAlt,
-                      borderColor: selected ? LIME : COLORS.border,
+                      backgroundColor: selected ? GAME_ACCENTS.reversi.tintBg : COLORS.surfaceAlt,
+                      borderColor: selected ? GAME_ACCENTS.reversi.base : COLORS.border,
                     }}
                   >
                     <View
@@ -191,7 +192,7 @@ export function ReversiScreen() {
                     />
                     <Text
                       style={{
-                        color: selected ? LIME : COLORS.fg,
+                        color: selected ? GAME_ACCENTS.reversi.base : COLORS.fg,
                         fontSize: 15,
                         fontWeight: '700',
                         textTransform: 'capitalize',
@@ -455,6 +456,9 @@ export function ReversiScreen() {
 }
 
 function InfoCell({ label, value, capitalize }: { label: string; value: string; capitalize?: boolean }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <View style={{ flexDirection: 'row', gap: 6, width: '50%', paddingVertical: 2 }}>
       <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}:</Text>
@@ -466,6 +470,9 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
 }
 
 function DiscCount({ color, border, count }: { color: string; border: string; count: number }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
       <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: color, borderWidth: 2, borderColor: border }} />

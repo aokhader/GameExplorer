@@ -16,9 +16,20 @@ import {
   DMSans_600SemiBold,
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
+import {
+  Spectral_600SemiBold,
+  Spectral_700Bold,
+  Spectral_800ExtraBold,
+} from '@expo-google-fonts/spectral';
+import {
+  NunitoSans_400Regular,
+  NunitoSans_500Medium,
+  NunitoSans_600SemiBold,
+  NunitoSans_700Bold,
+} from '@expo-google-fonts/nunito-sans';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, getActiveTheme, useThemeName } from '@gameexplorer/ui';
 
 import { bootstrapConfig } from '@/config/env';
 import { SettingsProvider } from '@/providers/SettingsProvider';
@@ -44,6 +55,11 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
  * never flashes from the system font.
  */
 export default function RootLayout() {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
+  // Both themes' faces load up front, so switching has nothing to wait for and
+  // never flashes a system font mid-session.
   const [fontsLoaded, fontError] = useFonts({
     SpaceGrotesk_500Medium,
     SpaceGrotesk_600SemiBold,
@@ -52,6 +68,13 @@ export default function RootLayout() {
     DMSans_500Medium,
     DMSans_600SemiBold,
     DMSans_700Bold,
+    Spectral_600SemiBold,
+    Spectral_700Bold,
+    Spectral_800ExtraBold,
+    NunitoSans_400Regular,
+    NunitoSans_500Medium,
+    NunitoSans_600SemiBold,
+    NunitoSans_700Bold,
   });
   const fontsReady = fontsLoaded || fontError != null;
 
@@ -75,7 +98,9 @@ export default function RootLayout() {
                 stop/restart cycle, so its host lives at the root (see
                 src/engine/chessEngineNative.ts). */}
             <EngineHost />
-            <StatusBar style="light" />
+            {/* Cozy is a light theme — light status-bar glyphs would vanish
+                against parchment, so the style follows the active theme. */}
+            <StatusBar style={getActiveTheme() === 'cozy' ? 'dark' : 'light'} />
             <Stack
               screenOptions={{
                 headerShown: false,
