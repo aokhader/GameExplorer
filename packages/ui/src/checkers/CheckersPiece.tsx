@@ -5,6 +5,9 @@
  * a dashed inner ring; a king gains the ♛ face, a solid ring, and the pink
  * promotion halo (pink is the game's accent, not a piece color). Driven by
  * CHECKERS_PIECE_STYLE — CheckersPiece.native.tsx mirrors this markup.
+ *
+ * Colors resolve through `var(--gx-checkers-piece-…, <token>)` so a web theme can
+ * recolor the discs from CSS; the token is the fallback. See ChessPiece.tsx.
  */
 import React from 'react';
 import { CHECKERS_PIECE_STYLE } from './tokens';
@@ -29,7 +32,12 @@ export function CheckersPiece({
 }: CheckersPieceProps) {
   const s = CHECKERS_PIECE_STYLE[color];
   const isKing = type === 'king';
-  const halo = isKing ? CHECKERS_PIECE_STYLE.promotionHalo : s.halo;
+  /** Themeable slot: the CSS var if a theme defines it, else the shared token. */
+  const v = (slot: string, fallback: string) =>
+    `var(--gx-checkers-piece-${color}-${slot}, ${fallback})`;
+  const halo = isKing
+    ? `var(--gx-checkers-piece-promo-halo, ${CHECKERS_PIECE_STYLE.promotionHalo})`
+    : v('halo', s.halo);
   const bodyId = `ckp-body-${color}`;
   const haloId = `ckp-halo-${color}-${type}`;
   const shadeId = `ckp-shade-${color}`;
@@ -49,13 +57,17 @@ export function CheckersPiece({
           <stop offset="100%" stopColor={halo} stopOpacity="0" />
         </radialGradient>
         <radialGradient id={bodyId} cx="35%" cy="28%" r="80%">
-          {s.body.map((stop) => (
-            <stop key={stop.offset} offset={`${stop.offset * 100}%`} stopColor={stop.color} />
+          {s.body.map((stop, i) => (
+            <stop
+              key={stop.offset}
+              offset={`${stop.offset * 100}%`}
+              stopColor={v(`${i + 1}`, stop.color)}
+            />
           ))}
         </radialGradient>
         <linearGradient id={shadeId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="55%" stopColor={s.shade} stopOpacity="0" />
-          <stop offset="100%" stopColor={s.shade} />
+          <stop offset="55%" stopColor={v('shade', s.shade)} stopOpacity="0" />
+          <stop offset="100%" stopColor={v('shade', s.shade)} />
         </linearGradient>
       </defs>
 
@@ -65,10 +77,10 @@ export function CheckersPiece({
       {/* Disc body + bottom inset shade + rim */}
       <circle cx="50" cy="50" r="40" fill={`url(#${bodyId})`} />
       <circle cx="50" cy="50" r="40" fill={`url(#${shadeId})`} />
-      <circle cx="50" cy="50" r="39.5" fill="none" stroke={s.border} strokeWidth="1.4" />
+      <circle cx="50" cy="50" r="39.5" fill="none" stroke={v('border', s.border)} strokeWidth="1.4" />
 
       {/* Top sheen */}
-      <ellipse cx="38" cy="33" rx="16" ry="10" fill={s.sheen} opacity="0.35" />
+      <ellipse cx="38" cy="33" rx="16" ry="10" fill={v('sheen', s.sheen)} opacity="0.35" />
 
       {isKing ? (
         <>
@@ -78,14 +90,14 @@ export function CheckersPiece({
             cy="50"
             r="30"
             fill="none"
-            stroke={CHECKERS_PIECE_STYLE.kingRing[color]}
+            stroke={`var(--gx-checkers-piece-kingring-${color}, ${CHECKERS_PIECE_STYLE.kingRing[color]})`}
             strokeWidth="2.2"
           />
           {/* Crown mark — a vector path (not a ♛ font glyph) so it renders
               identically on web + native. */}
           <path
             d="M36 61 L33 44 L42 51 L50 41 L58 51 L67 44 L64 61 Z"
-            fill={s.kingGlyph}
+            fill={v('king', s.kingGlyph)}
           />
         </>
       ) : (
@@ -95,7 +107,7 @@ export function CheckersPiece({
           cy="50"
           r="27"
           fill="none"
-          stroke={s.ring}
+          stroke={v('ring', s.ring)}
           strokeWidth="2"
           strokeDasharray="6 5"
         />

@@ -88,13 +88,19 @@ export function GameResultScreen({
     if (result !== 'aborted') sfx.play(sound);
 
     if (result === 'win' && !reducedMotion) {
+      // confetti needs real color strings, so resolve the theme's accent + the
+      // three game hues off the document rather than passing `var(…)` through.
+      const css = getComputedStyle(document.documentElement);
+      const colors = ['--c-accent', '--c-game-chess', '--c-game-checkers', '--c-game-reversi']
+        .map((name) => css.getPropertyValue(name).trim())
+        .filter(Boolean);
       const fire = (originX: number) =>
         confetti({
           particleCount: 70,
           spread: 70,
           startVelocity: 45,
           origin: { x: originX, y: 0.35 },
-          colors: ['#cda43f', '#3b82f6', '#ec4899', '#a3e635'],
+          colors: colors.length ? colors : ['#cda43f', '#3b82f6', '#ec4899', '#a3e635'],
           disableForReducedMotion: true,
           scalar: 0.9,
         });

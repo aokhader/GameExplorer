@@ -7,7 +7,6 @@ import {
   BOARD_COLORS,
   CHECKERS_BOARD_COLORS,
   REVERSI_BOARD_COLORS,
-  COLORS,
 } from '@gameexplorer/ui';
 
 /**
@@ -88,23 +87,30 @@ interface SquarePalette {
   capture: string;
 }
 
+/**
+ * Diagram squares track the live boards: each slot reads the `--gx-*-board-*`
+ * variable globals.css declares per theme, falling back to the shared token.
+ */
 const CHESS_PALETTE: SquarePalette = {
-  light: BOARD_COLORS.lightSquare,
-  dark: BOARD_COLORS.darkSquare,
-  lastMoveLight: BOARD_COLORS.lastMoveLight,
-  lastMoveDark: BOARD_COLORS.lastMoveDark,
-  move: BOARD_COLORS.moveIndicator,
-  capture: BOARD_COLORS.moveIndicatorCapture,
+  light: `var(--gx-board-light, ${BOARD_COLORS.lightSquare})`,
+  dark: `var(--gx-board-dark, ${BOARD_COLORS.darkSquare})`,
+  lastMoveLight: `var(--gx-board-lastmove-light, ${BOARD_COLORS.lastMoveLight})`,
+  lastMoveDark: `var(--gx-board-lastmove-dark, ${BOARD_COLORS.lastMoveDark})`,
+  move: `var(--gx-board-move, ${BOARD_COLORS.moveIndicator})`,
+  capture: `var(--gx-board-move-capture, ${BOARD_COLORS.moveIndicatorCapture})`,
 };
 
 const CHECKERS_PALETTE: SquarePalette = {
-  light: CHECKERS_BOARD_COLORS.lightSquare,
-  dark: CHECKERS_BOARD_COLORS.darkSquare,
-  lastMoveLight: CHECKERS_BOARD_COLORS.lastMoveLight,
-  lastMoveDark: CHECKERS_BOARD_COLORS.lastMoveDark,
-  move: CHECKERS_BOARD_COLORS.moveIndicator,
-  capture: CHECKERS_BOARD_COLORS.captureIndicator,
+  light: `var(--gx-checkers-board-light, ${CHECKERS_BOARD_COLORS.lightSquare})`,
+  dark: `var(--gx-checkers-board-dark, ${CHECKERS_BOARD_COLORS.darkSquare})`,
+  lastMoveLight: `var(--gx-checkers-board-lastmove-light, ${CHECKERS_BOARD_COLORS.lastMoveLight})`,
+  lastMoveDark: `var(--gx-checkers-board-lastmove-dark, ${CHECKERS_BOARD_COLORS.lastMoveDark})`,
+  move: `var(--gx-checkers-board-move, ${CHECKERS_BOARD_COLORS.moveIndicator})`,
+  capture: `var(--gx-checkers-board-capture, ${CHECKERS_BOARD_COLORS.captureIndicator})`,
 };
+
+/** Reversi's legal-move dot and flip ring — one hue, themed with the felt. */
+const REVERSI_RING = `var(--gx-reversi-board-lastmove-ring, ${REVERSI_BOARD_COLORS.lastMoveRing})`;
 
 function pieceFor(diagram: TutorialDiagram, square: string) {
   if (diagram.game === 'chess') {
@@ -138,7 +144,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
 
       let bg: string;
       if (isReversi) {
-        bg = REVERSI_BOARD_COLORS.cell;
+        bg = `var(--gx-reversi-board-cell, ${REVERSI_BOARD_COLORS.cell})`;
       } else if (kinds.includes('origin') || kinds.includes('target')) {
         bg = isLight ? palette.lastMoveLight : palette.lastMoveDark;
       } else {
@@ -180,7 +186,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
           {kinds.includes('move') && !piece && (
             <div
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[30%] h-[30%] rounded-full z-10"
-              style={{ backgroundColor: isReversi ? REVERSI_BOARD_COLORS.lastMoveRing : palette.move }}
+              style={{ backgroundColor: isReversi ? REVERSI_RING : palette.move }}
             />
           )}
 
@@ -188,7 +194,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
           {kinds.includes('capture') && (
             <div
               className="absolute inset-[8%] rounded-full border-4 z-10"
-              style={{ borderColor: isReversi ? COLORS.danger : palette.capture }}
+              style={{ borderColor: isReversi ? 'var(--c-danger)' : palette.capture }}
             />
           )}
 
@@ -196,7 +202,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
           {isReversi && (kinds.includes('origin') || kinds.includes('target')) && (
             <div
               className="absolute inset-[6%] rounded-full border-4 z-10"
-              style={{ borderColor: REVERSI_BOARD_COLORS.lastMoveRing }}
+              style={{ borderColor: REVERSI_RING }}
             />
           )}
 
@@ -214,7 +220,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
         className="relative grid grid-cols-8 rounded-xl overflow-hidden"
         style={
           isReversi
-            ? { gap: 1, padding: 4, backgroundColor: REVERSI_BOARD_COLORS.boardBorder }
+            ? { gap: 1, padding: 4, backgroundColor: `var(--gx-reversi-board-frame, ${REVERSI_BOARD_COLORS.boardBorder})` }
             : undefined
         }
       >

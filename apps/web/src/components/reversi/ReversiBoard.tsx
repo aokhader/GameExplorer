@@ -8,6 +8,21 @@ import { BoardFrame } from '@/components/board/BoardFrame';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
+/**
+ * Felt palette, read from the `--gx-reversi-board-*` variables that globals.css
+ * declares per theme, with the shared token as the fallback so the board is still
+ * correct on its own. (Mobile reads REVERSI_BOARD_COLORS directly — no themes.)
+ */
+const FELT = {
+  cell:           `var(--gx-reversi-board-cell, ${REVERSI_BOARD_COLORS.cell})`,
+  cellBorder:     `var(--gx-reversi-board-cell-border, ${REVERSI_BOARD_COLORS.cellBorder})`,
+  frame:          `var(--gx-reversi-board-frame, ${REVERSI_BOARD_COLORS.boardBorder})`,
+  validMoveBlack: `var(--gx-reversi-board-valid-black, ${REVERSI_BOARD_COLORS.validMoveBlack})`,
+  validMoveWhite: `var(--gx-reversi-board-valid-white, ${REVERSI_BOARD_COLORS.validMoveWhite})`,
+  turnGlow:
+    'var(--gx-reversi-board-turn-glow, 0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(163,230,53,0.6), 0 0 30px -2px rgba(163,230,53,0.5))',
+} as const;
+
 interface ReversiiBoardProps {
   gameState: ReversiGameState;
   onMove: (position: string) => void;
@@ -88,8 +103,8 @@ export const ReversiBoard = React.memo(function ReversiBoard({
           data-legal={isLegal || undefined}
           data-disc={disc?.color}
           style={{
-            backgroundColor: REVERSI_BOARD_COLORS.cell,
-            border: `1px solid ${REVERSI_BOARD_COLORS.cellBorder}`,
+            backgroundColor: FELT.cell,
+            border: `1px solid ${FELT.cellBorder}`,
             aspectRatio: '1 / 1',
           }}
           className={`relative flex items-center justify-center ${isLegal ? 'cursor-pointer' : 'cursor-default'}`}
@@ -123,8 +138,8 @@ export const ReversiBoard = React.memo(function ReversiBoard({
               className="absolute w-[28%] h-[28%] rounded-full pointer-events-none z-10"
               style={{
                 backgroundColor: gameState.currentTurn === 'black'
-                  ? REVERSI_BOARD_COLORS.validMoveBlack
-                  : REVERSI_BOARD_COLORS.validMoveWhite,
+                  ? FELT.validMoveBlack
+                  : FELT.validMoveWhite,
               }}
             />
           )}
@@ -149,10 +164,8 @@ export const ReversiBoard = React.memo(function ReversiBoard({
       <div
         className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg transition-shadow duration-300"
         style={{
-          border: `2px solid ${REVERSI_BOARD_COLORS.boardBorder}`,
-          boxShadow: isPlayerTurn
-            ? '0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(163,230,53,0.6), 0 0 30px -2px rgba(163,230,53,0.5)'
-            : undefined,
+          border: `2px solid ${FELT.frame}`,
+          boxShadow: isPlayerTurn ? FELT.turnGlow : undefined,
         }}
       >
         {squares}

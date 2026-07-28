@@ -103,7 +103,9 @@
 
   --c-focus-ring:     #cda43f;
 
-  /* Display font (Space Grotesk); body defaults to DM Sans via next/font on <body>. */
+  /* Type. Both faces are next/font CSS variables set on <html>; a theme swaps the
+     family by pointing these at a different one (see the cozy block). */
+  --font-body:    var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-space-grotesk), 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
 
   /* Elevation + neon glow shadows (pair: SHADOWS in tokens.ts). */
@@ -118,7 +120,282 @@
   /* Gradients (pair: GRADIENTS in tokens.ts). */
   --gradient-accent:  linear-gradient(180deg, #dcb456 0%, #cda43f 55%, #b8923a 100%);
   --gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 40%);
+
+  /* Richness-layer knobs — the parts of `.glass`, `.grain`, the gradient text and
+     the per-route page glows that are theme-dependent. Pulled out as vars so a
+     theme block can retheme the expression, not just the palette. */
+  --glass-sheen:  linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --grain-opacity: 0.04;
+  --gradient-text-accent: linear-gradient(135deg, #f0d589 0%, #cda43f 55%, #b8923a 100%);
+  --gradient-text-brand:  linear-gradient(90deg, #3b82f6 0%, #ec4899 100%);
+  --page-glow-chess:     radial-gradient(900px 500px at 20% 0%, rgba(59,130,246,0.12),  transparent 55%);
+  --page-glow-checkers:  radial-gradient(900px 500px at 20% 0%, rgba(236,72,153,0.13),  transparent 55%);
+  --page-glow-reversi:   radial-gradient(900px 500px at 20% 0%, rgba(163,230,53,0.12),  transparent 55%);
+  --page-glow-liquidate: radial-gradient(900px 500px at 20% 0%, rgba(139,92,246,0.13),  transparent 55%);
+  --page-glow-gold:      radial-gradient(900px 500px at 50% 0%, rgba(205,164,63,0.10),  transparent 55%);
+  --page-glow-profile:
+    radial-gradient(900px 480px at 15% -10%, rgba(59,130,246,0.13), transparent 55%),
+    radial-gradient(700px 400px at 95% 0%,   rgba(236,72,153,0.10), transparent 55%);
+
+  /* Boards & pieces — Arcade Glow. These pair with `BOARD_COLORS`,
+     `CHECKERS_BOARD_COLORS` and `REVERSI_BOARD_COLORS` in the per-game token
+     files under `packages/ui/src` (mobile reads those directly). Only the board
+     squares live here; the piece slots are declared per-theme, since each web
+     piece component already carries its Arcade token as the CSS fallback. */
+  --gx-board-light:          #445576;
+  --gx-board-dark:           #2a3550;
+  --gx-board-frame:          var(--c-border-strong);
+  --gx-board-selected:       #cda43f;
+  --gx-board-lastmove-light: rgba(205, 164, 63, 0.42);
+  --gx-board-lastmove-dark:  rgba(205, 164, 63, 0.52);
+  --gx-board-move:           rgba(34, 211, 170, 0.85);
+  --gx-board-move-capture:   rgba(34, 211, 170, 0.55);
+
+  --gx-checkers-board-light:          #445576;
+  --gx-checkers-board-dark:           #2a3550;
+  --gx-checkers-board-frame:          var(--c-border-strong);
+  --gx-checkers-board-selected:       #cda43f;
+  --gx-checkers-board-lastmove-light: rgba(205, 164, 63, 0.42);
+  --gx-checkers-board-lastmove-dark:  rgba(205, 164, 63, 0.52);
+  --gx-checkers-board-move:           rgba(236, 72, 153, 0.85);
+  --gx-checkers-board-capture:        rgba(236, 72, 153, 0.75);
+  --gx-checkers-board-turn-glow:      0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(236,72,153,0.6), 0 0 30px -2px rgba(236,72,153,0.5);
+
+  --gx-reversi-board-cell:        #12503a;
+  --gx-reversi-board-cell-border: rgba(0, 0, 0, 0.35);
+  --gx-reversi-board-frame:       #0c3324;
+  --gx-reversi-board-valid-black: rgba(0, 0, 0, 0.35);
+  --gx-reversi-board-valid-white: rgba(255, 255, 255, 0.32);
+  --gx-reversi-board-lastmove-ring: rgba(190, 242, 100, 0.85);
+  --gx-reversi-board-turn-glow:   0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(163,230,53,0.6), 0 0 30px -2px rgba(163,230,53,0.5);
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Theme: Cozy Tabletop (design doc `Cozy Tabletop.dc.html`) — user-selectable in
+ * Settings → Appearance, applied as `data-theme="cozy"` on <html>.
+ *
+ * Warm wood and felt: parchment surfaces, walnut chrome, forest green as the one
+ * action color, brass as the highlight. Values pair with THEMES.cozy in
+ * `packages/ui/src/tokens.ts`.
+ *
+ * Note this is a LIGHT theme, so it also has to undo Arcade Glow's *expression* —
+ * white-on-dark sheens, neon halos and heavy black drop shadows all read as dirt
+ * on cream. Shadows here are warm brown and soft; "glow" becomes a tinted ring.
+ * ──────────────────────────────────────────────────────────────────────────── */
+[data-theme='cozy'] {
+  --c-surface:        #efe6d3;
+  --c-surface-alt:    #faf4e8;
+  --c-surface-muted:  #e6dcc4;
+  --c-surface-hover:  #f4ecd9;
+  --c-border:         #e2d3b6;
+  --c-border-strong:  #cdbb98;
+
+  /* Hover states go DARKER here, the opposite of Arcade Glow. On a dark theme
+     "brighter" reads as "raised"; on parchment it reads as "receding", and these
+     hues double as text colors (`text-danger-hover` on a card), where lightening
+     drops them under AA. */
+  --c-accent:         #2f6e4e;
+  --c-accent-hover:   #275c41;
+  --c-accent-muted:   rgba(47, 110, 78, 0.14);
+  --c-on-accent:      #f4ecd9;
+
+  --c-info:           #8b5a2b;
+  --c-info-hover:     #6e4a2a;
+  --c-info-muted:     rgba(139, 90, 43, 0.12);
+
+  /* Ambient blooms are warm washes, not neon — the AmbientBackground blooms sit
+     on cream, where anything above ~10% alpha turns muddy. */
+  --c-accent-glow:    rgba(169, 116, 63, 0.20);
+  --c-info-glow:      rgba(47, 110, 78, 0.12);
+
+  /* Per-game hues: walnut chess, forest checkers, dark-wood reversi, clay
+     liquidate (pair: COZY_GAME_ACCENTS in tokens.ts). */
+  --c-game-chess:          #8b5a2b;
+  --c-game-chess-glow:     rgba(169, 116, 63, 0.30);
+  --c-game-checkers:       #2f6e4e;
+  --c-game-checkers-glow:  rgba(47, 110, 78, 0.24);
+  --c-game-reversi:        #3b2e21;
+  --c-game-reversi-glow:   rgba(59, 46, 33, 0.22);
+  --c-game-liquidate:      #b8724a;
+  --c-game-liquidate-glow: rgba(184, 114, 74, 0.26);
+  /* Shade the home page's game cards deepen toward — dark walnut, not the
+     Arcade ink, so the warm hues stay warm. */
+  --c-game-card-shade:     #2c1a0c;
+
+  --c-danger:         #a2482e;
+  --c-danger-hover:   #85391f;
+  --c-danger-muted:   rgba(162, 72, 46, 0.12);
+  /* Deeper than the design's brass #c9a24a: warning is only ever small text on a
+     `bg-warning/15` tint here, and brass-on-cream is 2.2:1. The brass tone still
+     comes through in the tint and border; the label itself has to be readable. */
+  --c-warning:        #8a661d;
+  --c-warning-hover:  #6f5115;
+  --c-success:        #2f6e4e;
+  --c-success-hover:  #275c41;
+
+  --c-fg:             #2c2117;
+  /* The design's secondary tone is #6f6350; darkened one step so it still clears
+     AA (4.9:1) on `surface-muted`, the tone under pills and inputs, where the
+     original landed at 4.3:1. On the page surface both read the same. */
+  --c-fg-muted:       #665a47;
+  --c-fg-subtle:      #9c8f79;
+  --c-fg-inverse:     #faf4e8;
+
+  --c-focus-ring:     #2f6e4e;
+
+  /* Spectral (serif display) + Nunito Sans (body) — the design's book-on-the-
+     shelf voice, where Arcade Glow uses a geometric sans. */
+  --font-body:    var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-spectral), 'Spectral', ui-serif, Georgia, serif;
+
+  /* Warm brown shadows at low opacity; the top-edge highlight goes near-white but
+     faint, since a lit edge on cream is a hint rather than a rim. */
+  --shadow-elevation:     inset 0 1px 0 0 rgba(255,255,255,0.75), 0 12px 26px -18px rgba(60,40,20,0.55);
+  --shadow-elevation-lg:  inset 0 1px 0 0 rgba(255,255,255,0.85), 0 40px 80px -30px rgba(60,40,20,0.45);
+  --shadow-glow-accent:   0 0 0 1px rgba(47,110,78,0.45),  0 10px 22px -10px rgba(47,110,78,0.55);
+  --shadow-glow-chess:    0 0 0 1px rgba(139,90,43,0.45),  0 10px 24px -10px rgba(124,82,48,0.50);
+  --shadow-glow-checkers: 0 0 0 1px rgba(47,110,78,0.45),  0 10px 24px -10px rgba(47,110,78,0.50);
+  --shadow-glow-reversi:  0 0 0 1px rgba(59,46,33,0.40),   0 10px 24px -10px rgba(59,46,33,0.45);
+  --shadow-glow-liquidate:0 0 0 1px rgba(184,114,74,0.45), 0 10px 24px -10px rgba(184,114,74,0.50);
+
+  --gradient-accent:  linear-gradient(180deg, #3f8a63 0%, #2f6e4e 55%, #275c41 100%);
+  /* Sheen inverts: on a light card the lit edge comes from white, but the *body*
+     needs a faint warm shade at the bottom or the card floats with no volume. */
+  --gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(139,90,43,0.03) 100%);
+
+  --glass-sheen:  linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(250,244,232,0.45) 100%);
+  --glass-border: rgba(139, 90, 43, 0.16);
+  /* Paper tooth — the grain reads as fibre on parchment, so it can be stronger. */
+  --grain-opacity: 0.06;
+  --gradient-text-accent: linear-gradient(135deg, #8b5a2b 0%, #2f6e4e 60%, #275c41 100%);
+  --gradient-text-brand:  linear-gradient(90deg, #8b5a2b 0%, #2f6e4e 100%);
+  --page-glow-chess:     radial-gradient(900px 500px at 20% 0%, rgba(169,116,63,0.22), transparent 60%);
+  --page-glow-checkers:  radial-gradient(900px 500px at 20% 0%, rgba(47,110,78,0.16),  transparent 60%);
+  --page-glow-reversi:   radial-gradient(900px 500px at 20% 0%, rgba(59,46,33,0.13),   transparent 60%);
+  --page-glow-liquidate: radial-gradient(900px 500px at 20% 0%, rgba(184,114,74,0.18), transparent 60%);
+  --page-glow-gold:      radial-gradient(1000px 500px at 50% -10%, rgba(169,116,63,0.22), transparent 60%);
+  --page-glow-profile:
+    radial-gradient(900px 480px at 15% -10%, rgba(169,116,63,0.20), transparent 58%),
+    radial-gradient(700px 400px at 95% 0%,   rgba(47,110,78,0.12),  transparent 58%);
+
+  /* ── Boards & pieces ──────────────────────────────────────────────────────
+   * The board/piece components carry their Arcade Glow values as literal CSS
+   * fallbacks (sourced from `chess|checkers|reversi/tokens.ts`), so a theme only
+   * declares what it changes. Cozy is the wood-and-felt table: walnut squares in
+   * a dark frame for chess and checkers, green felt for reversi, and every
+   * highlight is the forest green the design uses for "your move".
+   * ──────────────────────────────────────────────────────────────────────── */
+  --gx-board-light:          #e7c9a0;
+  --gx-board-dark:           #a9743f;
+  --gx-board-frame:          #6e4a2a;
+  --gx-board-selected:       #2f6e4e;
+  --gx-board-lastmove-light: rgba(47, 110, 78, 0.38);
+  --gx-board-lastmove-dark:  rgba(47, 110, 78, 0.50);
+  --gx-board-move:           rgba(47, 110, 78, 0.65);
+  --gx-board-move-capture:   rgba(47, 110, 78, 0.50);
+
+  --gx-checkers-board-light:          #e7c9a0;
+  --gx-checkers-board-dark:           #a9743f;
+  --gx-checkers-board-frame:          #6e4a2a;
+  --gx-checkers-board-selected:       #2f6e4e;
+  --gx-checkers-board-lastmove-light: rgba(47, 110, 78, 0.38);
+  --gx-checkers-board-lastmove-dark:  rgba(47, 110, 78, 0.50);
+  --gx-checkers-board-move:           rgba(47, 110, 78, 0.85);
+  --gx-checkers-board-capture:        rgba(47, 110, 78, 0.90);
+  --gx-checkers-board-turn-glow:      0 12px 28px -6px rgba(60,40,20,0.35), 0 0 0 2px rgba(47,110,78,0.75);
+
+  --gx-reversi-board-cell:        #2f6e4e;
+  --gx-reversi-board-cell-border: rgba(0, 0, 0, 0.28);
+  --gx-reversi-board-frame:       #23503a;
+  --gx-reversi-board-valid-black: rgba(0, 0, 0, 0.35);
+  --gx-reversi-board-valid-white: rgba(255, 255, 255, 0.35);
+  --gx-reversi-board-lastmove-ring: rgba(250, 244, 232, 0.90);
+  --gx-reversi-board-turn-glow:   0 12px 28px -6px rgba(60,40,20,0.35), 0 0 0 2px rgba(47,110,78,0.75);
+
+  /* Chess pieces — cream vs near-black walnut. Both sides gain an outline: the
+     board's light square is itself cream, so an unstroked pale piece vanishes. */
+  --gx-chess-piece-white-1:      #fdf8ee;
+  --gx-chess-piece-white-2:      #f2e4cc;
+  --gx-chess-piece-white-3:      #ddcaa8;
+  --gx-chess-piece-white-stroke: rgba(90, 60, 30, 0.55);
+  --gx-chess-piece-white-stroke-width: 26;
+  --gx-chess-piece-white-detail: #7c5230;
+  --gx-chess-piece-black-1:      #5a4636;
+  --gx-chess-piece-black-2:      #33200f;
+  --gx-chess-piece-black-3:      #1c1008;
+  --gx-chess-piece-black-stroke: rgba(240, 225, 200, 0.35);
+  --gx-chess-piece-black-stroke-width: 26;
+  --gx-chess-piece-black-detail: #e0cba8;
+
+  /* Checkers discs — carved cream vs terracotta, crowns in the opposite tone. */
+  --gx-checkers-piece-white-1:     #fefaf0;
+  --gx-checkers-piece-white-2:     #d9c39a;
+  --gx-checkers-piece-white-3:     #c4ab7e;
+  --gx-checkers-piece-white-border: rgba(120, 80, 40, 0.35);
+  --gx-checkers-piece-white-ring:   rgba(139, 90, 43, 0.35);
+  --gx-checkers-piece-white-king:   #8b5a2b;
+  --gx-checkers-piece-white-halo:   rgba(201, 162, 74, 0.55);
+  --gx-checkers-piece-white-sheen:  rgba(255, 255, 255, 0.75);
+  --gx-checkers-piece-white-shade:  rgba(90, 60, 30, 0.28);
+  --gx-checkers-piece-black-1:     #d08678;
+  --gx-checkers-piece-black-2:     #7c2d1e;
+  --gx-checkers-piece-black-3:     #6a2416;
+  --gx-checkers-piece-black-border: rgba(255, 255, 255, 0.22);
+  --gx-checkers-piece-black-ring:   rgba(255, 255, 255, 0.30);
+  --gx-checkers-piece-black-king:   #fbe6df;
+  --gx-checkers-piece-black-halo:   rgba(162, 72, 46, 0.60);
+  --gx-checkers-piece-black-sheen:  rgba(255, 255, 255, 0.35);
+  --gx-checkers-piece-black-shade:  rgba(0, 0, 0, 0.38);
+  --gx-checkers-piece-promo-halo:   rgba(47, 110, 78, 0.50);
+  --gx-checkers-piece-kingring-white: rgba(139, 90, 43, 0.45);
+  --gx-checkers-piece-kingring-black: rgba(255, 225, 215, 0.60);
+
+  /* Reversi discs — bone vs dark walnut, on green felt. */
+  --gx-reversi-disc-white-1:     #fdf6e8;
+  --gx-reversi-disc-white-2:     #ded0b0;
+  --gx-reversi-disc-white-3:     #cbbb98;
+  --gx-reversi-disc-white-border: rgba(120, 80, 40, 0.30);
+  --gx-reversi-disc-white-halo:   rgba(250, 244, 232, 0.45);
+  --gx-reversi-disc-white-sheen:  rgba(255, 255, 255, 0.85);
+  --gx-reversi-disc-white-shade:  rgba(60, 40, 20, 0.22);
+  --gx-reversi-disc-black-1:     #5a4636;
+  --gx-reversi-disc-black-2:     #241408;
+  --gx-reversi-disc-black-3:     #1a0e05;
+  --gx-reversi-disc-black-border: rgba(255, 255, 255, 0.10);
+  --gx-reversi-disc-black-halo:   rgba(0, 0, 0, 0.55);
+  --gx-reversi-disc-black-sheen:  rgba(214, 190, 160, 0.30);
+  --gx-reversi-disc-black-shade:  rgba(0, 0, 0, 0.45);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Cozy Tabletop — translucent-white translation layer.
+ *
+ * The app was authored dark-only, so ~150 places reach for a white hairline or
+ * white tint (`border-white/10`, `bg-white/5`) as the generic "lift a surface"
+ * gesture. On parchment those are invisible: cards lose their edges and hover
+ * states stop registering. Rather than rewrite every call site — the intent is
+ * always "a hairline" or "a faint tint", not literally white — the theme
+ * restates what those utilities mean, in warm walnut at matching weights.
+ *
+ * Unlayered on purpose: Tailwind's utilities live in `@layer utilities`, and
+ * unlayered rules outrank any layer, so these win without an `!important`.
+ * Matched via `[class~="…"]` rather than an escaped `.border-white\/10` — the
+ * Tailwind/Lightning pipeline drops author rules written with the escaped form.
+ * Opaque `bg-white` is deliberately untouched — every use is a genuinely white
+ * thing (a toggle knob, the eval bar's white side, the Google button).
+ * ──────────────────────────────────────────────────────────────────────────── */
+[data-theme='cozy'] [class~='border-white/10'] { border-color: rgba(139, 90, 43, 0.20); }
+[data-theme='cozy'] [class~='border-white/15'] { border-color: rgba(139, 90, 43, 0.28); }
+[data-theme='cozy'] [class~='border-white/20'] { border-color: rgba(139, 90, 43, 0.36); }
+[data-theme='cozy'] [class~='hover:border-white/15']:hover { border-color: rgba(139, 90, 43, 0.28); }
+[data-theme='cozy'] [class~='hover:border-white/20']:hover { border-color: rgba(139, 90, 43, 0.36); }
+[data-theme='cozy'] [class~='bg-white/5']      { background-color: rgba(139, 90, 43, 0.05); }
+[data-theme='cozy'] [class~='bg-white/10']     { background-color: rgba(139, 90, 43, 0.08); }
+[data-theme='cozy'] [class~='bg-white/15']     { background-color: rgba(139, 90, 43, 0.11); }
+[data-theme='cozy'] [class~='bg-white/20']     { background-color: rgba(139, 90, 43, 0.14); }
+[data-theme='cozy'] [class~='hover:bg-white/5']:hover  { background-color: rgba(139, 90, 43, 0.06); }
+[data-theme='cozy'] [class~='hover:bg-white/10']:hover { background-color: rgba(139, 90, 43, 0.10); }
 
 /* In-game emote reactions (multiplayer) */
 @keyframes emoteFloat {
@@ -178,13 +455,14 @@ html {
   background: var(--c-fg-subtle);
 }
 
-/* Dark mode base styles */
+/* Base styles */
 @layer base {
   body {
     @apply bg-surface text-fg;
+    /* Both faces come from the theme, not from a next/font class on <body>, so
+       selecting a theme swaps the typography along with the palette. */
+    font-family: var(--font-body);
   }
-  /* Display typography — Space Grotesk on headings (Arcade Glow identity).
-     Body stays on DM Sans via the next/font class on <body>. */
   h1, h2, h3, h4 {
     font-family: var(--font-display);
   }
@@ -211,11 +489,11 @@ html {
  * overlays, and floating panels (scope to panels, not full-page, for perf). */
 .glass {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%),
+    var(--glass-sheen),
     color-mix(in srgb, var(--c-surface-alt) 72%, transparent);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-elevation);
 }
 
@@ -247,21 +525,17 @@ html {
 .page-glow-profile {
   background-repeat: no-repeat;
 }
-.page-glow-chess    { background-image: radial-gradient(900px 500px at 20% 0%, rgba(59,130,246,0.12),  transparent 55%); }
-.page-glow-checkers { background-image: radial-gradient(900px 500px at 20% 0%, rgba(236,72,153,0.13),  transparent 55%); }
-.page-glow-reversi  { background-image: radial-gradient(900px 500px at 20% 0%, rgba(163,230,53,0.12),  transparent 55%); }
-.page-glow-liquidate { background-image: radial-gradient(900px 500px at 20% 0%, rgba(139,92,246,0.13), transparent 55%); }
-.page-glow-gold     { background-image: radial-gradient(900px 500px at 50% 0%, rgba(205,164,63,0.10),  transparent 55%); }
+.page-glow-chess     { background-image: var(--page-glow-chess); }
+.page-glow-checkers  { background-image: var(--page-glow-checkers); }
+.page-glow-reversi   { background-image: var(--page-glow-reversi); }
+.page-glow-liquidate { background-image: var(--page-glow-liquidate); }
+.page-glow-gold      { background-image: var(--page-glow-gold); }
 /* Profile carries the design's dual wash: blue top-left + pink top-right. */
-.page-glow-profile  {
-  background-image:
-    radial-gradient(900px 480px at 15% -10%, rgba(59,130,246,0.13), transparent 55%),
-    radial-gradient(700px 400px at 95% 0%,   rgba(236,72,153,0.10), transparent 55%);
-}
+.page-glow-profile   { background-image: var(--page-glow-profile); }
 
 /* Two-tone gradient display text. Pair with a base text color for fallback. */
 .text-gradient-gold {
-  background: linear-gradient(135deg, #f0d589 0%, #cda43f 55%, #b8923a 100%);
+  background: var(--gradient-text-accent);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -269,7 +543,7 @@ html {
 
 /* Neon brand gradient (blue → pink) — the Arcade Glow hero-word treatment. */
 .text-gradient-brand {
-  background: linear-gradient(90deg, #3b82f6 0%, #ec4899 100%);
+  background: var(--gradient-text-brand);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -282,7 +556,7 @@ html {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.04;
+  opacity: var(--grain-opacity);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 

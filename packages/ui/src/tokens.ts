@@ -10,10 +10,13 @@
  *     `--c-*` variables), so a key here and a `--c-*` var there are a PAIR.
  *     If you change a value, change both.
  *
- * Theming is architected for a future light mode: `THEMES` holds one block per
- * theme keyed identically; only `dark` is active today. Adding light later =
- * fill a `light` block + define `[data-theme="light"]` on web — no consumer
- * churn, because every consumer reads semantic names, not raw hex.
+ * Theming: `THEMES` holds one block per theme, keyed identically. `dark` (Arcade
+ * Glow) is the default; `cozy` (Cozy Tabletop — warm parchment + walnut + felt
+ * green) is a user-selectable alternative on web, applied as `[data-theme="cozy"]`
+ * overriding the same `--c-*` vars in globals.css. Consumers read semantic names,
+ * not raw hex, so a new theme is a new block here + a new block there.
+ *
+ * Mobile still imports `COLORS` (= `THEMES.dark`) statically and is not themed.
  */
 
 /** Raw palette primitives. Reference these from theme blocks, not from UI code. */
@@ -53,6 +56,41 @@ const PALETTE = {
   emerald600: '#10b981', // success — neon teal-green ("live" pulse)
   emerald500: '#22d3aa',
   white:    '#ffffff',
+} as const;
+
+/**
+ * Cozy Tabletop primitives — warm wood and felt, "a real board on the kitchen
+ * table". A parchment/cream ramp for surfaces, walnut for chrome and the chess
+ * signature, forest green as the action color, brass as the highlight.
+ */
+const COZY_PALETTE = {
+  // Parchment ramp — page + panel surfaces (light).
+  parchment50:  '#faf4e8', // cards / raised panels
+  parchment100: '#f4ecd9', // hover surface
+  parchment200: '#efe6d3', // page background
+  parchment300: '#e6dcc4', // muted fills / inputs
+  parchment400: '#e2d3b6', // hairline border
+  parchment500: '#cdbb98', // strong border / divider
+  // Ink ramp — text on parchment.
+  bark900: '#2c2117', // primary text
+  bark700: '#3b2e21', // body text / reversi signature (slate-dark wood)
+  bark500: '#6f6350', // secondary text
+  bark400: '#9c8f79', // tertiary / placeholder
+  // Walnut (chess signature + secondary/info chrome).
+  walnut:      '#8b5a2b',
+  walnutLight: '#a9743f',
+  walnutDeep:  '#6e4a2a',
+  // Forest green (primary action + checkers signature + success).
+  forest:      '#2f6e4e',
+  forestLight: '#3f8a63',
+  forestInk:   '#f4ecd9', // text/icon on a forest fill
+  // Brass (highlight / warning).
+  brass:      '#c9a24a',
+  brassLight: '#d9a94e',
+  // Terracotta (danger) + a lighter clay for liquidate.
+  clay:      '#a2482e',
+  clayLight: '#c0685a',
+  claySoft:  '#b8724a',
 } as const;
 
 /** Shape of a complete theme — every theme must define all of these keys. */
@@ -125,11 +163,55 @@ const DARK: Theme = {
 };
 
 /**
- * All themes, keyed by name. Only `dark` exists today; add `light` here with the
- * same keys when the toggle ships — see the file header.
+ * Cozy Tabletop — the warm light theme (design doc `Cozy Tabletop.dc.html`).
+ *
+ * Inverts Arcade Glow's relationship to light: parchment surfaces, walnut chrome,
+ * and forest green as the single action color, with brass reserved for highlights.
+ * The accent is green rather than gold because on a cream page gold has too little
+ * contrast to carry a primary button.
+ */
+const COZY: Theme = {
+  surface:      COZY_PALETTE.parchment200,
+  surfaceAlt:   COZY_PALETTE.parchment50,
+  surfaceMuted: COZY_PALETTE.parchment300,
+  surfaceHover: COZY_PALETTE.parchment100,
+  border:       COZY_PALETTE.parchment400,
+  borderStrong: COZY_PALETTE.parchment500,
+
+  accent:       COZY_PALETTE.forest,
+  accentHover:  COZY_PALETTE.forestLight,
+  accentMuted:  'rgba(47,110,78,0.14)',
+  onAccent:     COZY_PALETTE.forestInk,
+
+  info:         COZY_PALETTE.walnut,
+  infoHover:    COZY_PALETTE.walnutLight,
+  infoMuted:    'rgba(139,90,43,0.12)',
+
+  danger:       COZY_PALETTE.clay,
+  dangerHover:  COZY_PALETTE.clayLight,
+  dangerMuted:  'rgba(162,72,46,0.12)',
+  warning:      COZY_PALETTE.brass,
+  warningHover: COZY_PALETTE.brassLight,
+  success:      COZY_PALETTE.forest,
+  successHover: COZY_PALETTE.forestLight,
+
+  fg:           COZY_PALETTE.bark900,
+  fgMuted:      COZY_PALETTE.bark500,
+  fgSubtle:     COZY_PALETTE.bark400,
+  // The theme is light, so "text on the opposite surface" is the cream tone.
+  fgInverse:    COZY_PALETTE.parchment50,
+
+  focusRing:    COZY_PALETTE.forest,
+};
+
+/**
+ * All themes, keyed by name. `dark` is the default; `cozy` is user-selectable on
+ * web (Settings → Appearance). Adding another = a block here + a matching
+ * `[data-theme="…"]` block in `apps/web/src/app/globals.css`.
  */
 export const THEMES = {
   dark: DARK,
+  cozy: COZY,
 } as const;
 
 /**
@@ -169,6 +251,31 @@ export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'liquidate'
   liquidate: {
     base: PALETTE.violet, glow: 'rgba(139,92,246,0.45)', light: PALETTE.violetLight,
     tintBg: 'rgba(139,92,246,0.16)', tintBgSoft: 'rgba(139,92,246,0.03)', tintBorder: 'rgba(139,92,246,0.40)',
+  },
+} as const;
+
+/**
+ * Cozy Tabletop per-game hues — "walnut for chess, forest green for checkers,
+ * slate for reversi" (design doc intro), plus clay for liquidate. Glows are far
+ * weaker than Arcade Glow's: on a cream page a neon bloom reads as a smudge, so
+ * these are tints that warm the surface rather than halos that radiate off it.
+ */
+export const COZY_GAME_ACCENTS: Record<keyof typeof GAME_ACCENTS, GameAccent> = {
+  chess: {
+    base: COZY_PALETTE.walnut, glow: 'rgba(169,116,63,0.30)', light: COZY_PALETTE.walnutLight,
+    tintBg: 'rgba(139,90,43,0.10)', tintBgSoft: 'rgba(139,90,43,0.02)', tintBorder: 'rgba(169,116,63,0.45)',
+  },
+  checkers: {
+    base: COZY_PALETTE.forest, glow: 'rgba(47,110,78,0.24)', light: COZY_PALETTE.forestLight,
+    tintBg: 'rgba(47,110,78,0.10)', tintBgSoft: 'rgba(47,110,78,0.02)', tintBorder: 'rgba(47,110,78,0.42)',
+  },
+  reversi: {
+    base: COZY_PALETTE.bark700, glow: 'rgba(59,46,33,0.22)', light: COZY_PALETTE.bark500,
+    tintBg: 'rgba(59,46,33,0.09)', tintBgSoft: 'rgba(59,46,33,0.02)', tintBorder: 'rgba(59,46,33,0.38)',
+  },
+  liquidate: {
+    base: COZY_PALETTE.claySoft, glow: 'rgba(184,114,74,0.26)', light: COZY_PALETTE.clayLight,
+    tintBg: 'rgba(184,114,74,0.11)', tintBgSoft: 'rgba(184,114,74,0.02)', tintBorder: 'rgba(184,114,74,0.42)',
   },
 } as const;
 

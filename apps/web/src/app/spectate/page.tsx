@@ -109,7 +109,7 @@ export default function SpectateLobby() {
               placeholder="game id…"
               className="flex-1 min-w-0 bg-surface-muted rounded px-3 py-2 outline-none" />
             <button onClick={() => gameId && router.push(`/spectate/${gameId}`)} disabled={!gameId}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded font-semibold">Watch</button>
+              className="px-4 py-2 bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50 rounded font-semibold">Watch</button>
           </div>
         </div>
       </div>

@@ -12,7 +12,7 @@
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
-  border: 2px solid var(--c-border-strong);
+  border: 2px solid var(--gx-board-frame, var(--c-border-strong));
   box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.5);
   border-radius: 0.5rem;
   overflow: hidden;
@@ -33,10 +33,11 @@
   transition: background-color 0.15s ease;
 }
 
-/* Board palette is driven by BOARD_COLORS in @gameexplorer/ui (chess/tokens.ts) —
-   GameExplorer's "Arcade Glow" dark blue-slate board. ChessBoard.tsx injects those token
-   values as the --gx-board-* CSS variables on .chess-board-wrapper, so the TS
-   token is the single source of truth (the mobile app reads the same token).
+/* Board palette comes from the --gx-board-* variables, declared once per theme in
+   globals.css: `:root` holds "Arcade Glow" (the dark blue-slate board, pairing
+   with BOARD_COLORS in @gameexplorer/ui — chess/tokens.ts, which mobile reads),
+   `[data-theme="cozy"]` holds the walnut table. Declaring them there rather than
+   inline on the wrapper is what lets a theme override them.
    The hex literals below are only fallbacks if the vars are ever absent. */
 .square.light {
   background-color: var(--gx-board-light, #445576);

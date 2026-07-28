@@ -2,23 +2,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ChessEngine, ChessGameState, Position, Piece, PieceType } from '@gameexplorer/shared';
-import { ChessPiece, BOARD_COLORS } from '@gameexplorer/ui';
+import { ChessPiece } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
-// Drive ChessBoard.css from the shared token so BOARD_COLORS is the single source
-// of truth across web + mobile. The CSS references these vars (with the hex as a
-// fallback); changing the token here recolors the board everywhere.
-const BOARD_CSS_VARS = {
-  '--gx-board-light': BOARD_COLORS.lightSquare,
-  '--gx-board-dark': BOARD_COLORS.darkSquare,
-  '--gx-board-selected': BOARD_COLORS.selectedSquare,
-  '--gx-board-lastmove-light': BOARD_COLORS.lastMoveLight,
-  '--gx-board-lastmove-dark': BOARD_COLORS.lastMoveDark,
-  '--gx-board-move': BOARD_COLORS.moveIndicator,
-  '--gx-board-move-capture': BOARD_COLORS.moveIndicatorCapture,
-} as React.CSSProperties;
+// The board palette lives in the `--gx-board-*` vars that ChessBoard.css reads.
+// They are declared per-theme in globals.css (Arcade Glow in `:root`, pairing
+// with BOARD_COLORS in @gameexplorer/ui, which mobile reads directly) rather than
+// set inline here — an inline var would outrank the active theme's block.
 
 export interface BoardArrow {
   from: Position;
@@ -495,7 +487,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   };
 
   return (
-    <div className="chess-board-wrapper" style={BOARD_CSS_VARS}>
+    <div className="chess-board-wrapper">
       <BoardFrame maxPx={compact ? 520 : 680} vhCap={compact ? 70 : 80}>
         <div className="relative w-full h-full">
         <div

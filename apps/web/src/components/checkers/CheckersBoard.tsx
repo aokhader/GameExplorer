@@ -8,6 +8,27 @@ import { BoardFrame } from '@/components/board/BoardFrame';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
+/**
+ * Square palette, read from the `--gx-checkers-board-*` variables that globals.css
+ * declares per theme, with the shared token as the fallback so the board is still
+ * correct on its own. (Mobile reads CHECKERS_BOARD_COLORS directly — it has no
+ * themes.) These are inline styles rather than classes because the square color
+ * is picked per-square from game state.
+ */
+const SQUARE: Record<
+  'light' | 'dark' | 'frame' | 'selected' | 'lastMoveLight' | 'lastMoveDark' | 'move' | 'capture',
+  string
+> = {
+  light:        `var(--gx-checkers-board-light, ${CHECKERS_BOARD_COLORS.lightSquare})`,
+  dark:         `var(--gx-checkers-board-dark, ${CHECKERS_BOARD_COLORS.darkSquare})`,
+  frame:        `var(--gx-checkers-board-frame, var(--c-border-strong))`,
+  selected:     `var(--gx-checkers-board-selected, ${CHECKERS_BOARD_COLORS.selectedSquare})`,
+  lastMoveLight: `var(--gx-checkers-board-lastmove-light, ${CHECKERS_BOARD_COLORS.lastMoveLight})`,
+  lastMoveDark:  `var(--gx-checkers-board-lastmove-dark, ${CHECKERS_BOARD_COLORS.lastMoveDark})`,
+  move:         `var(--gx-checkers-board-move, ${CHECKERS_BOARD_COLORS.moveIndicator})`,
+  capture:      `var(--gx-checkers-board-capture, ${CHECKERS_BOARD_COLORS.captureIndicator})`,
+};
+
 export interface BoardArrow {
   from: string;
   to: string;
@@ -195,15 +216,15 @@ export const CheckersBoard = React.memo(function CheckersBoard({
       const justArrived     = lastMoveTo === pos;
       const isDragging      = draggedFrom === pos;
 
-      let bg = dark ? CHECKERS_BOARD_COLORS.darkSquare : CHECKERS_BOARD_COLORS.lightSquare;
-      if (isSelected) bg = CHECKERS_BOARD_COLORS.selectedSquare;
-      else if (isLastMoveSquare && dark)  bg = CHECKERS_BOARD_COLORS.lastMoveDark;
-      else if (isLastMoveSquare && !dark) bg = CHECKERS_BOARD_COLORS.lastMoveLight;
+      let bg = dark ? SQUARE.dark : SQUARE.light;
+      if (isSelected) bg = SQUARE.selected;
+      else if (isLastMoveSquare && dark)  bg = SQUARE.lastMoveDark;
+      else if (isLastMoveSquare && !dark) bg = SQUARE.lastMoveLight;
 
       // For coord labels: rank on leftmost screen column, file on bottommost screen row
       const showRank = coordsOn && screenCol === 0;
       const showFile = coordsOn && screenRow === 7;
-      const labelColor = dark ? CHECKERS_BOARD_COLORS.lightSquare : CHECKERS_BOARD_COLORS.darkSquare;
+      const labelColor = dark ? SQUARE.light : SQUARE.dark;
 
       squares.push(
         <div
@@ -237,14 +258,14 @@ export const CheckersBoard = React.memo(function CheckersBoard({
           {/* Move indicator dot (empty dark square) */}
           {dark && isValidDest && !piece && (
             <div className="absolute w-[28%] h-[28%] rounded-full pointer-events-none z-10"
-              style={{ backgroundColor: CHECKERS_BOARD_COLORS.moveIndicator }} />
+              style={{ backgroundColor: SQUARE.move }} />
           )}
 
           {/* Capture ring (valid dest that has an enemy piece) — shouldn't normally show
               since in checkers you land on empty squares, but guard anyway */}
           {dark && isValidDest && piece && (
             <div className="absolute inset-1 rounded-full border-4 pointer-events-none z-10"
-              style={{ borderColor: CHECKERS_BOARD_COLORS.captureIndicator }} />
+              style={{ borderColor: SQUARE.capture }} />
           )}
 
           {/* Piece — always rendered so onDragEnd fires on the still-in-DOM
@@ -274,9 +295,9 @@ export const CheckersBoard = React.memo(function CheckersBoard({
       <div
         className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg transition-shadow duration-300"
         style={{
-          border: '2px solid var(--c-border-strong)',
+          border: `2px solid ${SQUARE.frame}`,
           boxShadow: isMyTurn
-            ? '0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(236,72,153,0.6), 0 0 30px -2px rgba(236,72,153,0.5)'
+            ? 'var(--gx-checkers-board-turn-glow, 0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(236,72,153,0.6), 0 0 30px -2px rgba(236,72,153,0.5))'
             : undefined,
         }}
       >

@@ -13,6 +13,13 @@ import React from 'react';
  * while keeping the stored value authoritative once mounted.
  */
 
+/**
+ * Visual themes. `dark` is Arcade Glow (the default identity); `cozy` is Cozy
+ * Tabletop. Each is a `[data-theme]` block of `--c-*` overrides in globals.css
+ * paired with a `THEMES` entry in `packages/ui/src/tokens.ts`.
+ */
+export type ThemeChoice = 'dark' | 'cozy';
+
 export interface Settings {
   /** Play game sound effects (default off — opt-in). */
   sound: boolean;
@@ -22,6 +29,8 @@ export interface Settings {
   reduceMotion: boolean;
   /** Show rank/file coordinate labels on boards. */
   showCoordinates: boolean;
+  /** Active visual theme. */
+  theme: ThemeChoice;
 }
 
 const DEFAULTS: Settings = {
@@ -29,6 +38,7 @@ const DEFAULTS: Settings = {
   haptics: false,
   reduceMotion: false,
   showCoordinates: true,
+  theme: 'dark',
 };
 
 const STORAGE_KEY = 'gx:settings';
@@ -57,11 +67,26 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setSettings({ ...DEFAULTS, ...JSON.parse(raw) });
+      if (raw) {
+        const stored = { ...DEFAULTS, ...JSON.parse(raw) } as Settings;
+        // A theme written by a newer build (or hand-edited storage) would set an
+        // unknown `data-theme` and render an unstyled page — fall back instead.
+        if (stored.theme !== 'cozy') stored.theme = 'dark';
+        setSettings(stored);
+      }
     } catch {
       /* corrupt/unavailable storage — keep defaults */
     }
   }, []);
+
+  // Mirror the active theme onto <html> so the `[data-theme]` blocks in
+  // globals.css take over. The inline bootstrap script in layout.tsx has already
+  // done this for the first paint; this keeps it in step with later changes.
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (settings.theme === 'dark') delete root.dataset.theme;
+    else root.dataset.theme = settings.theme;
+  }, [settings.theme]);
 
   // Track OS reduced-motion preference.
   React.useEffect(() => {

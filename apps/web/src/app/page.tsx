@@ -184,8 +184,10 @@ function GameCard({
   isHovered: boolean;
 }) {
   // Jewel-tone gradient re-toned to the steel+gold scheme, deepened toward the
-  // slate base so it reads as a rich surface, not a flat saturated rectangle.
-  const gradient = `linear-gradient(135deg, var(--c-game-${game.hue}) 0%, color-mix(in srgb, var(--c-game-${game.hue}) 50%, #0b1120) 100%)`;
+  // base so it reads as a rich surface, not a flat saturated rectangle. The card
+  // stays dark in every theme (the label on it is static white), so it deepens
+  // toward the theme's own shade — mixing warm walnut into a cold navy muddies it.
+  const gradient = `linear-gradient(135deg, var(--c-game-${game.hue}) 0%, color-mix(in srgb, var(--c-game-${game.hue}) 50%, var(--c-game-card-shade, #0b1120)) 100%)`;
   const glowClass =
     game.hue === 'chess' ? 'group-hover:[box-shadow:var(--shadow-glow-chess)]'
     : game.hue === 'checkers' ? 'group-hover:[box-shadow:var(--shadow-glow-checkers)]'
