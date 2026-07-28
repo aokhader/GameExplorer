@@ -17,6 +17,12 @@ export interface OpponentPickerProps {
 const OPTIONS: { mode: LocalGameMode; icon: string; label: string; description: string }[] = [
   { mode: 'bot', icon: '🤖', label: 'vs Bot', description: 'Challenge the computer' },
   {
+    mode: 'training',
+    icon: '🎯',
+    label: 'Training',
+    description: 'Rated, matched to you',
+  },
+  {
     mode: 'pass-and-play',
     icon: '👥',
     label: 'Pass & Play',
@@ -25,8 +31,10 @@ const OPTIONS: { mode: LocalGameMode; icon: string; label: string; description: 
 ];
 
 /**
- * Setup-screen opponent selector — vs Bot or Pass & Play. Shared by all three
- * game screens so the tiles look identical; only the accent differs per game.
+ * Setup-screen mode selector — vs Bot, Training, or Pass & Play. Shared by all
+ * three game screens so the tiles look identical; only the accent differs per
+ * game. Three tiles don't fit one phone row, so they wrap 2-up like the bot
+ * strength grid below them.
  */
 export function OpponentPicker({ value, onChange, accent, tint }: OpponentPickerProps) {
   // Repaint when the theme changes; the tokens below are live views.
@@ -35,9 +43,9 @@ export function OpponentPicker({ value, onChange, accent, tint }: OpponentPicker
   return (
     <>
       <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
-        Opponent
+        Mode
       </Text>
-      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
         {OPTIONS.map((opt) => {
           const selected = value === opt.mode;
           return (
@@ -48,7 +56,8 @@ export function OpponentPicker({ value, onChange, accent, tint }: OpponentPicker
               accessibilityLabel={`${opt.label} — ${opt.description}`}
               accessibilityState={{ selected }}
               style={{
-                flex: 1,
+                flexGrow: 1,
+                flexBasis: '47%',
                 borderRadius: 14,
                 borderWidth: 2,
                 padding: 12,

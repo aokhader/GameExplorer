@@ -36,6 +36,12 @@ export const reversiAdapter: LocalGameAdapter<ReversiGameState> = {
     const { position } = getBestReversiMove(s, elo);
     return { from: position, to: position };
   },
+  getHintMove: (s, elo) => {
+    const { position } = getBestReversiMove(s, elo);
+    return { from: position, to: position };
+  },
+  // Always the engine's strongest square, as on web.
+  hintElo: () => 2000,
   thinkTimeForElo,
   mustPass: (s) => ReversiEngine.mustPass(s),
   executePass: (s) => ReversiEngine.executePass(s),

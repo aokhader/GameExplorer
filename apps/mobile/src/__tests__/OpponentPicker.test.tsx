@@ -7,9 +7,10 @@ const accent = GAME_ACCENTS.chess.base;
 const tint = GAME_ACCENTS.chess.tintBg;
 
 describe('OpponentPicker', () => {
-  it('renders both opponents and marks the current one selected', () => {
+  it('renders all three modes and marks the current one selected', () => {
     render(<OpponentPicker value="bot" onChange={() => {}} accent={accent} tint={tint} />);
     expect(screen.getByRole('button', { name: /vs Bot/ })).toBeSelected();
+    expect(screen.getByRole('button', { name: /Training/ })).not.toBeSelected();
     expect(screen.getByRole('button', { name: /Pass & Play/ })).not.toBeSelected();
   });
 
@@ -18,6 +19,13 @@ describe('OpponentPicker', () => {
     render(<OpponentPicker value="bot" onChange={onChange} accent={accent} tint={tint} />);
     fireEvent.press(screen.getByRole('button', { name: /Pass & Play/ }));
     expect(onChange).toHaveBeenCalledWith('pass-and-play');
+  });
+
+  it('selects training', () => {
+    const onChange = jest.fn();
+    render(<OpponentPicker value="bot" onChange={onChange} accent={accent} tint={tint} />);
+    fireEvent.press(screen.getByRole('button', { name: /Training/ }));
+    expect(onChange).toHaveBeenCalledWith('training');
   });
 });
 

@@ -22,12 +22,21 @@ interface ChessBoardProps {
   showCoordinates?: boolean;
   /** Board is inert while reviewing history / after game end. */
   interactive?: boolean;
+  /**
+   * Training hint — rings the piece to move and the square to move it to. Web
+   * draws an arrow here; two rings read better at phone scale, and they're the
+   * same treatment all three boards use.
+   */
+  hintMove?: { from: string; to: string } | null;
 }
 
 // The vector piece art fills ~89% of its viewBox; 0.9 seats it at play scale with
 // a small margin off the square edges (matches the web board's .piece sizing).
 const PIECE_RATIO = 0.9;
 const CHECK_RING = 'rgba(244,63,94,0.9)';
+// Amber, matching the warning treatment web's hint UI uses.
+const HINT_RING = 'rgba(245,158,11,0.95)';
+const HINT_FILL = 'rgba(245,158,11,0.28)';
 
 function isDark(row: number, col: number): boolean {
   return (row + col) % 2 === 1;
@@ -216,6 +225,7 @@ function ChessBoardInner({
   playerColor = 'white',
   showCoordinates = true,
   interactive = true,
+  hintMove,
 }: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves] = useState<string[]>([]);
@@ -444,6 +454,7 @@ function ChessBoardInner({
             const isValidDest = validMoves.includes(pos);
             const isLastMoveSquare = !!lastMove && (lastMove.from === pos || lastMove.to === pos);
             const isCheckKing = kingInCheckPos === pos;
+            const isHintSquare = !!hintMove && (hintMove.from === pos || hintMove.to === pos);
 
             let bg: string = dark ? BOARD_COLORS.darkSquare : BOARD_COLORS.lightSquare;
             if (isSelected) bg = BOARD_COLORS.selectedSquare;
@@ -516,6 +527,22 @@ function ChessBoardInner({
                       borderRadius: sq,
                       borderWidth: 3,
                       borderColor: BOARD_COLORS.moveIndicatorCapture,
+                    }}
+                  />
+                )}
+                {/* Training hint — square outline on both ends of the suggested
+                    move. Drawn last so it reads over the other cues. */}
+                {isHintSquare && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      borderWidth: 3,
+                      borderColor: HINT_RING,
+                      backgroundColor: HINT_FILL,
                     }}
                   />
                 )}

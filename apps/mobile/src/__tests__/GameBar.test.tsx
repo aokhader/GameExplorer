@@ -203,8 +203,62 @@ describe('GameBar — menu', () => {
   });
 });
 
+describe('GameBar — hint', () => {
+  /** Training passes `onHint`; every other mode leaves the placeholder in place. */
+  async function renderWithHint(props: {
+    hintDisabled?: boolean;
+    hintPending?: boolean;
+    hintsUsed?: number;
+    gameOver?: boolean;
+  }) {
+    const onHint = jest.fn();
+    render(
+      <SettingsProvider>
+        <GameBar
+          viewIndex={4}
+          total={TOTAL}
+          accent="chess"
+          onSeek={jest.fn()}
+          onNewGame={jest.fn()}
+          onResign={jest.fn()}
+          onHint={onHint}
+          {...props}
+        />
+      </SettingsProvider>,
+    );
+    await screen.findByRole('button', { name: 'Previous move' });
+    return onHint;
+  }
+
+  it('asks for a hint when training supplies a handler', async () => {
+    const onHint = await renderWithHint({});
+    fireEvent.press(screen.getByRole('button', { name: 'Hint' }));
+    expect(onHint).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts the hints already taken in its label', async () => {
+    await renderWithHint({ hintsUsed: 3 });
+    expect(screen.getByRole('button', { name: 'Hint — 3 used' })).toBeEnabled();
+  });
+
+  it("is disabled when it isn't the player's turn", async () => {
+    await renderWithHint({ hintDisabled: true });
+    expect(screen.getByRole('button', { name: 'Hint' })).toBeDisabled();
+  });
+
+  it('is disabled while a hint search is running', async () => {
+    await renderWithHint({ hintPending: true });
+    expect(screen.getByRole('button', { name: 'Hint' })).toBeDisabled();
+  });
+
+  it('is disabled once the game is over', async () => {
+    await renderWithHint({ gameOver: true });
+    expect(screen.getByRole('button', { name: 'Hint' })).toBeDisabled();
+  });
+});
+
 describe('GameBar — placeholders', () => {
-  it('shows Hint as disabled and labelled coming soon', async () => {
+  it('shows Hint as disabled and labelled coming soon outside training', async () => {
     await renderBar(4);
     expect(screen.getByRole('button', { name: 'Hint (coming soon)' })).toBeDisabled();
   });

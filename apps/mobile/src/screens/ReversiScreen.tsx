@@ -18,6 +18,8 @@ import { OpponentPicker } from '@/game/OpponentPicker';
 import { SetupHero } from '@/game/SetupHero';
 import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
+import { TrainingSetup } from '@/game/TrainingSetup';
+import { eloLabel } from '@/game/eloLabel';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { reversiAdapter } from '@/engine/reversiAdapter';
 import { useIsOnline } from '@/lib/useIsOnline';
@@ -36,6 +38,12 @@ const DIFFICULTY_LEVELS = [
 function labelForElo(elo: number): string {
   return DIFFICULTY_LEVELS.find((l) => l.elo === elo)?.label ?? String(elo);
 }
+
+/**
+ * Range the rating-matched training bot is clamped into — the span the reversi
+ * bot is actually calibrated across (same bounds web's training page uses).
+ */
+const TRAINING_ELO_BOUNDS = { min: 400, max: 2000 };
 
 /** "black" → "Black" for pass-and-play messages. */
 function cap(color: string): string {
@@ -69,8 +77,13 @@ export function ReversiScreen() {
 
   const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
+  const isTraining = mode === 'training';
   // Rated needs connectivity at game start (offline semantics — mobile plan).
-  const ratedEffective = rated && !!userId && !isPassAndPlay && online;
+  // Training is rated by definition, so it has no toggle — signed in + online
+  // is exactly what it requires, and the setup panel says so when it's missing.
+  const ratedEffective = isTraining
+    ? !!userId && online
+    : rated && !!userId && !isPassAndPlay && online;
 
   const game = useLocalGame<ReversiGameState>({
     adapter: reversiAdapter,
@@ -79,8 +92,13 @@ export function ReversiScreen() {
     targetElo,
     rated: ratedEffective,
     userId,
+    eloBounds: TRAINING_ELO_BOUNDS,
     started,
   });
+
+  // Training matches the bot to the player; every other mode uses the picked tier.
+  const botElo = game.botElo;
+  const canStart = isTraining ? ratedEffective && !game.ratingLoading : true;
 
   const handleNewGame = () => {
     game.newGame();
@@ -118,7 +136,18 @@ export function ReversiScreen() {
 
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.reversi.base} tint={GAME_ACCENTS.reversi.tintBg} />
 
-        {!isPassAndPlay && (
+        {isTraining && (
+          <TrainingSetup
+            game="reversi"
+            rating={game.userRating}
+            loading={game.ratingLoading}
+            botElo={botElo}
+            signedIn={!!userId}
+            online={online}
+          />
+        )}
+
+        {!isPassAndPlay && !isTraining && (
           <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Bot strength
@@ -154,7 +183,13 @@ export function ReversiScreen() {
                 );
               })}
             </View>
+          </>
+        )}
 
+        {/* Colour is picked in both bot modes — training just doesn't choose the
+            bot's strength. */}
+        {!isPassAndPlay && (
+          <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Your color
             </Text>
@@ -207,35 +242,38 @@ export function ReversiScreen() {
                 );
               })}
             </View>
-
-            {/* Rated toggle — needs a signed-in account (rating reads/writes). */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: COLORS.border,
-                backgroundColor: COLORS.surfaceAlt,
-                padding: 16,
-                marginBottom: 24,
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
-                <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
-                  {!userId
-                    ? 'Sign in to play rated games'
-                    : !online
-                      ? 'Offline — rated games need a connection'
-                      : 'Updates your reversi rating'}
-                </Text>
-              </View>
-              <Toggle value={ratedEffective} onValueChange={setRated} label="Rated" disabled={!userId || !online} />
-            </View>
           </>
+        )}
+
+        {/* Rated toggle — needs a signed-in account (rating reads/writes).
+            Training has no toggle: it's always rated. */}
+        {!isPassAndPlay && !isTraining && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              backgroundColor: COLORS.surfaceAlt,
+              padding: 16,
+              marginBottom: 24,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
+              <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+                {!userId
+                  ? 'Sign in to play rated games'
+                  : !online
+                    ? 'Offline — rated games need a connection'
+                    : 'Updates your reversi rating'}
+              </Text>
+            </View>
+            <Toggle value={ratedEffective} onValueChange={setRated} label="Rated" disabled={!userId || !online} />
+          </View>
         )}
 
         {/* Pass-and-play is casual (no rating); the reversi board never flips, so
@@ -247,7 +285,12 @@ export function ReversiScreen() {
           </Text>
         )}
 
-        <Button label="Start Game" onPress={() => setStarted(true)} glow />
+        <Button
+          label={isTraining ? 'Start Rated Game' : 'Start Game'}
+          onPress={() => setStarted(true)}
+          disabled={!canStart}
+          glow
+        />
       </Screen>
     );
   }
@@ -294,7 +337,9 @@ export function ReversiScreen() {
   const moverTurn = isAtLive && !gameOverMsg;
   const mustPass = !gameOverMsg && isAtLive && ReversiEngine.mustPass(liveState);
   const lastPlaced = liveState.moveHistory[liveState.moveHistory.length - 1]?.position ?? null;
-  const botLabel = labelForElo(targetElo);
+  // Training's bot has no tier name — it's whatever the rating ladder calls the
+  // player's own level.
+  const botLabel = isTraining ? `${botElo} · ${eloLabel('reversi', botElo)}` : labelForElo(targetElo);
   const interactive = isAtLive && !liveState.isGameOver && !manualEnd;
   // The reversi board never flips; in pass-and-play its `playerColor` is the tap
   // gate, so it follows whoever is to move.
@@ -338,6 +383,7 @@ export function ReversiScreen() {
             onMove={(pos) => game.handleMove(pos, pos)}
             playerColor={boardColor}
             highlightPos={isAtLive ? lastPlaced : null}
+            hintPos={isAtLive ? game.hintMove?.to ?? null : null}
             interactive={interactive}
           />
         }
@@ -392,6 +438,18 @@ export function ReversiScreen() {
                 )}
                 <InfoCell label="Turn" value={gameOverMsg ? '—' : liveState.currentTurn} capitalize />
                 <InfoCell label="Move" value={String(liveState.moveHistory.length)} />
+                {isTraining && (
+                  <InfoCell
+                    label="Hints"
+                    // The hint square is a visual cue only; naming it here is
+                    // what makes the paid-for advice reachable without sight.
+                    value={
+                      game.hintMove
+                        ? `${game.hintsUsed} · play ${game.hintMove.to}`
+                        : String(game.hintsUsed)
+                    }
+                  />
+                )}
               </View>
               <View
                 style={{
@@ -422,6 +480,10 @@ export function ReversiScreen() {
             onNewGame={handleNewGame}
             onResign={game.resign}
             gameOver={!!gameOverMsg}
+            onHint={isTraining ? game.requestHint : undefined}
+            hintDisabled={!yourTurn}
+            hintPending={game.isHinting}
+            hintsUsed={game.hintsUsed}
           />
         }
       />
@@ -442,6 +504,7 @@ export function ReversiScreen() {
             ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
             : undefined
         }
+        hintsUsed={ratingResult?.hintsUsed}
         saveError={game.saveError}
         onRetrySave={game.retrySave}
         actions={

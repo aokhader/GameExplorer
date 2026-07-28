@@ -29,6 +29,17 @@ export interface GameBarProps {
   onResign: () => void;
   /** Game already over — nothing left to concede or agree. */
   gameOver?: boolean;
+  /**
+   * Training only — reveal the best move at a rating cost. Omit it in the other
+   * modes and the button stays the disabled "coming soon" placeholder.
+   */
+  onHint?: () => void;
+  /** Not the player's live turn — a hint has nothing to answer right now. */
+  hintDisabled?: boolean;
+  /** A hint search is in flight. */
+  hintPending?: boolean;
+  /** Hints taken so far, shown as a badge on the button. */
+  hintsUsed?: number;
 }
 
 /** Seconds the flag stays armed after the first tap. */
@@ -57,6 +68,10 @@ export function GameBar({
   onNewGame,
   onResign,
   gameOver = false,
+  onHint,
+  hintDisabled = false,
+  hintPending = false,
+  hintsUsed = 0,
 }: GameBarProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
@@ -128,7 +143,18 @@ export function GameBar({
           disabled={gameOver}
           danger={confirming}
         />
-        <BarButton glyph="💡" label="Hint (coming soon)" onPress={() => {}} disabled />
+        {onHint ? (
+          <BarButton
+            glyph={hintPending ? '⏳' : '💡'}
+            label={hintsUsed > 0 ? `Hint — ${hintsUsed} used` : 'Hint'}
+            hint="Shows the best move — costs 2 rating points"
+            badge={hintsUsed > 0 ? String(hintsUsed) : undefined}
+            onPress={onHint}
+            disabled={gameOver || hintDisabled || hintPending}
+          />
+        ) : (
+          <BarButton glyph="💡" label="Hint (coming soon)" onPress={() => {}} disabled />
+        )}
 
         {/* Hairline between the game actions and the history controls. */}
         <View style={{ width: 1, marginVertical: 6, backgroundColor: COLORS.border }} />
@@ -164,6 +190,7 @@ function BarButton({
   glyph,
   label,
   hint,
+  badge,
   onPress,
   disabled = false,
   danger = false,
@@ -171,6 +198,8 @@ function BarButton({
   glyph: string;
   label: string;
   hint?: string;
+  /** Small counter in the corner (hints taken). */
+  badge?: string;
   onPress: () => void;
   disabled?: boolean;
   danger?: boolean;
@@ -213,6 +242,23 @@ function BarButton({
           <Text style={{ color: danger ? COLORS.dangerHover : COLORS.fg, fontSize: 16 }}>
             {glyph}
           </Text>
+          {badge && (
+            <Text
+              // The count is already in the button's accessibility label; a
+              // bare number here would just repeat it out of context.
+              importantForAccessibility="no"
+              style={{
+                position: 'absolute',
+                top: 4,
+                right: 6,
+                color: COLORS.warningHover,
+                fontSize: 10,
+                fontWeight: '800',
+              }}
+            >
+              {badge}
+            </Text>
+          )}
         </View>
       )}
     </Pressable>

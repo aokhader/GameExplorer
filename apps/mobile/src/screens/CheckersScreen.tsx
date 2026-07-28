@@ -17,6 +17,8 @@ import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
 import { SetupHero } from '@/game/SetupHero';
 import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
+import { TrainingSetup } from '@/game/TrainingSetup';
+import { eloLabel } from '@/game/eloLabel';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { checkersAdapter } from '@/engine/checkersAdapter';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -36,6 +38,12 @@ const DIFFICULTY_LEVELS = [
 function labelForElo(elo: number): string {
   return DIFFICULTY_LEVELS.find((l) => l.elo === elo)?.label ?? String(elo);
 }
+
+/**
+ * Range the rating-matched training bot is clamped into — the span the checkers
+ * bot is actually calibrated across (same bounds web's training page uses).
+ */
+const TRAINING_ELO_BOUNDS = { min: 400, max: 2000 };
 
 /** "white" → "White" for pass-and-play messages. */
 function cap(color: string): string {
@@ -68,8 +76,13 @@ export function CheckersScreen() {
 
   const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
+  const isTraining = mode === 'training';
   // Rated needs connectivity at game start (offline semantics — mobile plan).
-  const ratedEffective = rated && !!userId && !isPassAndPlay && online;
+  // Training is rated by definition, so it has no toggle — signed in + online
+  // is exactly what it requires, and the setup panel says so when it's missing.
+  const ratedEffective = isTraining
+    ? !!userId && online
+    : rated && !!userId && !isPassAndPlay && online;
 
   const game = useLocalGame<CheckersGameState>({
     adapter: checkersAdapter,
@@ -78,8 +91,13 @@ export function CheckersScreen() {
     targetElo,
     rated: ratedEffective,
     userId,
+    eloBounds: TRAINING_ELO_BOUNDS,
     started,
   });
+
+  // Training matches the bot to the player; every other mode uses the picked tier.
+  const botElo = game.botElo;
+  const canStart = isTraining ? ratedEffective && !game.ratingLoading : true;
 
   const handleNewGame = () => {
     game.newGame();
@@ -118,7 +136,18 @@ export function CheckersScreen() {
 
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.checkers.base} tint={GAME_ACCENTS.checkers.tintBg} />
 
-        {!isPassAndPlay && (
+        {isTraining && (
+          <TrainingSetup
+            game="checkers"
+            rating={game.userRating}
+            loading={game.ratingLoading}
+            botElo={botElo}
+            signedIn={!!userId}
+            online={online}
+          />
+        )}
+
+        {!isPassAndPlay && !isTraining && (
           <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Bot strength
@@ -154,7 +183,13 @@ export function CheckersScreen() {
                 );
               })}
             </View>
+          </>
+        )}
 
+        {/* Colour is picked in both bot modes — training just doesn't choose the
+            bot's strength. */}
+        {!isPassAndPlay && (
+          <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Your color
             </Text>
@@ -199,46 +234,54 @@ export function CheckersScreen() {
                 );
               })}
             </View>
-
-            {/* Rated toggle — needs a signed-in account (rating reads/writes). */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: COLORS.border,
-                backgroundColor: COLORS.surfaceAlt,
-                padding: 16,
-                marginBottom: 24,
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
-                <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
-                  {!userId
-                    ? 'Sign in to play rated games'
-                    : !online
-                      ? 'Offline — rated games need a connection'
-                      : 'Updates your checkers rating'}
-                </Text>
-              </View>
-              <Toggle
-                value={ratedEffective}
-                onValueChange={setRated}
-                label="Rated"
-                disabled={!userId || !online}
-              />
-            </View>
           </>
+        )}
+
+        {/* Rated toggle — needs a signed-in account (rating reads/writes).
+            Training has no toggle: it's always rated. */}
+        {!isPassAndPlay && !isTraining && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              backgroundColor: COLORS.surfaceAlt,
+              padding: 16,
+              marginBottom: 24,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
+              <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+                {!userId
+                  ? 'Sign in to play rated games'
+                  : !online
+                    ? 'Offline — rated games need a connection'
+                    : 'Updates your checkers rating'}
+              </Text>
+            </View>
+            <Toggle
+              value={ratedEffective}
+              onValueChange={setRated}
+              label="Rated"
+              disabled={!userId || !online}
+            />
+          </View>
         )}
 
         {/* Pass-and-play is casual (no rating) — the only option is board flipping. */}
         {isPassAndPlay && <FlipBoardCard />}
 
-        <Button label="Start Game" onPress={() => setStarted(true)} glow />
+        <Button
+          label={isTraining ? 'Start Rated Game' : 'Start Game'}
+          onPress={() => setStarted(true)}
+          disabled={!canStart}
+          glow
+        />
       </Screen>
     );
   }
@@ -285,7 +328,9 @@ export function CheckersScreen() {
   const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
   const moverTurn = isAtLive && !gameOverMsg;
   const counts = CheckersEngine.getPieceCounts(displayState);
-  const botLabel = labelForElo(targetElo);
+  // Training's bot has no tier name — it's whatever the rating ladder calls the
+  // player's own level.
+  const botLabel = isTraining ? `${botElo} · ${eloLabel('checkers', botElo)}` : labelForElo(targetElo);
   const interactive = isAtLive && !liveState.isGameOver && !manualEnd;
   // Pass-and-play orientation: face the mover when the flip setting is on,
   // otherwise stay white-side-down. Follows the LIVE turn so reviewing history
@@ -335,6 +380,7 @@ export function CheckersScreen() {
             onMove={game.handleMove}
             playerColor={boardColor}
             interactive={interactive}
+            hintMove={isAtLive ? game.hintMove : null}
           />
         }
         bottomCard={
@@ -388,6 +434,19 @@ export function CheckersScreen() {
                 )}
                 <InfoCell label="Turn" value={gameOverMsg ? '—' : liveState.currentTurn} capitalize />
                 <InfoCell label="Move" value={String(liveState.moveHistory.length)} />
+                {isTraining && (
+                  <InfoCell
+                    label="Hints"
+                    // The hint outline is a visual cue only; spelling the move
+                    // out here is what makes the paid-for advice reachable
+                    // without sight.
+                    value={
+                      game.hintMove
+                        ? `${game.hintsUsed} · ${game.hintMove.from}→${game.hintMove.to}`
+                        : String(game.hintsUsed)
+                    }
+                  />
+                )}
               </View>
               <View
                 style={{
@@ -418,6 +477,10 @@ export function CheckersScreen() {
             onNewGame={handleNewGame}
             onResign={game.resign}
             gameOver={!!gameOverMsg}
+            onHint={isTraining ? game.requestHint : undefined}
+            hintDisabled={!yourTurn}
+            hintPending={game.isHinting}
+            hintsUsed={game.hintsUsed}
           />
         }
       />
@@ -444,6 +507,7 @@ export function CheckersScreen() {
             ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
             : undefined
         }
+        hintsUsed={ratingResult?.hintsUsed}
         saveError={game.saveError}
         onRetrySave={game.retrySave}
         actions={

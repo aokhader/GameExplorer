@@ -20,6 +20,8 @@ import { CustomEloPicker } from '@/game/CustomEloPicker';
 import { CapturedTray } from '@/game/CapturedTray';
 import { GameBar } from '@/game/GameBar';
 import { MoveBand } from '@/game/MoveBand';
+import { TrainingSetup } from '@/game/TrainingSetup';
+import { eloLabel } from '@/game/eloLabel';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { chessAdapter } from '@/engine/chessAdapter';
 import { useEngineNative } from '@/engine/useEngineNative';
@@ -90,10 +92,16 @@ export function ChessScreen() {
 
   const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
+  const isTraining = mode === 'training';
   // Rated needs connectivity at game start (offline semantics — mobile plan).
-  const ratedEffective = rated && !!userId && !isPassAndPlay && online;
+  // Training is rated by definition, so it has no toggle — signed in + online
+  // is exactly what it requires, and the setup panel says so when it's missing.
+  const ratedEffective = isTraining
+    ? !!userId && online
+    : rated && !!userId && !isPassAndPlay && online;
 
-  const isBotMode = mode === 'bot';
+  // Training plays a bot too, so it warms the same engine.
+  const isBotMode = !isPassAndPlay;
   // Warm the engine once any bot game starts (the NNUE load is heavy); it then
   // stays up for the app session. Every tier now plays through Arasan.
   const engine = useEngineNative({ enabled: started && isBotMode });
@@ -119,9 +127,16 @@ export function ChessScreen() {
     targetElo,
     rated: ratedEffective,
     userId,
+    // Training matches the bot to the player's rating; clamp it to what this
+    // binary's engine can actually play (same ceiling the preset tiles use).
+    eloBounds: { min: CUSTOM_ELO_MIN, max: maxElo },
     started,
     botReady: !engineActive || engine.isReady,
   });
+
+  // The tier picked on setup, or — in training — the player's own rating.
+  const botElo = game.botElo;
+  const canStart = isTraining ? ratedEffective && !game.ratingLoading : true;
 
   const handleNewGame = () => {
     game.newGame();
@@ -158,7 +173,18 @@ export function ChessScreen() {
 
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.chess.base} tint={GAME_ACCENTS.chess.tintBg} />
 
-        {!isPassAndPlay && (
+        {isTraining && (
+          <TrainingSetup
+            game="chess"
+            rating={game.userRating}
+            loading={game.ratingLoading}
+            botElo={botElo}
+            signedIn={!!userId}
+            online={online}
+          />
+        )}
+
+        {!isPassAndPlay && !isTraining && (
           <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Bot strength
@@ -239,7 +265,13 @@ export function ChessScreen() {
                 ? 'Bots are powered by the Arasan engine.'
                 : 'Stronger bots (1400+ ELO) need an updated app build.'}
             </Text>
+          </>
+        )}
 
+        {/* Colour is picked in both bot modes — training just doesn't choose the
+            bot's strength. */}
+        {!isPassAndPlay && (
+          <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Your color
             </Text>
@@ -284,40 +316,49 @@ export function ChessScreen() {
               })}
             </View>
 
-            {/* Rated toggle — needs a signed-in account (rating reads/writes). */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: COLORS.border,
-                backgroundColor: COLORS.surfaceAlt,
-                padding: 16,
-                marginBottom: 24,
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
-                <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
-                  {!userId
-                    ? 'Sign in to play rated games'
-                    : !online
-                      ? 'Offline — rated games need a connection'
-                      : 'Updates your chess rating'}
-                </Text>
-              </View>
-              <Toggle value={ratedEffective} onValueChange={setRated} label="Rated" disabled={!userId || !online} />
-            </View>
           </>
+        )}
+
+        {/* Rated toggle — needs a signed-in account (rating reads/writes).
+            Training has no toggle: it's always rated. */}
+        {!isPassAndPlay && !isTraining && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              backgroundColor: COLORS.surfaceAlt,
+              padding: 16,
+              marginBottom: 24,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
+              <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+                {!userId
+                  ? 'Sign in to play rated games'
+                  : !online
+                    ? 'Offline — rated games need a connection'
+                    : 'Updates your chess rating'}
+              </Text>
+            </View>
+            <Toggle value={ratedEffective} onValueChange={setRated} label="Rated" disabled={!userId || !online} />
+          </View>
         )}
 
         {/* Pass-and-play is casual (no rating) — the only option is board flipping. */}
         {isPassAndPlay && <FlipBoardCard />}
 
-        <Button label="Start Game" onPress={() => setStarted(true)} glow />
+        <Button
+          label={isTraining ? 'Start Rated Game' : 'Start Game'}
+          onPress={() => setStarted(true)}
+          disabled={!canStart}
+          glow
+        />
       </Screen>
     );
   }
@@ -373,7 +414,11 @@ export function ChessScreen() {
 
   const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
   const moverTurn = isAtLive && !gameOverMsg;
-  const botLabel = labelForElo(targetElo, isCustomTier);
+  // Training's bot has no tier name — it's whatever the rating ladder calls the
+  // player's own level.
+  const botLabel = isTraining
+    ? `${botElo} · ${eloLabel('chess', botElo)}`
+    : labelForElo(targetElo, isCustomTier);
 
   // Captures follow the position on the board, so scrubbing back through the
   // history rewinds the trays with it.
@@ -456,6 +501,7 @@ export function ChessScreen() {
             onMove={(from, to, promotion) => game.handleMove(from, to, promotion)}
             playerColor={boardColor}
             interactive={interactive}
+            hintMove={isAtLive ? game.hintMove : null}
           />
         }
         bottomCard={
@@ -525,6 +571,19 @@ export function ChessScreen() {
                 )}
                 <InfoCell label="Turn" value={gameOverMsg ? '—' : liveState.currentTurn} capitalize />
                 <InfoCell label="Move" value={String(liveState.fullMoveNumber)} />
+                {isTraining && (
+                  <InfoCell
+                    label="Hints"
+                    // The hint outline is a visual cue only; spelling the move
+                    // out here is what makes the paid-for advice reachable
+                    // without sight.
+                    value={
+                      game.hintMove
+                        ? `${game.hintsUsed} · ${game.hintMove.from}→${game.hintMove.to}`
+                        : String(game.hintsUsed)
+                    }
+                  />
+                )}
               </View>
             </View>
 
@@ -541,6 +600,10 @@ export function ChessScreen() {
             onNewGame={handleNewGame}
             onResign={game.resign}
             gameOver={!!gameOverMsg}
+            onHint={isTraining ? game.requestHint : undefined}
+            hintDisabled={!yourTurn}
+            hintPending={game.isHinting}
+            hintsUsed={game.hintsUsed}
           />
         }
       />
@@ -567,6 +630,7 @@ export function ChessScreen() {
             ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
             : undefined
         }
+        hintsUsed={ratingResult?.hintsUsed}
         saveError={game.saveError}
         onRetrySave={game.retrySave}
         actions={

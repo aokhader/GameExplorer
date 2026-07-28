@@ -10,6 +10,7 @@ import Animated, {
 import { COLORS } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
+import { HINT_PENALTY } from '@/engine/trainingRules';
 
 export type GameResult = 'win' | 'loss' | 'draw' | 'aborted';
 
@@ -22,6 +23,11 @@ export interface GameResultScreenProps {
   subtitle?: string;
   /** Optional rating change block with an animated count-up. */
   rating?: { before: number; after: number; delta: number };
+  /**
+   * Training only — hints taken this game. Their cost is already inside
+   * `rating.delta`, so the line explains where the points went.
+   */
+  hintsUsed?: number;
   /** The rated save/rating write failed (offline etc.) — show an error + retry. */
   saveError?: boolean;
   /** Re-attempt the failed save. Required when `saveError` can be true. */
@@ -71,6 +77,7 @@ export function GameResultScreen({
   title,
   subtitle,
   rating,
+  hintsUsed = 0,
   saveError = false,
   onRetrySave,
   actions,
@@ -186,6 +193,12 @@ export function GameResultScreen({
                   {rating.delta}
                 </Text>
               </View>
+              {hintsUsed > 0 && (
+                <Text style={{ color: COLORS.warningHover, fontSize: 12, marginTop: 6 }}>
+                  Includes −{hintsUsed * HINT_PENALTY} for {hintsUsed}{' '}
+                  {hintsUsed === 1 ? 'hint' : 'hints'}
+                </Text>
+              )}
             </View>
           )}
 

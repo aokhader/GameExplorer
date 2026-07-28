@@ -30,6 +30,10 @@ export const checkersAdapter: LocalGameAdapter<CheckersGameState> = {
     return { valid: r.valid, resultingState: r.resultingState };
   },
   getBotMove: (s, elo) => getBestCheckersMove(s, elo),
+  getHintMove: (s, elo) => getBestCheckersMove(s, elo),
+  // Always the engine's strongest play — as on web, checkers hints don't scale
+  // with the player (there's no separate hint ladder to scale along).
+  hintElo: () => 2000,
   thinkTimeForElo,
   save: ({ state, playerColor, result, difficulty, userId, options }) =>
     saveCheckersGame(state, playerColor, result, difficulty, userId, options),

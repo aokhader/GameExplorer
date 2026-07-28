@@ -27,9 +27,14 @@ interface CheckersBoardProps {
   showCoordinates?: boolean;
   /** Board is inert while reviewing history / after game end. */
   interactive?: boolean;
+  /** Training hint — outlines the piece to move and where to move it. */
+  hintMove?: { from: string; to: string } | null;
 }
 
 const PIECE_RATIO = 0.86;
+// Amber, matching the warning treatment web's hint UI uses.
+const HINT_RING = 'rgba(245,158,11,0.95)';
+const HINT_FILL = 'rgba(245,158,11,0.28)';
 
 function isDark(row: number, col: number): boolean {
   return (row + col) % 2 === 1;
@@ -142,6 +147,7 @@ function CheckersBoardInner({
   playerColor = 'white',
   showCoordinates = true,
   interactive = true,
+  hintMove,
 }: CheckersBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves] = useState<string[]>([]);
@@ -362,6 +368,7 @@ function CheckersBoardInner({
             const isValidDest = validMoves.includes(pos);
             const isLastMoveSquare =
               !!lastMove && (lastMove.from === pos || lastMove.to === pos);
+            const isHintSquare = !!hintMove && (hintMove.from === pos || hintMove.to === pos);
 
             let bg = dark ? CHECKERS_BOARD_COLORS.darkSquare : CHECKERS_BOARD_COLORS.lightSquare;
             if (isSelected) bg = CHECKERS_BOARD_COLORS.selectedSquare;
@@ -442,6 +449,22 @@ function CheckersBoardInner({
                       borderRadius: sq,
                       borderWidth: 3,
                       borderColor: CHECKERS_BOARD_COLORS.captureIndicator,
+                    }}
+                  />
+                )}
+                {/* Training hint — square outline on both ends of the suggested
+                    move. Drawn last so it reads over the other cues. */}
+                {isHintSquare && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      borderWidth: 3,
+                      borderColor: HINT_RING,
+                      backgroundColor: HINT_FILL,
                     }}
                   />
                 )}

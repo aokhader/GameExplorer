@@ -120,6 +120,17 @@ export const chessAdapter: LocalGameAdapter<ChessGameState> = {
     }
     return getEngineBestMove(s, elo);
   },
+  // No blunder ramp here — a paid-for hint always gets the engine's real answer.
+  getHintMove: async (s, elo) => {
+    if (!isEngineAvailable()) {
+      const m = getBestMoveElo(s, elo);
+      return { from: m.from, to: m.to, promotion: m.promotion };
+    }
+    return getEngineBestMove(s, elo);
+  },
+  // A little above the player's own level: good moves rather than perfect ones,
+  // so the hint stays instructive instead of unreachable. Matches web.
+  hintElo: (botElo) => Math.min(3000, botElo + 200),
   thinkTimeForElo,
   save: ({ state, playerColor, result, difficulty, userId, options }) =>
     saveGame(state, playerColor, result, difficulty, userId, options),

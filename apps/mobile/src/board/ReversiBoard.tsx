@@ -25,9 +25,14 @@ interface ReversiBoardProps {
   highlightPos?: string | null;
   /** Board is inert while reviewing history / after game end. */
   interactive?: boolean;
+  /** Training hint — outlines the square the engine would play. */
+  hintPos?: string | null;
 }
 
 const DISC_RATIO = 0.86;
+// Amber, matching the warning treatment web's hint UI uses.
+const HINT_RING = 'rgba(245,158,11,0.95)';
+const HINT_FILL = 'rgba(245,158,11,0.28)';
 
 function posFromCoords(row: number, col: number): string {
   return String.fromCharCode(97 + col) + (row + 1);
@@ -121,6 +126,7 @@ function ReversiBoardInner({
   showCoordinates = true,
   highlightPos,
   interactive = true,
+  hintPos,
 }: ReversiBoardProps) {
   const [justPlaced, setJustPlaced] = useState<string | null>(null);
   const [justFlipped, setJustFlipped] = useState<Set<string>>(() => new Set());
@@ -206,6 +212,7 @@ function ReversiBoardInner({
             const disc = gameState.board[boardRow][boardCol];
             const isLegal = isPlayerTurn && legalMoves.includes(pos);
             const isHighlighted = highlightPos === pos;
+            const isHint = hintPos === pos;
 
             const showRank = coordsOn && screenCol === 0;
             const showFile = coordsOn && screenRow === 7;
@@ -281,6 +288,22 @@ function ReversiBoardInner({
                       borderRadius: sq,
                       borderWidth: 2,
                       borderColor: REVERSI_BOARD_COLORS.lastMoveRing,
+                    }}
+                  />
+                )}
+                {/* Training hint — the square the engine would play. Drawn last
+                    so it reads over the legal-move dot underneath it. */}
+                {isHint && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      borderWidth: 3,
+                      borderColor: HINT_RING,
+                      backgroundColor: HINT_FILL,
                     }}
                   />
                 )}
