@@ -20,19 +20,24 @@ export interface ActionLogProps {
  * the main thing a player wants from it during someone else's turn.
  */
 export function ActionLog({ state, limit = 60, className }: ActionLogProps) {
-  const endRef = React.useRef<HTMLDivElement>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
   const entries = state.log.slice(-limit);
 
   React.useEffect(() => {
-    // Fires after layout, so the newest line is fully in view.
-    endRef.current?.scrollIntoView({ block: 'end' });
+    const el = scrollRef.current;
+    if (!el) return;
+    // Move THIS box's scroll position, nothing else. `scrollIntoView` walks up
+    // and scrolls every scrollable ancestor including the document, so on a
+    // stacked layout — where the log sits near the bottom of a long page —
+    // every new log line yanked the whole window down, once per action or bid.
+    el.scrollTop = el.scrollHeight;
   }, [state.log.length]);
 
   const seatOf = (playerId: string | null): number =>
     playerId ? state.players.findIndex((p) => p.id === playerId) : -1;
 
   return (
-    <div className={className}>
+    <div ref={scrollRef} className={className}>
       <div className="flex flex-col gap-2">
         {entries.length === 0 && (
           <p className="font-semibold" style={{ fontSize: 11.5, color: LQ.soft }}>
@@ -74,7 +79,6 @@ export function ActionLog({ state, limit = 60, className }: ActionLogProps) {
             </div>
           );
         })}
-        <div ref={endRef} />
       </div>
     </div>
   );

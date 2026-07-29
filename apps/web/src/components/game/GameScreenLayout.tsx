@@ -128,12 +128,12 @@ export function GameScreenLayout({
           <div className="w-full max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col lg:flex-row lg:justify-center gap-4 xl:gap-6 items-start lg:h-full">
             <div
               className={cn(
-                // The height cap applies at EVERY width, not just `lg`. Stacked
-                // layouts are where a short viewport bites hardest — a landscape
-                // phone, or a half-height desktop window — and there the board
-                // was sized by a blunt `svh` percentage that knew nothing about
-                // the chrome above it.
-                'flex flex-col gap-3 w-full lg:shrink-0 max-w-[var(--gx-board-cap)]',
+                // `lg:` only, deliberately. The cap exists because the desktop
+                // shell is `lg:h-screen lg:overflow-hidden`, where a too-tall
+                // column is silently CUT OFF. Below `lg` the page scrolls
+                // instead, so nothing is lost by overflowing — and applying the
+                // cap there just shrinks every board for no benefit.
+                'flex flex-col gap-3 w-full lg:shrink-0 lg:max-w-[var(--gx-board-cap)]',
                 boardColumnClassName,
               )}
               style={{ '--gx-board-cap': `calc(100svh - ${reservedPx}px)` } as React.CSSProperties}
