@@ -22,6 +22,9 @@ import { GameBar } from '@/game/GameBar';
 import { MoveBand } from '@/game/MoveBand';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { eloLabel } from '@/game/eloLabel';
+import { ReviewScreen } from '@/analysis/ReviewScreen';
+import { chessAnalysis } from '@/analysis/adapters';
+import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { chessAdapter } from '@/engine/chessAdapter';
 import { useEngineNative } from '@/engine/useEngineNative';
@@ -89,6 +92,9 @@ export function ChessScreen() {
   // Manual board flip from the game menu — inverts whatever orientation the mode
   // would otherwise pick (see boardColor below).
   const [flipped, setFlipped] = useState(false);
+  // Post-game review. Only reachable once the game is over — see the GameBar
+  // handler below.
+  const [reviewing, setReviewing] = useState(false);
 
   const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
@@ -103,8 +109,9 @@ export function ChessScreen() {
   // Training plays a bot too, so it warms the same engine.
   const isBotMode = !isPassAndPlay;
   // Warm the engine once any bot game starts (the NNUE load is heavy); it then
-  // stays up for the app session. Every tier now plays through Arasan.
-  const engine = useEngineNative({ enabled: started && isBotMode });
+  // stays up for the app session. Every tier now plays through Arasan. Review
+  // needs it too — including after a pass-and-play game, which never used it.
+  const engine = useEngineNative({ enabled: (started && isBotMode) || reviewing });
   // The engine gates the bot turn only when it's actually linked; a stale dev
   // client without it falls back to the in-house engine (sub-1400 tiles only)
   // and must not wait on a handshake that never completes.
@@ -142,12 +149,23 @@ export function ChessScreen() {
     game.newGame();
     setStarted(false);
     setFlipped(false);
+    setReviewing(false);
   };
 
   // SAN costs a legal-move scan per move (for disambiguation), so it's derived
   // only when a move is added rather than on every render. Must sit above the
   // setup-screen early return — hooks can't be called conditionally.
   const sanMoves = useMemo(() => timelineToSan(game.timeline), [game.timeline]);
+
+  const analysis = useGameAnalysis({
+    adapter: chessAnalysis,
+    timeline: game.timeline,
+    viewIndex: game.viewIndex,
+    currentTurn: (s) => s.currentTurn,
+    // The engine handshake has to finish before any search is sent, or every
+    // position would fail with "Engine not ready".
+    enabled: reviewing && engine.isReady,
+  });
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
@@ -445,6 +463,51 @@ export function ChessScreen() {
       : 'white'
     : autoBoardColor;
 
+  // ── Review ──────────────────────────────────────────────────────────────────
+  if (reviewing) {
+    return (
+      <ReviewScreen
+        accent="chess"
+        title="Review"
+        adapter={chessAnalysis}
+        moves={sanMoves}
+        viewIndex={game.viewIndex}
+        onSeek={game.setViewIndex}
+        total={game.timeline.length}
+        playerColor={playerColor}
+        showBothSides={isPassAndPlay}
+        evaluation={analysis.current}
+        grades={analysis.grades}
+        summary={analysis.summary}
+        scanning={analysis.scanning}
+        progress={analysis.progress}
+        complete={analysis.complete}
+        // The NNUE load can take a moment on the first review of a session;
+        // showing it as "busy" is closer to the truth than an empty eval.
+        liveBusy={analysis.liveBusy || !engine.isReady}
+        error={
+          engine.isAvailable
+            ? analysis.error
+            : 'Review needs the chess engine, which this build does not include.'
+        }
+        onScan={analysis.scan}
+        onStopScan={analysis.stopScan}
+        onExit={() => setReviewing(false)}
+        board={
+          <ChessBoard
+            gameState={displayState}
+            onMove={() => {}}
+            playerColor={boardColor}
+            // The engine's choice reuses the training hint's rings — same
+            // meaning ("play this move"), so it should look the same.
+            hintMove={analysis.current?.bestMove ?? null}
+            interactive={false}
+          />
+        }
+      />
+    );
+  }
+
   return (
     <>
       <GameScreenLayout
@@ -604,6 +667,9 @@ export function ChessScreen() {
             hintDisabled={!yourTurn}
             hintPending={game.isHinting}
             hintsUsed={game.hintsUsed}
+            // Gated on the game being over: mid-game this is an unlimited free
+            // hint, which is exactly what training charges rating for.
+            onAnalysis={gameOverMsg ? () => setReviewing(true) : undefined}
           />
         }
       />
@@ -633,6 +699,7 @@ export function ChessScreen() {
         hintsUsed={ratingResult?.hintsUsed}
         saveError={game.saveError}
         onRetrySave={game.retrySave}
+        onReview={() => setReviewing(true)}
         actions={
           <>
             <Button label="Play Again" onPress={handleNewGame} glow />

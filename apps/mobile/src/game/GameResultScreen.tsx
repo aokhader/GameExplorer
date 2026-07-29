@@ -34,6 +34,11 @@ export interface GameResultScreenProps {
   onRetrySave?: () => void;
   /** Action buttons (Play Again / Back) supplied by the screen. */
   actions: React.ReactNode;
+  /**
+   * Open game review. Rendered above the other actions when supplied — right
+   * after a loss is the moment a player most wants to know what went wrong.
+   */
+  onReview?: () => void;
 }
 
 // Colors are looked up during render, never captured here — the token objects
@@ -81,6 +86,7 @@ export function GameResultScreen({
   saveError = false,
   onRetrySave,
   actions,
+  onReview,
 }: GameResultScreenProps) {
   const { reducedMotion } = useSettings();
   const sfx = useGameSfx();
@@ -241,7 +247,37 @@ export function GameResultScreen({
             </View>
           )}
 
-          <View style={{ marginTop: 22, gap: 10, alignSelf: 'stretch' }}>{actions}</View>
+          <View style={{ marginTop: 22, gap: 10, alignSelf: 'stretch' }}>
+            {onReview && (
+              <Pressable
+                onPress={onReview}
+                accessibilityRole="button"
+                accessibilityLabel="Review this game"
+              >
+                {({ pressed }) => (
+                  <View
+                    style={{
+                      minHeight: 48,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: COLORS.borderStrong,
+                      backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceMuted,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: 8,
+                    }}
+                  >
+                    <Text style={{ fontSize: 16 }}>📈</Text>
+                    <Text style={{ color: COLORS.fg, fontSize: 16, fontWeight: '700' }}>
+                      Review Game
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+            )}
+            {actions}
+          </View>
         </Animated.View>
       </View>
     </Modal>

@@ -20,6 +20,9 @@ import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { eloLabel } from '@/game/eloLabel';
+import { ReviewScreen } from '@/analysis/ReviewScreen';
+import { reversiAnalysis } from '@/analysis/adapters';
+import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { reversiAdapter } from '@/engine/reversiAdapter';
 import { useIsOnline } from '@/lib/useIsOnline';
@@ -74,6 +77,9 @@ export function ReversiScreen() {
   const [playerColor, setPlayerColor] = useState<ReversiColor>('black');
   const [rated, setRated] = useState(true);
   const [started, setStarted] = useState(false);
+  // Post-game review. Only reachable once the game is over — see the GameBar
+  // handler below.
+  const [reviewing, setReviewing] = useState(false);
 
   const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
@@ -103,6 +109,7 @@ export function ReversiScreen() {
   const handleNewGame = () => {
     game.newGame();
     setStarted(false);
+    setReviewing(false);
   };
 
   // Standard Othello notation — just the square each disc went on.
@@ -111,6 +118,14 @@ export function ReversiScreen() {
     () => moveHistoryToOthello(game.timeline[game.timeline.length - 1].moveHistory),
     [game.timeline],
   );
+
+  const analysis = useGameAnalysis({
+    adapter: reversiAnalysis,
+    timeline: game.timeline,
+    viewIndex: game.viewIndex,
+    currentTurn: (s) => s.currentTurn,
+    enabled: reviewing,
+  });
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
@@ -351,6 +366,44 @@ export function ReversiScreen() {
   // rides on the card of whoever is being passed, next to "thinking…".
   const passSuffix = (isMover: boolean) => (isMover && mustPass ? ' · no legal moves, passing…' : '');
 
+  // ── Review ──────────────────────────────────────────────────────────────────
+  if (reviewing) {
+    return (
+      <ReviewScreen
+        accent="reversi"
+        title="Review"
+        adapter={reversiAnalysis}
+        moves={othelloMoves}
+        viewIndex={game.viewIndex}
+        onSeek={game.setViewIndex}
+        total={game.timeline.length}
+        playerColor={playerColor}
+        showBothSides={isPassAndPlay}
+        evaluation={analysis.current}
+        grades={analysis.grades}
+        summary={analysis.summary}
+        scanning={analysis.scanning}
+        progress={analysis.progress}
+        complete={analysis.complete}
+        liveBusy={analysis.liveBusy}
+        error={analysis.error}
+        onScan={analysis.scan}
+        onStopScan={analysis.stopScan}
+        onExit={() => setReviewing(false)}
+        board={
+          <ReversiBoard
+            gameState={displayState}
+            onMove={() => {}}
+            playerColor={playerColor}
+            // The engine's choice reuses the training hint's ring — same meaning
+            // ("play here"), so it should look the same.
+            hintPos={analysis.current?.bestMove?.to ?? null}
+            interactive={false}
+          />
+        }
+      />
+    );
+  }
 
   return (
     <>
@@ -484,6 +537,9 @@ export function ReversiScreen() {
             hintDisabled={!yourTurn}
             hintPending={game.isHinting}
             hintsUsed={game.hintsUsed}
+            // Gated on the game being over: mid-game this is an unlimited free
+            // hint, which is exactly what training charges rating for.
+            onAnalysis={gameOverMsg ? () => setReviewing(true) : undefined}
           />
         }
       />
@@ -507,6 +563,7 @@ export function ReversiScreen() {
         hintsUsed={ratingResult?.hintsUsed}
         saveError={game.saveError}
         onRetrySave={game.retrySave}
+        onReview={() => setReviewing(true)}
         actions={
           <>
             <Button label="Play Again" onPress={handleNewGame} glow />

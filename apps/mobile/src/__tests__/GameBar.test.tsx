@@ -257,13 +257,42 @@ describe('GameBar — hint', () => {
   });
 });
 
+describe('GameBar — review', () => {
+  it('opens review from the menu once a game supplies the handler', async () => {
+    const onAnalysis = jest.fn();
+    render(
+      <SettingsProvider>
+        <GameBar
+          viewIndex={4}
+          total={TOTAL}
+          accent="chess"
+          gameOver
+          onSeek={jest.fn()}
+          onNewGame={jest.fn()}
+          onResign={jest.fn()}
+          onAnalysis={onAnalysis}
+        />
+      </SettingsProvider>,
+    );
+    await screen.findByRole('button', { name: 'Previous move' });
+    fireEvent.press(screen.getByRole('button', { name: 'Game menu' }));
+    fireEvent.press(menuItem('Review game'));
+
+    expect(onAnalysis).toHaveBeenCalledTimes(1);
+    // …and the sheet closes behind it.
+    expect(menuItemCount('Review game')).toBe(0);
+  });
+});
+
 describe('GameBar — placeholders', () => {
   it('shows Hint as disabled and labelled coming soon outside training', async () => {
     await renderBar(4);
     expect(screen.getByRole('button', { name: 'Hint (coming soon)' })).toBeDisabled();
   });
 
-  it('shows Analysis in the menu as disabled and labelled coming soon', async () => {
+  it('shows Analysis in the menu as disabled and labelled coming soon mid-game', async () => {
+    // Screens withhold `onAnalysis` until the game is over — mid-game, review
+    // would be a free unlimited hint.
     await renderBar(4);
     fireEvent.press(screen.getByRole('button', { name: 'Game menu' }));
     expect(menuItem('Analysis (coming soon)')).toBeDisabled();

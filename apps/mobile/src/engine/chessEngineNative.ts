@@ -1,6 +1,8 @@
 import {
   buildUciPositionCommand,
   parseUciBestMove,
+  parseUciInfoScore,
+  parseUciMoveString,
   engineMoveTimeMs,
   type ChessGameState,
   type UciBestMove,
@@ -52,8 +54,38 @@ let failed = false;
 const readyListeners = new Set<(ready: boolean) => void>();
 const failedListeners = new Set<() => void>();
 
-let pendingResolve: ((move: UciBestMove) => void) | null = null;
-let pendingReject: ((err: Error) => void) | null = null;
+/**
+ * The engine's evaluation of one position — what game review needs, as opposed
+ * to the bot's bare move.
+ */
+export interface EngineEvaluation {
+  /** Centipawns from the side to move's perspective; null when `mate` is set. */
+  cp: number | null;
+  /** Mate in N from the side to move's perspective; null otherwise. */
+  mate: number | null;
+  /** Deepest reported search depth. */
+  depth: number;
+  /** The move the engine would play, or null in a finished position. */
+  bestMove: UciBestMove | null;
+}
+
+/**
+ * The single outstanding request on the UCI channel. Only one search can run at
+ * a time (one process, one stdin), so `bestmove` always terminates whichever
+ * kind of request is in flight — a bot move, which wants only the move, or an
+ * evaluation, which additionally accumulates the `info … score` lines streamed
+ * before it.
+ */
+type Pending =
+  | { kind: 'move'; resolve: (move: UciBestMove) => void; reject: (err: Error) => void }
+  | {
+      kind: 'eval';
+      resolve: (result: EngineEvaluation) => void;
+      reject: (err: Error) => void;
+      latest: EngineEvaluation;
+    };
+
+let pending: Pending | null = null;
 
 /**
  * Whether the native module is linked into this binary. False in a dev client
@@ -172,12 +204,37 @@ export function handleEngineOutput(output: string): void {
       continue;
     }
 
-    const move = parseUciBestMove(line);
-    if (move && pendingResolve) {
-      const resolve = pendingResolve;
-      pendingResolve = null;
-      pendingReject = null;
-      resolve(move);
+    // Score lines stream during the search; keep the deepest one for whoever
+    // asked for an evaluation, and ignore them entirely for a bot move.
+    if (pending?.kind === 'eval') {
+      const info = parseUciInfoScore(line);
+      if (info && info.depth >= pending.latest.depth) {
+        const pvMove = info.pv[0] ? parseUciMoveString(info.pv[0]) : null;
+        pending.latest = {
+          cp: info.cp,
+          mate: info.mate,
+          depth: info.depth,
+          bestMove: pvMove ?? pending.latest.bestMove,
+        };
+        continue;
+      }
+    }
+
+    // `bestmove` ends the search, whichever kind it was. A finished position
+    // answers "bestmove (none)", which parses to null — an evaluation still
+    // resolves (the score lines are the point), a move request cannot.
+    if (line.startsWith('bestmove')) {
+      const move = parseUciBestMove(line);
+      const request = pending;
+      if (!request) continue;
+
+      if (request.kind === 'eval') {
+        pending = null;
+        request.resolve({ ...request.latest, bestMove: move ?? request.latest.bestMove });
+      } else if (move) {
+        pending = null;
+        request.resolve(move);
+      }
     }
   }
 }
@@ -194,13 +251,12 @@ export function handleEngineError(error: string): void {
  * quiet instead of logging it as a bot crash.
  */
 export function cancelEngineSearch(reason = 'Search cancelled'): void {
-  if (!pendingReject) return;
-  const reject = pendingReject;
-  pendingResolve = null;
-  pendingReject = null;
+  const request = pending;
+  if (!request) return;
+  pending = null;
   const err = new Error(reason);
   err.name = 'AbortError';
-  reject(err);
+  request.reject(err);
 }
 
 /**
@@ -220,14 +276,45 @@ export function getEngineBestMove(
     // mid-think, or a turn effect that fired twice) — drop it, since only one
     // bestmove line can be outstanding on the single UCI channel.
     cancelEngineSearch('Superseded by a newer search');
-
-    pendingResolve = resolve;
-    pendingReject = reject;
+    pending = { kind: 'move', resolve, reject };
 
     const elo = Math.max(ARASAN_UCI_ELO_MIN, Math.min(ARASAN_UCI_ELO_MAX, targetElo));
     controls.send('setoption name UCI_LimitStrength value true');
     controls.send(`setoption name UCI_Elo value ${elo}`);
     controls.send(buildUciPositionCommand(gameState.moveHistory));
     controls.send(`go movetime ${Math.max(MIN_MOVE_TIME_MS, engineMoveTimeMs(targetElo))}`);
+  });
+}
+
+/**
+ * Full-strength evaluation of a position — game review's counterpart to
+ * `getEngineBestMove`.
+ *
+ * `UCI_LimitStrength` is turned back OFF here: review has to judge moves against
+ * the engine's real opinion, not against a bot deliberately weakened to some
+ * player's rating. That option is sticky on the engine process, so a bot game
+ * started after a review re-sets it — see `getEngineBestMove` above, which
+ * always sends both option lines.
+ */
+export function getEngineEvaluation(
+  gameState: ChessGameState,
+  movetimeMs: number,
+): Promise<EngineEvaluation> {
+  return new Promise((resolve, reject) => {
+    if (!controls || !started || !ready) {
+      reject(new Error('Engine not ready'));
+      return;
+    }
+    cancelEngineSearch('Superseded by a newer search');
+    pending = {
+      kind: 'eval',
+      resolve,
+      reject,
+      latest: { cp: null, mate: null, depth: 0, bestMove: null },
+    };
+
+    controls.send('setoption name UCI_LimitStrength value false');
+    controls.send(buildUciPositionCommand(gameState.moveHistory));
+    controls.send(`go movetime ${Math.max(MIN_MOVE_TIME_MS, movetimeMs)}`);
   });
 }

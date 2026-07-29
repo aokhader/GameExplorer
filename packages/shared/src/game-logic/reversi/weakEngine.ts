@@ -179,3 +179,65 @@ export function getBestReversiMove(
 
   return { position: bestPos };
 }
+
+/** A scored look at one position — what game review needs, unlike the bot. */
+export interface ReversiPositionEval {
+  /**
+   * WHITE-positive: > 0 means White stands better. Note this is the negation of
+   * what `evaluate`/`minimax` work in (they maximise for Black, who moves
+   * first) — normalised here so every game's review speaks the same sign
+   * convention. The scale is positional, not discs: a corner is worth ~40.
+   */
+  score: number;
+  /** Best square for the side to move, or null when it must pass / is over. */
+  bestMove: ReversiiBotMove | null;
+  /** True when the score is a decided result rather than a heuristic. */
+  terminal: boolean;
+}
+
+/**
+ * Full-strength search returning the SCORE as well as the square — the review
+ * counterpart to `getBestReversiMove`, which deliberately hides both (it
+ * blunders and adds noise on purpose to hit a target ELO).
+ *
+ * No blunder chance and no eval noise: review has to be reproducible, or the
+ * same position would grade differently each time you opened it.
+ */
+export function analyzeReversiPosition(
+  state: ReversiGameState,
+  depth = 4,
+): ReversiPositionEval {
+  if (state.isGameOver) {
+    const score = state.winner === null ? 0 : state.winner === 'white' ? WIN_SCORE : -WIN_SCORE;
+    return { score, bestMove: null, terminal: true };
+  }
+
+  const legalMoves = ReversiEngine.getAllLegalMoves(state);
+  if (legalMoves.length === 0) {
+    // Must pass — score the position the turn actually lands on, so a forced
+    // pass doesn't read as a blunder by the player who had no choice.
+    const passed = ReversiEngine.executePass(state);
+    const after = analyzeReversiPosition(passed, depth);
+    return { score: after.score, bestMove: null, terminal: after.terminal };
+  }
+
+  const isMaximizing = state.currentTurn === 'black';
+  let bestPos = legalMoves[0];
+  let bestScore = isMaximizing ? -Infinity : Infinity;
+
+  for (const pos of legalMoves) {
+    const next = ReversiEngine.executeMove(state, pos);
+    const score = minimax(next, depth - 1, -Infinity, Infinity, !isMaximizing, 0);
+    if (isMaximizing ? score > bestScore : score < bestScore) {
+      bestScore = score;
+      bestPos = pos;
+    }
+  }
+
+  return {
+    // Black-maximising → White-positive.
+    score: -bestScore,
+    bestMove: { position: bestPos },
+    terminal: Math.abs(bestScore) >= WIN_SCORE,
+  };
+}

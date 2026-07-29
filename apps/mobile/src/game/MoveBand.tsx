@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import type { GameAccent } from '@/game/GameScreenLayout';
+import { GRADE_META } from '@/analysis/grades';
+import type { MoveGrade } from '@/analysis/types';
 
 export interface MoveBandProps {
   /**
@@ -15,6 +17,12 @@ export interface MoveBandProps {
   /** Jump to a timeline index. */
   onSeek: (index: number) => void;
   accent: GameAccent;
+  /**
+   * Review only — one entry per move, aligned with `moves`. A graded chip is
+   * tinted and carries the grade's mark (?!, ?, ??, ★); null entries (ungraded
+   * yet, or a reversi pass) render exactly as they do during play.
+   */
+  grades?: (MoveGrade | null)[];
 }
 
 /**
@@ -27,7 +35,7 @@ export interface MoveBandProps {
  * move" — something the player cards already show. Stepping controls live on
  * the bottom `GameBar`, so the band is display + jump only.
  */
-export function MoveBand({ moves: san, viewIndex, onSeek, accent }: MoveBandProps) {
+export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades }: MoveBandProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
@@ -93,6 +101,11 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent }: MoveBandProp
           // as its own entry), so the first ply of each pair — white/gold, or
           // black in reversi where it moves first — carries the move number.
           const startsPair = i % 2 === 0;
+          const grade = grades?.[i] ?? null;
+          const meta = grade ? GRADE_META[grade] : null;
+          // 'good' is the unremarkable majority — marking it would drown the
+          // few moves that actually want attention.
+          const marked = meta && grade !== 'good';
           return (
             <View
               key={i}
@@ -109,12 +122,17 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent }: MoveBandProp
               <Pressable
                 onPress={() => onSeek(stateIdx)}
                 accessibilityRole="button"
-                accessibilityLabel={`Move ${stateIdx}, ${text}`}
+                accessibilityLabel={
+                  marked ? `Move ${stateIdx}, ${text}, ${meta!.label}` : `Move ${stateIdx}, ${text}`
+                }
                 accessibilityState={{ selected: isActive }}
                 style={{ marginLeft: 4 }}
               >
                 <View
                   style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 3,
                     paddingHorizontal: 8,
                     paddingVertical: 5,
                     borderRadius: 8,
@@ -123,13 +141,18 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent }: MoveBandProp
                 >
                   <Text
                     style={{
-                      color: isActive ? accentColor : COLORS.fg,
+                      color: isActive ? accentColor : marked ? meta!.color() : COLORS.fg,
                       fontSize: 14,
                       fontWeight: isActive ? '800' : '600',
                     }}
                   >
                     {text}
                   </Text>
+                  {marked && (
+                    <Text style={{ color: meta!.color(), fontSize: 12, fontWeight: '800' }}>
+                      {meta!.glyph}
+                    </Text>
+                  )}
                 </View>
               </Pressable>
             </View>

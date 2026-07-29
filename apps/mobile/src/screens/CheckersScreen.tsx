@@ -19,6 +19,9 @@ import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { eloLabel } from '@/game/eloLabel';
+import { ReviewScreen } from '@/analysis/ReviewScreen';
+import { checkersAnalysis } from '@/analysis/adapters';
+import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { checkersAdapter } from '@/engine/checkersAdapter';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -73,6 +76,9 @@ export function CheckersScreen() {
   // Manual board flip from the game menu — inverts whatever orientation the
   // mode would otherwise pick (see boardColor below).
   const [flipped, setFlipped] = useState(false);
+  // Post-game review. Only reachable once the game is over — see the GameBar
+  // handler below.
+  const [reviewing, setReviewing] = useState(false);
 
   const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
@@ -103,6 +109,7 @@ export function CheckersScreen() {
     game.newGame();
     setStarted(false);
     setFlipped(false);
+    setReviewing(false);
   };
 
   // Portable Draughts Notation — the numbered-square form tournaments use.
@@ -111,6 +118,14 @@ export function CheckersScreen() {
     () => moveHistoryToPdn(game.timeline[game.timeline.length - 1].moveHistory),
     [game.timeline],
   );
+
+  const analysis = useGameAnalysis({
+    adapter: checkersAnalysis,
+    timeline: game.timeline,
+    viewIndex: game.viewIndex,
+    currentTurn: (s) => s.currentTurn,
+    enabled: reviewing,
+  });
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
@@ -348,6 +363,44 @@ export function CheckersScreen() {
       : 'white'
     : autoBoardColor;
 
+  // ── Review ──────────────────────────────────────────────────────────────────
+  if (reviewing) {
+    return (
+      <ReviewScreen
+        accent="checkers"
+        title="Review"
+        adapter={checkersAnalysis}
+        moves={pdnMoves}
+        viewIndex={game.viewIndex}
+        onSeek={game.setViewIndex}
+        total={game.timeline.length}
+        playerColor={playerColor}
+        showBothSides={isPassAndPlay}
+        evaluation={analysis.current}
+        grades={analysis.grades}
+        summary={analysis.summary}
+        scanning={analysis.scanning}
+        progress={analysis.progress}
+        complete={analysis.complete}
+        liveBusy={analysis.liveBusy}
+        error={analysis.error}
+        onScan={analysis.scan}
+        onStopScan={analysis.stopScan}
+        onExit={() => setReviewing(false)}
+        board={
+          <CheckersBoard
+            gameState={displayState}
+            onMove={() => {}}
+            playerColor={boardColor}
+            // The engine's choice reuses the training hint's ring — same meaning
+            // ("play this move"), so it should look the same.
+            hintMove={analysis.current?.bestMove ?? null}
+            interactive={false}
+          />
+        }
+      />
+    );
+  }
 
   return (
     <>
@@ -481,6 +534,9 @@ export function CheckersScreen() {
             hintDisabled={!yourTurn}
             hintPending={game.isHinting}
             hintsUsed={game.hintsUsed}
+            // Gated on the game being over: mid-game this is an unlimited free
+            // hint, which is exactly what training charges rating for.
+            onAnalysis={gameOverMsg ? () => setReviewing(true) : undefined}
           />
         }
       />
@@ -510,6 +566,7 @@ export function CheckersScreen() {
         hintsUsed={ratingResult?.hintsUsed}
         saveError={game.saveError}
         onRetrySave={game.retrySave}
+        onReview={() => setReviewing(true)}
         actions={
           <>
             <Button label="Play Again" onPress={handleNewGame} glow />

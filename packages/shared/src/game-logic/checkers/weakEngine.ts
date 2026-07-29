@@ -180,3 +180,63 @@ export function getBestCheckersMove(
 
   return { from: bestMove.from, to: bestMove.to };
 }
+
+/** A scored look at one position — what game review needs, unlike the bot. */
+export interface CheckersPositionEval {
+  /**
+   * White-positive: > 0 means White stands better. Roughly centipawn-scaled —
+   * a man is worth 100 — so the same "how much did that move cost" thresholds
+   * chess review uses carry over.
+   */
+  score: number;
+  /** Best move for the side to move, or null in a finished position. */
+  bestMove: CheckersBotMove | null;
+  /** True when the score is a decided result rather than a heuristic. */
+  terminal: boolean;
+}
+
+/**
+ * Full-strength search returning the SCORE as well as the move — the review
+ * counterpart to `getBestCheckersMove`, which deliberately hides both (it
+ * blunders and adds noise on purpose to hit a target ELO).
+ *
+ * No blunder chance and no eval noise: review has to be reproducible, or the
+ * same position would grade differently each time you opened it.
+ */
+export function analyzeCheckersPosition(
+  state: CheckersGameState,
+  depth = 4,
+): CheckersPositionEval {
+  if (state.isGameOver) {
+    const score = state.winner === null ? 0 : state.winner === 'white' ? CHECKMATE_SCORE : -CHECKMATE_SCORE;
+    return { score, bestMove: null, terminal: true };
+  }
+
+  const legalMoves = CheckersEngine.getAllLegalMoves(state);
+  if (legalMoves.length === 0) {
+    // No move = loss for the side to move, the same rule minimax applies.
+    const score = state.currentTurn === 'white' ? -CHECKMATE_SCORE : CHECKMATE_SCORE;
+    return { score, bestMove: null, terminal: true };
+  }
+
+  const isMaximizing = state.currentTurn === 'white';
+  const ordered = [...legalMoves].sort((a, b) => b.captures.length - a.captures.length);
+
+  let bestMove = ordered[0];
+  let bestScore = isMaximizing ? -Infinity : Infinity;
+
+  for (const move of ordered) {
+    const next = CheckersEngine.executeMove(state, move);
+    const score = minimax(next, depth - 1, -Infinity, Infinity, !isMaximizing, 0);
+    if (isMaximizing ? score > bestScore : score < bestScore) {
+      bestScore = score;
+      bestMove = move;
+    }
+  }
+
+  return {
+    score: bestScore,
+    bestMove: { from: bestMove.from, to: bestMove.to },
+    terminal: Math.abs(bestScore) >= CHECKMATE_SCORE,
+  };
+}

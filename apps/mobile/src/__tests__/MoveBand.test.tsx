@@ -62,3 +62,48 @@ describe('MoveBand', () => {
     expect(screen.getByRole('button', { name: 'Move 3, —' })).toBeOnTheScreen();
   });
 });
+
+describe('MoveBand — review grades', () => {
+  it('marks the moves worth looking at, and names the grade for a screen reader', () => {
+    render(
+      <MoveBand
+        moves={OPENING}
+        viewIndex={0}
+        onSeek={jest.fn()}
+        accent="chess"
+        grades={['best', 'inaccuracy', 'mistake', 'blunder']}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Move 1, e4, Best move' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Move 2, e5, Inaccuracy' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Move 3, Nf3, Mistake' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Move 4, Nc6, Blunder' })).toBeOnTheScreen();
+    // The marks themselves: ★ best, ~ inaccuracy, ? mistake, ?? blunder.
+    expect(screen.getByText('★')).toBeOnTheScreen();
+    expect(screen.getByText('~')).toBeOnTheScreen();
+    expect(screen.getByText('?')).toBeOnTheScreen();
+    expect(screen.getByText('??')).toBeOnTheScreen();
+  });
+
+  it('leaves ordinary moves unmarked — only exceptions should draw the eye', () => {
+    render(
+      <MoveBand
+        moves={OPENING}
+        viewIndex={0}
+        onSeek={jest.fn()}
+        accent="chess"
+        grades={['good', 'good', null, 'blunder']}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Move 1, e4' })).toBeOnTheScreen();
+    // Ungraded (not scanned yet, or a pass) reads exactly as it does in play.
+    expect(screen.getByRole('button', { name: 'Move 3, Nf3' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Move 4, Nc6, Blunder' })).toBeOnTheScreen();
+  });
+
+  it('renders unchanged during play, when no grades exist', () => {
+    render(<MoveBand moves={OPENING} viewIndex={2} onSeek={jest.fn()} accent="chess" />);
+    expect(screen.getByRole('button', { name: 'Move 2, e5' })).toBeSelected();
+    expect(screen.queryByText('??')).toBeNull();
+  });
+});

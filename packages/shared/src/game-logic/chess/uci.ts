@@ -74,6 +74,52 @@ export interface UciBestMove {
   promotion?: PieceType;
 }
 
+export interface UciInfoScore {
+  /** Centipawns from the perspective of the side to move, or null for a mate score. */
+  cp: number | null;
+  /** Mate in N from the perspective of the side to move, or null. */
+  mate: number | null;
+  /** Search depth this line reports. */
+  depth: number;
+  /** Principal variation as raw UCI move strings ("e2e4"), possibly empty. */
+  pv: string[];
+}
+
+/**
+ * Parse an engine `info` line carrying a score, or null for any other line
+ * (engine chatter, `info` lines without a score, `bestmove`).
+ *
+ * Scores are side-to-move relative, exactly as the UCI spec defines them —
+ * callers flip the sign themselves when they want a White-positive number.
+ */
+export function parseUciInfoScore(line: string): UciInfoScore | null {
+  if (!line.startsWith('info') || !line.includes('score')) return null;
+
+  const cpMatch = line.match(/score cp (-?\d+)/);
+  const mateMatch = line.match(/score mate (-?\d+)/);
+  if (!cpMatch && !mateMatch) return null;
+
+  const depthMatch = line.match(/\bdepth (\d+)/);
+  const pvMatch = line.match(/ pv (.+)/);
+
+  return {
+    cp: cpMatch ? parseInt(cpMatch[1], 10) : null,
+    mate: mateMatch ? parseInt(mateMatch[1], 10) : null,
+    depth: depthMatch ? parseInt(depthMatch[1], 10) : 0,
+    pv: pvMatch ? pvMatch[1].trim().split(/\s+/).filter(Boolean) : [],
+  };
+}
+
+/** Parse one UCI long-algebraic move string ("e2e4", "e7e8q"), or null. */
+export function parseUciMoveString(moveStr: string): UciBestMove | null {
+  if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(moveStr)) return null;
+  return {
+    from: moveStr.substring(0, 2),
+    to: moveStr.substring(2, 4),
+    promotion: moveStr.length === 5 ? UCI_TO_PROMOTION[moveStr[4]] : undefined,
+  };
+}
+
 /**
  * Parse an engine `bestmove` line into a move, or null when the line isn't a
  * usable bestmove (other engine chatter, or "bestmove (none)" from a finished
@@ -82,10 +128,5 @@ export interface UciBestMove {
 export function parseUciBestMove(line: string): UciBestMove | null {
   if (!line.startsWith('bestmove')) return null;
   const moveStr = line.split(/\s+/)[1];
-  if (!moveStr || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(moveStr)) return null;
-  return {
-    from: moveStr.substring(0, 2),
-    to: moveStr.substring(2, 4),
-    promotion: moveStr.length === 5 ? UCI_TO_PROMOTION[moveStr[4]] : undefined,
-  };
+  return moveStr ? parseUciMoveString(moveStr) : null;
 }

@@ -40,6 +40,12 @@ export interface GameBarProps {
   hintPending?: boolean;
   /** Hints taken so far, shown as a badge on the button. */
   hintsUsed?: number;
+  /**
+   * Open game review. Omit and the menu row stays the "coming soon"
+   * placeholder. Screens only pass it once the game is over — mid-game it would
+   * be a free, unlimited hint, which is exactly what training charges for.
+   */
+  onAnalysis?: () => void;
 }
 
 /** Seconds the flag stays armed after the first tap. */
@@ -55,8 +61,10 @@ const CONFIRM_MS = 3000;
  * the 44pt touch minimum, and scrolled off screen exactly when a player wanted
  * them.
  *
- * Analysis and Hint are placeholders: rendered, visibly disabled, and labelled
- * "coming soon" so they read as unbuilt rather than broken.
+ * Hint and Review are opt-in: a screen that passes the handler gets a live
+ * control, and one that doesn't keeps the disabled "coming soon" placeholder, so
+ * an unsupported mode reads as unbuilt rather than broken. Hint is training's;
+ * Review is offered once the game is over.
  */
 export function GameBar({
   viewIndex,
@@ -72,6 +80,7 @@ export function GameBar({
   hintDisabled = false,
   hintPending = false,
   hintsUsed = 0,
+  onAnalysis,
 }: GameBarProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
@@ -181,6 +190,7 @@ export function GameBar({
         onFlipBoard={onFlipBoard}
         onAgreeDraw={onAgreeDraw}
         onNewGame={onNewGame}
+        onAnalysis={onAnalysis}
       />
     </>
   );
@@ -278,6 +288,7 @@ function GameMenu({
   onFlipBoard,
   onAgreeDraw,
   onNewGame,
+  onAnalysis,
 }: {
   open: boolean;
   accent: GameAccent;
@@ -286,6 +297,7 @@ function GameMenu({
   onFlipBoard?: () => void;
   onAgreeDraw?: () => void;
   onNewGame: () => void;
+  onAnalysis?: () => void;
 }) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
@@ -344,7 +356,11 @@ function GameMenu({
                   accent={accentColor}
                 />
               )}
-              <MenuRow glyph="📈" label="Analysis" soon accent={accentColor} />
+              {onAnalysis ? (
+                <MenuRow glyph="📈" label="Review game" onPress={run(onAnalysis)} accent={accentColor} />
+              ) : (
+                <MenuRow glyph="📈" label="Analysis" soon accent={accentColor} />
+              )}
               <MenuRow glyph="♟️" label="New game" onPress={run(onNewGame)} accent={accentColor} />
             </View>
           </SafeAreaView>

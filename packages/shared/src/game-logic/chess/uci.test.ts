@@ -4,6 +4,8 @@ import {
   buildUciPositionCommand,
   clampStockfishElo,
   parseUciBestMove,
+  parseUciInfoScore,
+  parseUciMoveString,
   engineMoveTimeMs,
   uciMoveString,
 } from './uci';
@@ -87,6 +89,52 @@ describe('parseUciBestMove', () => {
   it('returns null for a malformed move token', () => {
     expect(parseUciBestMove('bestmove')).toBeNull();
     expect(parseUciBestMove('bestmove z9z9')).toBeNull();
+  });
+});
+
+describe('parseUciInfoScore', () => {
+  it('reads a centipawn line with its depth and PV', () => {
+    const info = parseUciInfoScore(
+      'info depth 18 seldepth 24 score cp -37 nodes 900000 pv e2e4 e7e5 g1f3',
+    );
+    expect(info).toEqual({ cp: -37, mate: null, depth: 18, pv: ['e2e4', 'e7e5', 'g1f3'] });
+  });
+
+  it('reads a mate line', () => {
+    const info = parseUciInfoScore('info depth 12 score mate 3 pv d1h5');
+    expect(info?.mate).toBe(3);
+    expect(info?.cp).toBeNull();
+  });
+
+  it('reads a negative mate score (the engine is getting mated)', () => {
+    expect(parseUciInfoScore('info depth 9 score mate -2 pv a1a2')?.mate).toBe(-2);
+  });
+
+  it('copes with a score line that carries no PV', () => {
+    const info = parseUciInfoScore('info depth 4 score cp 12 nodes 100');
+    expect(info).toEqual({ cp: 12, mate: null, depth: 4, pv: [] });
+  });
+
+  it('ignores lines without a score, and non-info lines', () => {
+    expect(parseUciInfoScore('info depth 1 currmove e2e4')).toBeNull();
+    expect(parseUciInfoScore('bestmove e2e4')).toBeNull();
+    expect(parseUciInfoScore('readyok')).toBeNull();
+  });
+});
+
+describe('parseUciMoveString', () => {
+  it('parses a plain move', () => {
+    expect(parseUciMoveString('e2e4')).toEqual({ from: 'e2', to: 'e4', promotion: undefined });
+  });
+
+  it('parses an underpromotion to knight, not "n"-for-nothing', () => {
+    expect(parseUciMoveString('e7e8n')?.promotion).toBe('knight');
+  });
+
+  it('rejects anything that is not a move', () => {
+    expect(parseUciMoveString('(none)')).toBeNull();
+    expect(parseUciMoveString('z9z9')).toBeNull();
+    expect(parseUciMoveString('')).toBeNull();
   });
 });
 
