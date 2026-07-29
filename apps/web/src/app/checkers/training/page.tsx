@@ -286,7 +286,7 @@ export default function CheckersTrainingPage() {
 
   if (authLoading || (!user && !authLoading)) {
     return (
-      <div className="min-h-screen pt-16 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-fg-muted">Loading…</div>
       </div>
     );
@@ -296,7 +296,7 @@ export default function CheckersTrainingPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen pt-16 page-glow-checkers">
+      <div className="min-h-screen page-glow-checkers">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/checkers"

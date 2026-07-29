@@ -271,7 +271,7 @@ export default function ChessBotPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen pt-16 page-glow-chess">
+      <div className="min-h-screen page-glow-chess">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/chess"

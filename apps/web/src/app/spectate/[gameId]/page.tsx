@@ -107,7 +107,7 @@ export default function SpectatePage() {
   const endData     = gameEndData;
 
   return (
-    <div className="relative min-h-screen text-fg pt-16 flex flex-col items-center px-4 py-6">
+    <div className="relative min-h-screen text-fg flex flex-col items-center px-4 py-6">
       <div className="w-full max-w-2xl">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold">👁 Spectating</h1>

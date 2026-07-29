@@ -598,7 +598,7 @@ function AnalysisPageInner() {
 export default function AnalysisPage() {
   return (
     <Suspense fallback={
-      <div className="h-screen pt-16 flex items-center justify-center page-glow-chess">
+      <div className="h-screen flex items-center justify-center page-glow-chess">
         <div className="text-fg-subtle">Loading…</div>
       </div>
     }>

@@ -1,63 +1,48 @@
 'use client';
 
 import React from 'react';
-import {
-  LIQUIDATE_BOARD_COLORS,
-  LIQUIDATE_DECK_STYLE,
-  LIQUIDATE_SEAT_COLORS,
-  LIQUIDATE_SYSTEM_COLORS,
-} from '@gameexplorer/ui';
+import { LIQUIDATE_DECK_STYLE } from '@gameexplorer/ui';
 import { MAX_COLONY_LEVEL, type LiquidateTile as Tile, type TileOwnership } from '@gameexplorer/shared';
 import { cn } from '@/lib/utils';
-import { edgeOf, isCornerIndex, type BoardEdge } from './geometry';
-import { ShipToken } from './ShipToken';
-
-/**
- * Board surfaces, read from the `--c-liquidate-*` variables globals.css declares
- * per theme (Arcade's blue-slate board, Cozy's wooden one), with the shared token
- * as the fallback. Mobile reads LIQUIDATE_BOARD_COLORS directly — it has no themes.
- */
-const BOARD = {
-  tile:       `var(--c-liquidate-tile, ${LIQUIDATE_BOARD_COLORS.tile})`,
-  corner:     `var(--c-liquidate-corner, ${LIQUIDATE_BOARD_COLORS.corner})`,
-  border:     `var(--c-liquidate-border, ${LIQUIDATE_BOARD_COLORS.border})`,
-  activeRing: `var(--c-liquidate-active-ring, ${LIQUIDATE_BOARD_COLORS.activeRing})`,
-  mortgaged:  `var(--c-liquidate-mortgaged, ${LIQUIDATE_BOARD_COLORS.mortgaged})`,
-};
+import { isCornerIndex } from './geometry';
+import { PlayerToken } from './PlayerToken';
+import { LQ, hasColorBar, seatColor, tileAccent, tileMetrics } from './theme';
 
 /** Glyphs for the non-property tiles. Original marks, not any existing game's. */
 const CORNER_GLYPH: Record<string, string> = {
   'home-station': '⌂',
-  impound: '⛒',
+  impound: '⊗',
   drift: '≈',
   'contraband-scan': '◎',
-  tariff: '⌁',
+  tariff: '⇲',
   'warp-gate': '◇',
   utility: '⚡',
 };
 
-/** Which side of the tile the system colour band hugs, so bands face inward. */
-const BAND_SIDE: Record<BoardEdge, string> = {
-  bottom: 'top-0 left-0 right-0 h-[20%]',
-  top: 'bottom-0 left-0 right-0 h-[20%]',
-  left: 'top-0 bottom-0 right-0 w-[20%]',
-  right: 'top-0 bottom-0 left-0 w-[20%]',
-};
-
-/** Padding that keeps the label clear of the inward-facing colour band. */
-const LABEL_INSET: Record<BoardEdge, string> = {
-  bottom: 'pt-[20%]',
-  top: 'pb-[20%]',
-  left: 'pr-[20%]',
-  right: 'pl-[20%]',
-};
+/** The one-line note a non-property tile carries in place of a price. */
+function subLabel(tile: Tile, stipend: number): string {
+  switch (tile.kind) {
+    case 'home-station':
+      return `Stipend ₡${stipend}`;
+    case 'impound':
+      return 'Just visiting';
+    case 'contraband-scan':
+      return 'Cargo check';
+    case 'drift':
+      return 'Free relay';
+    case 'tariff':
+      return `Pay ₡${tile.amount}`;
+    default:
+      return '';
+  }
+}
 
 export interface LiquidateTileProps {
   tile: Tile;
   owned: TileOwnership;
-  /** Tiles per side, for corner/edge detection. */
+  /** Tiles per side, for corner detection and density. */
   n: number;
-  /** Measured edge length of this cell in px — drives every type size below. */
+  /** Measured edge length of this cell in px — drives every metric below. */
   cellPx: number;
   /** Seat indices of players standing here. */
   occupants: number[];
@@ -65,17 +50,25 @@ export interface LiquidateTileProps {
   active?: boolean;
   /** Seat index of the player this device is following, when standing here. */
   youSeat?: number;
+  /** Currently open in the inspector. */
+  selected?: boolean;
+  /** Stipend for the Home Station note. */
+  stipend: number;
   onSelect?: (tileId: number) => void;
 }
 
 /**
- * One tile on the ring. Cells are uniform squares (a deliberate departure from
- * the tall-thin proportions of the classic board), so the colour band plus a
- * two-line label has to carry identification.
+ * One tile on the ring.
  *
- * Type is sized from the **measured** cell rather than from viewport units. The
- * viewport-unit version collapsed to its 6px floor on a 68px cell, which is the
- * main reason the board could not be read at all.
+ * The layout is a stack, top to bottom: system colour bar → glyph → name →
+ * price (or note) pushed to the base → owner swatch and colony pips → owner
+ * stripe. That order is what lets a player read the loop at a glance: colour
+ * answers "which system", the base stripe answers "whose", and the pips answer
+ * "how developed" — none of which requires opening the tile.
+ *
+ * Every size comes from the MEASURED cell rather than viewport units, and the
+ * lowest-value rows drop out first as cells get small (see `tileMetrics`), so
+ * the name survives all the way down to a 12-per-side board on a phone.
  */
 export const LiquidateTileCell = React.memo(function LiquidateTileCell({
   tile,
@@ -85,35 +78,24 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
   occupants,
   active,
   youSeat,
+  selected,
+  stipend,
   onSelect,
 }: LiquidateTileProps) {
   const corner = isCornerIndex(tile.id, n);
-  const edge = edgeOf(tile.id, n);
-  const systemColor = tile.kind === 'planet' ? LIQUIDATE_SYSTEM_COLORS[tile.system] : null;
+  const accent = tileAccent(tile);
+  const bar = hasColorBar(tile);
   const deck =
     tile.kind === 'anomaly' || tile.kind === 'federation' ? LIQUIDATE_DECK_STYLE[tile.kind] : null;
   const price = 'price' in tile ? tile.price : null;
-  const ownerSeat = owned.ownerId ? Number(owned.ownerId.replace(/\D/g, '')) - 1 : -1;
-  const ownerColor =
-    ownerSeat >= 0
-      ? (LIQUIDATE_SEAT_COLORS[ownerSeat % LIQUIDATE_SEAT_COLORS.length] ?? '#ffffff')
-      : null;
-
+  const sub = subLabel(tile, stipend);
   const glyph = deck?.glyph ?? CORNER_GLYPH[tile.kind] ?? null;
+
+  const ownerSeat = owned.ownerId ? Number(owned.ownerId.replace(/\D/g, '')) - 1 : -1;
+  const ownerColor = ownerSeat >= 0 ? seatColor(ownerSeat) : null;
   const youHere = youSeat !== undefined;
 
-  // A single scale factor keeps the whole tile in proportion at any board size.
-  const clamp = (min: number, v: number, max: number) => Math.max(min, Math.min(max, v));
-  const nameSize = clamp(8, cellPx * 0.15, 14);
-  const priceSize = clamp(7, cellPx * 0.13, 12);
-  const glyphSize = clamp(10, cellPx * 0.26, 22);
-  const shipSize = clamp(9, cellPx * (occupants.length > 2 ? 0.22 : 0.32), 22);
-
-  // Below roughly a phone-sized cell there is only room for one line, and the
-  // name is what identifies the square — the price is in the deed card either
-  // way, so it is the first thing to go.
-  const showPrice = price !== null && cellPx >= 46;
-  const showGlyph = Boolean(glyph) && cellPx >= 34;
+  const m = tileMetrics(cellPx, n);
 
   return (
     <button
@@ -122,131 +104,171 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
       title={`${tile.name}${price !== null ? ` — ₡${price}` : ''}`}
       aria-label={`${tile.name}${price !== null ? `, price ${price} credits` : ''}${
         owned.ownerId ? ', owned' : ''
-      }${youHere ? ', your ship is here' : ''}`}
+      }${youHere ? ', your token is here' : ''}`}
       aria-current={youHere ? 'location' : undefined}
+      aria-pressed={selected}
       className={cn(
-        'relative flex h-full w-full flex-col items-center justify-center overflow-hidden',
-        'rounded-[3px] border text-center transition-[filter,box-shadow] duration-200',
-        onSelect ? 'cursor-pointer hover:brightness-125' : 'cursor-default',
+        'relative flex h-full w-full min-w-0 flex-col overflow-hidden rounded-lg border text-left',
+        'transition-[filter,box-shadow] duration-200',
+        onSelect ? 'cursor-pointer hover:brightness-110' : 'cursor-default',
       )}
       style={{
-        background: corner ? BOARD.corner : BOARD.tile,
-        borderColor: active ? BOARD.activeRing : BOARD.border,
-        boxShadow: active
-          ? `inset 0 0 0 2px ${BOARD.activeRing}, 0 0 12px -2px ${BOARD.activeRing}`
-          : undefined,
+        background: corner ? LQ.corner : LQ.tile,
+        borderColor: selected ? LQ.accent : LQ.tileLine,
+        boxShadow: selected ? `0 0 0 1px ${LQ.accent}` : undefined,
       }}
     >
-      {/* System colour band, rotated to face the middle of the board. */}
-      {systemColor && (
+      {/* System colour bar across the head of every ownable tile. */}
+      {bar && (
         <span
-          className={cn('absolute', BAND_SIDE[edge])}
-          style={{ background: systemColor }}
+          style={{ height: m.barH, background: accent, borderBottom: '1px solid rgba(0,0,0,.18)' }}
           aria-hidden="true"
         />
       )}
 
-      {/* Owner wash + stripe, in the owner's seat colour — who holds what has to
-          be readable from the board, not only from the roster. */}
-      {ownerColor && (
-        <>
-          <span
-            className="absolute inset-0"
-            style={{ background: ownerColor, opacity: 0.16 }}
-            aria-hidden="true"
-          />
-          <span
-            className="absolute inset-x-0 bottom-0"
-            style={{ height: Math.max(3, cellPx * 0.07), background: ownerColor }}
-            aria-hidden="true"
-          />
-        </>
-      )}
-
-      {/* Mortgaged wash. */}
+      {/* Mortgaged wash, over the face but under the labels. */}
       {owned.mortgaged && (
-        <span
-          className="absolute inset-0"
-          style={{ background: BOARD.mortgaged }}
-          aria-hidden="true"
-        />
+        <span className="absolute inset-0" style={{ background: LQ.mortgaged }} aria-hidden="true" />
       )}
 
       <span
-        className={cn(
-          'relative z-10 flex w-full flex-col items-center gap-[2px] px-[3px] leading-tight',
-          LABEL_INSET[edge],
-        )}
+        className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col"
+        // Tighter left/right than top/bottom: the widest single word on the
+        // board ("Contraband") only just fits a tile, and the few pixels the
+        // symmetric padding was taking were enough to break it mid-word.
+        style={{ padding: `${m.pad}px ${Math.max(2, m.pad * 0.6)}px`, gap: 2 }}
       >
-        {showGlyph && (
+        {m.showGlyph && glyph && (
           <span
-            style={{
-              fontSize: glyphSize,
-              // Fall back to the board's own muted tone, not the page's — this
-              // glyph sits on a tile, which stays dark in every theme.
-              color: deck?.base ?? 'var(--c-liquidate-tile-fg-muted, var(--c-fg-muted))',
-              lineHeight: 1,
-            }}
+            className="shrink-0"
+            style={{ fontSize: m.glyphF, lineHeight: 1, color: accent }}
             aria-hidden="true"
           >
             {glyph}
           </span>
         )}
+
         <span
-          className="line-clamp-2 w-full break-words font-semibold text-[var(--c-liquidate-tile-fg,var(--c-fg))]"
-          style={{ fontSize: nameSize }}
+          className={cn(
+            'min-h-0 break-words font-bold',
+            m.nameLines === 2 ? 'line-clamp-2' : 'line-clamp-1',
+          )}
+          style={{ fontSize: m.nameF, lineHeight: 1.1, color: LQ.ink, letterSpacing: '-0.01em' }}
         >
           {tile.name}
         </span>
-        {showPrice && (
-          <span className="tabular-nums text-[var(--c-liquidate-tile-fg-muted,var(--c-fg-muted))]" style={{ fontSize: priceSize }}>
+
+        {m.showPrice && price !== null && (
+          <span
+            className="mt-auto shrink-0 font-semibold tabular-nums"
+            style={{ fontSize: m.priceF, color: LQ.dim }}
+          >
             ₡{price}
           </span>
         )}
-        {/* Colony pips; a filled star marks the megastructure. */}
-        {owned.level > 0 && (
-          <span className="flex items-center gap-[1px]" aria-hidden="true">
-            {owned.level === MAX_COLONY_LEVEL ? (
-              <span style={{ fontSize: priceSize, color: 'var(--c-accent)', lineHeight: 1 }}>★</span>
-            ) : (
-              Array.from({ length: owned.level }, (_, i) => (
-                <span
-                  key={i}
-                  className="inline-block rounded-full"
-                  style={{
-                    width: Math.max(3, cellPx * 0.06),
-                    height: Math.max(3, cellPx * 0.06),
-                    background: 'var(--c-accent)',
-                  }}
-                />
-              ))
-            )}
+        {m.showSub && price === null && sub && (
+          <span
+            className="mt-auto shrink-0 truncate font-semibold uppercase"
+            style={{ fontSize: m.priceF, color: LQ.soft, letterSpacing: '0.03em' }}
+          >
+            {sub}
+          </span>
+        )}
+
+        {/* Owner swatch + one pip per colony; a star marks the megastructure. */}
+        {m.showOwnerRow && ownerColor && (
+          <span className="flex items-center" style={{ gap: 4, marginTop: 3 }} aria-hidden="true">
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 3,
+                background: ownerColor,
+                boxShadow: '0 0 0 1px rgba(0,0,0,.25)',
+              }}
+            />
+            <span className="flex" style={{ gap: 2 }}>
+              {owned.level === MAX_COLONY_LEVEL ? (
+                <span style={{ fontSize: 9, lineHeight: 1, color: ownerColor }}>★</span>
+              ) : (
+                Array.from({ length: owned.level }, (_, i) => (
+                  <span
+                    key={i}
+                    style={{ width: 4, height: 7, borderRadius: 1.5, background: ownerColor, opacity: 0.9 }}
+                  />
+                ))
+              )}
+            </span>
           </span>
         )}
       </span>
 
-      {/* Ships, laid side by side so several on one tile stay countable. */}
+      {/* Owner stripe along the base — the one ownership cue that survives at
+          every board size, since the swatch row is the first thing to drop. */}
+      {ownerColor && (
+        <span
+          className="relative z-10"
+          style={{ height: Math.max(3, cellPx * 0.06), background: ownerColor }}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Player tokens, bottom-right so they never sit over the name. */}
       {occupants.length > 0 && (
-        <span className="absolute inset-x-0 bottom-[9%] z-20 flex flex-wrap justify-center gap-[1px]">
+        <span
+          className="absolute z-20 flex flex-wrap justify-end"
+          style={{ bottom: 4, right: 4, gap: 2 }}
+        >
           {occupants.map((s) => (
-            <ShipToken key={s} seat={s} size={shipSize} active={active} you={s === youSeat} />
+            <PlayerToken key={s} seat={s} width={m.tokenW} you={s === youSeat} />
           ))}
         </span>
       )}
 
-      {/* "You are here" — a hard, animated ring that reads at a glance, kept
-          distinct from the gold acting-player ring so following a bot's turn
-          never loses track of your own ship. */}
-      {youHere && (
+      {/* The acting player's square — a gold hairline, quieter than the
+          you-are-here ring so the two never compete. */}
+      {active && !youHere && (
         <span
-          className="pointer-events-none absolute inset-0 rounded-[3px] motion-safe:animate-pulse"
-          style={{
-            boxShadow: `inset 0 0 0 2px ${
-              LIQUIDATE_SEAT_COLORS[youSeat % LIQUIDATE_SEAT_COLORS.length]
-            }`,
-          }}
+          className="pointer-events-none absolute inset-0 rounded-lg"
+          style={{ boxShadow: `inset 0 0 0 2px ${LQ.activeRing}` }}
           aria-hidden="true"
         />
+      )}
+
+      {/* "You are here" — a pulsing ring in the followed seat's colour. The
+          badge only appears where there is room to read it. */}
+      {youHere && (
+        <>
+          <span
+            className="lq-you-ring pointer-events-none absolute inset-0 rounded-lg"
+            style={
+              {
+                '--lq-ring': seatColor(youSeat),
+                '--lq-ring-soft': `color-mix(in srgb, ${seatColor(youSeat)} 35%, transparent)`,
+              } as React.CSSProperties
+            }
+            aria-hidden="true"
+          />
+          {/* The badge sits over the middle of the tile, so it only earns its
+              place where it is not covering the name it is pointing at. Below
+              that the pulsing ring and the haloed token carry the marker. */}
+          {cellPx >= 76 && (
+            <span
+              className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-bold uppercase"
+              style={{
+                fontSize: 7,
+                letterSpacing: '0.05em',
+                color: LQ.accentInk,
+                background: LQ.accent,
+                padding: '2px 4px',
+                borderRadius: 4,
+              }}
+              aria-hidden="true"
+            >
+              You are here
+            </span>
+          )}
+        </>
       )}
     </button>
   );

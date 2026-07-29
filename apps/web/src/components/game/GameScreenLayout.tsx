@@ -43,12 +43,15 @@ export interface GameScreenLayoutProps {
 }
 
 /**
- * Vertical space the shell itself eats on desktop: `pt-16` (64) + the header
- * row (53) + the body's `py-3` (24). Everything left over is the board column's
- * height budget — and since the board is square, its *width* budget too. Every
- * pixel trimmed from the chrome here is a pixel the board grows by.
+ * Vertical space the shell itself eats: the header row (53) + the body's `py-3`
+ * (24). Everything left over is the board column's height budget — and since the
+ * board is square, its *width* budget too. Every pixel trimmed from the chrome
+ * here is a pixel the board grows by, in both directions.
+ *
+ * No allowance for the global navbar: in-game routes do not render it (see
+ * `isImmersiveGameRoute`), which is where the other 64px went.
  */
-const SHELL_CHROME_PX = 141;
+const SHELL_CHROME_PX = 77;
 
 /** A player card (46px) plus the column's `gap-3` (12px) above or below it. */
 const PLAYER_CARD_PX = 58;
@@ -96,7 +99,7 @@ export function GameScreenLayout({
   return (
     <div
       className={cn(
-        'reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden pt-16',
+        'reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden',
         accent && `page-glow-${accent}`,
         className,
       )}
@@ -125,7 +128,12 @@ export function GameScreenLayout({
           <div className="w-full max-w-6xl 2xl:max-w-7xl mx-auto flex flex-col lg:flex-row lg:justify-center gap-4 xl:gap-6 items-start lg:h-full">
             <div
               className={cn(
-                'flex flex-col gap-3 w-full lg:shrink-0 lg:max-w-[var(--gx-board-cap)]',
+                // The height cap applies at EVERY width, not just `lg`. Stacked
+                // layouts are where a short viewport bites hardest — a landscape
+                // phone, or a half-height desktop window — and there the board
+                // was sized by a blunt `svh` percentage that knew nothing about
+                // the chrome above it.
+                'flex flex-col gap-3 w-full lg:shrink-0 max-w-[var(--gx-board-cap)]',
                 boardColumnClassName,
               )}
               style={{ '--gx-board-cap': `calc(100svh - ${reservedPx}px)` } as React.CSSProperties}

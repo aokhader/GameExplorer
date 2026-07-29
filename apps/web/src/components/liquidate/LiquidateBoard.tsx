@@ -1,23 +1,25 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_BOARD_COLORS } from '@gameexplorer/ui';
 import { LiquidateEngine, type LiquidateGameState } from '@gameexplorer/shared';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { LiquidateTileCell } from './LiquidateTile';
 import { gridPos, sideLength } from './geometry';
+import { LQ } from './theme';
 
 /** Gutter between tiles, in px — also the frame's own padding. */
-const GAP_PX = 2;
+const GAP_PX = 5;
 
 export interface LiquidateBoardProps {
   state: LiquidateGameState;
-  /** Rendered inside the ring — dice and the current-location plate. */
+  /** Rendered inside the ring — dice and the tile inspector. */
   children?: React.ReactNode;
-  /** Called when a tile is clicked, to open its property card. */
+  /** Called when a tile is clicked, to focus it in the inspector. */
   onSelectTile?: (tileId: number) => void;
   /** Seat this device is following, so its tile can be marked "you are here". */
   youId?: string | null;
+  /** Tile currently focused in the inspector. */
+  selectedTile?: number | null;
 }
 
 /**
@@ -38,6 +40,7 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
   children,
   onSelectTile,
   youId,
+  selectedTile,
 }: LiquidateBoardProps) {
   const board = LiquidateEngine.board(state);
   const n = sideLength(board.length);
@@ -70,7 +73,7 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
 
   // SSR and the very first render have no measurement yet; fall back to the
   // common desktop size so the board never renders with 0px type.
-  const cellPx = ((edgePx || 560) - GAP_PX * 2 - GAP_PX * (n - 1)) / n;
+  const cellPx = ((edgePx || 620) - GAP_PX * 2 - GAP_PX * (n - 1)) / n;
 
   // Seat indices standing on each tile, so tokens can be drawn per square.
   const occupants = React.useMemo(() => {
@@ -93,16 +96,20 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
   const youTile = youSeat >= 0 ? state.players[youSeat].tile : -1;
 
   return (
-    <BoardFrame ref={frameRef} maxPx={680} vhCap={78}>
+    // `vhCap` is a backstop, not the working limit: the shell caps this column
+    // by the height actually left after its chrome (`--gx-board-cap`), which is
+    // a far better number than a flat percentage of the viewport. Left at 78 it
+    // was the binding constraint and held the board ~65px below what fits.
+    <BoardFrame ref={frameRef} maxPx={760} vhCap={94}>
       {/* Pinned to the frame box rather than `h-full`: a percentage height has
           nothing definite to resolve against in the stacked mobile layout, and
           the grid then fell back to sizing its rows off tile content — which
-          stretched the "square" board to 343×557. Out-of-flow, the frame keeps
-          its 1:1 ratio and the row tracks stay a true 1fr. */}
+          stretched the "square" board. Out-of-flow, the frame keeps its 1:1
+          ratio and the row tracks stay a true 1fr. */}
       <div
-        className="absolute inset-0 grid rounded-xl"
+        className="absolute inset-0 grid rounded-2xl"
         style={{
-          background: `var(--c-liquidate-frame, ${LIQUIDATE_BOARD_COLORS.frame})`,
+          background: LQ.frame,
           gap: GAP_PX,
           padding: GAP_PX,
           gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`,
@@ -121,6 +128,8 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
                 occupants={occupants.get(tile.id) ?? []}
                 active={tile.id === activeTile}
                 youSeat={tile.id === youTile && youSeat >= 0 ? youSeat : undefined}
+                selected={tile.id === selectedTile}
+                stipend={state.config.stipend}
                 onSelect={onSelectTile}
               />
             </div>
@@ -129,11 +138,12 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
 
         {/* The well: everything inside the ring. */}
         <div
-          className="flex min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden rounded-lg p-2"
+          className="flex min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden"
           style={{
             gridRow: `2 / ${n}`,
             gridColumn: `2 / ${n}`,
-            background: `var(--c-liquidate-well, ${LIQUIDATE_BOARD_COLORS.well})`,
+            background: LQ.well,
+            padding: 8,
           }}
         >
           {children}

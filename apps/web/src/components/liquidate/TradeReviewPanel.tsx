@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_SYSTEM_COLORS } from '@gameexplorer/ui';
 import {
   LiquidateEngine,
   formatCredits,
@@ -9,7 +8,8 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
 } from '@gameexplorer/shared';
-import { Button } from '@/components/ui';
+import { DockButton } from './DockButton';
+import { LQ, tileAccent } from './theme';
 
 export interface TradeReviewPanelProps {
   state: LiquidateGameState;
@@ -22,16 +22,13 @@ function TileRow({ state, tileId }: { state: LiquidateGameState; tileId: number 
   const tile = LiquidateEngine.board(state)[tileId];
   if (!isOwnable(tile)) return null;
   return (
-    <li className="flex items-center gap-1.5 text-xs">
-      {tile.kind === 'planet' && (
-        <span
-          className="h-2 w-2 shrink-0 rounded-sm"
-          style={{ background: LIQUIDATE_SYSTEM_COLORS[tile.system] }}
-          aria-hidden="true"
-        />
-      )}
+    <li className="flex items-center gap-1.5 font-semibold" style={{ fontSize: 11, color: LQ.dim }}>
+      <span
+        style={{ width: 8, height: 8, borderRadius: 3, background: tileAccent(tile), flex: 'none' }}
+        aria-hidden="true"
+      />
       <span className="truncate">{tile.name}</span>
-      <span className="ml-auto shrink-0 tabular-nums text-fg-muted">
+      <span className="ml-auto shrink-0 tabular-nums" style={{ color: LQ.soft }}>
         {formatCredits(tile.price)}
       </span>
     </li>
@@ -39,8 +36,8 @@ function TileRow({ state, tileId }: { state: LiquidateGameState; tileId: number 
 }
 
 /**
- * The receiving end of a trade — inline in the sidebar rail for the same reason
- * as the auction: the offer is only judgeable against the board behind it.
+ * The receiving end of a trade — inline in the rail for the same reason as the
+ * auction: the offer is only judgeable against the board behind it.
  */
 export function TradeReviewPanel({ state, humanTurn, dispatch }: TradeReviewPanelProps) {
   const trade = state.pendingTrade;
@@ -52,13 +49,16 @@ export function TradeReviewPanel({ state, humanTurn, dispatch }: TradeReviewPane
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="text-sm font-semibold text-fg">
+      <div className="font-bold" style={{ fontSize: 13.5, color: LQ.ink }}>
         {from.name} offers {to.name} a trade
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-success">
+          <div
+            className="mb-1 font-bold uppercase"
+            style={{ fontSize: 9.5, letterSpacing: '0.05em', color: LQ.you }}
+          >
             {to.name} gets
           </div>
           <ul className="flex flex-col gap-1">
@@ -66,15 +66,22 @@ export function TradeReviewPanel({ state, humanTurn, dispatch }: TradeReviewPane
               <TileRow key={id} state={state} tileId={id} />
             ))}
             {trade.offerCredits > 0 && (
-              <li className="text-xs text-accent">{formatCredits(trade.offerCredits)}</li>
+              <li className="font-bold" style={{ fontSize: 11, color: LQ.accent }}>
+                {formatCredits(trade.offerCredits)}
+              </li>
             )}
             {trade.offerTiles.length === 0 && trade.offerCredits === 0 && (
-              <li className="text-xs text-fg-muted">Nothing</li>
+              <li className="font-semibold" style={{ fontSize: 11, color: LQ.soft }}>
+                Nothing
+              </li>
             )}
           </ul>
         </div>
         <div>
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-danger">
+          <div
+            className="mb-1 font-bold uppercase"
+            style={{ fontSize: 9.5, letterSpacing: '0.05em', color: 'var(--c-danger, #ef4444)' }}
+          >
             {to.name} gives up
           </div>
           <ul className="flex flex-col gap-1">
@@ -82,29 +89,38 @@ export function TradeReviewPanel({ state, humanTurn, dispatch }: TradeReviewPane
               <TileRow key={id} state={state} tileId={id} />
             ))}
             {trade.requestCredits > 0 && (
-              <li className="text-xs text-danger">{formatCredits(trade.requestCredits)}</li>
+              <li className="font-bold" style={{ fontSize: 11, color: 'var(--c-danger, #ef4444)' }}>
+                {formatCredits(trade.requestCredits)}
+              </li>
             )}
             {trade.requestTiles.length === 0 && trade.requestCredits === 0 && (
-              <li className="text-xs text-fg-muted">Nothing</li>
+              <li className="font-semibold" style={{ fontSize: 11, color: LQ.soft }}>
+                Nothing
+              </li>
             )}
           </ul>
         </div>
       </div>
 
       {humanTurn ? (
-        <div className="flex gap-2">
-          <Button fullWidth onClick={() => dispatch({ type: 'respond-trade', accept: true })}>
-            Accept
-          </Button>
-          <Button
-            variant="secondary"
+        <>
+          <DockButton
+            variant="primary"
+            char="✓"
+            label="Accept"
+            sub="Swap immediately"
+            onClick={() => dispatch({ type: 'respond-trade', accept: true })}
+          />
+          <DockButton
+            variant="ghost"
+            char="✕"
+            label="Decline"
+            sub="Leave everything as it is"
             onClick={() => dispatch({ type: 'respond-trade', accept: false })}
-          >
-            Decline
-          </Button>
-        </div>
+          />
+        </>
       ) : (
-        <p className="text-sm text-fg-muted" aria-live="polite">
+        <p className="font-semibold" style={{ fontSize: 12.5, color: LQ.dim }} aria-live="polite">
           {to.name} is considering…
         </p>
       )}

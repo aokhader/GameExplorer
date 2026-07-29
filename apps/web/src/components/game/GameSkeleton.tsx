@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
  */
 export function GameSkeleton() {
   return (
-    <div className="min-h-screen pt-16" aria-busy="true">
+    <div className="min-h-screen" aria-busy="true">
       {/* Header bar */}
       <div className="shrink-0 px-4 py-3 border-b border-border">
         <div className="container mx-auto flex items-center justify-between">

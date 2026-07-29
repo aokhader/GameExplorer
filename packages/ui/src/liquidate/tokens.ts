@@ -1,83 +1,166 @@
 /**
  * Liquidate board + star-system tokens.
  *
- * Paired with the `--c-liquidate-*` custom properties in the web app's
- * `globals.css` — change a value here and change it there (same contract as the
- * other games' board tokens).
+ * Paired with the `--c-liquidate-*` / `--gx-liquidate-*` custom properties in the
+ * web app's `globals.css` — change a value here and change it there (same
+ * contract as the other games' board tokens).
  *
- * The eight system colours are an original ramp chosen to read on the near-black
- * arcade base and to walk the spectrum in price order (cheap = hot, dear = gold),
- * so a player can rank a system at a glance without reading the price.
+ * The eight system colours are an original ramp that walks the spectrum in price
+ * order (cheap = hot, dear = gold), so a player can rank a system at a glance
+ * without reading the price. They are knocked back from pure saturation because
+ * the redesign puts a colour bar on every property tile: a full-strength ramp
+ * turns the loop into a stripe of neon and stops the labels reading.
  */
 
 import { liveView } from '../themeRuntime';
 
-export const LIQUIDATE_SYSTEM_COLORS = {
-  ember:   '#ef4444',
-  rust:    '#f97316',
-  amber:   '#eab308',
-  verdant: '#22c55e',
-  azure:   '#38bdf8',
-  violet:  '#8b5cf6',
-  crimson: '#f43f5e',
-  aurum:   '#cda43f',
+const DARK_LIQUIDATE_SYSTEM_COLORS = {
+  ember:   '#ef5f6b',
+  rust:    '#b07a4e',
+  amber:   '#f0993a',
+  verdant: '#8fd14f',
+  azure:   '#4aa8e0',
+  violet:  '#9b7be6',
+  crimson: '#e2607f',
+  aurum:   '#e6b24d',
 } as const;
 
-export type LiquidateSystemKey = keyof typeof LIQUIDATE_SYSTEM_COLORS;
-
-/** Board surfaces. Deliberately dark — the system bands supply the colour. */
-const DARK_LIQUIDATE_BOARD_COLORS = {
-  /** The board's outer frame / gutter between tiles. */
-  frame: '#0b0e17',
-  /** A normal tile face. */
-  tile: '#141b2d',
-  /** Corner tiles, set apart from the edges. */
-  corner: '#1a2338',
-  /** The open middle of the loop. */
-  well: '#0d1220',
-  /** Hairline between tiles. */
-  border: '#2b3652',
-  /** Ring on the tile the active player occupies. */
-  activeRing: '#cda43f',
-  /** Tint over a mortgaged holding. */
-  mortgaged: 'rgba(244,63,94,0.22)',
-  /** Text on a tile. The board is dark art in EVERY theme, so this never flips
-   *  with the page's foreground — that is what turns tile labels invisible. */
-  tileFg: '#e7ecf6',
-  tileFgMuted: '#9aa6bd',
+/** Tabletop: the same eight hues at printed-ink saturation. */
+const COZY_LIQUIDATE_SYSTEM_COLORS = {
+  ember:   '#c2564b',
+  rust:    '#9c7247',
+  amber:   '#d98b3f',
+  verdant: '#7a9a44',
+  azure:   '#6ba7b0',
+  violet:  '#8f74b0',
+  crimson: '#b4566b',
+  aurum:   '#d69a3c',
 } as const;
+
+export const LIQUIDATE_SYSTEM_COLORS =
+  liveView({ dark: DARK_LIQUIDATE_SYSTEM_COLORS, cozy: COZY_LIQUIDATE_SYSTEM_COLORS });
+
+export type LiquidateSystemKey = keyof typeof DARK_LIQUIDATE_SYSTEM_COLORS;
 
 /**
- * Cozy: a wooden board rather than a blue-slate one. It stays dark — a lit board
- * on a lit page has nothing to sit against — so its own fg pair stays light.
+ * Board surfaces.
+ *
+ * Command Deck is near-black board art; Tabletop is a printed board on linen.
+ * The tile fg pair therefore FLIPS with the theme — unlike chess or reversi,
+ * whose boards stay dark in both — so anything drawn on a tile must read these
+ * rather than the page's foreground.
  */
+const DARK_LIQUIDATE_BOARD_COLORS = {
+  /** The board's outer frame / gutter between tiles. */
+  frame: '#0a0e18',
+  /** A normal tile face. */
+  tile: '#111a2b',
+  /** Corner tiles, set apart from the edges. */
+  corner: '#17223a',
+  /** The open middle of the loop. */
+  well: '#0a0e18',
+  /** Hairline between tiles. */
+  border: 'rgba(255,255,255,0.08)',
+  /** Ring on the tile the active player occupies. */
+  activeRing: '#e7b64e',
+  /** Tint over a mortgaged holding. */
+  mortgaged: 'rgba(244,63,94,0.22)',
+  /** Text on a tile — tracks the BOARD's surface, not the page's. */
+  tileFg: '#eef2f9',
+  tileFgMuted: '#93a0b6',
+} as const;
+
+/** Tabletop: card stock on linen. The board is now the lightest surface. */
 const COZY_LIQUIDATE_BOARD_COLORS = {
-  frame: '#2c1a0c',
-  tile: '#3f3021',
-  corner: '#513f2c',
-  well: '#241408',
-  border: '#5a4636',
-  activeRing: '#d9a94e',
-  mortgaged: 'rgba(192,104,90,0.28)',
-  tileFg: '#f4ecd9',
-  tileFgMuted: '#c4b99e',
+  frame: '#e9dfca',
+  tile: '#fdf8ef',
+  corner: '#f4ebd9',
+  well: '#e9dfca',
+  border: 'rgba(74,52,28,0.15)',
+  activeRing: '#b5623a',
+  mortgaged: 'rgba(154,77,44,0.20)',
+  tileFg: '#382a1b',
+  tileFgMuted: '#7d6c53',
 } as const;
 
 export const LIQUIDATE_BOARD_COLORS =
   liveView({ dark: DARK_LIQUIDATE_BOARD_COLORS, cozy: COZY_LIQUIDATE_BOARD_COLORS });
 
-/** Per-seat token colours, in seat order — up to six players. */
+/**
+ * Board chrome: the inspector, action dock, standings and log. These sit on the
+ * board's own art rather than on the page surface, so they cannot reuse the page
+ * tokens — the two surfaces move independently between themes.
+ */
+const DARK_LIQUIDATE_PANEL_COLORS = {
+  panel: '#141c2c',
+  panel2: '#0e1522',
+  line: 'rgba(255,255,255,0.09)',
+  ink: '#eef2f9',
+  dim: '#93a0b6',
+  soft: '#606d84',
+  accent: '#e7b64e',
+  accentInk: '#241a06',
+  /** The seat this device is following — the "you" hue, distinct from accent. */
+  you: '#59c1f0',
+  track: 'rgba(255,255,255,0.09)',
+  rowLine: 'rgba(255,255,255,0.08)',
+  hint: 'rgba(231,182,78,0.10)',
+  hintLine: 'rgba(231,182,78,0.32)',
+  hintInk: '#f2cf82',
+  /** Non-system ownables, which have no star system to take a hue from. */
+  gate: '#8b93a8',
+  utility: '#6fc4b0',
+} as const;
+
+const COZY_LIQUIDATE_PANEL_COLORS = {
+  panel: '#fdf8ef',
+  panel2: '#f4ebd9',
+  line: 'rgba(74,52,28,0.16)',
+  ink: '#382a1b',
+  dim: '#7d6c53',
+  soft: '#a6957c',
+  accent: '#b5623a',
+  accentInk: '#fff6ec',
+  you: '#3f7d78',
+  track: 'rgba(74,52,28,0.12)',
+  rowLine: 'rgba(74,52,28,0.10)',
+  hint: 'rgba(181,98,58,0.12)',
+  hintLine: 'rgba(181,98,58,0.30)',
+  hintInk: '#9a4d2c',
+  gate: '#8a7a63',
+  utility: '#7f9c6a',
+} as const;
+
+export const LIQUIDATE_PANEL_COLORS =
+  liveView({ dark: DARK_LIQUIDATE_PANEL_COLORS, cozy: COZY_LIQUIDATE_PANEL_COLORS });
+
+/**
+ * Per-seat token colours, in seat order — up to six players.
+ *
+ * A plain array, deliberately NOT a `liveView`: that helper builds an object of
+ * getters, which would lose `.length` and the array methods every call site uses
+ * to wrap the seat index. Web themes these through `--gx-liquidate-seat-N`.
+ */
 export const LIQUIDATE_SEAT_COLORS = [
-  '#38bdf8', // sky
-  '#f43f5e', // rose
-  '#a3e635', // lime
-  '#eab308', // amber
-  '#c084fc', // orchid
-  '#22d3aa', // teal
+  '#59c1f0', // sky
+  '#ef5f6b', // coral
+  '#8fd14f', // lime
+  '#e6b24d', // gold
+  '#9b7be6', // orchid
+  '#37c0a8', // teal
+] as const;
+
+export const COZY_LIQUIDATE_SEAT_COLORS = [
+  '#3f7d78', // teal
+  '#c2564b', // clay
+  '#7a9a44', // moss
+  '#d69a3c', // brass
+  '#8f74b0', // plum
+  '#6ba7b0', // slate blue
 ] as const;
 
 /** Styling for the two event decks, so cards and tiles agree. */
 export const LIQUIDATE_DECK_STYLE = {
-  anomaly: { base: '#c084fc', glyph: '✦' },
-  federation: { base: '#38bdf8', glyph: '◈' },
+  anomaly: { base: '#9b7be6', glyph: '✦' },
+  federation: { base: '#59c1f0', glyph: '❖' },
 } as const;

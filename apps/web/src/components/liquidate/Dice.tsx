@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_BOARD_COLORS } from '@gameexplorer/ui';
 import { cn } from '@/lib/utils';
+import { LQ } from './theme';
 
 /** Pip layout per face, on a 3×3 grid (indices 0–8). */
 const PIPS: Record<number, number[]> = {
@@ -17,12 +17,15 @@ const PIPS: Record<number, number[]> = {
 function Face({ value, size }: { value: number; size: number }) {
   return (
     <span
-      className="grid grid-cols-3 grid-rows-3 rounded-lg border p-[12%]"
+      className="grid grid-cols-3 grid-rows-3"
       style={{
         width: size,
         height: size,
-        background: `var(--c-liquidate-corner, ${LIQUIDATE_BOARD_COLORS.corner})`,
-        borderColor: `var(--c-liquidate-border, ${LIQUIDATE_BOARD_COLORS.border})`,
+        padding: size * 0.18,
+        borderRadius: size * 0.24,
+        background: LQ.panel,
+        border: `1px solid ${LQ.line}`,
+        boxShadow: LQ.diceShadow,
       }}
       aria-hidden="true"
     >
@@ -31,7 +34,7 @@ function Face({ value, size }: { value: number; size: number }) {
           {PIPS[value]?.includes(i) && (
             <span
               className="block rounded-full"
-              style={{ width: '58%', height: '58%', background: 'var(--c-liquidate-tile-fg, var(--c-fg))' }}
+              style={{ width: '62%', height: '62%', background: LQ.ink }}
             />
           )}
         </span>
@@ -52,7 +55,7 @@ export interface DiceProps {
  * component only animates the reveal, so the visual can never disagree with the
  * roll that actually moved the player.
  */
-export function Dice({ dice, rolling = false, size = 34 }: DiceProps) {
+export function Dice({ dice, rolling = false, size = 44 }: DiceProps) {
   const shown = dice ?? [1, 1];
   const total = dice ? dice[0] + dice[1] : null;
 
@@ -62,7 +65,7 @@ export function Dice({ dice, rolling = false, size = 34 }: DiceProps) {
   const rollKey = dice ? `${dice[0]}-${dice[1]}-${total}` : 'idle';
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex items-center gap-2.5">
       <div
         key={rollKey}
         className={cn(
@@ -73,15 +76,29 @@ export function Dice({ dice, rolling = false, size = 34 }: DiceProps) {
         <Face value={shown[0]} size={size} />
         <Face value={shown[1]} size={size} />
       </div>
-      {/* The dice sit in the board well, which stays dark in every theme, so the
-          caption takes the board's muted tone rather than the page's. */}
-      <span
-        className="text-xs tabular-nums"
-        style={{ color: 'var(--c-liquidate-tile-fg-muted, var(--c-fg-muted))' }}
-        aria-live="polite"
-      >
-        {rolling ? 'Rolling…' : total !== null ? `Rolled ${total}` : 'Ready to roll'}
-      </span>
+      <div className="font-semibold" style={{ fontSize: 11, color: LQ.dim }} aria-live="polite">
+        {rolling ? (
+          'Rolling…'
+        ) : total !== null ? (
+          <>
+            rolled
+            <br />
+            <span
+              className="tabular-nums"
+              style={{
+                fontFamily: LQ.dispFont,
+                fontWeight: LQ.dispWeight as unknown as number,
+                fontSize: 20,
+                color: LQ.ink,
+              }}
+            >
+              {total}
+            </span>
+          </>
+        ) : (
+          'Ready to roll'
+        )}
+      </div>
     </div>
   );
 }

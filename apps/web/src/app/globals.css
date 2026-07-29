@@ -209,18 +209,69 @@
   --gx-reversi-board-lastmove-ring: rgba(190, 242, 100, 0.85);
   --gx-reversi-board-turn-glow:   0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(163,230,53,0.6), 0 0 30px -2px rgba(163,230,53,0.5);
 
-  /* Liquidate board — pairs with LIQUIDATE_BOARD_COLORS in the ui package. The
-     board is dark board-art in every theme (like reversi's felt), so text sitting
-     ON it gets its own fg pair rather than the page's, which inverts per theme. */
-  --c-liquidate-frame:       #0b0e17;
-  --c-liquidate-tile:        #141b2d;
-  --c-liquidate-corner:      #1a2338;
-  --c-liquidate-well:        #0d1220;
-  --c-liquidate-border:      #2b3652;
-  --c-liquidate-active-ring: #cda43f;
+  /* Liquidate board — pairs with LIQUIDATE_BOARD_COLORS in the ui package.
+     Text sitting ON the board gets its own fg pair rather than the page's,
+     because the board's own surface does not track the page surface: Command
+     Deck's board is near-black, Tabletop's is parchment. */
+  --c-liquidate-frame:       #0a0e18;
+  --c-liquidate-tile:        #111a2b;
+  --c-liquidate-corner:      #17223a;
+  --c-liquidate-well:        #0a0e18;
+  --c-liquidate-border:      rgba(255, 255, 255, 0.08);
+  --c-liquidate-active-ring: #e7b64e;
   --c-liquidate-mortgaged:   rgba(244, 63, 94, 0.22);
-  --c-liquidate-tile-fg:       var(--c-fg);
-  --c-liquidate-tile-fg-muted: var(--c-fg-muted);
+  --c-liquidate-tile-fg:       #eef2f9;
+  --c-liquidate-tile-fg-muted: #93a0b6;
+
+  /* ── Liquidate: "Command Deck" (design doc `Liquidate Redesign.dc.html`, 1a/2a)
+     Refined dark sci-fi. Panels, ink ramp and accent for the board chrome —
+     inspector, action dock, standings, log — which sit on the board's own dark
+     art rather than on the page surface. Paired per theme below. */
+  --gx-liquidate-panel:        #141c2c;
+  --gx-liquidate-panel-2:      #0e1522;
+  --gx-liquidate-line:         rgba(255, 255, 255, 0.09);
+  --gx-liquidate-ink:          #eef2f9;
+  --gx-liquidate-dim:          #93a0b6;
+  --gx-liquidate-soft:         #606d84;
+  --gx-liquidate-accent:       #e7b64e;
+  --gx-liquidate-accent-ink:   #241a06;
+  --gx-liquidate-you:          #59c1f0;
+  --gx-liquidate-tile:         #111a2b;
+  --gx-liquidate-tile-line:    rgba(255, 255, 255, 0.08);
+  --gx-liquidate-track:        rgba(255, 255, 255, 0.09);
+  --gx-liquidate-row-line:     rgba(255, 255, 255, 0.08);
+  --gx-liquidate-hint:         rgba(231, 182, 78, 0.10);
+  --gx-liquidate-hint-line:    rgba(231, 182, 78, 0.32);
+  --gx-liquidate-hint-ink:     #f2cf82;
+  --gx-liquidate-panel-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  --gx-liquidate-dice-shadow:  inset 0 -3px 8px rgba(0, 0, 0, 0.35);
+  --gx-liquidate-glow:         none;
+
+  /* Display type on the board reads at a different weight per theme: Space
+     Grotesk wants 700 and a tight track, Spectral wants 400 and none. */
+  --gx-liquidate-disp-weight:  700;
+  --gx-liquidate-disp-space:   -0.02em;
+
+  /* The eight star systems, in the engine's price order (cheap = hot, dear =
+     gold). Softer than the original pure-saturated ramp — the redesign leans on
+     the colour bar for identification, so the hues have to sit under text. */
+  --gx-liquidate-system-ember:   #ef5f6b;
+  --gx-liquidate-system-rust:    #b07a4e;
+  --gx-liquidate-system-amber:   #f0993a;
+  --gx-liquidate-system-verdant: #8fd14f;
+  --gx-liquidate-system-azure:   #4aa8e0;
+  --gx-liquidate-system-violet:  #9b7be6;
+  --gx-liquidate-system-crimson: #e2607f;
+  --gx-liquidate-system-aurum:   #e6b24d;
+  --gx-liquidate-gate:           #8b93a8;
+  --gx-liquidate-util:           #6fc4b0;
+
+  --gx-liquidate-seat-1: #59c1f0;
+  --gx-liquidate-seat-2: #ef5f6b;
+  --gx-liquidate-seat-3: #8fd14f;
+  --gx-liquidate-seat-4: #e6b24d;
+  --gx-liquidate-seat-5: #9b7be6;
+  --gx-liquidate-seat-6: #37c0a8;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -466,18 +517,67 @@
   --gx-reversi-disc-black-sheen:  rgba(214, 190, 160, 0.30);
   --gx-reversi-disc-black-shade:  rgba(0, 0, 0, 0.45);
 
-  /* Liquidate becomes a wooden board rather than a blue-slate one. It stays dark
-     — a lit board on a lit page has nothing to sit against — so its own fg pair
-     stays light while the page's flips. */
-  --c-liquidate-frame:       #2c1a0c;
-  --c-liquidate-tile:        #3f3021;
-  --c-liquidate-corner:      #513f2c;
-  --c-liquidate-well:        #241408;
-  --c-liquidate-border:      #5a4636;
-  --c-liquidate-active-ring: #d9a94e;
-  --c-liquidate-mortgaged:   rgba(192, 104, 90, 0.28);
-  --c-liquidate-tile-fg:       #f4ecd9;
-  --c-liquidate-tile-fg-muted: #c4b99e;
+  /* ── Liquidate: "Tabletop" (design doc `Liquidate Redesign.dc.html`, 1b/2b)
+     A printed board on a table, not a lit screen: tiles are card stock, the
+     board field is the linen it lies on, and ink is brown-black. This reverses
+     the earlier cozy Liquidate, which kept a dark wooden board on the light
+     page — the redesign's premise is that the board is the lightest surface in
+     the room, so its fg pair flips with the page rather than against it. */
+  --c-liquidate-frame:       #e9dfca;
+  --c-liquidate-tile:        #fdf8ef;
+  --c-liquidate-corner:      #f4ebd9;
+  --c-liquidate-well:        #e9dfca;
+  --c-liquidate-border:      rgba(74, 52, 28, 0.15);
+  --c-liquidate-active-ring: #b5623a;
+  --c-liquidate-mortgaged:   rgba(154, 77, 44, 0.20);
+  --c-liquidate-tile-fg:       #382a1b;
+  --c-liquidate-tile-fg-muted: #7d6c53;
+
+  --gx-liquidate-panel:        #fdf8ef;
+  --gx-liquidate-panel-2:      #f4ebd9;
+  --gx-liquidate-line:         rgba(74, 52, 28, 0.16);
+  --gx-liquidate-ink:          #382a1b;
+  --gx-liquidate-dim:          #7d6c53;
+  --gx-liquidate-soft:         #a6957c;
+  --gx-liquidate-accent:       #b5623a;
+  --gx-liquidate-accent-ink:   #fff6ec;
+  --gx-liquidate-you:          #3f7d78;
+  --gx-liquidate-tile:         #fdf8ef;
+  --gx-liquidate-tile-line:    rgba(74, 52, 28, 0.15);
+  --gx-liquidate-track:        rgba(74, 52, 28, 0.12);
+  --gx-liquidate-row-line:     rgba(74, 52, 28, 0.10);
+  --gx-liquidate-hint:         rgba(181, 98, 58, 0.12);
+  --gx-liquidate-hint-line:    rgba(181, 98, 58, 0.30);
+  --gx-liquidate-hint-ink:     #9a4d2c;
+  /* Warm and soft — a black drop shadow reads as dirt on cream (same rule the
+     rest of this theme follows), and "glow" has no meaning on paper. */
+  --gx-liquidate-panel-shadow: 0 4px 14px rgba(74, 52, 28, 0.14);
+  --gx-liquidate-dice-shadow:  0 2px 6px rgba(74, 52, 28, 0.20);
+  --gx-liquidate-glow:         none;
+
+  /* Spectral is a serif: it carries the display role at book weight, where
+     Space Grotesk needs bold. */
+  --gx-liquidate-disp-weight:  400;
+  --gx-liquidate-disp-space:   0;
+
+  /* The same eight systems, knocked back to printed-ink saturation. */
+  --gx-liquidate-system-ember:   #c2564b;
+  --gx-liquidate-system-rust:    #9c7247;
+  --gx-liquidate-system-amber:   #d98b3f;
+  --gx-liquidate-system-verdant: #7a9a44;
+  --gx-liquidate-system-azure:   #6ba7b0;
+  --gx-liquidate-system-violet:  #8f74b0;
+  --gx-liquidate-system-crimson: #b4566b;
+  --gx-liquidate-system-aurum:   #d69a3c;
+  --gx-liquidate-gate:           #8a7a63;
+  --gx-liquidate-util:           #7f9c6a;
+
+  --gx-liquidate-seat-1: #3f7d78;
+  --gx-liquidate-seat-2: #c2564b;
+  --gx-liquidate-seat-3: #7a9a44;
+  --gx-liquidate-seat-4: #d69a3c;
+  --gx-liquidate-seat-5: #8f74b0;
+  --gx-liquidate-seat-6: #6ba7b0;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -716,6 +816,19 @@ html {
   100% { transform: scale(1) rotate(0deg); }
 }
 
+/* Liquidate: the "you are here" marker on the loop. The solid inset ring is in
+   the base rule, not the keyframes, so the marker still reads when the halo is
+   suppressed — with reduced motion this has to stay a location marker, not
+   disappear. `--lq-ring` / `--lq-ring-soft` are set per element from the seat
+   colour. */
+.lq-you-ring {
+  box-shadow: inset 0 0 0 2px var(--lq-ring);
+}
+@keyframes lq-pulse {
+  0%, 100% { box-shadow: inset 0 0 0 2px var(--lq-ring), 0 0 0 0   var(--lq-ring-soft); }
+  50%      { box-shadow: inset 0 0 0 2px var(--lq-ring), 0 0 0 6px var(--lq-ring-soft); }
+}
+
 /* Entrance animations are gated behind a `[data-animate]` marker so they run
    ONLY on client-side navigation — never on the initial document load. On first
    paint the base classes carry no animation, so statically-prerendered HTML is
@@ -741,6 +854,7 @@ html {
   .animate-aurora      { animation: aurora-drift 18s ease-in-out infinite; }
   .animate-glow-pulse  { animation: glow-pulse 4s ease-in-out infinite; }
   .animate-float       { animation: float 6s ease-in-out infinite; }
+  .lq-you-ring         { animation: lq-pulse 1.8s ease-in-out infinite; }
 }
 
 @media (prefers-reduced-motion: reduce) {

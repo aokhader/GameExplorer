@@ -1,14 +1,13 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_SEAT_COLORS } from '@gameexplorer/ui';
 import {
   LiquidateEngine,
   formatCredits,
   isOwnable,
   type LiquidateGameState,
 } from '@gameexplorer/shared';
-import { cn } from '@/lib/utils';
+import { LQ, seatColor } from './theme';
 
 export interface PlayerPanelProps {
   state: LiquidateGameState;
@@ -17,9 +16,12 @@ export interface PlayerPanelProps {
 }
 
 /**
- * The seat roster: cash, net worth, holdings, and status for every player.
+ * The standings: cash, net worth, holdings, and status for every player.
+ *
  * Highlights whoever must act — which during an auction or a trade review is not
- * necessarily the player whose turn it is.
+ * necessarily the player whose turn it is. Cash is the display face and net
+ * worth the small print, because cash is what every decision in the dock is
+ * actually gated on.
  */
 export function PlayerPanel({ state, humanIds }: PlayerPanelProps) {
   const actingId = LiquidateEngine.actingPlayerId(state);
@@ -34,65 +36,75 @@ export function PlayerPanel({ state, humanIds }: PlayerPanelProps) {
   }, [state]);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       {state.players.map((player, seat) => {
-        const acting = player.id === actingId;
-        const color = LIQUIDATE_SEAT_COLORS[seat % LIQUIDATE_SEAT_COLORS.length];
+        const acting = player.id === actingId && !player.bankrupt;
+        const color = seatColor(seat);
+        const isYou = humanIds.includes(player.id) && humanIds.length < state.players.length;
+
         return (
           <div
             key={player.id}
-            className={cn(
-              'flex items-center gap-3 rounded-xl border px-3 py-2 transition-colors',
-              player.bankrupt
-                ? 'border-border bg-surface-muted/40 opacity-55'
-                : acting
-                  ? 'border-accent/60 bg-surface-alt'
-                  : 'border-border bg-surface-alt/60',
-            )}
+            className="flex items-center gap-2.5"
+            style={{
+              padding: '9px 11px',
+              borderRadius: 11,
+              background: acting ? `color-mix(in srgb, ${LQ.accent} 12%, transparent)` : 'transparent',
+              border: `1px solid ${acting ? LQ.accent : 'transparent'}`,
+              opacity: player.bankrupt ? 0.5 : 1,
+            }}
           >
             <span
-              className="h-3 w-3 shrink-0 rounded-full border border-black/40"
-              style={{ background: color }}
+              style={{ width: 11, height: 11, borderRadius: '50%', background: color, flex: 'none' }}
               aria-hidden="true"
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="truncate text-sm font-medium text-fg">{player.name}</span>
-                {player.isBot && (
-                  <span className="rounded bg-surface-muted px-1 text-[10px] text-fg-muted">BOT</span>
-                )}
-                {/* Only worth marking when some seats are bots — in pass-and-play
-                    every seat is human, so the badge would be noise. */}
-                {humanIds.includes(player.id) && humanIds.length < state.players.length && (
-                  <span className="rounded bg-info-muted px-1 text-[10px] text-info">YOU</span>
-                )}
-                {acting && !player.bankrupt && (
-                  <span className="text-[10px] font-semibold text-accent">● to act</span>
+                <span className="truncate font-bold" style={{ fontSize: 13, color: LQ.ink }}>
+                  {player.name}
+                </span>
+                {(isYou || player.isBot) && (
+                  <span
+                    className="shrink-0 font-bold uppercase"
+                    style={{
+                      fontSize: 8,
+                      letterSpacing: '0.05em',
+                      padding: '1px 5px',
+                      borderRadius: 4,
+                      background: isYou ? LQ.accent : `color-mix(in srgb, ${LQ.ink} 12%, transparent)`,
+                      color: isYou ? LQ.accentInk : LQ.dim,
+                    }}
+                  >
+                    {isYou ? 'You' : 'Bot'}
+                  </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-xs text-fg-muted">
+              <div className="truncate font-semibold" style={{ fontSize: 10.5, color: LQ.soft }}>
                 {player.bankrupt ? (
-                  <span>Folded</span>
+                  'Folded'
                 ) : (
                   <>
-                    <span className="tabular-nums text-fg">{formatCredits(player.credits)}</span>
-                    <span>·</span>
-                    <span className="tabular-nums">
-                      net {formatCredits(LiquidateEngine.getNetWorth(state, player.id))}
-                    </span>
-                    <span>·</span>
-                    <span>{holdings.get(player.id) ?? 0} held</span>
+                    net {formatCredits(LiquidateEngine.getNetWorth(state, player.id))} ·{' '}
+                    {holdings.get(player.id) ?? 0} held
+                    {player.inImpound && ' · impounded'}
+                    {player.clearancePasses > 0 && ` · ${player.clearancePasses}× pass`}
                   </>
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-0.5 text-[10px]">
-              {player.inImpound && <span className="text-danger">Impounded</span>}
-              {player.clearancePasses > 0 && (
-                <span className="text-success">{player.clearancePasses}× pass</span>
-              )}
-              {player.credits < 0 && <span className="text-danger">in debt</span>}
-            </div>
+            {!player.bankrupt && (
+              <span
+                className="shrink-0 tabular-nums"
+                style={{
+                  fontFamily: LQ.dispFont,
+                  fontWeight: LQ.dispWeight as unknown as number,
+                  fontSize: 14,
+                  color: player.credits < 0 ? 'var(--c-danger, #ef4444)' : LQ.ink,
+                }}
+              >
+                {formatCredits(player.credits)}
+              </span>
+            )}
           </div>
         );
       })}

@@ -3,6 +3,7 @@
 import React, { useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSettings } from '@/components/providers/SettingsProvider';
+import { isImmersiveGameRoute } from '@/lib/routes';
 
 /**
  * App-wide route entrance transition. Re-keys on pathname so each navigation
@@ -41,8 +42,9 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const navigated = useRef(false);
   if (pathname !== firstPath.current) navigated.current = true;
 
-  const isDeepGame =
-    /\/(play|bot|training|analysis)(\/|$)/.test(pathname) || pathname.startsWith('/spectate/');
+  // Same route set that drops the global navbar — a board screen gets the
+  // quieter fade either way, so the two should not drift apart.
+  const isDeepGame = isImmersiveGameRoute(pathname);
 
   if (reducedMotion) return <>{children}</>;
 

@@ -46,7 +46,11 @@ describe('theme runtime', () => {
     expect(BOARD_COLORS.darkSquare).toBe('#a9743f');
     expect(CHECKERS_BOARD_COLORS.lightSquare).toBe('#e7c9a0');
     expect(REVERSI_BOARD_COLORS.cell).toBe('#2f6e4e');
-    expect(LIQUIDATE_BOARD_COLORS.tile).toBe('#3f3021');
+    // Liquidate's Tabletop board is card stock, not dark wood — unlike chess and
+    // reversi it is the LIGHTEST surface in the cozy theme, so its own fg pair
+    // flips with the page rather than staying light against it.
+    expect(LIQUIDATE_BOARD_COLORS.tile).toBe('#fdf8ef');
+    expect(LIQUIDATE_BOARD_COLORS.tileFg).toBe('#382a1b');
     // The Arcade light piece has no outline; the Cozy one needs one, because the
     // light square is itself cream.
     expect(CHESS_PIECE_STYLE.white.stroke).not.toBeNull();

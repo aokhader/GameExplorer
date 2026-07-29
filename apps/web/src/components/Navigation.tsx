@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { isImmersiveGameRoute } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -48,6 +49,12 @@ export function Navigation() {
 
   const isActive = (href: string) =>
     href === '/spectate' ? pathname.startsWith('/spectate') : pathname === href;
+
+  // In-game screens run without the global bar: it costs 64px off the top of a
+  // square board, and each of those screens carries its own header with a back
+  // link. Bailing out AFTER the hooks above keeps the hook order stable across
+  // a client-side navigation into and out of a game.
+  if (isImmersiveGameRoute(pathname)) return null;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-surface/70 backdrop-blur-xl backdrop-saturate-150 border-b border-border shadow-[0_1px_0_0_rgba(255,255,255,0.04)]">

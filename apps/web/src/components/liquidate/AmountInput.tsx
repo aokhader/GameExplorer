@@ -10,6 +10,8 @@ export interface AmountInputProps {
   max?: number;
   id?: string;
   className?: string;
+  /** Overrides for callers on the board's own chrome rather than the page. */
+  style?: React.CSSProperties;
   'aria-label'?: string;
 }
 
@@ -34,6 +36,7 @@ export function AmountInput({
   max,
   id,
   className,
+  style,
   'aria-label': ariaLabel,
 }: AmountInputProps) {
   const [text, setText] = React.useState(() => String(value));
@@ -63,6 +66,7 @@ export function AmountInput({
         onChange(next === '' ? 0 : Number(next));
       }}
       onBlur={() => setText(String(value))}
+      style={style}
       className={cn(
         'w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg tabular-nums',
         'outline-none focus:border-accent',

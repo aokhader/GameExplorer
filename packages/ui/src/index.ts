@@ -32,8 +32,10 @@ export type { ReversiDiscProps, ReversiDiscColor } from './reversi/ReversiDisc';
 export { REVERSI_BOARD_COLORS, REVERSI_DISC_COLORS, REVERSI_DISC_STYLE } from './reversi/tokens';
 
 export {
+  COZY_LIQUIDATE_SEAT_COLORS,
   LIQUIDATE_BOARD_COLORS,
   LIQUIDATE_DECK_STYLE,
+  LIQUIDATE_PANEL_COLORS,
   LIQUIDATE_SEAT_COLORS,
   LIQUIDATE_SYSTEM_COLORS,
 } from './liquidate/tokens';

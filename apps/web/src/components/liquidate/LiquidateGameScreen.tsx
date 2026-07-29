@@ -14,17 +14,21 @@ import {
   type LiquidateSeat,
 } from '@gameexplorer/shared';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
-import { Button, Card, CardHeader } from '@/components/ui';
+import { Button, Card } from '@/components/ui';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useLiquidateGame } from '@/hooks/useLiquidateGame';
 import { TradeModal } from './TradeModal';
 import { ActionLog } from './ActionLog';
+import { BoardLegend } from './BoardLegend';
 import { BoardWell } from './BoardWell';
 import { HoldingsModal } from './HoldingsModal';
 import { LiquidateBoard } from './LiquidateBoard';
 import { PlayerPanel } from './PlayerPanel';
-import { PropertyCardModal } from './PropertyCardModal';
-import { TurnRail } from './TurnRail';
+import { TurnRail, railPanel } from './TurnRail';
+import { LQ } from './theme';
+
+/** Section heading shared by the rail's cards. */
+const RAIL_HEADING = 'mb-2.5 text-[10px] font-bold uppercase tracking-[0.1em]';
 
 const GameResultScreen = dynamic(
   () => import('@/components/game/GameResultScreen').then((m) => m.GameResultScreen),
@@ -88,13 +92,24 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
         : { name: BOT_NAMES[(i - 1) % BOT_NAMES.length], isBot: true };
     });
     setResultDismissed(false);
+    setSelectedTile(null);
     newGame({ players: seats, mode: boardMode, debtRule });
+  };
+
+  /**
+   * Back to setup. Clears the inspector selection along with the game: a tile
+   * index only means anything on the board it came from, and the 44-tile loop's
+   * indices run past the end of the 28-tile one.
+   */
+  const endGame = () => {
+    setSelectedTile(null);
+    quit();
   };
 
   // ── Setup ────────────────────────────────────────────────────────────────
   if (!state) {
     return (
-      <div className="page-glow-liquidate min-h-screen pt-16">
+      <div className="page-glow-liquidate min-h-screen">
         <div className="container mx-auto max-w-2xl px-4 py-10">
           <h1 className="mb-1 text-3xl font-bold text-fg">
             {mode === 'bot' ? 'Liquidate vs Bots' : 'Liquidate — Pass & Play'}
@@ -113,7 +128,14 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
                     {savedGame.state.players.filter((p) => !p.bankrupt).length} still solvent
                   </div>
                 </div>
-                <Button onClick={resume}>Resume</Button>
+                <Button
+                  onClick={() => {
+                    setSelectedTile(null);
+                    resume();
+                  }}
+                >
+                  Resume
+                </Button>
               </div>
             </Card>
           )}
@@ -247,18 +269,27 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
           </div>
         }
         headerActions={
-          <Button size="sm" variant="secondary" onClick={quit}>
+          <Button size="sm" variant="secondary" onClick={endGame}>
             New game
           </Button>
         }
         board={
-          <LiquidateBoard state={state} onSelectTile={setSelectedTile} youId={youId}>
+          <LiquidateBoard
+            state={state}
+            onSelectTile={setSelectedTile}
+            youId={youId}
+            selectedTile={selectedTile}
+          >
             <BoardWell
               state={state}
               actingPlayer={actingPlayer}
               youId={youId}
               humanTurn={humanTurn}
-              onViewDeed={setSelectedTile}
+              selectedTile={selectedTile}
+              onClearSelection={() => setSelectedTile(null)}
+              // The 12-per-side ring leaves a proportionally smaller well, so
+              // the full rent ladder only fits on the quick board.
+              roomy={state.config.mode === 'quick'}
             />
           </LiquidateBoard>
         }
@@ -275,30 +306,47 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
               onTrade={() => setTradeOpen(true)}
               onViewDeed={setSelectedTile}
             />
-            <Card className="p-3">
+
+            <section style={{ ...railPanel(), padding: '14px 15px' }}>
+              <h3 className={RAIL_HEADING} style={{ color: LQ.dim }}>
+                Standings
+              </h3>
               <PlayerPanel state={state} humanIds={humanIds} />
-            </Card>
+            </section>
+
+            {/* The key lives here rather than under the board. It is reference
+                material read once or twice a game, and the board column's height
+                is the board's SIZE — a 17px strip there cost ~65px of board once
+                the shell's slot reserve is counted. */}
+            <section style={{ ...railPanel(true), padding: '12px 15px' }}>
+              <h3 className={RAIL_HEADING} style={{ color: LQ.dim }}>
+                Key
+              </h3>
+              <BoardLegend />
+            </section>
+
             {/* The running commentary, out of the board's middle. */}
-            <Card className="flex min-h-0 flex-col p-3 lg:flex-1">
-              <CardHeader title="Game log" className="mb-2" />
+            <section
+              className="flex min-h-0 flex-col lg:flex-1"
+              style={{ ...railPanel(true), padding: '14px 15px' }}
+            >
+              <h3 className={RAIL_HEADING} style={{ color: LQ.dim }}>
+                Game log
+              </h3>
               <ActionLog
                 state={state}
                 limit={60}
                 className="max-h-56 min-h-0 overflow-y-auto pr-1 lg:max-h-none lg:flex-1"
               />
-            </Card>
+            </section>
           </>
         }
       />
 
-      {/* The deed card is now browse-only: every decision that used to be forced
-          through a dialog is answered in the sidebar rail instead, so nothing
-          covers the board unless the player asked to see it. */}
-      <PropertyCardModal
-        state={state}
-        tileId={selectedTile}
-        onClose={() => setSelectedTile(null)}
-      />
+      {/* No deed dialog: clicking a tile focuses it in the centre inspector,
+          which carries the full rent ladder. That is the redesign's core move —
+          the card a player consults most often is the one thing that must never
+          cover the board it describes. */}
 
       {actingPlayer && (
         <HoldingsModal
@@ -331,7 +379,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
         }
         actions={
           <>
-            <Button onClick={quit}>New game</Button>
+            <Button onClick={endGame}>New game</Button>
             <Button variant="secondary" onClick={() => setResultDismissed(true)}>
               Review board
             </Button>
