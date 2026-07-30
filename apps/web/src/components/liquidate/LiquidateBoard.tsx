@@ -4,8 +4,9 @@ import React from 'react';
 import { LiquidateEngine, type LiquidateGameState } from '@gameexplorer/shared';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { LiquidateTileCell } from './LiquidateTile';
+import { TokenLayer } from './TokenLayer';
 import { gridPos, sideLength } from './geometry';
-import { LQ } from './theme';
+import { LQ, tileMetrics } from './theme';
 
 /** Gutter between tiles, in px — also the frame's own padding. */
 const GAP_PX = 5;
@@ -75,18 +76,6 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
   // common desktop size so the board never renders with 0px type.
   const cellPx = ((edgePx || 620) - GAP_PX * 2 - GAP_PX * (n - 1)) / n;
 
-  // Seat indices standing on each tile, so tokens can be drawn per square.
-  const occupants = React.useMemo(() => {
-    const map = new Map<number, number[]>();
-    state.players.forEach((player, seat) => {
-      if (player.bankrupt) return;
-      const list = map.get(player.tile) ?? [];
-      list.push(seat);
-      map.set(player.tile, list);
-    });
-    return map;
-  }, [state.players]);
-
   const activeTile = React.useMemo(() => {
     const actor = state.players.find((p) => p.id === actingId);
     return actor?.tile ?? -1;
@@ -125,7 +114,6 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
                 owned={state.tiles[tile.id]}
                 n={n}
                 cellPx={cellPx}
-                occupants={occupants.get(tile.id) ?? []}
                 active={tile.id === activeTile}
                 youSeat={tile.id === youTile && youSeat >= 0 ? youSeat : undefined}
                 selected={tile.id === selectedTile}
@@ -148,6 +136,18 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
         >
           {children}
         </div>
+
+        {/* Pieces ride above the grid so a move can travel between cells. */}
+        <TokenLayer
+          players={state.players}
+          n={n}
+          total={board.length}
+          cellPx={cellPx}
+          gap={GAP_PX}
+          tokenPx={tileMetrics(cellPx, n).tokenW}
+          youSeat={youSeat >= 0 ? youSeat : undefined}
+          dice={state.dice}
+        />
       </div>
     </BoardFrame>
   );

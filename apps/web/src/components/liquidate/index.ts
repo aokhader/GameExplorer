@@ -17,6 +17,7 @@ export { TradeReviewPanel } from './TradeReviewPanel';
 export { HoldingsModal } from './HoldingsModal';
 export { TradeModal } from './TradeModal';
 export { PlayerToken } from './PlayerToken';
+export { TokenLayer } from './TokenLayer';
 export { LiquidateGameScreen } from './LiquidateGameScreen';
 export { buildInspector } from './inspector';
 export type { InspectorData, RentRow } from './inspector';

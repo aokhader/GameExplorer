@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
+import { useSettings } from '@/components/providers/SettingsProvider';
 import { cn } from '@/lib/utils';
 import { LQ } from './theme';
+import { DICE_SETTLE_MS, DICE_TUMBLE_MS } from './timing';
 
 /** Pip layout per face, on a 3×3 grid (indices 0–8). */
 const PIPS: Record<number, number[]> = {
@@ -43,6 +45,9 @@ function Face({ value, size }: { value: number; size: number }) {
   );
 }
 
+/** How often the faces change while tumbling. */
+const TUMBLE_TICK_MS = 70;
+
 export interface DiceProps {
   dice: [number, number] | null;
   /** Shows the tumbling state while a roll resolves. */
@@ -51,12 +56,38 @@ export interface DiceProps {
 }
 
 /**
- * The two dice. The *values* always come from the engine's seeded RNG — this
- * component only animates the reveal, so the visual can never disagree with the
- * roll that actually moved the player.
+ * The two dice.
+ *
+ * The *values* always come from the engine's seeded RNG. The tumble shows
+ * throwaway faces for half a second and then lands on the real result — the
+ * randomness on screen is decoration over an outcome that was already decided,
+ * so the visual can never disagree with the roll that moved the player.
  */
 export function Dice({ dice, rolling = false, size = 44 }: DiceProps) {
-  const shown = dice ?? [1, 1];
+  const { reducedMotion } = useSettings();
+  const [tumble, setTumble] = React.useState<[number, number] | null>(null);
+
+  // Keyed on the array identity: the engine builds a new state (and a new dice
+  // tuple) per roll, so this fires once per roll even when the same faces come
+  // up twice in a row, and never on an unrelated re-render.
+  React.useEffect(() => {
+    if (!dice || reducedMotion) return;
+    const face = () => (1 + Math.floor(Math.random() * 6)) as number;
+    setTumble([face(), face()]);
+    const spin = window.setInterval(() => setTumble([face(), face()]), TUMBLE_TICK_MS);
+    const land = window.setTimeout(() => {
+      window.clearInterval(spin);
+      setTumble(null);
+    }, DICE_TUMBLE_MS);
+    return () => {
+      window.clearInterval(spin);
+      window.clearTimeout(land);
+      setTumble(null);
+    };
+  }, [dice, reducedMotion]);
+
+  const tumbling = tumble !== null;
+  const shown = tumble ?? dice ?? [1, 1];
   const total = dice ? dice[0] + dice[1] : null;
 
   // Re-key on the roll so the settle animation replays for every new result,
@@ -67,17 +98,30 @@ export function Dice({ dice, rolling = false, size = 44 }: DiceProps) {
   return (
     <div className="flex items-center gap-2.5">
       <div
-        key={rollKey}
+        // Re-keying remounts the element, which is what replays the settle for
+        // every result — including the same faces twice in a row.
+        key={tumbling ? 'tumbling' : rollKey}
         className={cn(
           'flex items-center gap-2',
-          rolling ? 'motion-safe:animate-pulse' : 'motion-safe:animate-dice-settle',
+          tumbling && 'lq-dice-tumble',
+          rolling && !tumbling && 'motion-safe:animate-pulse',
         )}
+        style={
+          // Inline rather than a utility class: `animate-dice-settle` was never
+          // a real utility (Tailwind v4 generates those from `--animate-*` theme
+          // entries, and there is none), so this bounce silently never ran.
+          // Driving it from the shared constant also keeps it in step with the
+          // delay the token layer waits out.
+          !tumbling && !rolling && dice && !reducedMotion
+            ? { animation: `dice-settle ${DICE_SETTLE_MS}ms cubic-bezier(0.22, 1, 0.36, 1) both` }
+            : undefined
+        }
       >
         <Face value={shown[0]} size={size} />
         <Face value={shown[1]} size={size} />
       </div>
       <div className="font-semibold" style={{ fontSize: 11, color: LQ.dim }} aria-live="polite">
-        {rolling ? (
+        {tumbling || rolling ? (
           'Rolling…'
         ) : total !== null ? (
           <>

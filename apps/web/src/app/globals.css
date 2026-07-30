@@ -816,6 +816,37 @@ html {
   100% { transform: scale(1) rotate(0deg); }
 }
 
+/* Liquidate: the dice mid-throw. A shake rather than a spin — the faces are
+   already swapping every 70ms underneath, and rotating them too made the pips
+   unreadable rather than lively. */
+@keyframes lq-dice-tumble {
+  0%, 100% { transform: translateY(0)    rotate(-6deg); }
+  25%      { transform: translateY(-18%) rotate(5deg); }
+  50%      { transform: translateY(0)    rotate(7deg); }
+  75%      { transform: translateY(-10%) rotate(-4deg); }
+}
+
+/* Liquidate: a token hopping from tile to tile. Loops for as long as the piece
+   is behind the engine's position, so the length of the hop sequence is the
+   length of the move rather than something the animation has to know. */
+@keyframes lq-hop {
+  0%, 100% { transform: translateY(0)     scale(1); }
+  45%      { transform: translateY(-42%)  scale(1.08); }
+}
+/* A colony appearing. Overshoots, because the pip is only 4px and a linear
+   fade at that size is invisible. */
+@keyframes lq-pip-pop {
+  0%   { transform: scale(0);    opacity: 0; }
+  60%  { transform: scale(1.45); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+/* The tile a colony just went up on, so the eye is drawn to it across a board
+   of 44 squares. */
+@keyframes lq-build-flash {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  35%      { box-shadow: 0 0 0 3px var(--lq-flash), 0 0 14px 2px var(--lq-flash); }
+}
+
 /* Liquidate: the "you are here" marker on the loop. The solid inset ring is in
    the base rule, not the keyframes, so the marker still reads when the halo is
    suppressed — with reduced motion this has to stay a location marker, not
@@ -855,6 +886,10 @@ html {
   .animate-glow-pulse  { animation: glow-pulse 4s ease-in-out infinite; }
   .animate-float       { animation: float 6s ease-in-out infinite; }
   .lq-you-ring         { animation: lq-pulse 1.8s ease-in-out infinite; }
+  .lq-hop              { animation: lq-hop var(--lq-step, 150ms) ease-in-out infinite; }
+  .lq-dice-tumble      { animation: lq-dice-tumble 260ms ease-in-out infinite; }
+  .lq-pip-pop          { animation: lq-pip-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .lq-build-flash      { animation: lq-build-flash 900ms ease-out; }
 }
 
 @media (prefers-reduced-motion: reduce) {

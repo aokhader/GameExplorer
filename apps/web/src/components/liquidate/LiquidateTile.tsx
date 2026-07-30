@@ -5,7 +5,6 @@ import { LIQUIDATE_DECK_STYLE } from '@gameexplorer/ui';
 import { MAX_COLONY_LEVEL, type LiquidateTile as Tile, type TileOwnership } from '@gameexplorer/shared';
 import { cn } from '@/lib/utils';
 import { isCornerIndex } from './geometry';
-import { PlayerToken } from './PlayerToken';
 import { LQ, hasColorBar, seatColor, tileAccent, tileMetrics } from './theme';
 
 /** Glyphs for the non-property tiles. Original marks, not any existing game's. */
@@ -44,8 +43,6 @@ export interface LiquidateTileProps {
   n: number;
   /** Measured edge length of this cell in px — drives every metric below. */
   cellPx: number;
-  /** Seat indices of players standing here. */
-  occupants: number[];
   /** Highlight because it is the acting player's current square. */
   active?: boolean;
   /** Seat index of the player this device is following, when standing here. */
@@ -75,13 +72,27 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
   owned,
   n,
   cellPx,
-  occupants,
   active,
   youSeat,
   selected,
   stipend,
   onSelect,
 }: LiquidateTileProps) {
+  // A colony going up is the one board change with no other cue — no dice, no
+  // token moving — so the tile announces it: the new pip pops in and the tile
+  // flashes once. Level is compared against the previous RENDER, so a resumed
+  // save (which arrives with colonies already built) never animates.
+  const [built, setBuilt] = React.useState(false);
+  const prevLevel = React.useRef(owned.level);
+  React.useEffect(() => {
+    const grew = owned.level > prevLevel.current;
+    prevLevel.current = owned.level;
+    if (!grew) return;
+    setBuilt(true);
+    const timer = window.setTimeout(() => setBuilt(false), 900);
+    return () => window.clearTimeout(timer);
+  }, [owned.level]);
+
   const corner = isCornerIndex(tile.id, n);
   const accent = tileAccent(tile);
   const bar = hasColorBar(tile);
@@ -111,12 +122,16 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
         'relative flex h-full w-full min-w-0 flex-col overflow-hidden rounded-lg border text-left',
         'transition-[filter,box-shadow] duration-200',
         onSelect ? 'cursor-pointer hover:brightness-110' : 'cursor-default',
+        built && 'lq-build-flash',
       )}
-      style={{
-        background: corner ? LQ.corner : LQ.tile,
-        borderColor: selected ? LQ.accent : LQ.tileLine,
-        boxShadow: selected ? `0 0 0 1px ${LQ.accent}` : undefined,
-      }}
+      style={
+        {
+          background: corner ? LQ.corner : LQ.tile,
+          borderColor: selected ? LQ.accent : LQ.tileLine,
+          boxShadow: selected ? `0 0 0 1px ${LQ.accent}` : undefined,
+          '--lq-flash': ownerColor ?? LQ.accent,
+        } as React.CSSProperties
+      }
     >
       {/* System colour bar across the head of every ownable tile. */}
       {bar && (
@@ -189,11 +204,19 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
             />
             <span className="flex" style={{ gap: 2 }}>
               {owned.level === MAX_COLONY_LEVEL ? (
-                <span style={{ fontSize: 9, lineHeight: 1, color: ownerColor }}>★</span>
+                <span
+                  className={built ? 'lq-pip-pop' : undefined}
+                  style={{ fontSize: 9, lineHeight: 1, color: ownerColor }}
+                >
+                  ★
+                </span>
               ) : (
                 Array.from({ length: owned.level }, (_, i) => (
                   <span
+                    // Only the pip that just appeared pops; the ones already
+                    // standing would otherwise re-animate on every build.
                     key={i}
+                    className={built && i === owned.level - 1 ? 'lq-pip-pop' : undefined}
                     style={{ width: 4, height: 7, borderRadius: 1.5, background: ownerColor, opacity: 0.9 }}
                   />
                 ))
@@ -211,18 +234,6 @@ export const LiquidateTileCell = React.memo(function LiquidateTileCell({
           style={{ height: Math.max(3, cellPx * 0.06), background: ownerColor }}
           aria-hidden="true"
         />
-      )}
-
-      {/* Player tokens, bottom-right so they never sit over the name. */}
-      {occupants.length > 0 && (
-        <span
-          className="absolute z-20 flex flex-wrap justify-end"
-          style={{ bottom: 4, right: 4, gap: 2 }}
-        >
-          {occupants.map((s) => (
-            <PlayerToken key={s} seat={s} width={m.tokenW} you={s === youSeat} />
-          ))}
-        </span>
       )}
 
       {/* The acting player's square — a gold hairline, quieter than the
