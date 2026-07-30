@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
+import { LIQUIDATE_TIMING } from '@gameexplorer/shared';
 import { useSettings } from '@/components/providers/SettingsProvider';
 import { cn } from '@/lib/utils';
 import { LQ } from './theme';
-import { DICE_SETTLE_MS, DICE_TUMBLE_MS } from './timing';
+
+const { diceSettleMs: DICE_SETTLE_MS, diceTumbleMs: DICE_TUMBLE_MS } = LIQUIDATE_TIMING;
 
 /** Pip layout per face, on a 3×3 grid (indices 0–8). */
 const PIPS: Record<number, number[]> = {

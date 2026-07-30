@@ -13,13 +13,14 @@ const GLOW_KEY = {
   chess: 'glowChess',
   checkers: 'glowCheckers',
   reversi: 'glowReversi',
+  liquidate: 'glowLiquidate',
 } as const;
 
 /**
- * The shared tutorial set is wider than what mobile ships — Liquidate is web-only
- * for now — so narrow before indexing the native accent/glow/icon maps. Routing
- * only ever passes a game this app can render; the fallback just keeps the
- * screen total if that ever stops being true.
+ * Narrow before indexing the native accent/glow/icon maps. Every game in the
+ * shared tutorial set ships on mobile today, so this is a guard rather than a
+ * filter — routing only ever passes a game this app can render, and the
+ * fallback just keeps the screen total if that ever stops being true.
  */
 type MobileTutorialGame = keyof typeof GLOW_KEY;
 const isMobileGame = (game: GameTutorial['game']): game is MobileTutorialGame =>

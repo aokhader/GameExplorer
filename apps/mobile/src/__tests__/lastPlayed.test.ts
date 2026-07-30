@@ -15,6 +15,12 @@ describe('lastPlayed', () => {
     expect(await getLastPlayed()).toBe('reversi');
   });
 
+  it('round-trips liquidate, which is not a board game', async () => {
+    setLastPlayed('liquidate');
+    await Promise.resolve();
+    expect(await getLastPlayed()).toBe('liquidate');
+  });
+
   it('falls back to chess on an unknown stored value', async () => {
     await AsyncStorage.setItem('gx:lastGame', 'poker');
     expect(await getLastPlayed()).toBe('chess');

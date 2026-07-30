@@ -19,9 +19,14 @@ import path from 'path';
 
 const MOBILE_ROOT = path.resolve(__dirname, '../..');
 
+// Only live views belong here. `LIQUIDATE_SEAT_COLORS`, its cozy twin and
+// `LIQUIDATE_DECK_STYLE` are deliberately plain frozen data (the seat ramp has
+// to keep `.length` and the array methods that wrap a seat index), so capturing
+// them at module scope is correct and guarding them would fail honest code.
 const TOKENS = [
   'COLORS', 'GAME_ACCENTS', 'BOARD_COLORS', 'CHECKERS_BOARD_COLORS',
-  'REVERSI_BOARD_COLORS', 'LIQUIDATE_BOARD_COLORS', 'CHESS_PIECE_STYLE',
+  'REVERSI_BOARD_COLORS', 'LIQUIDATE_BOARD_COLORS', 'LIQUIDATE_PANEL_COLORS',
+  'LIQUIDATE_SYSTEM_COLORS', 'CHESS_PIECE_STYLE',
   'CHECKERS_PIECE_STYLE', 'REVERSI_DISC_STYLE', 'SHADOWS_NATIVE',
   'GLOWS_NATIVE', 'GRADIENTS_NATIVE', 'FONTS',
 ];

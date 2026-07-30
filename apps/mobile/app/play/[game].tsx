@@ -7,17 +7,19 @@ import { setLastPlayed, type GameKey } from '@/lib/lastPlayed';
 import { CheckersScreen } from '@/screens/CheckersScreen';
 import { ReversiScreen } from '@/screens/ReversiScreen';
 import { ChessScreen } from '@/screens/ChessScreen';
+import { LiquidateScreen } from '@/screens/LiquidateScreen';
 
 const LABELS: Record<string, string> = {
   chess: 'Chess',
   checkers: 'Checkers',
   reversi: 'Reversi',
+  liquidate: 'Liquidate',
 };
 
 /**
- * Per-game entry point. All three games ship a native board vs bot as of M3
- * (checkers M2; reversi + chess M3). The placeholder now only shows for an
- * unknown game key.
+ * Per-game entry point. Every game in the catalog ships a native screen — the
+ * three board games vs bot (checkers M2; reversi + chess M3) and Liquidate's
+ * property loop. The placeholder now only shows for an unknown game key.
  */
 export default function GameScreen() {
   // Repaint when the theme changes; the tokens below are live views.
@@ -28,7 +30,7 @@ export default function GameScreen() {
 
   // Remember the game so the tab bar's Play button reopens it next time.
   useEffect(() => {
-    if (key === 'chess' || key === 'checkers' || key === 'reversi') {
+    if (key === 'chess' || key === 'checkers' || key === 'reversi' || key === 'liquidate') {
       setLastPlayed(key as GameKey);
     }
   }, [key]);
@@ -36,6 +38,7 @@ export default function GameScreen() {
   if (key === 'checkers') return <CheckersScreen />;
   if (key === 'reversi') return <ReversiScreen />;
   if (key === 'chess') return <ChessScreen />;
+  if (key === 'liquidate') return <LiquidateScreen />;
 
   const label = LABELS[key] ?? 'Game';
   const accent = GAME_ACCENTS[key as keyof typeof GAME_ACCENTS]?.base ?? COLORS.accent;

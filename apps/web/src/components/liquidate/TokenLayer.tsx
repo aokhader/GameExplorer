@@ -1,32 +1,20 @@
 'use client';
 
 import React from 'react';
-import type { LiquidatePlayer } from '@gameexplorer/shared';
+import { LIQUIDATE_TIMING, gridPos, type LiquidatePlayer } from '@gameexplorer/shared';
+import { PlayerToken } from '@gameexplorer/ui';
+import type { PlacedToken } from '@/hooks/useLiquidateWalk';
 import { useSettings } from '@/components/providers/SettingsProvider';
-import { PlayerToken } from './PlayerToken';
-import { gridPos } from './geometry';
+import { LQ, seatColor } from './theme';
 
-import {
-  DICE_ROLL_MS,
-  JUMP_MS,
-  NO_ROLL_START_MS,
-  POST_ROLL_BEAT_MS,
-  STEP_MS,
-  WALK_MAX,
-} from './timing';
-
-interface Placed {
-  tile: number;
-  /** This move was a teleport, so it glides rather than hops. */
-  jumped: boolean;
-}
+const { jumpMs: JUMP_MS, stepMs: STEP_MS } = LIQUIDATE_TIMING;
 
 export interface TokenLayerProps {
   players: LiquidatePlayer[];
+  /** Where each piece is shown, from `useLiquidateWalk`. */
+  placed: Record<string, PlacedToken>;
   /** Tiles per side. */
   n: number;
-  /** Total tiles on the loop. */
-  total: number;
   /** Measured edge of one cell, in px. */
   cellPx: number;
   /** Gutter between tiles, in px — also the grid's own padding. */
@@ -35,14 +23,6 @@ export interface TokenLayerProps {
   tokenPx: number;
   /** Seat this device follows, for the halo. */
   youSeat?: number;
-  /**
-   * The roll that produced this position, or `null` before the first one.
-   *
-   * Identity is the signal: the engine builds a fresh tuple per roll, so a
-   * change means dice are in the air and the piece should wait them out. A move
-   * with the SAME tuple came from a card, and has nothing to wait for.
-   */
-  dice: [number, number] | null;
 }
 
 /**
@@ -54,80 +34,19 @@ export interface TokenLayerProps {
  * from its tile's grid coordinates, so a move is a change of coordinates and
  * the browser tweens it.
  *
- * The layer keeps its own idea of where each piece IS, which lags the engine
- * while a walk plays out. That split is the whole mechanism — the engine is
- * always at the destination, and this catches up one tile at a time.
+ * Purely presentational — the walk itself is `useLiquidateWalk`, which the game
+ * hook also reads so bots and the property card can wait for it.
  */
 export function TokenLayer({
   players,
+  placed,
   n,
-  total,
   cellPx,
   gap,
   tokenPx,
   youSeat,
-  dice,
 }: TokenLayerProps) {
   const { reducedMotion } = useSettings();
-  const [placed, setPlaced] = React.useState<Record<string, Placed>>(() =>
-    Object.fromEntries(players.map((p) => [p.id, { tile: p.tile, jumped: false }])),
-  );
-  // True once a walk is under way, so only the FIRST hop waits for the dice.
-  const walking = React.useRef(false);
-  /** The last roll this layer has already waited out. */
-  const settledDice = React.useRef(dice);
-
-  React.useEffect(() => {
-    // Seats that appeared since the last render (a new game, a resumed save)
-    // start where they are — there is nothing to animate from.
-    const unseen = players.filter((p) => placed[p.id] === undefined);
-    if (unseen.length > 0) {
-      setPlaced((prev) => ({
-        ...prev,
-        ...Object.fromEntries(unseen.map((p) => [p.id, { tile: p.tile, jumped: false }])),
-      }));
-      return;
-    }
-
-    const lagging = players.filter((p) => placed[p.id].tile !== p.tile);
-    if (lagging.length === 0) {
-      walking.current = false;
-      // A roll that moved nobody (failed doubles in Impound) is consumed here,
-      // so the NEXT move does not mistake it for dice still in the air.
-      settledDice.current = dice;
-      return;
-    }
-
-    if (reducedMotion) {
-      setPlaced(Object.fromEntries(players.map((p) => [p.id, { tile: p.tile, jumped: true }])));
-      return;
-    }
-
-    const first = !walking.current;
-    const afterRoll = dice !== settledDice.current;
-    const lead = afterRoll ? DICE_ROLL_MS + POST_ROLL_BEAT_MS : NO_ROLL_START_MS;
-    const timer = window.setTimeout(
-      () => {
-        walking.current = true;
-        settledDice.current = dice;
-        setPlaced((prev) => {
-          const next = { ...prev };
-          for (const p of players) {
-            const from = prev[p.id]?.tile ?? p.tile;
-            if (from === p.tile) continue;
-            const forward = (p.tile - from + total) % total;
-            next[p.id] =
-              forward > 0 && forward <= WALK_MAX
-                ? { tile: (from + 1) % total, jumped: false }
-                : { tile: p.tile, jumped: true };
-          }
-          return next;
-        });
-      },
-      first ? lead : STEP_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [players, placed, total, reducedMotion, dice]);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-30" aria-hidden="true">
@@ -164,7 +83,12 @@ export function TokenLayer({
               className={moving && !reducedMotion ? 'lq-hop' : undefined}
               style={{ '--lq-step': `${STEP_MS}ms` } as React.CSSProperties}
             >
-              <PlayerToken seat={seat} width={tokenPx} you={seat === youSeat} />
+              <PlayerToken
+                color={seatColor(seat)}
+                outline={LQ.tile}
+                width={tokenPx}
+                you={seat === youSeat}
+              />
             </div>
           </div>
         );

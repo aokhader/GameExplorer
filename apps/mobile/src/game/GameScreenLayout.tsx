@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 
-export type GameAccent = 'chess' | 'checkers' | 'reversi';
+export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'liquidate';
 
 export interface GameScreenLayoutProps {
   accent?: GameAccent;

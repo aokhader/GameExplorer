@@ -5,7 +5,7 @@ import {
   LIQUIDATE_SYSTEM_COLORS,
   type LiquidateSystemKey,
 } from '@gameexplorer/ui';
-import { isOwnable, type LiquidateTile } from '@gameexplorer/shared';
+import type { LiquidateTile } from '@gameexplorer/shared';
 
 /**
  * Liquidate's palette, read from the `--gx-liquidate-*` / `--c-liquidate-*`
@@ -87,82 +87,5 @@ export function tileAccent(tile: LiquidateTile): string {
   return LQ.soft;
 }
 
-/** Human-readable name for a tile's group, for the inspector and legend. */
-export function groupLabel(tile: LiquidateTile): string {
-  if (tile.kind === 'planet') {
-    return `${tile.system.charAt(0).toUpperCase()}${tile.system.slice(1)} system`;
-  }
-  if (tile.kind === 'warp-gate') return 'Warp gate';
-  if (tile.kind === 'utility') return 'Utility';
-  if (tile.kind === 'anomaly') return 'Anomaly deck';
-  if (tile.kind === 'federation') return 'Federation deck';
-  if (tile.kind === 'tariff') return 'Tariff';
-  return 'Station';
-}
-
-/** True when the tile takes a colour bar across its head (properties only). */
-export function hasColorBar(tile: LiquidateTile): boolean {
-  return isOwnable(tile);
-}
-
-/**
- * Per-cell metrics for the two board sizes.
- *
- * The 44-tile loop packs 12 tiles a side against the 28-tile loop's 8, so every
- * tile is ~40% narrower at the same board width. Rather than scale one set of
- * numbers, each board gets its own: the dense board drops the bar height and
- * padding first, because those cost the label its second line.
- */
-export interface TileMetrics {
-  /** Height of the system colour bar, in px. */
-  barH: number;
-  /** Padding inside the tile face, in px. */
-  pad: number;
-  glyphF: number;
-  nameF: number;
-  priceF: number;
-  /** Edge of one player token, in px. */
-  tokenW: number;
-  /** Hide the price line below this cell size — the name has to survive first. */
-  showPrice: boolean;
-  /**
-   * Show the corner/tariff note ("Just visiting", "Pay ₡200").
-   *
-   * Needs MORE room than the price: those tiles carry the longest names on the
-   * board ("Contraband Scan", "Deep-Space Drift"), so the note and a two-line
-   * name are competing for the same few pixels — and when both render, they
-   * collide. The note goes first; the inspector still has it.
-   */
-  showSub: boolean;
-  showGlyph: boolean;
-  /** Hide the owner swatch + pips row; the base stripe still shows ownership. */
-  showOwnerRow: boolean;
-  /**
-   * Lines the name may wrap to. Drops to one on a 44-tile board at phone width,
-   * where two lines do not fit the cell and would be clipped mid-word — a
-   * truncated single line at least ends cleanly, and the inspector has the rest.
-   */
-  nameLines: 1 | 2;
-}
-
-export function tileMetrics(cellPx: number, perSide: number): TileMetrics {
-  const clamp = (min: number, v: number, max: number) => Math.max(min, Math.min(max, v));
-  const dense = perSide >= 12;
-  return {
-    barH: clamp(4, cellPx * (dense ? 0.1 : 0.13), 11),
-    pad: clamp(3, cellPx * (dense ? 0.08 : 0.1), 8),
-    glyphF: clamp(9, cellPx * (dense ? 0.2 : 0.24), 17),
-    // 8.5px is the floor at which a two-line name is still readable. The 44-tile
-    // board hits it on any normal viewport — a 12-per-side ring cannot be given
-    // bigger cells without breaking `BoardFrame`'s fit-the-viewport contract —
-    // so the dense board leans on the centre inspector for anything longer.
-    nameF: clamp(8.5, cellPx * (dense ? 0.145 : 0.15), 12),
-    priceF: clamp(7, cellPx * (dense ? 0.12 : 0.13), 10.5),
-    tokenW: clamp(7, cellPx * (dense ? 0.2 : 0.22), 14),
-    showPrice: cellPx >= (dense ? 52 : 46),
-    showSub: cellPx >= (dense ? 64 : 72),
-    showGlyph: cellPx >= 34,
-    showOwnerRow: cellPx >= (dense ? 56 : 50),
-    nameLines: cellPx >= 30 ? 2 : 1,
-  };
-}
+// `groupLabel`, `hasColorBar`, `tileMetrics` and `TileMetrics` moved to
+// `@gameexplorer/shared` — they are pure and the native board needs them too.

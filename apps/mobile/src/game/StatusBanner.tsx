@@ -1,6 +1,7 @@
 import { Text, View, type ViewStyle } from 'react-native';
+import type { GameAccent } from '@/game/GameScreenLayout';
 
-export type GameAccent = 'chess' | 'checkers' | 'reversi';
+export type { GameAccent };
 
 export interface StatusBannerProps {
   /** Which game's neon accent tints the banner. Omit for the neutral gold state. */
@@ -17,6 +18,7 @@ const ACCENTS: Record<GameAccent | 'gold', { bg: string; border: string; title: 
   chess: { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.3)', title: '#7db1ff' },
   checkers: { bg: 'rgba(236,72,153,0.08)', border: 'rgba(236,72,153,0.3)', title: '#ff8fc4' },
   reversi: { bg: 'rgba(163,230,53,0.08)', border: 'rgba(163,230,53,0.3)', title: '#bef264' },
+  liquidate: { bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.3)', title: '#b39bf5' },
   gold: { bg: 'rgba(205,164,63,0.15)', border: 'rgba(205,164,63,0.35)', title: '#cda43f' },
 };
 

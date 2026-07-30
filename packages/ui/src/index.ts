@@ -40,3 +40,5 @@ export {
   LIQUIDATE_SYSTEM_COLORS,
 } from './liquidate/tokens';
 export type { LiquidateSystemKey } from './liquidate/tokens';
+export { PlayerToken } from './liquidate/PlayerToken';
+export type { PlayerTokenProps } from './liquidate/PlayerToken';

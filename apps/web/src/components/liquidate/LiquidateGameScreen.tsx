@@ -57,8 +57,18 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
   const [tradeOpen, setTradeOpen] = React.useState(false);
   const [resultDismissed, setResultDismissed] = React.useState(false);
 
-  const { state, actingPlayer, lastError, dispatch, newGame, resume, savedGame, quit } =
-    useLiquidateGame({ storageKey: mode, botLevel });
+  const {
+    state,
+    actingPlayer,
+    placed,
+    boardMoving,
+    lastError,
+    dispatch,
+    newGame,
+    resume,
+    savedGame,
+    quit,
+  } = useLiquidateGame({ storageKey: mode, botLevel });
 
   /**
    * Sound + haptics, driven off the newest log line rather than off individual
@@ -279,6 +289,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
             onSelectTile={setSelectedTile}
             youId={youId}
             selectedTile={selectedTile}
+            placed={placed}
           >
             <BoardWell
               state={state}
@@ -290,6 +301,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
               // The 12-per-side ring leaves a proportionally smaller well, so
               // the full rent ladder only fits on the quick board.
               roomy={state.config.mode === 'quick'}
+              moving={boardMoving}
             />
           </LiquidateBoard>
         }
@@ -305,6 +317,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
               onManage={() => setHoldingsOpen(true)}
               onTrade={() => setTradeOpen(true)}
               onViewDeed={setSelectedTile}
+              moving={boardMoving}
             />
 
             <section style={{ ...railPanel(), padding: '14px 15px' }}>

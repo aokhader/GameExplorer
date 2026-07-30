@@ -2,13 +2,11 @@ import {
   LIQUIDATE_UTILITY_MULTIPLIER_BOTH,
   LIQUIDATE_UTILITY_MULTIPLIER_ONE,
   LIQUIDATE_WARP_GATE_RENTS,
-  LiquidateEngine,
-  MAX_COLONY_LEVEL,
-  formatCredits,
-  isOwnable,
-  systemMembers,
-  type LiquidateGameState,
-} from '@gameexplorer/shared';
+} from './economy';
+import { LiquidateEngine } from './engine';
+import { systemMembers } from './board';
+import { MAX_COLONY_LEVEL, isOwnable, type LiquidateGameState } from './types';
+import { formatCredits } from '../../utils/currency';
 
 export interface RentRow {
   label: string;

@@ -1,12 +1,18 @@
 'use client';
 
 import React from 'react';
-import { LiquidateEngine, type LiquidateGameState } from '@gameexplorer/shared';
+import {
+  LiquidateEngine,
+  gridPos,
+  sideLength,
+  tileMetrics,
+  type LiquidateGameState,
+} from '@gameexplorer/shared';
+import type { PlacedToken } from '@/hooks/useLiquidateWalk';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { LiquidateTileCell } from './LiquidateTile';
 import { TokenLayer } from './TokenLayer';
-import { gridPos, sideLength } from './geometry';
-import { LQ, tileMetrics } from './theme';
+import { LQ } from './theme';
 
 /** Gutter between tiles, in px — also the frame's own padding. */
 const GAP_PX = 5;
@@ -21,6 +27,8 @@ export interface LiquidateBoardProps {
   youId?: string | null;
   /** Tile currently focused in the inspector. */
   selectedTile?: number | null;
+  /** Where each piece is drawn, from `useLiquidateWalk`. */
+  placed: Record<string, PlacedToken>;
 }
 
 /**
@@ -42,6 +50,7 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
   onSelectTile,
   youId,
   selectedTile,
+  placed,
 }: LiquidateBoardProps) {
   const board = LiquidateEngine.board(state);
   const n = sideLength(board.length);
@@ -140,13 +149,12 @@ export const LiquidateBoard = React.memo(function LiquidateBoard({
         {/* Pieces ride above the grid so a move can travel between cells. */}
         <TokenLayer
           players={state.players}
+          placed={placed}
           n={n}
-          total={board.length}
           cellPx={cellPx}
           gap={GAP_PX}
           tokenPx={tileMetrics(cellPx, n).tokenW}
           youSeat={youSeat >= 0 ? youSeat : undefined}
-          dice={state.dice}
         />
       </div>
     </BoardFrame>

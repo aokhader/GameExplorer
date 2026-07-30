@@ -4,12 +4,13 @@ import React from 'react';
 import {
   LiquidateEngine,
   formatCredits,
+  groupLabel,
   isOwnable,
   type LiquidateAction,
   type LiquidateGameState,
 } from '@gameexplorer/shared';
 import { DockButton } from './DockButton';
-import { LQ, groupLabel, tileAccent } from './theme';
+import { LQ, tileAccent } from './theme';
 
 export interface BuyDecisionPanelProps {
   state: LiquidateGameState;

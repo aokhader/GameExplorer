@@ -26,6 +26,7 @@ const GAMES = [
   { key: 'chess', label: 'Chess', tagline: 'Outplay the bot at every level.' },
   { key: 'checkers', label: 'Checkers', tagline: 'Fast, punchy, endlessly re-matchable.' },
   { key: 'reversi', label: 'Reversi', tagline: 'Swing the whole board in one move.' },
+  { key: 'liquidate', label: 'Liquidate', tagline: 'Corner the sector and squeeze them out.' },
 ] as const;
 
 const FEATURES = [
@@ -175,8 +176,8 @@ export default function HomeScreen() {
               marginBottom: 22,
             }}
           >
-            Chess, checkers &amp; reversi with a pulse — sharp bots, pass-and-play, instant
-            rematches. No sign-up to start.
+            Chess, checkers, reversi &amp; Liquidate with a pulse — sharp bots, pass-and-play,
+            instant rematches. No sign-up to start.
           </Text>
 
           {/* Primary CTA */}

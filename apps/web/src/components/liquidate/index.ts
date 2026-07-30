@@ -10,16 +10,14 @@ export { ActionBar } from './ActionBar';
 export { AmountInput } from './AmountInput';
 export { DockButton } from './DockButton';
 export { TurnRail, railPanel } from './TurnRail';
-export { TurnSteps, turnSteps } from './TurnSteps';
+export { TurnSteps } from './TurnSteps';
 export { BuyDecisionPanel } from './BuyDecisionPanel';
 export { AuctionPanel } from './AuctionPanel';
 export { TradeReviewPanel } from './TradeReviewPanel';
 export { HoldingsModal } from './HoldingsModal';
 export { TradeModal } from './TradeModal';
-export { PlayerToken } from './PlayerToken';
 export { TokenLayer } from './TokenLayer';
 export { LiquidateGameScreen } from './LiquidateGameScreen';
-export { buildInspector } from './inspector';
-export type { InspectorData, RentRow } from './inspector';
-export { LQ, seatColor, systemColor, tileAccent, tileMetrics } from './theme';
-export { gridPos, sideLength, isCornerIndex, edgeOf } from './geometry';
+export { LQ, seatColor, systemColor, tileAccent } from './theme';
+// `buildInspector`, the geometry helpers and `tileMetrics` now live in
+// `@gameexplorer/shared`; import them from there.

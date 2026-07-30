@@ -9,6 +9,7 @@ const META = {
   chess: { name: 'Chess', glowKey: 'glowChess' },
   checkers: { name: 'Checkers', glowKey: 'glowCheckers' },
   reversi: { name: 'Reversi', glowKey: 'glowReversi' },
+  liquidate: { name: 'Liquidate', glowKey: 'glowLiquidate' },
 } as const;
 
 export type SetupHeroGame = keyof typeof META;

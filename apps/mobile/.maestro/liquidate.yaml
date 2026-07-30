@@ -1,0 +1,58 @@
+# Liquidate smoke flow — home → setup → start vs bots → roll → open the full
+# board → back. Covers the board screen's gesture-driven surfaces, which have no
+# Jest coverage by convention (see jest.config.js).
+#   maestro test .maestro/liquidate.yaml
+# (Maestro CLI: https://maestro.mobile.dev — not wired into CI yet.)
+appId: com.gameexplorer.app
+---
+- launchApp:
+    clearState: true
+
+# Fresh installs land on the welcome tour (guest first-run redirect) — walk it.
+- runFlow:
+    when:
+      visible: "Let's play →"
+    commands:
+      - tapOn: "Let's play →"
+      - tapOn: "Start playing →"
+
+- runFlow:
+    when:
+      visible: "Choose your game"
+    commands:
+      - tapOn: "Liquidate"
+
+# Setup: the defaults are 3 players on the quick board vs steady bots.
+- assertVisible: "Opponents"
+- assertVisible: "Vs bots — You against 1–5 rivals"
+- tapOn: "Start Match"
+
+# The board screen. The CTA and the dock are the two things every turn needs.
+- assertVisible: "Your turn"
+- assertVisible: "Roll dice"
+- assertVisible: "Standings"
+
+# Roll, and let the piece finish walking before asserting anything else.
+- tapOn: "Roll dice"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# The board is one big button into the full ring.
+- tapOn: "Open the full board"
+- assertVisible: "Full board"
+- assertVisible: "SYSTEM CONTROL"
+- tapOn: "Back to the board"
+- assertVisible: "Your turn"
+
+# Standings, and back.
+- tapOn: "Standings"
+- assertVisible: "Standings & log"
+- assertVisible: "GAME LOG"
+- tapOn: "Back to the board"
+
+# The menu, and the two-tap resign that returns to setup.
+- tapOn: "Match menu"
+- assertVisible: "Menu"
+- tapOn: "Resign match"
+- tapOn: "Confirm resign"
+- assertVisible: "Start Match"

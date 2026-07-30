@@ -3,6 +3,7 @@
 import React from 'react';
 import {
   formatCredits,
+  turnSteps,
   type LiquidateAction,
   type LiquidateGameState,
   type LiquidatePlayer,
@@ -11,7 +12,7 @@ import { ActionBar } from './ActionBar';
 import { AuctionPanel } from './AuctionPanel';
 import { BuyDecisionPanel } from './BuyDecisionPanel';
 import { TradeReviewPanel } from './TradeReviewPanel';
-import { TurnSteps, turnSteps } from './TurnSteps';
+import { TurnSteps } from './TurnSteps';
 import { LQ, seatColor } from './theme';
 
 export interface TurnRailProps {
@@ -24,6 +25,8 @@ export interface TurnRailProps {
   onManage: () => void;
   onTrade: () => void;
   onViewDeed: (tileId: number) => void;
+  /** A piece is still walking — hold the decision back until it lands. */
+  moving: boolean;
 }
 
 /** Shared surface for every card in the rail. */
@@ -53,6 +56,7 @@ export function TurnRail({
   onManage,
   onTrade,
   onViewDeed,
+  moving,
 }: TurnRailProps) {
   const seat = actingPlayer ? state.players.indexOf(actingPlayer) : -1;
   const steps = turnSteps(state);
@@ -118,7 +122,14 @@ export function TurnRail({
           {state.isGameOver ? 'Game over' : 'Do this now'}
         </div>
 
-        {state.phase === 'buy-decision' && humanTurn && state.pendingPurchase !== null ? (
+        {/* Nothing is decidable while a piece is still travelling — the buttons
+            would be offering a choice about a square the player has not visibly
+            reached. Waiting also stops a bot's card flashing past mid-walk. */}
+        {moving ? (
+          <p className="font-semibold" style={{ fontSize: 13, color: LQ.dim }} aria-live="polite">
+            {actingPlayer ? `${actingPlayer.name} is moving…` : 'Moving…'}
+          </p>
+        ) : state.phase === 'buy-decision' && humanTurn && state.pendingPurchase !== null ? (
           <BuyDecisionPanel
             state={state}
             tileId={state.pendingPurchase}

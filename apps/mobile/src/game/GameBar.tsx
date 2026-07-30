@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, Text, View } from 'react-native';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { Sheet } from '@/components/ui/Sheet';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { FONTS } from '@/theme/typography';
 import type { GameAccent } from '@/game/GameScreenLayout';
@@ -310,63 +310,26 @@ function GameMenu({
   };
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close menu"
-        style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}
-      >
-        {/* Swallows taps so pressing the sheet itself doesn't dismiss it. */}
-        <Pressable onPress={() => {}} accessible={false}>
-          <SafeAreaView edges={['bottom']} style={{ backgroundColor: COLORS.surfaceAlt }}>
-            <View
-              style={{
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                borderTopWidth: 1,
-                borderColor: COLORS.border,
-                paddingHorizontal: 16,
-                paddingTop: 10,
-                paddingBottom: 12,
-                gap: 4,
-              }}
-            >
-              {/* Grabber */}
-              <View
-                style={{
-                  alignSelf: 'center',
-                  width: 40,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: COLORS.borderStrong,
-                  marginBottom: 10,
-                }}
-              />
-
-              {onFlipBoard && (
-                <MenuRow glyph="🔄" label="Flip board" onPress={run(onFlipBoard)} accent={accentColor} />
-              )}
-              {onAgreeDraw && (
-                <MenuRow
-                  glyph="🤝"
-                  label="Agree to a draw"
-                  onPress={run(onAgreeDraw)}
-                  disabled={gameOver}
-                  accent={accentColor}
-                />
-              )}
-              {onAnalysis ? (
-                <MenuRow glyph="📈" label="Review game" onPress={run(onAnalysis)} accent={accentColor} />
-              ) : (
-                <MenuRow glyph="📈" label="Analysis" soon accent={accentColor} />
-              )}
-              <MenuRow glyph="♟️" label="New game" onPress={run(onNewGame)} accent={accentColor} />
-            </View>
-          </SafeAreaView>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <Sheet open={open} onClose={onClose} closeLabel="Close menu">
+      {onFlipBoard && (
+        <MenuRow glyph="🔄" label="Flip board" onPress={run(onFlipBoard)} accent={accentColor} />
+      )}
+      {onAgreeDraw && (
+        <MenuRow
+          glyph="🤝"
+          label="Agree to a draw"
+          onPress={run(onAgreeDraw)}
+          disabled={gameOver}
+          accent={accentColor}
+        />
+      )}
+      {onAnalysis ? (
+        <MenuRow glyph="📈" label="Review game" onPress={run(onAnalysis)} accent={accentColor} />
+      ) : (
+        <MenuRow glyph="📈" label="Analysis" soon accent={accentColor} />
+      )}
+      <MenuRow glyph="♟️" label="New game" onPress={run(onNewGame)} accent={accentColor} />
+    </Sheet>
   );
 }
 

@@ -13,7 +13,7 @@ export default function LearnRoute() {
   const { game } = useLocalSearchParams<{ game: string }>();
   const key = (game ?? '').toLowerCase();
 
-  if (key === 'chess' || key === 'checkers' || key === 'reversi') {
+  if (key === 'chess' || key === 'checkers' || key === 'reversi' || key === 'liquidate') {
     return <TutorialScreen tutorial={TUTORIALS[key]} />;
   }
 

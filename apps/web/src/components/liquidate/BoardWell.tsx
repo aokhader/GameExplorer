@@ -3,13 +3,13 @@
 import React from 'react';
 import {
   LiquidateEngine,
+  buildInspector,
   formatCredits,
   type LiquidateGameState,
   type LiquidatePlayer,
 } from '@gameexplorer/shared';
 import { Dice } from './Dice';
 import { TileInspector } from './TileInspector';
-import { buildInspector } from './inspector';
 import { LQ, seatColor, tileAccent } from './theme';
 
 export interface BoardWellProps {
@@ -24,6 +24,8 @@ export interface BoardWellProps {
   onClearSelection: () => void;
   /** Enough room for the full rent ladder — false on a small board. */
   roomy: boolean;
+  /** A piece is still walking, so the tile it is heading for is not news yet. */
+  moving: boolean;
 }
 
 /**
@@ -42,21 +44,45 @@ export function BoardWell({
   selectedTile,
   onClearSelection,
   roomy,
+  moving,
 }: BoardWellProps) {
   const you = state.players.find((p) => p.id === youId) ?? null;
-  const browsing = selectedTile !== null && selectedTile !== you?.tile;
-  const focusTile = selectedTile ?? you?.tile ?? null;
+
+  /**
+   * The inspector narrates the CURRENT turn, not just your own square.
+   *
+   * Pinned to the followed seat it showed your tile all through a bot's turn, so
+   * a bot could land on a property, pause on it, and buy it while the centre of
+   * the board still described where *you* were standing — the pause had nothing
+   * to look at. Following the actor means "their card" is a real thing the
+   * player sees. Falls back to your square between turns.
+   */
+  const focusPlayer = actingPlayer ?? you;
+  const browsing = selectedTile !== null && selectedTile !== focusPlayer?.tile;
+  const focusTile = selectedTile ?? focusPlayer?.tile ?? null;
+
+  // While a piece is in transit the card for its destination has not been
+  // "landed on" yet, so showing it spoils the move. A tile the player opened
+  // themselves is exempt — that is their request, not the game's news.
+  const hideCard = moving && !browsing;
 
   if (focusTile === null) return null;
 
   const tile = LiquidateEngine.board(state)[focusTile];
+  const theirs = focusPlayer !== null && focusPlayer.id !== youId;
   const kicker = browsing
     ? 'Inspecting'
     : state.phase === 'buy-decision'
-      ? 'You landed on'
-      : you
-        ? `${you.name} is at`
+      ? theirs
+        ? `${focusPlayer.name} landed on`
+        : 'You landed on'
+      : focusPlayer
+        ? `${focusPlayer.name} is at`
         : 'On the loop';
+
+  // Rent ladders and set progress are read from the FOLLOWED seat's point of
+  // view even while watching someone else — "you hold 2 of 3" is the useful
+  // line, not a restatement of what the bot already knows.
 
   const data = buildInspector(state, focusTile, youId, kicker);
 
@@ -82,21 +108,31 @@ export function BoardWell({
         )}
       </div>
 
-      <TileInspector
-        data={data}
-        accent={tileAccent(tile)}
-        compact={!roomy}
-        className="min-h-0 w-full max-w-[560px]"
-      />
+      {hideCard ? (
+        <p
+          className="shrink-0 font-semibold uppercase"
+          style={{ fontSize: 11, letterSpacing: '0.08em', color: LQ.soft }}
+          aria-live="polite"
+        >
+          {actingPlayer ? `${actingPlayer.name} is moving…` : 'Moving…'}
+        </p>
+      ) : (
+        <TileInspector
+          data={data}
+          accent={tileAccent(tile)}
+          compact={!roomy}
+          className="min-h-0 w-full max-w-[560px]"
+        />
+      )}
 
-      {browsing && (
+      {browsing && !hideCard && (
         <button
           type="button"
           onClick={onClearSelection}
           className="shrink-0 font-semibold hover:underline"
           style={{ fontSize: 11, color: LQ.dim }}
         >
-          ← Back to your square
+          ← Back to the board
         </button>
       )}
     </div>

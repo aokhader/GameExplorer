@@ -9,6 +9,7 @@ import {
   type LiquidateGameState,
   type NewGameOptions,
 } from '@gameexplorer/shared';
+import { useLiquidateWalk } from './useLiquidateWalk';
 
 /**
  * Owns a Liquidate game: current state, dispatch, the bot turn loop, and
@@ -23,11 +24,20 @@ import {
 
 const STORAGE_PREFIX = 'ge:liquidate:';
 
-/** Pacing for bot actions. Management steps are quick so a bot turn isn't a slideshow. */
+/**
+ * Pacing for bot actions. Management steps are quick so a bot turn isn't a
+ * slideshow.
+ *
+ * `buy` and `decline` are the outliers: they are the moment the bot's property
+ * card is on screen, and at management speed it flashed past before a player
+ * could read what the bot had just landed on. They are timed to be *read*, not
+ * to feel responsive — and because the loop below waits for the piece to finish
+ * walking, that pause starts when the bot arrives rather than when it rolled.
+ */
 const BOT_DELAY_MS: Partial<Record<LiquidateAction['type'], number>> = {
   roll: 420,
-  buy: 260,
-  decline: 260,
+  buy: 1250,
+  decline: 1250,
   bid: 320,
   'pass-bid': 240,
   'end-turn': 200,
@@ -129,6 +139,17 @@ export function useLiquidateGame({ storageKey, botLevel = 'steady' }: UseLiquida
   }, [discardSave]);
 
   /**
+   * Where the pieces are on screen. Declared ABOVE the bot loop on purpose: the
+   * loop reads `moving` in an effect on the same render that receives a move, so
+   * the value has to be derived by then rather than arrive a render later.
+   */
+  const { placed, moving } = useLiquidateWalk(
+    state?.players,
+    state?.dice ?? null,
+    state ? LiquidateEngine.board(state).length : 0,
+  );
+
+  /**
    * Bot turn loop.
    *
    * Keyed on the *acting* player, not the current seat, because auctions rotate
@@ -136,10 +157,16 @@ export function useLiquidateGame({ storageKey, botLevel = 'steady' }: UseLiquida
    * (rather than a boolean flag) guards re-entrancy: a state change that lands
    * mid-timeout invalidates the pending action instead of letting two bot moves
    * race — the same id-claim pattern the mobile bot loop uses.
+   *
+   * Held while a piece is walking. Without that a bot rolled, and then bought
+   * the property 260ms later while its own token was still four tiles away —
+   * the board narrated a move that had already been decided somewhere else.
+   * `moving` is a dependency as well as a guard, so the turn resumes the moment
+   * the piece lands and the delay below is time spent *on the property*.
    */
   const botTokenRef = useRef(0);
   useEffect(() => {
-    if (!state || state.isGameOver) return;
+    if (!state || state.isGameOver || moving) return;
     const actorId = LiquidateEngine.actingPlayerId(state);
     if (!actorId) return;
     const actor = state.players.find((p) => p.id === actorId);
@@ -162,7 +189,7 @@ export function useLiquidateGame({ storageKey, botLevel = 'steady' }: UseLiquida
     );
 
     return () => window.clearTimeout(timer);
-  }, [state, botLevel]);
+  }, [state, botLevel, moving]);
 
   const actingId = state ? LiquidateEngine.actingPlayerId(state) : null;
   const actingPlayer = state?.players.find((p) => p.id === actingId) ?? null;
@@ -170,6 +197,10 @@ export function useLiquidateGame({ storageKey, botLevel = 'steady' }: UseLiquida
   return {
     state,
     actingPlayer,
+    /** Where each piece is drawn — lags `state` while a move plays out. */
+    placed,
+    /** True while a piece is still walking; the UI waits for it before it reveals. */
+    boardMoving: moving,
     lastError,
     dispatch,
     newGame,

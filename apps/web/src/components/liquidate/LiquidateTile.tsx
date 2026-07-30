@@ -2,10 +2,16 @@
 
 import React from 'react';
 import { LIQUIDATE_DECK_STYLE } from '@gameexplorer/ui';
-import { MAX_COLONY_LEVEL, type LiquidateTile as Tile, type TileOwnership } from '@gameexplorer/shared';
+import {
+  MAX_COLONY_LEVEL,
+  hasColorBar,
+  isCornerIndex,
+  tileMetrics,
+  type LiquidateTile as Tile,
+  type TileOwnership,
+} from '@gameexplorer/shared';
 import { cn } from '@/lib/utils';
-import { isCornerIndex } from './geometry';
-import { LQ, hasColorBar, seatColor, tileAccent, tileMetrics } from './theme';
+import { LQ, seatColor, tileAccent } from './theme';
 
 /** Glyphs for the non-property tiles. Original marks, not any existing game's. */
 const CORNER_GLYPH: Record<string, string> = {
