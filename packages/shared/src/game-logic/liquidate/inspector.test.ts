@@ -101,6 +101,22 @@ describe('buildInspector — planets', () => {
     const data = buildInspector(state, tile.id, me, '');
     expect(data.progress).not.toBeNull();
     expect(data.progress!.pct).toBe(Math.round((2 / members.length) * 100));
+    // The raw pair the sheet's fraction chip renders, and the sentence it is
+    // derived from, have to agree — they are two views of one count.
+    expect(data.progress!.held).toBe(2);
+    expect(data.progress!.total).toBe(members.length);
+    expect(data.progress!.label).toContain(`${2} of ${members.length}`);
+  });
+
+  it('counts the viewer only, so a rival holding the set reads as zero', () => {
+    const state = game();
+    const { tile, members } = planetOf(state, 'ember');
+    const rival = state.players[1]!.id;
+    for (const id of members) state.tiles[id]!.ownerId = rival;
+
+    const data = buildInspector(state, tile.id, state.players[0]!.id, '');
+    expect(data.progress!.held).toBe(0);
+    expect(data.progress!.total).toBe(members.length);
   });
 
   it('flags the tile that would complete a system', () => {

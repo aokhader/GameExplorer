@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  BackHandler,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -62,6 +69,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
   const { reducedMotion } = useSettings();
+  const { height: windowH } = useWindowDimensions();
   const router = useRouter();
   const sfx = useGameSfx();
 
@@ -256,7 +264,17 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
   }
 
   // ── Board screen ─────────────────────────────────────────────────────────
-  const boardSize = Math.floor(Math.min(boardBox.w, boardBox.h));
+  /**
+   * The board's edge, in px: the whole of the space between the header and the
+   * sheet, squared off.
+   *
+   * That space is the column's leftover, so this is only safe because the sheet
+   * holds one height through an entire turn — `HomeSheet` floors its card block
+   * for exactly this reason. The one thing that does move it is the player
+   * opening the rent ladder, and then the ring shrinking is the point: they
+   * asked to trade board for detail, and can hand it back with a second tap.
+   */
+  const boardSize = Math.floor(Math.min(boardBox.w || windowH, boardBox.h || windowH));
 
   return (
     <Shell>
@@ -449,18 +467,25 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
 
           {/*
             The board takes whatever is left between the header and the sheet.
-            `BoardFrame` caps by measured WIDTH and a viewport fraction, neither
-            of which knows this region's height, so the region is measured
-            directly and the smaller edge wins.
+            Nothing else caps it: `boardSize` is this box measured, so the ring
+            is as large as the screen allows and the legend sits directly under
+            it rather than at the foot of a region the board failed to fill.
           */}
           <View
             onLayout={(e) =>
               setBoardBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })
             }
-            style={{ flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' }}
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflow: 'hidden',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
             {boardSize > 0 && (
               <LiquidateBoard
+                key="board"
                 state={state}
                 placed={game.placed}
                 size={boardSize}
@@ -481,6 +506,9 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
               </LiquidateBoard>
             )}
           </View>
+
+          {/* The design's key to the board, directly under the ring. */}
+          <BoardLegend state={state} youId={youId} />
         </View>
       </Animated.View>
 
@@ -516,6 +544,55 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
         onReview={() => setResultDismissed(true)}
       />
     </Shell>
+  );
+}
+
+/**
+ * The design's key to the board: what a colour bar means, and who each seat is.
+ *
+ * Wraps rather than scrolls — with six seats it runs to two rows, which is the
+ * space it is there to fill.
+ */
+function BoardLegend({ state, youId }: { state: LiquidateGameState; youId: string | null }) {
+  useThemeName();
+  const P = LIQUIDATE_PANEL_COLORS;
+
+  const chips = [
+    { key: 'gate', label: 'Gate', color: P.gate },
+    { key: 'utility', label: 'Utility', color: P.utility },
+    ...state.players
+      .filter((p) => !p.bankrupt)
+      .map((p, i) => ({
+        key: p.id,
+        label: p.id === youId ? 'You' : p.name,
+        color: seatColor(state.players.findIndex((q) => q.id === p.id) ?? i),
+      })),
+  ];
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        columnGap: 12,
+        rowGap: 5,
+        paddingHorizontal: 2,
+      }}
+    >
+      {chips.map((c) => (
+        <View key={c.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <View
+            style={{ width: 11, height: 11, borderRadius: 3, backgroundColor: c.color }}
+          />
+          <Text
+            style={{ fontFamily: FONTS.bodySemi, fontSize: 10, lineHeight: 13, color: P.soft }}
+          >
+            {c.label}
+          </Text>
+        </View>
+      ))}
+    </View>
   );
 }
 

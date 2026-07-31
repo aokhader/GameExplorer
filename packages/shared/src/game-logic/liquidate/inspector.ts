@@ -25,8 +25,15 @@ export interface InspectorData {
   status: string;
   /** `null` for tiles that are not for sale. */
   price: number | null;
-  /** System completion for the followed seat, or `null` when not applicable. */
-  progress: { label: string; pct: number } | null;
+  /**
+   * System completion for the followed seat, or `null` when not applicable.
+   *
+   * `held`/`total` are the same numbers `label` and `pct` are built from, kept
+   * raw so a caller can render the fraction as its own thing — mobile's sheet
+   * shows a `2/3` chip where web shows a bar, and reparsing the sentence to get
+   * there would be absurd.
+   */
+  progress: { label: string; pct: number; held: number; total: number } | null;
   /** One sentence of "why this matters", or `null`. */
   highlight: string | null;
   rent: RentRow[];
@@ -71,11 +78,14 @@ export function buildInspector(
     return { ...base, groupLabel: '', status: nonOwnableStatus(state, tileId) };
   }
 
+  // One word for the unclaimed case, not "Unowned · buyable": this reads beside
+  // the tile's name as the answer to "who holds this", and the fact that it is
+  // unowned is said at more length in the line under it.
   const status = owner
     ? owned.mortgaged
       ? `Held by ${owner.name} · mortgaged`
       : `Held by ${owner.name}`
-    : 'Unowned · buyable';
+    : 'Buyable';
 
   if (tile.kind === 'planet') {
     const members = systemMembers(state.config.mode, tile.system);
@@ -113,6 +123,8 @@ export function buildInspector(
       progress: {
         label: `You hold ${held} of ${members.length} ${cap(tile.system)}`,
         pct: members.length ? Math.round((held / members.length) * 100) : 0,
+        held,
+        total: members.length,
       },
       highlight: planetHighlight(state, tileId, viewerId, held, members.length),
       rent,

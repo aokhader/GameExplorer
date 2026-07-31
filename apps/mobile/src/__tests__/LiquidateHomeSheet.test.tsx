@@ -3,6 +3,7 @@ import {
   LiquidateEngine,
   dockSlots,
   primaryAction,
+  systemMembers,
   type LiquidateGameState,
   type PlanetTile,
 } from '@gameexplorer/shared';
@@ -155,6 +156,162 @@ describe('HomeSheet — the dock', () => {
     expect(screen.getByRole('button', { name: 'Auction' })).toBeTruthy();
   });
 });
+
+/**
+ * Renders the sheet focused on one tile, and hands back the setter for it.
+ *
+ * Separate from `renderSheet` because these cases care about the tile the sheet
+ * is describing rather than the action it offers, and one of them has to move
+ * the focus mid-flight.
+ */
+async function renderTile(state: LiquidateGameState, tileId: number) {
+  const deviceIds = [state.players[0]!.id];
+  const props = (focusTile: number) => (
+    <SettingsProvider>
+      <HomeSheet
+        state={state}
+        youId={state.players[0]!.id}
+        focusTile={focusTile}
+        kicker="You are at"
+        cta={primaryAction(state, deviceIds)}
+        waitingFor={null}
+        dock={dockSlots(state, deviceIds)}
+        hideCard={false}
+        cardDraw={null}
+        dispatch={jest.fn()}
+        onOpen={jest.fn()}
+      />
+    </SettingsProvider>
+  );
+
+  const view = render(props(tileId));
+  await screen.findByRole('button', { name: 'Standings' });
+  return { focus: (next: number) => view.rerender(props(next)) };
+}
+
+const ladderToggle = () => screen.getByRole('button', { name: /the rent ladder/ });
+
+describe('HomeSheet — the rent ladder', () => {
+  it('keeps the rungs hidden until asked, since showing them costs board', async () => {
+    const state = game();
+    const tile = firstPlanet(state);
+    await renderTile(state, tile.id);
+
+    expect(screen.queryByText('BASE RENT')).toBeNull();
+    expect(ladderToggle()).toBeTruthy();
+  });
+
+  it('opens and closes on tap', async () => {
+    const state = game();
+    await renderTile(state, firstPlanet(state).id);
+
+    fireEvent.press(ladderToggle());
+    expect(screen.getByText('BASE RENT')).toBeTruthy();
+
+    fireEvent.press(ladderToggle());
+    expect(screen.queryByText('BASE RENT')).toBeNull();
+  });
+
+  it('closes itself when the focus moves on, rather than shrinking the board for a tile nobody is reading', async () => {
+    const state = game();
+    const board = LiquidateEngine.board(state);
+    const [first, second] = board.filter((t): t is PlanetTile => t.kind === 'planet');
+    const { focus } = await renderTile(state, first!.id);
+
+    fireEvent.press(ladderToggle());
+    expect(screen.getByText('BASE RENT')).toBeTruthy();
+
+    focus(second!.id);
+    expect(screen.queryByText('BASE RENT')).toBeNull();
+  });
+
+  it('summarises the span it would open, so the tap is not blind', async () => {
+    const state = game();
+    const tile = firstPlanet(state);
+    await renderTile(state, tile.id);
+
+    // The ends of the ladder: bare rent, and the megastructure.
+    expect(screen.getByRole('button', { name: /Show the rent ladder, .*–.*/ })).toBeTruthy();
+  });
+
+  it('gives a utility no span — its rent is a multiple of the roll, not a sum', async () => {
+    const state = game();
+    const utility = LiquidateEngine.board(state).find((t) => t.kind === 'utility')!;
+    await renderTile(state, utility.id);
+
+    expect(ladderToggle()).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Show the rent ladder, / })).toBeNull();
+  });
+
+  it('says a tile is for sale rather than leaving the hint half blank', async () => {
+    const state = game();
+    const tile = firstPlanet(state);
+    await renderTile(state, tile.id);
+
+    // Nothing is claimed at the start, so there is no rent story to tell yet.
+    expect(screen.getByText('Unowned and ready for purchase')).toBeTruthy();
+    expect(screen.getByText('Buyable')).toBeTruthy();
+  });
+
+  it('yields that line to a highlight worth more — the tile that completes a set', async () => {
+    const state = game();
+    const tile = firstPlanet(state);
+    const members = systemMembers(state.config.mode, tile.system);
+    for (const id of members) {
+      if (id !== tile.id) state.tiles[id]!.ownerId = state.players[0]!.id;
+    }
+
+    await renderTile(state, tile.id);
+    expect(screen.queryByText('Unowned and ready for purchase')).toBeNull();
+    expect(screen.getByText(/completes the system/)).toBeTruthy();
+    // Still unclaimed, so the holder column still reads as for sale.
+    expect(screen.getByText('Buyable')).toBeTruthy();
+  });
+
+  it('names the holder once it has one', async () => {
+    const state = game();
+    const tile = firstPlanet(state);
+    state.tiles[tile.id]!.ownerId = state.players[1]!.id;
+
+    await renderTile(state, tile.id);
+    expect(screen.getByText('Held by Vega')).toBeTruthy();
+    expect(screen.queryByText('Unowned and ready for purchase')).toBeNull();
+  });
+
+  it('offers nothing to open on a tile that charges no rent', async () => {
+    const state = game();
+    const drift = LiquidateEngine.board(state).find((t) => t.kind === 'drift')!;
+    await renderTile(state, drift.id);
+
+    expect(screen.queryByRole('button', { name: /the rent ladder/ })).toBeNull();
+    // Its one line still shows — the row is there, it just does not open.
+    expect(screen.getByText(/Open space/)).toBeTruthy();
+  });
+});
+
+describe('HomeSheet — set ownership', () => {
+  it('counts the system for the viewer', async () => {
+    const state = game();
+    const tile = firstPlanet(state);
+    const members = systemMembers(state.config.mode, tile.system);
+    state.tiles[members[0]!]!.ownerId = state.players[0]!.id;
+
+    await renderTile(state, tile.id);
+    expect(screen.getByLabelText(`You hold 1 of ${members.length} ${label(tile.system)}`)).toBeTruthy();
+  });
+
+  it('leaves it off a warp gate, which belongs to no system', async () => {
+    const state = game();
+    const gate = LiquidateEngine.board(state).find((t) => t.kind === 'warp-gate')!;
+    await renderTile(state, gate.id);
+
+    expect(screen.queryByLabelText(/You hold/)).toBeNull();
+  });
+});
+
+function label(system: string): string {
+  return system.charAt(0).toUpperCase() + system.slice(1);
+}
 
 describe('HomeSheet — the card banner', () => {
   it('shows a drawn card, since the engine resolves it with no pause', async () => {
