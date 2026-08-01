@@ -37,5 +37,12 @@ services:
       - key: SUPABASE_SECRET_KEY
         sync: false
       # Supabase Postgres SESSION POOLER connection string (Dashboard → Connect).
+      # Leave `sslmode` OUT of it — TLS is configured in src/config/database.ts,
+      # and a sslmode in the URL overrides that config (pg merges the URL last).
       - key: DATABASE_URL
+        sync: false
+      # Supabase's CA certificate (PEM) — Project Settings → Database → SSL
+      # Configuration → Download certificate. Without it the Postgres connection
+      # is encrypted but the server cert is not verified.
+      - key: DATABASE_CA_CERT
         sync: false
