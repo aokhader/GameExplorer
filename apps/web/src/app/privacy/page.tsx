@@ -86,7 +86,12 @@ export default function PrivacyPage() {
               (Danger Zone). Deletion removes your profile, games, ratings, friendships, blocks and
               reports, then the account itself. One note: if you played against other people, your
               username remains in <em>their</em> game history rows, the same way finished games
-              work on other game platforms.
+              work on other game platforms. Full details, including how to request deletion if you
+              can&apos;t sign in, are on the{' '}
+              <a href="/delete-account" className="text-info hover:text-info-hover underline">
+                account deletion page
+              </a>
+              .
             </p>
           </section>
 

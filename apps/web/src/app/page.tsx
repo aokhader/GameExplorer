@@ -154,6 +154,11 @@ export default function HomePage() {
             <Link href="/privacy" className="hover:text-fg transition-colors">
               Privacy
             </Link>
+            {/* Google Play requires the account-deletion URL be reachable without
+                signing in — the footer is the one place a reviewer will look. */}
+            <Link href="/delete-account" className="hover:text-fg transition-colors">
+              Delete account
+            </Link>
             <Link href="/licenses" className="hover:text-fg transition-colors">
               Licenses
             </Link>
