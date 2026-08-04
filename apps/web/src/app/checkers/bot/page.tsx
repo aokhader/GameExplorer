@@ -438,6 +438,9 @@ export default function CheckersBotPage() {
             onMove={handleMove}
             playerColor={playerColor}
             showCoordinates
+            // Line up a reply while the bot thinks. Off while reviewing history
+            // (the board isn't showing the live position) or after a manual end.
+            allowPremoves={isAtLive && !manualEnd}
           />
         }
         bottomCard={

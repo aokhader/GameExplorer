@@ -52,6 +52,9 @@ export default function CheckersPlayPage() {
             gameState={checkersState}
             onMove={handleMove}
             playerColor={s.myColor ?? 'white'}
+            // Queue a move while the opponent thinks. Only in a live game:
+            // with no active game there is no turn to premove against.
+            allowPremoves={s.status === 'active'}
           />
         )
       }

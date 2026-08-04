@@ -1,8 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { CheckersEngine } from '@gameexplorer/shared';
-import type { CheckersGameState } from '@gameexplorer/shared';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  CheckersEngine,
+  getCheckersPremoveDestinations,
+  isCheckersPremoveLegal,
+} from '@gameexplorer/shared';
+import type { CheckersGameState, CheckersPremove } from '@gameexplorer/shared';
 import { CheckersPiece, CHECKERS_BOARD_COLORS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { useGameSfx } from '@/hooks/useGameSfx';
@@ -16,7 +20,8 @@ import { useSettings } from '@/components/providers/SettingsProvider';
  * is picked per-square from game state.
  */
 const SQUARE: Record<
-  'light' | 'dark' | 'frame' | 'selected' | 'lastMoveLight' | 'lastMoveDark' | 'move' | 'capture',
+  | 'light' | 'dark' | 'frame' | 'selected' | 'lastMoveLight' | 'lastMoveDark' | 'move' | 'capture'
+  | 'premove' | 'premoveHint',
   string
 > = {
   light:        `var(--gx-checkers-board-light, ${CHECKERS_BOARD_COLORS.lightSquare})`,
@@ -27,7 +32,18 @@ const SQUARE: Record<
   lastMoveDark:  `var(--gx-checkers-board-lastmove-dark, ${CHECKERS_BOARD_COLORS.lastMoveDark})`,
   move:         `var(--gx-checkers-board-move, ${CHECKERS_BOARD_COLORS.moveIndicator})`,
   capture:      `var(--gx-checkers-board-capture, ${CHECKERS_BOARD_COLORS.captureIndicator})`,
+  // Queued premove — a different hue from the last-move highlight on purpose:
+  // "what I've asked for" must not read as "what just happened".
+  premove:      'var(--gx-checkers-board-premove, rgba(139, 92, 246, 0.55))',
+  premoveHint:  'var(--gx-checkers-board-premove-hint, rgba(139, 92, 246, 0.75))',
 };
+
+/**
+ * Beat between the opponent's move landing and a queued premove firing — long
+ * enough for the arriving move to paint and for the parent's own post-move
+ * state to settle, short enough to still read as instant. Mirrors the chess board.
+ */
+const PREMOVE_FIRE_DELAY_MS = 90;
 
 export interface BoardArrow {
   from: string;
@@ -41,6 +57,13 @@ interface CheckersBoardProps {
   playerColor?: 'white' | 'black';
   showCoordinates?: boolean;
   arrows?: BoardArrow[];
+  /**
+   * Let the player queue a move during the opponent's turn, played the moment
+   * the turn comes back (dropped if the position made it illegal — in checkers
+   * usually because a capture became mandatory). Online and bot games only:
+   * elsewhere `playerColor` is board orientation, not "the side I own".
+   */
+  allowPremoves?: boolean;
 }
 
 function isDark(row: number, col: number): boolean {
@@ -104,17 +127,35 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   playerColor = 'white',
   showCoordinates = true,
   arrows,
+  allowPremoves = false,
 }: CheckersBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves]         = useState<string[]>([]);
   const [lastMove, setLastMove]             = useState<{ from: string; to: string } | null>(null);
   const [lastMoveTo, setLastMoveTo]         = useState<string | null>(null);
   const [draggedFrom, setDraggedFrom]       = useState<string | null>(null);
+  // Move queued during the opponent's turn, waiting for the turn to come back.
+  const [premove, setPremoveState]          = useState<CheckersPremove | null>(null);
   const sfx = useGameSfx();
   const { settings } = useSettings();
   const coordsOn = showCoordinates && settings.showCoordinates;
 
   const isFlipped = playerColor === 'black';
+  // Premove mode: the opponent is on the clock, so picking a piece queues a
+  // move instead of playing one.
+  const premoveMode =
+    allowPremoves && !gameState.isGameOver && gameState.currentTurn !== playerColor;
+
+  // Read at fire time rather than closure time: a premove fires from a timer,
+  // a render after the opponent's move landed, and the parent's handler may
+  // only accept it in that newer render (the bot page clears "thinking" there).
+  const onMoveRef = useRef(onMove);
+  onMoveRef.current = onMove;
+  const premoveRef = useRef<CheckersPremove | null>(premove);
+  const setPremove = (p: CheckersPremove | null) => {
+    premoveRef.current = p;
+    setPremoveState(p);
+  };
 
   useEffect(() => {
     if (gameState.moveHistory.length > 0) {
@@ -144,8 +185,22 @@ export const CheckersBoard = React.memo(function CheckersBoard({
 
   const selectSquare = (pos: string) => {
     setSelectedSquare(pos);
-    const dests = legalMoves.filter(m => m.from === pos).map(m => m.to);
+    // In premove mode these are candidate squares for a position that doesn't
+    // exist yet, not legal moves — see the premove module in @gameexplorer/shared.
+    const dests = premoveMode
+      ? getCheckersPremoveDestinations(gameState, pos)
+      : legalMoves.filter(m => m.from === pos).map(m => m.to);
     setValidMoves(dests);
+  };
+
+  /** Pieces the board will let the player pick up right now. */
+  const canGrab = (piece: { color: 'white' | 'black' } | null): boolean =>
+    !!piece && (premoveMode ? piece.color === playerColor : piece.color === gameState.currentTurn);
+
+  /** Queue a move for the moment the turn comes back. */
+  const queuePremove = (from: string, to: string) => {
+    setPremove({ from, to });
+    sfx.play('select');
   };
 
   const handleSquareClick = (pos: string, row: number, col: number) => {
@@ -155,25 +210,31 @@ export const CheckersBoard = React.memo(function CheckersBoard({
 
     if (selectedSquare) {
       if (validMoves.includes(pos)) {
-        onMove(selectedSquare, pos);
+        if (premoveMode) queuePremove(selectedSquare, pos);
+        else onMove(selectedSquare, pos);
         setSelectedSquare(null);
         setValidMoves([]);
-      } else if (piece && piece.color === gameState.currentTurn) {
+      } else if (canGrab(piece)) {
         selectSquare(pos);
       } else {
         setSelectedSquare(null);
         setValidMoves([]);
+        // A click that neither aims nor re-picks takes a queued premove back
+        // (right-click on the board does it too).
+        if (premoveRef.current) setPremove(null);
       }
     } else {
-      if (piece && piece.color === gameState.currentTurn) {
+      if (canGrab(piece)) {
         selectSquare(pos);
+      } else if (premoveRef.current) {
+        setPremove(null);
       }
     }
   };
 
   const handleDragStart = (pos: string, row: number, col: number) => (e: React.DragEvent) => {
     const piece = gameState.board[row][col];
-    if (!piece || piece.color !== gameState.currentTurn) { e.preventDefault(); return; }
+    if (!canGrab(piece)) { e.preventDefault(); return; }
     setDraggedFrom(pos);
     selectSquare(pos);
     // Use getBoundingClientRect so the ghost matches the rendered pixel size.
@@ -193,12 +254,42 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   const handleDrop = (pos: string) => (e: React.DragEvent) => {
     e.preventDefault();
     if (draggedFrom && validMoves.includes(pos)) {
-      onMove(draggedFrom, pos);
+      if (premoveMode) queuePremove(draggedFrom, pos);
+      else onMove(draggedFrom, pos);
     }
     setDraggedFrom(null);
     setSelectedSquare(null);
     setValidMoves([]);
   };
+
+  // ── Premove firing ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!premoveRef.current) return;
+
+    if (!allowPremoves) { setPremove(null); return; }
+    // Still the opponent's move — keep waiting.
+    if (gameState.currentTurn !== playerColor) return;
+
+    const t = setTimeout(() => {
+      const pm = premoveRef.current;
+      if (!pm) return;
+      setPremove(null);
+      // Mandatory capture makes this a real filter in checkers: the opponent's
+      // move can turn any quiet premove into an illegal one.
+      if (isCheckersPremoveLegal(gameState, pm)) onMoveRef.current(pm.from, pm.to);
+      else sfx.play('illegal');
+    }, PREMOVE_FIRE_DELAY_MS);
+    return () => clearTimeout(t);
+  // The position and who owns it are what should re-arm this; sfx is recreated
+  // on every settings change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, playerColor, allowPremoves]);
+
+  // Drop a stale queue when the board stops being a premove surface.
+  useEffect(() => {
+    if (!premoveRef.current) return;
+    if (!allowPremoves || gameState.isGameOver) setPremove(null);
+  }, [allowPremoves, gameState.isGameOver]);
 
   const squares = [];
 
@@ -215,9 +306,14 @@ export const CheckersBoard = React.memo(function CheckersBoard({
       const isLastMoveSquare = lastMove && (lastMove.from === pos || lastMove.to === pos);
       const justArrived     = lastMoveTo === pos;
       const isDragging      = draggedFrom === pos;
+      const isPremoveSquare = !!premove && (premove.from === pos || premove.to === pos);
 
       let bg = dark ? SQUARE.dark : SQUARE.light;
       if (isSelected) bg = SQUARE.selected;
+      // The queued move outranks the last move: the opponent's reply frequently
+      // lands on one of these two squares, and the pending intent is what the
+      // player needs to see there.
+      else if (isPremoveSquare) bg = SQUARE.premove;
       else if (isLastMoveSquare && dark)  bg = SQUARE.lastMoveDark;
       else if (isLastMoveSquare && !dark) bg = SQUARE.lastMoveLight;
 
@@ -255,15 +351,22 @@ export const CheckersBoard = React.memo(function CheckersBoard({
             </span>
           )}
 
+          {/* Premove candidates — dimmer than the legal-move dots, because these
+              are squares the move may be aimed at, not moves known to be playable. */}
+          {dark && isValidDest && premoveMode && (
+            <div className="absolute w-[22%] h-[22%] rounded-full pointer-events-none z-10"
+              style={{ backgroundColor: SQUARE.premoveHint, opacity: 0.55 }} />
+          )}
+
           {/* Move indicator dot (empty dark square) */}
-          {dark && isValidDest && !piece && (
+          {dark && isValidDest && !premoveMode && !piece && (
             <div className="absolute w-[28%] h-[28%] rounded-full pointer-events-none z-10"
               style={{ backgroundColor: SQUARE.move }} />
           )}
 
           {/* Capture ring (valid dest that has an enemy piece) — shouldn't normally show
               since in checkers you land on empty squares, but guard anyway */}
-          {dark && isValidDest && piece && (
+          {dark && isValidDest && !premoveMode && piece && (
             <div className="absolute inset-1 rounded-full border-4 pointer-events-none z-10"
               style={{ borderColor: SQUARE.capture }} />
           )}
@@ -278,7 +381,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
                 transition-transform duration-200 ease-out
                 ${justArrived ? 'scale-110' : 'scale-100'}
                 ${isDragging ? 'opacity-40' : ''}`}
-              draggable={dark && piece.color === gameState.currentTurn}
+              draggable={dark && canGrab(piece)}
               onDragStart={handleDragStart(pos, boardRow, boardCol)}
               onDragEnd={() => setDraggedFrom(null)}
             >
@@ -294,6 +397,13 @@ export const CheckersBoard = React.memo(function CheckersBoard({
     <BoardFrame className="select-none">
       <div
         className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg transition-shadow duration-300"
+        // Right-click anywhere takes back a queued premove — the shortcut
+        // players expect from other boards.
+        onContextMenu={(e) => {
+          if (!premoveRef.current) return;
+          e.preventDefault();
+          setPremove(null);
+        }}
         style={{
           border: `2px solid ${SQUARE.frame}`,
           boxShadow: isMyTurn

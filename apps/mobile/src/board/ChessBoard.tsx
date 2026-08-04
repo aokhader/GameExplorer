@@ -8,8 +8,12 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { ChessEngine } from '@gameexplorer/shared';
-import type { ChessGameState, PieceType } from '@gameexplorer/shared';
+import {
+  ChessEngine,
+  getChessPremoveDestinations,
+  isChessPremoveLegal,
+} from '@gameexplorer/shared';
+import type { ChessGameState, ChessPremove, PieceType } from '@gameexplorer/shared';
 import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
@@ -28,12 +32,25 @@ interface ChessBoardProps {
    * same treatment all three boards use.
    */
   hintMove?: { from: string; to: string } | null;
+  /**
+   * The side allowed to queue premoves — a move picked during the opponent's
+   * turn and played the moment the turn comes back. Omit to switch premoves off
+   * (pass-and-play, review): note this is NOT `playerColor`, which on these
+   * screens is board orientation and inverts with the "Flip board" setting.
+   */
+  premoveColor?: 'white' | 'black';
 }
 
 // The vector piece art fills ~89% of its viewBox; 0.9 seats it at play scale with
 // a small margin off the square edges (matches the web board's .piece sizing).
 const PIECE_RATIO = 0.9;
 const CHECK_RING = 'rgba(244,63,94,0.9)';
+/**
+ * Beat between the opponent's move landing and a queued premove firing — long
+ * enough for the arriving move to paint, short enough to still read as instant.
+ * Mirrors web's board.
+ */
+const PREMOVE_FIRE_DELAY_MS = 90;
 // Amber, matching the warning treatment web's hint UI uses.
 const HINT_RING = 'rgba(245,158,11,0.95)';
 const HINT_FILL = 'rgba(245,158,11,0.28)';
@@ -226,12 +243,17 @@ function ChessBoardInner({
   showCoordinates = true,
   interactive = true,
   hintMove,
+  premoveColor,
 }: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves] = useState<string[]>([]);
   const [lastMoveTo, setLastMoveTo] = useState<string | null>(null);
   const [draggingFrom, setDraggingFrom] = useState<string | null>(null);
-  const [pending, setPendingState] = useState<{ from: string; to: string } | null>(null);
+  const [pending, setPendingState] = useState<
+    { from: string; to: string; isPremove?: boolean } | null
+  >(null);
+  // Move queued during the opponent's turn, waiting for the turn to come back.
+  const [premove, setPremoveState] = useState<ChessPremove | null>(null);
 
   const sfx = useGameSfx();
   const { settings, reducedMotion } = useSettings();
@@ -239,6 +261,10 @@ function ChessBoardInner({
   const isFlipped = playerColor === 'black';
   const gameOver = gameState.isCheckmate || gameState.isStalemate || gameState.isDraw;
   const isMyTurn = !gameOver && gameState.currentTurn === playerColor;
+  // Premove mode: the opponent is on the clock, so picking a piece queues a
+  // move instead of playing one.
+  const premoveMode =
+    !!premoveColor && interactive && !gameOver && gameState.currentTurn !== premoveColor;
 
   const lastMoveEntry = gameState.moveHistory[gameState.moveHistory.length - 1] ?? null;
   const lastMove = lastMoveEntry ? { from: lastMoveEntry.from, to: lastMoveEntry.to } : null;
@@ -261,13 +287,22 @@ function ChessBoardInner({
   const sizeRef = useRef(0);
   const interactiveRef = useRef(interactive);
   interactiveRef.current = interactive;
+  const premoveModeRef = useRef(premoveMode);
+  premoveModeRef.current = premoveMode;
+  const premoveColorRef = useRef(premoveColor);
+  premoveColorRef.current = premoveColor;
+  // Read at fire time, not closure time: the queued move is released a tick
+  // after the opponent's move landed, by which point the parent has re-rendered.
+  const onMoveRef = useRef(onMove);
+  onMoveRef.current = onMove;
 
   // Interaction refs — source of truth during a gesture (see CheckersBoard for why
   // these must be written synchronously, not from render).
   const selectedRef = useRef<string | null>(null);
   const validRef = useRef<string[]>([]);
   const draggingRef = useRef<string | null>(null);
-  const pendingRef = useRef<{ from: string; to: string } | null>(null);
+  const pendingRef = useRef<{ from: string; to: string; isPremove?: boolean } | null>(null);
+  const premoveRef = useRef<ChessPremove | null>(null);
 
   // Announce the latest move (highlight + sound + arrival pop), like web.
   useEffect(() => {
@@ -298,23 +333,45 @@ function ChessBoardInner({
     draggingRef.current = pos;
     setDraggingFrom(pos);
   };
-  const setPending = (p: { from: string; to: string } | null) => {
+  const setPending = (p: { from: string; to: string; isPremove?: boolean } | null) => {
     pendingRef.current = p;
     setPendingState(p);
   };
+  const setPremove = (p: ChessPremove | null) => {
+    premoveRef.current = p;
+    setPremoveState(p);
+  };
   const clearSelection = () => setSelection(null, []);
+  /**
+   * Show where the piece on `pos` may go. Out of turn those are premove
+   * candidates for a position that doesn't exist yet, not legal moves — see the
+   * premove module in @gameexplorer/shared.
+   */
   const selectSquare = (pos: string) =>
-    setSelection(pos, legalRef.current.filter((m) => m.from === pos).map((m) => m.to));
+    setSelection(
+      pos,
+      premoveModeRef.current
+        ? getChessPremoveDestinations(stateRef.current, pos)
+        : legalRef.current.filter((m) => m.from === pos).map((m) => m.to),
+    );
 
   const commitMove = (from: string, to: string) => {
     setDrag(null);
     clearSelection();
-    // Pawn promotion → resolve the picker before notifying the parent.
+    const queueing = premoveModeRef.current;
+    // Pawn promotion → resolve the picker before notifying the parent. A queued
+    // premove settles it now too: a picker mid-flight would cost the player the
+    // time the premove was meant to save.
     if (isPromotion(stateRef.current, from, to)) {
-      setPending({ from, to });
+      setPending({ from, to, isPremove: queueing });
       return;
     }
-    onMove(from, to);
+    if (queueing) {
+      setPremove({ from, to });
+      sfx.play('select');
+      return;
+    }
+    onMoveRef.current(from, to);
   };
 
   const handlePromotion = (piece: PieceType) => {
@@ -322,29 +379,80 @@ function ChessBoardInner({
     if (!p) return;
     setPending(null);
     sfx.play('promote');
-    onMove(p.from, p.to, piece);
+    if (p.isPremove) setPremove({ from: p.from, to: p.to, promotion: piece });
+    else onMoveRef.current(p.from, p.to, piece);
   };
 
-  // Clear selection whenever the turn flips (e.g. after the bot replies).
+  // Clear selection whenever the turn flips (e.g. after the bot replies). A
+  // selection made under one turn means something different under the next
+  // (premove candidates vs legal moves), so it never carries over.
   useEffect(() => {
     setSelection(null, []);
     setDrag(null);
   }, [gameState.currentTurn]);
 
+  // ── Premove firing ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!premoveRef.current) return;
+
+    if (!premoveColor) { setPremove(null); return; }
+    // Still the opponent's move — keep waiting.
+    if (gameState.currentTurn !== premoveColor) return;
+
+    const t = setTimeout(() => {
+      const pm = premoveRef.current;
+      if (!pm) return;
+      setPremove(null);
+      // The opponent's move may have made it impossible; say so and hand the
+      // turn back rather than silently swallowing the player's intent.
+      if (isChessPremoveLegal(gameState, pm)) onMoveRef.current(pm.from, pm.to, pm.promotion);
+      else sfx.play('illegal');
+    }, PREMOVE_FIRE_DELAY_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, premoveColor]);
+
+  // Drop a stale queue when the board stops being a premove surface (game over,
+  // review, mode switch).
+  useEffect(() => {
+    if (!premoveRef.current) return;
+    if (!premoveColor || !interactive || gameOver) setPremove(null);
+  }, [premoveColor, interactive, gameOver]);
+
   // ── Gesture → JS handlers ─────────────────────────────────────────────────────
+
+  /**
+   * May the piece on `pos` be picked up right now? Out of turn that's the
+   * premoving side's own pieces; in turn, the side to move.
+   */
+  const canGrab = (pos: string): boolean => {
+    const s = stateRef.current;
+    const piece = s.board[rowOf(pos)][colOf(pos)];
+    if (!piece) return false;
+    return premoveModeRef.current
+      ? piece.color === premoveColorRef.current
+      : piece.color === s.currentTurn;
+  };
+
   const handleTap = (x: number, y: number) => {
     if (!interactiveRef.current || pendingRef.current) return;
     const s = stateRef.current;
     if (s.isCheckmate || s.isStalemate || s.isDraw) return;
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
-    const piece = s.board[rowOf(pos)][colOf(pos)];
 
     if (selectedRef.current) {
       if (validRef.current.includes(pos)) commitMove(selectedRef.current, pos);
-      else if (piece && piece.color === s.currentTurn) selectSquare(pos);
-      else clearSelection();
-    } else if (piece && piece.color === s.currentTurn) {
+      else if (canGrab(pos)) selectSquare(pos);
+      else {
+        clearSelection();
+        // A tap that neither aims nor re-picks takes a queued premove back —
+        // the only cancel gesture a touch screen has.
+        if (premoveRef.current) setPremove(null);
+      }
+    } else if (canGrab(pos)) {
       selectSquare(pos);
+    } else if (premoveRef.current) {
+      setPremove(null);
     }
   };
 
@@ -353,8 +461,7 @@ function ChessBoardInner({
     const s = stateRef.current;
     if (s.isCheckmate || s.isStalemate || s.isDraw) return;
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
-    const piece = s.board[rowOf(pos)][colOf(pos)];
-    if (piece && piece.color === s.currentTurn) {
+    if (canGrab(pos)) {
       setDrag(pos);
       selectSquare(pos);
       sfx.play('select');
@@ -455,9 +562,14 @@ function ChessBoardInner({
             const isLastMoveSquare = !!lastMove && (lastMove.from === pos || lastMove.to === pos);
             const isCheckKing = kingInCheckPos === pos;
             const isHintSquare = !!hintMove && (hintMove.from === pos || hintMove.to === pos);
+            const isPremoveSquare = !!premove && (premove.from === pos || premove.to === pos);
 
             let bg: string = dark ? BOARD_COLORS.darkSquare : BOARD_COLORS.lightSquare;
             if (isSelected) bg = BOARD_COLORS.selectedSquare;
+            // The queued move outranks the last move: the opponent's reply
+            // often lands on one of these two squares, and the pending intent
+            // is what the player needs to see there.
+            else if (isPremoveSquare) bg = BOARD_COLORS.premove;
             else if (isLastMoveSquare) bg = dark ? BOARD_COLORS.lastMoveDark : BOARD_COLORS.lastMoveLight;
 
             const showRank = coordsOn && screenCol === 0;
@@ -504,8 +616,22 @@ function ChessBoardInner({
                     }}
                   />
                 )}
+                {/* Premove candidates — dimmer than the legal-move dots,
+                    because these are squares the move may be aimed at, not
+                    moves known to be playable. */}
+                {isValidDest && premoveMode && (
+                  <View
+                    style={{
+                      width: sq * 0.22,
+                      height: sq * 0.22,
+                      borderRadius: sq * 0.11,
+                      opacity: 0.55,
+                      backgroundColor: BOARD_COLORS.premoveHint,
+                    }}
+                  />
+                )}
                 {/* Legal-move dot on an empty destination. */}
-                {isValidDest && !piece && (
+                {isValidDest && !premoveMode && !piece && (
                   <View
                     style={{
                       width: sq * 0.28,
@@ -516,7 +642,7 @@ function ChessBoardInner({
                   />
                 )}
                 {/* Capture ring on an occupied legal destination. */}
-                {isValidDest && piece && (
+                {isValidDest && !premoveMode && piece && (
                   <View
                     style={{
                       position: 'absolute',

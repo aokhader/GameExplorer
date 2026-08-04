@@ -8,8 +8,12 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { CheckersEngine } from '@gameexplorer/shared';
-import type { CheckersGameState } from '@gameexplorer/shared';
+import {
+  CheckersEngine,
+  getCheckersPremoveDestinations,
+  isCheckersPremoveLegal,
+} from '@gameexplorer/shared';
+import type { CheckersGameState, CheckersPremove } from '@gameexplorer/shared';
 import {
   CheckersPiece,
   CHECKERS_BOARD_COLORS,
@@ -29,9 +33,22 @@ interface CheckersBoardProps {
   interactive?: boolean;
   /** Training hint — outlines the piece to move and where to move it. */
   hintMove?: { from: string; to: string } | null;
+  /**
+   * The side allowed to queue premoves — a move picked during the opponent's
+   * turn and played the moment the turn comes back. Omit to switch premoves off
+   * (pass-and-play, review): note this is NOT `playerColor`, which on these
+   * screens is board orientation and inverts with the "Flip board" setting.
+   */
+  premoveColor?: 'white' | 'black';
 }
 
 const PIECE_RATIO = 0.86;
+/**
+ * Beat between the opponent's move landing and a queued premove firing — long
+ * enough for the arriving move to paint, short enough to still read as instant.
+ * Mirrors web's board.
+ */
+const PREMOVE_FIRE_DELAY_MS = 90;
 // Amber, matching the warning treatment web's hint UI uses.
 const HINT_RING = 'rgba(245,158,11,0.95)';
 const HINT_FILL = 'rgba(245,158,11,0.28)';
@@ -148,18 +165,26 @@ function CheckersBoardInner({
   showCoordinates = true,
   interactive = true,
   hintMove,
+  premoveColor,
 }: CheckersBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves] = useState<string[]>([]);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [lastMoveTo, setLastMoveTo] = useState<string | null>(null);
   const [draggingFrom, setDraggingFrom] = useState<string | null>(null);
+  // Move queued during the opponent's turn, waiting for the turn to come back.
+  const [premove, setPremoveState] = useState<CheckersPremove | null>(null);
 
   const sfx = useGameSfx();
   const { settings, reducedMotion } = useSettings();
   const coordsOn = showCoordinates && settings.showCoordinates;
   const isFlipped = playerColor === 'black';
   const isMyTurn = !gameState.isGameOver && gameState.currentTurn === playerColor;
+  // Premove mode: the opponent is on the clock, so picking a piece queues a
+  // move instead of playing one.
+  const premoveMode =
+    !!premoveColor && interactive && !gameState.isGameOver &&
+    gameState.currentTurn !== premoveColor;
 
   // Full move generation is expensive — recompute only when the state changes.
   const legalMoves = useMemo(() => CheckersEngine.getAllLegalMoves(gameState), [gameState]);
@@ -180,6 +205,15 @@ function CheckersBoardInner({
   const sizeRef = useRef(0);
   const interactiveRef = useRef(interactive);
   interactiveRef.current = interactive;
+  const premoveModeRef = useRef(premoveMode);
+  premoveModeRef.current = premoveMode;
+  const premoveColorRef = useRef(premoveColor);
+  premoveColorRef.current = premoveColor;
+  // Read at fire time, not closure time: the queued move is released a tick
+  // after the opponent's move landed, by which point the parent has re-rendered.
+  const onMoveRef = useRef(onMove);
+  onMoveRef.current = onMove;
+  const premoveRef = useRef<CheckersPremove | null>(null);
 
   // Interaction refs — the source of truth for selection/drag DURING a gesture.
   // Critically these are updated SYNCHRONOUSLY by the mutators below (not from
@@ -218,23 +252,86 @@ function CheckersBoardInner({
     draggingRef.current = pos;
     setDraggingFrom(pos);
   };
+  const setPremove = (p: CheckersPremove | null) => {
+    premoveRef.current = p;
+    setPremoveState(p);
+  };
   const clearSelection = () => setSelection(null, []);
+  /**
+   * Show where the piece on `pos` may go. Out of turn those are premove
+   * candidates for a position that doesn't exist yet, not legal moves — see the
+   * premove module in @gameexplorer/shared.
+   */
   const selectSquare = (pos: string) =>
-    setSelection(pos, legalRef.current.filter((m) => m.from === pos).map((m) => m.to));
+    setSelection(
+      pos,
+      premoveModeRef.current
+        ? getCheckersPremoveDestinations(stateRef.current, pos)
+        : legalRef.current.filter((m) => m.from === pos).map((m) => m.to),
+    );
   const commitMove = (from: string, to: string) => {
     setDrag(null);
     clearSelection();
-    onMove(from, to);
+    if (premoveModeRef.current) {
+      setPremove({ from, to });
+      sfx.play('select');
+      return;
+    }
+    onMoveRef.current(from, to);
   };
 
   // Clear selection whenever the turn flips (e.g. after the bot replies). Uses the
-  // synchronous mutators so the refs don't lag a render behind the reset.
+  // synchronous mutators so the refs don't lag a render behind the reset. A
+  // selection made under one turn means something different under the next
+  // (premove candidates vs legal moves), so it never carries over.
   useEffect(() => {
     setSelection(null, []);
     setDrag(null);
   }, [gameState.currentTurn]);
 
+  // ── Premove firing ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!premoveRef.current) return;
+
+    if (!premoveColor) { setPremove(null); return; }
+    // Still the opponent's move — keep waiting.
+    if (gameState.currentTurn !== premoveColor) return;
+
+    const t = setTimeout(() => {
+      const pm = premoveRef.current;
+      if (!pm) return;
+      setPremove(null);
+      // Mandatory capture makes this a real filter in checkers: the opponent's
+      // move can turn any quiet premove into an illegal one.
+      if (isCheckersPremoveLegal(gameState, pm)) onMoveRef.current(pm.from, pm.to);
+      else sfx.play('illegal');
+    }, PREMOVE_FIRE_DELAY_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, premoveColor]);
+
+  // Drop a stale queue when the board stops being a premove surface (game over,
+  // review, mode switch).
+  useEffect(() => {
+    if (!premoveRef.current) return;
+    if (!premoveColor || !interactive || gameState.isGameOver) setPremove(null);
+  }, [premoveColor, interactive, gameState.isGameOver]);
+
   // ── Gesture → JS handlers ─────────────────────────────────────────────────────
+
+  /**
+   * May the piece on `pos` be picked up right now? Out of turn that's the
+   * premoving side's own pieces; in turn, the side to move.
+   */
+  const canGrab = (pos: string): boolean => {
+    const s = stateRef.current;
+    const piece = s.board[rowOf(pos)][colOf(pos)];
+    if (!piece) return false;
+    return premoveModeRef.current
+      ? piece.color === premoveColorRef.current
+      : piece.color === s.currentTurn;
+  };
+
   // Tap-to-move: mirrors web's handleSquareClick. Runs from a dedicated Tap
   // gesture (a Pan never fires onEnd for a motionless tap, so tap-to-move must
   // not depend on the Pan lifecycle).
@@ -243,14 +340,20 @@ function CheckersBoardInner({
     const s = stateRef.current;
     if (s.isGameOver) return;
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
-    const piece = s.board[rowOf(pos)][colOf(pos)];
 
     if (selectedRef.current) {
       if (validRef.current.includes(pos)) commitMove(selectedRef.current, pos);
-      else if (piece && piece.color === s.currentTurn) selectSquare(pos);
-      else clearSelection();
-    } else if (piece && piece.color === s.currentTurn) {
+      else if (canGrab(pos)) selectSquare(pos);
+      else {
+        clearSelection();
+        // A tap that neither aims nor re-picks takes a queued premove back —
+        // the only cancel gesture a touch screen has.
+        if (premoveRef.current) setPremove(null);
+      }
+    } else if (canGrab(pos)) {
       selectSquare(pos);
+    } else if (premoveRef.current) {
+      setPremove(null);
     }
   };
 
@@ -262,8 +365,7 @@ function CheckersBoardInner({
     const s = stateRef.current;
     if (s.isGameOver) return;
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
-    const piece = s.board[rowOf(pos)][colOf(pos)];
-    if (piece && piece.color === s.currentTurn) {
+    if (canGrab(pos)) {
       setDrag(pos);
       selectSquare(pos);
       sfx.play('select');
@@ -369,9 +471,14 @@ function CheckersBoardInner({
             const isLastMoveSquare =
               !!lastMove && (lastMove.from === pos || lastMove.to === pos);
             const isHintSquare = !!hintMove && (hintMove.from === pos || hintMove.to === pos);
+            const isPremoveSquare = !!premove && (premove.from === pos || premove.to === pos);
 
             let bg = dark ? CHECKERS_BOARD_COLORS.darkSquare : CHECKERS_BOARD_COLORS.lightSquare;
             if (isSelected) bg = CHECKERS_BOARD_COLORS.selectedSquare;
+            // The queued move outranks the last move: the opponent's reply
+            // often lands on one of these two squares, and the pending intent
+            // is what the player needs to see there.
+            else if (isPremoveSquare) bg = CHECKERS_BOARD_COLORS.premove;
             else if (isLastMoveSquare)
               bg = dark ? CHECKERS_BOARD_COLORS.lastMoveDark : CHECKERS_BOARD_COLORS.lastMoveLight;
 
@@ -426,8 +533,22 @@ function CheckersBoardInner({
                     {String.fromCharCode(97 + boardCol)}
                   </Text>
                 )}
+                {/* Premove candidates — dimmer than the legal-move dots,
+                    because these are squares the move may be aimed at, not
+                    moves known to be playable. */}
+                {dark && isValidDest && premoveMode && (
+                  <View
+                    style={{
+                      width: sq * 0.22,
+                      height: sq * 0.22,
+                      borderRadius: sq * 0.11,
+                      opacity: 0.55,
+                      backgroundColor: CHECKERS_BOARD_COLORS.premoveHint,
+                    }}
+                  />
+                )}
                 {/* Legal-move dot on an empty destination. */}
-                {dark && isValidDest && !piece && (
+                {dark && isValidDest && !premoveMode && !piece && (
                   <View
                     style={{
                       width: sq * 0.28,
@@ -438,7 +559,7 @@ function CheckersBoardInner({
                   />
                 )}
                 {/* Capture ring (defensive — checkers lands on empty squares). */}
-                {dark && isValidDest && piece && (
+                {dark && isValidDest && !premoveMode && piece && (
                   <View
                     style={{
                       position: 'absolute',

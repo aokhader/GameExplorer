@@ -19,6 +19,13 @@ const DARK_BOARD_COLORS = {
   // Legal-move hints glow teal on the dark board (was dark-on-light).
   moveIndicator: 'rgba(34,211,170,0.85)',
   moveIndicatorCapture: 'rgba(34,211,170,0.55)',
+  /**
+   * Queued premove — violet, deliberately outside the gold last-move / teal
+   * legal-move families: "what I've asked for" must never read as "what just
+   * happened" or "what I can do now". Web pairs these with `--gx-board-premove`.
+   */
+  premove: 'rgba(139,92,246,0.55)',
+  premoveHint: 'rgba(139,92,246,0.75)',
   /** Board frame. Web reads `--gx-board-frame`; native draws a real border. */
   frame: '#2b3652',
 } as const;
@@ -36,6 +43,10 @@ const COZY_BOARD_COLORS = {
   lastMoveDark: 'rgba(47,110,78,0.50)',
   moveIndicator: 'rgba(47,110,78,0.65)',
   moveIndicatorCapture: 'rgba(47,110,78,0.50)',
+  // Slate blue rather than Arcade's violet: on walnut it stays clearly apart
+  // from the green "your move" family without going neon.
+  premove: 'rgba(45,90,140,0.50)',
+  premoveHint: 'rgba(45,90,140,0.70)',
   frame: '#6e4a2a',
 } as const;
 

@@ -190,6 +190,10 @@
   --gx-board-move:           rgba(34, 211, 170, 0.85);
   --gx-board-move-capture:   rgba(34, 211, 170, 0.55);
   --gx-board-turn-glow:      0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(59,130,246,0.6), 0 0 30px -2px rgba(59,130,246,0.55);
+  /* Queued (pre)move — deliberately a different hue from the last-move gold, so
+     "what I've asked for" never reads as "what just happened". */
+  --gx-board-premove:        rgba(139, 92, 246, 0.55);
+  --gx-board-premove-hint:   rgba(139, 92, 246, 0.75);
 
   --gx-checkers-board-light:          #445576;
   --gx-checkers-board-dark:           #2a3550;
@@ -200,6 +204,8 @@
   --gx-checkers-board-move:           rgba(236, 72, 153, 0.85);
   --gx-checkers-board-capture:        rgba(236, 72, 153, 0.75);
   --gx-checkers-board-turn-glow:      0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(236,72,153,0.6), 0 0 30px -2px rgba(236,72,153,0.5);
+  --gx-checkers-board-premove:        rgba(139, 92, 246, 0.55);
+  --gx-checkers-board-premove-hint:   rgba(139, 92, 246, 0.75);
 
   --gx-reversi-board-cell:        #12503a;
   --gx-reversi-board-cell-border: rgba(0, 0, 0, 0.35);
@@ -444,6 +450,10 @@
   --gx-board-move:           rgba(47, 110, 78, 0.65);
   --gx-board-move-capture:   rgba(47, 110, 78, 0.50);
   --gx-board-turn-glow:      0 12px 28px -6px rgba(60,40,20,0.35), 0 0 0 2px rgba(47,110,78,0.75);
+  /* Slate blue rather than Arcade's violet: on walnut it stays clearly apart
+     from the green "your move" family without going neon. */
+  --gx-board-premove:        rgba(45, 90, 140, 0.50);
+  --gx-board-premove-hint:   rgba(45, 90, 140, 0.70);
 
   --gx-checkers-board-light:          #e7c9a0;
   --gx-checkers-board-dark:           #a9743f;
@@ -454,6 +464,8 @@
   --gx-checkers-board-move:           rgba(47, 110, 78, 0.85);
   --gx-checkers-board-capture:        rgba(47, 110, 78, 0.90);
   --gx-checkers-board-turn-glow:      0 12px 28px -6px rgba(60,40,20,0.35), 0 0 0 2px rgba(47,110,78,0.75);
+  --gx-checkers-board-premove:        rgba(45, 90, 140, 0.50);
+  --gx-checkers-board-premove-hint:   rgba(45, 90, 140, 0.70);
 
   --gx-reversi-board-cell:        #2f6e4e;
   --gx-reversi-board-cell-border: rgba(0, 0, 0, 0.28);

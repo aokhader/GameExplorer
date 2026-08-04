@@ -62,6 +62,10 @@ export default function ChessPlayPage() {
             gameState={chessState}
             onMove={handleMove}
             playerColor={s.myColor ?? 'white'}
+            // Queue a move while the opponent thinks — worth most here, where
+            // the clock is running. Only in a live game: with no active game
+            // there is no turn to premove against.
+            allowPremoves={s.status === 'active'}
           />
         )
       }

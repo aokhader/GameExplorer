@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChessEngine, ChessGameState, Position, Piece, PieceType } from '@gameexplorer/shared';
+import {
+  ChessEngine,
+  ChessGameState,
+  Position,
+  Piece,
+  PieceType,
+  getChessPremoveDestinations,
+  isChessPremoveLegal,
+  isChessPremovePromotion,
+  type ChessPremove,
+} from '@gameexplorer/shared';
 import { ChessPiece } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { useGameSfx } from '@/hooks/useGameSfx';
@@ -37,12 +47,30 @@ interface ChessBoardProps {
    * instead of running getAllLegalMoves() on the main thread.
    */
   legalMovesMap?: Map<Position, Position[]>;
+  /**
+   * Let the player queue a move during the opponent's turn, played the moment
+   * the turn comes back (dropped if the position made it illegal). Only for
+   * screens with one human and an asynchronous opponent — online games and bot
+   * games. Leave off for pass-and-play, analysis and spectating, where
+   * `playerColor` is board orientation rather than "the side I own".
+   */
+  allowPremoves?: boolean;
 }
 
 interface PendingPromotion {
   from: Position;
   to: Position;
+  /** Choosing for a queued premove rather than a move being played now. */
+  isPremove?: boolean;
 }
+
+/**
+ * Beat between the opponent's move landing and a queued premove firing. Reads
+ * as instant while leaving the arriving move a frame to paint — and it lets the
+ * parent's own post-move state (e.g. the bot page clearing "thinking") settle
+ * before the premove is offered to it.
+ */
+const PREMOVE_FIRE_DELAY_MS = 90;
 
 // Promotion picker — shown as an overlay on the board when a pawn reaches the back rank
 function PromotionPicker({
@@ -157,6 +185,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   onSquareClick,
   allowSelectAnyColor = false,
   legalMovesMap,
+  allowPremoves = false,
 }: ChessBoardProps) {
   // ── Optimistic state ───────────────────────────────────────────────────────
   // Applied immediately on move confirmation via executeMove(skipGameEndCheck=true).
@@ -184,6 +213,8 @@ export const ChessBoard = React.memo(function ChessBoard({
   const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
   // Square that briefly shakes after an illegal drop (visceral "no" feedback).
   const [shakeSquare, setShakeSquare] = useState<Position | null>(null);
+  // Move queued during the opponent's turn, waiting for the turn to come back.
+  const [premove, setPremoveState] = useState<ChessPremove | null>(null);
   // Destination square of the latest capture — drives a quick impact flash.
   const [captureFlash, setCaptureFlash] = useState<Position | null>(null);
 
@@ -201,6 +232,13 @@ export const ChessBoard = React.memo(function ChessBoard({
   const kingInCheckPos = effectiveState.isCheck
     ? findKing(effectiveState.board, effectiveState.currentTurn)
     : null;
+  // Premove mode: the opponent is on the clock, so a piece pick queues a move
+  // instead of playing one. `effectiveState` is used deliberately — right after
+  // our own optimistic move the turn has already flipped, which is exactly when
+  // a player wants to line the next one up.
+  const premoveMode =
+    allowPremoves && !editMode && !allowSelectAnyColor && !gameOver &&
+    effectiveState.currentTurn !== playerColor;
 
   const boardRef  = useRef<HTMLDivElement>(null);
   const ghostRef  = useRef<HTMLDivElement>(null);
@@ -209,6 +247,23 @@ export const ChessBoard = React.memo(function ChessBoard({
   draggingRef.current = dragging;
   const dragMovesRef = useRef<Position[]>([]);
   const isFlipped = playerColor === 'black';
+  // Read at fire time, not closure time: the premove lands a tick after the
+  // parent re-rendered with the opponent's move, and its handler may only
+  // accept the move in that newer render (the bot page clears `isThinking`
+  // there). Same reason `premoveRef` exists — the fire timer must see the
+  // queue as it is when it runs.
+  const onMoveRef = useRef(onMove);
+  onMoveRef.current = onMove;
+  // Render-synced position, for the same reason: by the time the fire timer
+  // runs, the optimistic copy from our previous move has been discarded and
+  // this ref holds the position the premove must actually be applied to.
+  const effectiveStateRef = useRef(effectiveState);
+  effectiveStateRef.current = effectiveState;
+  const premoveRef = useRef<ChessPremove | null>(premove);
+  const setPremove = (p: ChessPremove | null) => {
+    premoveRef.current = p;
+    setPremoveState(p);
+  };
 
   // Trigger the arrival pop-animation + sound whenever the move list grows.
   // Covers both the player's optimistic move and the opponent/bot's move.
@@ -238,6 +293,14 @@ export const ChessBoard = React.memo(function ChessBoard({
     setValidMoves([]);
   }, [editMode]);
 
+  // A selection made under one turn means something different under the next
+  // (premove candidates vs legal moves), so it never carries over.
+  useEffect(() => {
+    setSelectedSquare(null);
+    setValidMoves([]);
+    dragMovesRef.current = [];
+  }, [gameState.currentTurn]);
+
   const handleSquareClick = (position: Position) => {
     if (editMode) {
       onSquareClick?.(position);
@@ -247,11 +310,18 @@ export const ChessBoard = React.memo(function ChessBoard({
     if (pendingPromotion) return;
 
     const piece = effectiveState.board[getRow(position)][getCol(position)];
-    const canSelect = allowSelectAnyColor ? !!piece : !!(piece && piece.color === effectiveState.currentTurn);
+    // In premove mode the selectable pieces are the player's own, not the side
+    // to move — the whole point is acting out of turn.
+    const canSelect = allowSelectAnyColor
+      ? !!piece
+      : premoveMode
+        ? !!(piece && piece.color === playerColor)
+        : !!(piece && piece.color === effectiveState.currentTurn);
 
     if (selectedSquare) {
       if (validMoves.includes(position)) {
-        attemptMove(selectedSquare, position);
+        if (premoveMode) queuePremove(selectedSquare, position);
+        else attemptMove(selectedSquare, position);
         setSelectedSquare(null);
         setValidMoves([]);
       } else if (canSelect) {
@@ -259,10 +329,15 @@ export const ChessBoard = React.memo(function ChessBoard({
       } else {
         setSelectedSquare(null);
         setValidMoves([]);
+        // A click that neither aims nor re-picks is how a queued premove is
+        // taken back (right-click on the board does it too).
+        if (premoveRef.current) setPremove(null);
       }
     } else {
       if (canSelect) {
         selectPiece(position);
+      } else if (premoveRef.current) {
+        setPremove(null);
       }
     }
   };
@@ -280,8 +355,12 @@ export const ChessBoard = React.memo(function ChessBoard({
       return;
     }
 
+    // Ref, not the render value: a premove fires from a timer, one render after
+    // the one that scheduled it.
+    const state = effectiveStateRef.current;
+
     // Check pawn promotion with a simple coordinate test — no engine call needed.
-    const piece = effectiveState.board[getRow(from)][getCol(from)];
+    const piece = state.board[getRow(from)][getCol(from)];
     if (piece?.type === 'pawn' && !promotionPiece) {
       const toRow = parseInt(to[1]) - 1;
       const isPromotion = (piece.color === 'white' && toRow === 7) ||
@@ -295,16 +374,69 @@ export const ChessBoard = React.memo(function ChessBoard({
     // Apply move optimistically for zero-latency visual feedback.
     // skipGameEndCheck=true skips the expensive getAllLegalMoves scan for
     // checkmate/stalemate — the parent handles that via full validateMove.
-    const optimistic = ChessEngine.executeMove(effectiveState, from, to, true, promotionPiece);
+    const optimistic = ChessEngine.executeMove(state, from, to, true, promotionPiece);
     setOptimisticState(optimistic);
-    onMove(from, to, promotionPiece);
+    onMoveRef.current(from, to, promotionPiece);
+  };
+
+  /**
+   * Queue a move for the moment the turn comes back. A promotion is settled now
+   * rather than on arrival — the picker mid-flight would cost the player the
+   * time the premove was meant to save.
+   */
+  const queuePremove = (from: Position, to: Position, promotionPiece?: PieceType) => {
+    if (!promotionPiece && isChessPremovePromotion(effectiveState, from, to)) {
+      setPendingPromotion({ from, to, isPremove: true });
+      return;
+    }
+    setPremove({ from, to, promotion: promotionPiece });
+    sfx.play('select');
   };
 
   const handlePromotionSelect = (piece: PieceType) => {
     if (!pendingPromotion) return;
-    attemptMove(pendingPromotion.from, pendingPromotion.to, piece);
+    if (pendingPromotion.isPremove) queuePremove(pendingPromotion.from, pendingPromotion.to, piece);
+    else attemptMove(pendingPromotion.from, pendingPromotion.to, piece);
     setPendingPromotion(null);
   };
+
+  // ── Premove firing ─────────────────────────────────────────────────────────
+  // Runs off the confirmed `gameState`, never the optimistic copy: the queue is
+  // only ever released by a position the parent actually stands behind.
+  useEffect(() => {
+    const queued = premoveRef.current;
+    if (!queued) return;
+
+    if (!allowPremoves) { setPremove(null); return; }
+    // Still the opponent's move — keep waiting.
+    if (gameState.currentTurn !== playerColor) return;
+
+    const t = setTimeout(() => {
+      const pm = premoveRef.current;
+      if (!pm) return;
+      setPremove(null);
+      if (isChessPremoveLegal(gameState, pm)) {
+        attemptMove(pm.from, pm.to, pm.promotion);
+      } else {
+        // The opponent's move made it impossible — say so and hand the turn
+        // back rather than silently swallowing the player's intent.
+        sfx.play('illegal');
+        setShakeSquare(pm.from);
+        setTimeout(() => setShakeSquare(null), 350);
+      }
+    }, PREMOVE_FIRE_DELAY_MS);
+    return () => clearTimeout(t);
+  // attemptMove/sfx are re-created every render; the position and who owns it
+  // are what should re-arm this.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, playerColor, allowPremoves]);
+
+  // Drop a stale queue when the board stops being a premove surface at all
+  // (game over, mode switch, board handed to another player).
+  useEffect(() => {
+    if (!premoveRef.current) return;
+    if (!allowPremoves || editMode || allowSelectAnyColor || gameOver) setPremove(null);
+  }, [allowPremoves, editMode, allowSelectAnyColor, gameOver]);
 
   /**
    * Select a piece and show its legal destinations.
@@ -316,7 +448,11 @@ export const ChessBoard = React.memo(function ChessBoard({
     setSelectedSquare(position);
 
     let moves: Position[];
-    if (legalMovesMap && !allowSelectAnyColor) {
+    if (premoveMode) {
+      // Not legal moves — candidate squares for a position that doesn't exist
+      // yet. See the premove module in @gameexplorer/shared.
+      moves = getChessPremoveDestinations(effectiveState, position);
+    } else if (legalMovesMap && !allowSelectAnyColor) {
       // O(1) — precomputed by parent, no engine call here
       moves = legalMovesMap.get(position) ?? [];
     } else {
@@ -348,8 +484,14 @@ export const ChessBoard = React.memo(function ChessBoard({
     return getPositionFromCoords(displayRow, displayCol);
   };
 
+  /** Pieces this board will let the pointer pick up right now. */
+  const canGrab = (piece: Piece): boolean => {
+    if (editMode || allowSelectAnyColor) return false;
+    return premoveMode ? piece.color === playerColor : piece.color === effectiveState.currentTurn;
+  };
+
   const handlePiecePointerDown = (position: Position, piece: Piece) => (e: React.PointerEvent) => {
-    if (editMode || allowSelectAnyColor || piece.color !== effectiveState.currentTurn) return;
+    if (!canGrab(piece)) return;
     if (e.button !== 0) return; // left-click only
     e.preventDefault();
 
@@ -391,7 +533,8 @@ export const ChessBoard = React.memo(function ChessBoard({
 
     const target = getSquareAtPoint(e.clientX, e.clientY);
     if (target && target !== drag.from && !editMode && dragMovesRef.current.includes(target)) {
-      attemptMove(drag.from, target);
+      if (premoveMode) queuePremove(drag.from, target);
+      else attemptMove(drag.from, target);
       setSelectedSquare(null);
       setValidMoves([]);
     } else if (target !== drag.from) {
@@ -438,6 +581,7 @@ export const ChessBoard = React.memo(function ChessBoard({
         const justArrived = lastMoveTo === position;
         const isCheckKing = kingInCheckPos === position;
         const isShaking = shakeSquare === position;
+        const isPremoveSquare = !!premove && (premove.from === position || premove.to === position);
 
         squares.push(
           <div
@@ -449,6 +593,7 @@ export const ChessBoard = React.memo(function ChessBoard({
               ${isValidMove ? 'valid-move' : ''}
               ${isDragging ? 'dragging' : ''}
               ${isLastMoveSquare ? 'last-move' : ''}
+              ${isPremoveSquare ? 'premove' : ''}
             `}
             onClick={() => handleSquareClick(position)}
           >
@@ -459,7 +604,8 @@ export const ChessBoard = React.memo(function ChessBoard({
               <div className="file-label">{String.fromCharCode(97 + displayCol)}</div>
             )}
 
-            {isValidMove && (!editMode || allowSelectAnyColor) && (
+            {isValidMove && premoveMode && <div className="premove-indicator" />}
+            {isValidMove && !premoveMode && (!editMode || allowSelectAnyColor) && (
               <div className={`move-indicator ${piece ? 'capture' : 'empty'}`} />
             )}
 
@@ -469,11 +615,7 @@ export const ChessBoard = React.memo(function ChessBoard({
             {piece && (
               <div
                 className={`piece${justArrived ? ' just-arrived' : ''}${isShaking ? ' shake' : ''}`}
-                onPointerDown={
-                  !editMode && piece.color === effectiveState.currentTurn
-                    ? handlePiecePointerDown(position, piece)
-                    : undefined
-                }
+                onPointerDown={canGrab(piece) ? handlePiecePointerDown(position, piece) : undefined}
               >
                 <ChessPiece type={piece.type} color={piece.color} size="100%" />
               </div>
@@ -497,6 +639,13 @@ export const ChessBoard = React.memo(function ChessBoard({
           onPointerMove={handleBoardPointerMove}
           onPointerUp={handleBoardPointerUp}
           onPointerCancel={handleBoardPointerCancel}
+          // Right-click anywhere takes back a queued premove — the shortcut
+          // players expect, and the only one that works mid-drag.
+          onContextMenu={(e) => {
+            if (!premoveRef.current) return;
+            e.preventDefault();
+            setPremove(null);
+          }}
         >
           {renderBoard()}
         </div>

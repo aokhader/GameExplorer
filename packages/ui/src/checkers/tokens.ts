@@ -19,6 +19,10 @@ const DARK_CHECKERS_BOARD_COLORS = {
   lastMoveDark:  'rgba(205,164,63,0.52)',
   moveIndicator: 'rgba(236,72,153,0.85)',   // pink hint on the dark board
   captureIndicator: 'rgba(236,72,153,0.75)',
+  // Queued premove — violet, outside both the gold last-move and pink hint
+  // families so a pending intent never reads as either.
+  premove: 'rgba(139,92,246,0.55)',
+  premoveHint: 'rgba(139,92,246,0.75)',
   frame: '#2b3652',
 };
 
@@ -31,6 +35,8 @@ const COZY_CHECKERS_BOARD_COLORS = {
   lastMoveDark:  'rgba(47,110,78,0.50)',
   moveIndicator: 'rgba(47,110,78,0.85)',
   captureIndicator: 'rgba(47,110,78,0.90)',
+  premove: 'rgba(45,90,140,0.50)',
+  premoveHint: 'rgba(45,90,140,0.70)',
   frame: '#6e4a2a',
 };
 

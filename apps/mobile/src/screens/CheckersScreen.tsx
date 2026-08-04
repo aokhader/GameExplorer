@@ -434,6 +434,10 @@ export function CheckersScreen() {
             playerColor={boardColor}
             interactive={interactive}
             hintMove={isAtLive ? game.hintMove : null}
+            // Line up a reply while the bot thinks. Pass-and-play has no
+            // "opponent's turn" to queue against — both sides are this device.
+            // Note this is the player's SIDE, not `boardColor` (orientation).
+            premoveColor={isPassAndPlay ? undefined : playerColor}
           />
         }
         bottomCard={
