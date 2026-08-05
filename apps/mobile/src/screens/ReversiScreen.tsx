@@ -14,8 +14,10 @@ import { ReversiBoard } from '@/board/ReversiBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
-import { OpponentPicker } from '@/game/OpponentPicker';
+import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
+import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
+import { LearnLink } from '@/game/LearnLink';
 import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
 import { TrainingSetup } from '@/game/TrainingSetup';
@@ -72,7 +74,7 @@ export function ReversiScreen() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
 
-  const [mode, setMode] = useState<LocalGameMode>('bot');
+  const [mode, setMode] = useState<SetupMode>('bot');
   const [targetElo, setTargetElo] = useState(1100);
   const [playerColor, setPlayerColor] = useState<ReversiColor>('black');
   const [rated, setRated] = useState(true);
@@ -84,6 +86,14 @@ export function ReversiScreen() {
   const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
   const isTraining = mode === 'training';
+  // Puzzles configure nothing and start no game — the whole setup below collapses
+  // to one card and the Start button becomes a link.
+  const isPuzzles = mode === 'puzzles';
+  // The plain-bot knobs: training picks strength and rating for you, and neither
+  // pass-and-play nor puzzles has either.
+  const isBotSetup = mode === 'bot';
+  // Colour is picked in both bot modes.
+  const picksColor = mode === 'bot' || mode === 'training';
   // Rated needs connectivity at game start (offline semantics — mobile plan).
   // Training is rated by definition, so it has no toggle — signed in + online
   // is exactly what it requires, and the setup panel says so when it's missing.
@@ -91,9 +101,14 @@ export function ReversiScreen() {
     ? !!userId && online
     : rated && !!userId && !isPassAndPlay && online;
 
+  // Puzzles leave through the router rather than through `started`, so this hook
+  // only ever sees a real game mode; 'bot' is the inert stand-in while the
+  // picker is sitting on Puzzles.
+  const gameMode: LocalGameMode = isPuzzles ? 'bot' : mode;
+
   const game = useLocalGame<ReversiGameState>({
     adapter: reversiAdapter,
-    mode,
+    mode: gameMode,
     playerColor,
     targetElo,
     rated: ratedEffective,
@@ -137,19 +152,11 @@ export function ReversiScreen() {
         <BackHeader fallbackHref="/" />
         <SetupHero game="reversi" />
 
-        <Pressable
-          onPress={() => router.push('/learn/reversi' as never)}
-          accessibilityRole="link"
-          accessibilityLabel="How to play reversi"
-          hitSlop={8}
-          style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
-        >
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: GAME_ACCENTS.reversi.base }}>
-            New to Reversi? How to play →
-          </Text>
-        </Pressable>
+        <LearnLink game="reversi" label="New to Reversi? How to play →" />
 
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.reversi.base} tint={GAME_ACCENTS.reversi.tintBg} />
+
+        {isPuzzles && <PuzzlesCard game="reversi" />}
 
         {isTraining && (
           <TrainingSetup
@@ -162,7 +169,7 @@ export function ReversiScreen() {
           />
         )}
 
-        {!isPassAndPlay && !isTraining && (
+        {isBotSetup && (
           <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Bot strength
@@ -203,7 +210,7 @@ export function ReversiScreen() {
 
         {/* Colour is picked in both bot modes — training just doesn't choose the
             bot's strength. */}
-        {!isPassAndPlay && (
+        {picksColor && (
           <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Your color
@@ -262,7 +269,7 @@ export function ReversiScreen() {
 
         {/* Rated toggle — needs a signed-in account (rating reads/writes).
             Training has no toggle: it's always rated. */}
-        {!isPassAndPlay && !isTraining && (
+        {isBotSetup && (
           <View
             style={{
               flexDirection: 'row',
@@ -301,8 +308,10 @@ export function ReversiScreen() {
         )}
 
         <Button
-          label={isTraining ? 'Start Rated Game' : 'Start Game'}
-          onPress={() => setStarted(true)}
+          label={isPuzzles ? 'Start Puzzles' : isTraining ? 'Start Rated Game' : 'Start Game'}
+          onPress={
+            isPuzzles ? () => router.push('/puzzles/reversi' as never) : () => setStarted(true)
+          }
           disabled={!canStart}
           glow
         />

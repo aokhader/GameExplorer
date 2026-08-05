@@ -16,13 +16,18 @@ import {
   EMPTY_PROGRESS,
   applyOpponentReply,
   applyPlayerMove,
+  applyRefutation,
   clearGame,
+  describeRefutation,
+  displayState,
   hintFor,
+  isAtLive,
   markHintUsed,
   puzzleRulesFor,
   recordSeen,
   recordSolved,
   retryPuzzle,
+  seekPuzzle,
   solvedCount,
   startPuzzle,
 } from '@gameexplorer/shared';
@@ -33,12 +38,23 @@ import type {
   PuzzlePhase,
   PuzzleProgress,
   PuzzleProgressStore,
+  PuzzleRefutation,
   PuzzleRun,
   PuzzleSource,
 } from '@gameexplorer/shared';
 
 /** Long enough to read as a reply, short enough not to feel like waiting. */
 const DEFAULT_REPLY_DELAY_MS = 450;
+
+/**
+ * Gap between "Not quite" and the refutation search.
+ *
+ * One frame, near enough. `applyRefutation` runs a synchronous minimax that
+ * blocks the thread — a few milliseconds for checkers and reversi but tens for
+ * chess — so the feedback has to be painted before it starts, or the board
+ * appears to hang on the player's mistake.
+ */
+const REFUTATION_DELAY_MS = 60;
 
 export interface UsePuzzleOptions {
   game: PuzzleGame;
@@ -62,7 +78,19 @@ export interface UsePuzzleResult<S> {
   total: number;
   /** The hint move, once asked for. Cleared on every step and retry. */
   hint: PuzzleMove | null;
+  /** The position to draw — history or refutation branch, not always the live one. */
+  board: S | null;
+  viewIndex: number;
+  /** How many positions the board can step through. */
+  timelineLength: number;
+  /** False while the player is looking back through the line. */
+  atLive: boolean;
+  /** Why the last move failed, once the search has run. Null while it is running. */
+  refutation: PuzzleRefutation | null;
+  /** That same finding as one sentence, shared with the other platform. */
+  refutationText: string | null;
   playMove: (move: PuzzleMove) => void;
+  seek: (index: number) => void;
   retry: () => void;
   next: () => void;
   showHint: () => void;
@@ -165,6 +193,23 @@ export function usePuzzle<S>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run?.phase, run?.stepIndex, replyDelayMs]);
 
+  // -- why the wrong move fails ----------------------------------------------
+  useEffect(() => {
+    if (!run || run.phase !== 'wrong' || run.refutation !== null) return;
+
+    const timer = setTimeout(() => {
+      // Computed OUTSIDE the updater on purpose. A state updater must be pure
+      // and React runs it twice under StrictMode — which for a search means
+      // paying for it twice. The identity check is what makes the late write
+      // safe if the player hit Retry while chess was thinking.
+      const next = applyRefutation(run, rules);
+      setRun((current) => (current === run ? next : current));
+    }, REFUTATION_DELAY_MS);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run]);
+
   // -- bank the solve --------------------------------------------------------
   useEffect(() => {
     if (run?.phase !== 'solved' || !puzzle) return;
@@ -190,6 +235,10 @@ export function usePuzzle<S>({
     },
     [rules],
   );
+
+  const seek = useCallback((index: number) => {
+    setRun((current) => (current ? seekPuzzle(current, index) : current));
+  }, []);
 
   const retry = useCallback(() => {
     setRun((current) => (current ? retryPuzzle(current, rules) : current));
@@ -228,7 +277,14 @@ export function usePuzzle<S>({
     solved: solvedCount(progress, game),
     total,
     hint,
+    board: run ? displayState(run) : null,
+    viewIndex: run?.viewIndex ?? 0,
+    timelineLength: run?.timeline.length ?? 0,
+    atLive: run ? isAtLive(run) : true,
+    refutation: run?.refutation ?? null,
+    refutationText: run ? describeRefutation(run) : null,
     playMove,
+    seek,
     retry,
     next,
     showHint,

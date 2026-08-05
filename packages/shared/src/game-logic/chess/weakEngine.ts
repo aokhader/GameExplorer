@@ -286,6 +286,67 @@ export function getBestMoveWeak(
   return withPromotion(state, bestMove);
 }
 
+/** A scored look at one position — what review and puzzles need, unlike the bot. */
+export interface ChessPositionEval {
+  /**
+   * White-positive: > 0 means White stands better, in centipawns. Note this is
+   * already the convention `minimax` works in here (it maximises for White), so
+   * unlike reversi's analyzer there is no sign flip — but the field means the
+   * same thing in all three games.
+   */
+  score: number;
+  /** Best move for the side to move, or null in a finished position. */
+  bestMove: WeakEngineMove | null;
+  /** True when the score is a decided result rather than a heuristic. */
+  terminal: boolean;
+}
+
+/**
+ * Full-strength search returning the SCORE as well as the move — the
+ * counterpart to `getBestMoveElo`, which deliberately hides both (it blunders
+ * and adds noise on purpose to hit a target ELO).
+ *
+ * No blunder chance and no eval noise, so the same position always answers the
+ * same way. That matters twice over: review would otherwise grade a move
+ * differently each time it was opened, and the puzzle runtime calls this to
+ * refute a wrong move — an answer that changed between attempts would teach
+ * the player nothing.
+ *
+ * Mirrors `analyzeCheckersPosition` / `analyzeReversiPosition`. Depth 4 is a
+ * few plies of tactics, which is what "here is why that fails" needs; it is
+ * not a substitute for Arasan on the analysis screen.
+ */
+export function analyzeChessPosition(state: ChessGameState, depth = 4): ChessPositionEval {
+  if (state.isCheckmate) {
+    // The side to move is the one mated.
+    const score = state.currentTurn === 'white' ? -CHECKMATE_SCORE : CHECKMATE_SCORE;
+    return { score, bestMove: null, terminal: true };
+  }
+  if (state.isStalemate || state.isDraw) return { score: 0, bestMove: null, terminal: true };
+
+  const legalMoves = ChessEngine.getAllLegalMoves(state);
+  if (legalMoves.length === 0) return { score: 0, bestMove: null, terminal: true };
+
+  const isMaximizing = state.currentTurn === 'white';
+  let bestMove = legalMoves[0];
+  let bestScore = isMaximizing ? -Infinity : Infinity;
+
+  for (const move of orderMoves(state, legalMoves)) {
+    const next = ChessEngine.executeMove(state, move.from, move.to, false, 'queen');
+    const score = minimax(next, depth - 1, -Infinity, Infinity, !isMaximizing, 0);
+    if (isMaximizing ? score > bestScore : score < bestScore) {
+      bestScore = score;
+      bestMove = move;
+    }
+  }
+
+  return {
+    score: bestScore,
+    bestMove: withPromotion(state, bestMove),
+    terminal: Math.abs(bestScore) >= CHECKMATE_SCORE,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Continuous ELO-based engine (400 – 1399)
 // ---------------------------------------------------------------------------

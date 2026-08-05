@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   applyOpponentReply,
   applyPlayerMove,
+  applyRefutation,
+  describeRefutation,
+  displayState,
   hintFor,
+  isAtLive,
   markHintUsed,
   retryPuzzle,
+  seekPuzzle,
   startPuzzle,
 } from './runtime';
 import { chessPuzzleRules, checkersPuzzleRules, reversiPuzzleRules } from './rules';
@@ -269,5 +274,154 @@ describe('reversi in the loop', () => {
   it('calls the losing corner wrong', () => {
     const run = startPuzzle<ReversiGameState>(REVERSI_PARITY, reversiPuzzleRules);
     expect(applyPlayerMove(run, reversiPuzzleRules, { from: 'a1', to: 'a1' }).result).toBe('wrong');
+  });
+});
+
+describe('the timeline', () => {
+  it('grows by one position per ply and keeps the board on the newest', () => {
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    expect(run.timeline).toHaveLength(1);
+    expect(isAtLive(run)).toBe(true);
+
+    run = applyPlayerMove(run, chessPuzzleRules, { from: 'b2', to: 'b8' }).run;
+    expect(run.timeline).toHaveLength(2);
+    run = applyOpponentReply(run, chessPuzzleRules);
+    expect(run.timeline).toHaveLength(3);
+    expect(run.mainLength).toBe(3);
+    expect(run.viewIndex).toBe(2);
+    expect(displayState(run)).toBe(run.state);
+  });
+
+  it('holds the invariant that state is the end of the main line', () => {
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    run = applyPlayerMove(run, chessPuzzleRules, { from: 'b2', to: 'b8' }).run;
+    run = applyOpponentReply(run, chessPuzzleRules);
+    // A refutation branch runs PAST the main line without disturbing it.
+    run = applyRefutation(
+      applyPlayerMove(run, chessPuzzleRules, { from: 'g1', to: 'h1' }).run,
+      chessPuzzleRules,
+    );
+    expect(run.timeline.length).toBeGreaterThan(run.mainLength);
+    expect(run.timeline[run.mainLength - 1]).toBe(run.state);
+  });
+
+  it('seeks within bounds and refuses input off the live position', () => {
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    run = applyPlayerMove(run, chessPuzzleRules, { from: 'b2', to: 'b8' }).run;
+    run = applyOpponentReply(run, chessPuzzleRules);
+
+    expect(seekPuzzle(run, -5).viewIndex).toBe(0);
+    expect(seekPuzzle(run, 99).viewIndex).toBe(2);
+
+    const back = seekPuzzle(run, 0);
+    expect(isAtLive(back)).toBe(false);
+    // The board is showing the opening position; a move played on it would be
+    // a move in a position the player is no longer in.
+    expect(applyPlayerMove(back, chessPuzzleRules, { from: 'b1', to: 'b8' }).result).toBe('ignored');
+  });
+
+  it('drops the branch on retry', () => {
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    run = applyRefutation(
+      applyPlayerMove(run, chessPuzzleRules, { from: 'b1', to: 'a1' }).run,
+      chessPuzzleRules,
+    );
+    expect(run.timeline.length).toBeGreaterThan(1);
+
+    run = retryPuzzle(run, chessPuzzleRules);
+    expect(run.timeline).toHaveLength(1);
+    expect(run.mainLength).toBe(1);
+    expect(run.viewIndex).toBe(0);
+    expect(run.refutation).toBeNull();
+  });
+});
+
+describe('refuting a wrong move', () => {
+  it('plays the punish out on the board and names it', () => {
+    // 1...Rb1–a1?? drops the rook: the a8 rook simply takes it.
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    run = applyPlayerMove(run, chessPuzzleRules, { from: 'b1', to: 'a1' }).run;
+    expect(run.refutation).toBeNull();
+
+    run = applyRefutation(run, chessPuzzleRules);
+    expect(run.refutation).toMatchObject({ refuted: true, legal: true });
+    expect(run.refutation!.reply).toEqual(expect.objectContaining({ from: 'a8', to: 'a1' }));
+    // Two plies past the line: the blunder, then the capture.
+    expect(run.timeline).toHaveLength(3);
+    expect(run.mainLength).toBe(1);
+    expect(describeRefutation(run)).toBe('After b1→a1, Black answers a8→a1 and you are worse.');
+  });
+
+  it('does not invent a punish for a move that merely fails to solve', () => {
+    // Kg1–h1 in the mate-in-two: White is still completely winning, so there
+    // is nothing for Black to "answer" with. Claiming a refutation here would
+    // teach the player something false — this is the case that made the
+    // absolute score threshold necessary rather than a drop from the solution.
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    run = applyRefutation(
+      applyPlayerMove(run, chessPuzzleRules, { from: 'g1', to: 'h1' }).run,
+      chessPuzzleRules,
+    );
+
+    expect(run.refutation).toMatchObject({ refuted: false, reply: null, legal: true });
+    // The move itself is still shown — one ply, not two.
+    expect(run.timeline).toHaveLength(2);
+    expect(describeRefutation(run)).toBe('g1→h1 is playable, but it does not force mate.');
+  });
+
+  it('says so when the move was not legal at all', () => {
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    run = applyRefutation(
+      applyPlayerMove(run, chessPuzzleRules, { from: 'b1', to: 'b7' }).run,
+      chessPuzzleRules,
+    );
+
+    expect(run.refutation).toMatchObject({ legal: false, refuted: false });
+    // Nothing to show, so the board stays where it was.
+    expect(run.timeline).toHaveLength(1);
+    expect(describeRefutation(run)).toBe('That move is not legal here.');
+  });
+
+  it('is a no-op once it has run, so a re-render cannot search twice', () => {
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    run = applyRefutation(
+      applyPlayerMove(run, chessPuzzleRules, { from: 'b1', to: 'a1' }).run,
+      chessPuzzleRules,
+    );
+    expect(applyRefutation(run, chessPuzzleRules)).toBe(run);
+  });
+
+  it('leaves a correct move alone', () => {
+    const run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    expect(applyRefutation(run, chessPuzzleRules)).toBe(run);
+    expect(describeRefutation(run)).toBeNull();
+  });
+
+  it('refutes for Black too, flipping the score with the player', () => {
+    // Reversi's scores are White-positive like the others, and the player here
+    // is Black — so a missing sign flip would report this as a fine move.
+    let run = startPuzzle<ReversiGameState>(REVERSI_PARITY, reversiPuzzleRules);
+    run = applyRefutation(
+      applyPlayerMove(run, reversiPuzzleRules, { from: 'a1', to: 'a1' }).run,
+      reversiPuzzleRules,
+    );
+
+    expect(run.refutation).toMatchObject({ refuted: true, legal: true });
+    expect(run.refutation!.score).toBeLessThan(0);
+    expect(describeRefutation(run)).toContain('White answers');
+  });
+
+  it('reads a checkers wrong move as a real position, not a rejection', () => {
+    // e2–d3 is legal here and is not the shot; whether the engine calls it
+    // refuted is its business, but the branch has to be a real position with a
+    // real sentence attached either way.
+    let run = startPuzzle<CheckersGameState>(CHECKERS_SHOT, checkersPuzzleRules);
+    run = applyRefutation(
+      applyPlayerMove(run, checkersPuzzleRules, { from: 'e2', to: 'd3' }).run,
+      checkersPuzzleRules,
+    );
+    expect(run.refutation?.legal).toBe(true);
+    expect(run.timeline.length).toBeGreaterThan(1);
+    expect(describeRefutation(run)).toContain('e2→d3');
   });
 });

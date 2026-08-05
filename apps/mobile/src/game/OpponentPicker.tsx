@@ -5,16 +5,27 @@ import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
 import type { LocalGameMode } from '@/engine/useLocalGame';
 
+/**
+ * What the setup screen can be configuring.
+ *
+ * Puzzles is a mode here but not a `LocalGameMode`: it doesn't run a game at
+ * all, so it never reaches `useLocalGame`. Picking it turns the Start button
+ * into a link to the puzzle route (see any of the three game screens). That
+ * split is deliberate — modelling it as a fourth `LocalGameMode` would put a
+ * value into that hook which none of its branches can answer for.
+ */
+export type SetupMode = LocalGameMode | 'puzzles';
+
 export interface OpponentPickerProps {
-  value: LocalGameMode;
-  onChange: (mode: LocalGameMode) => void;
+  value: SetupMode;
+  onChange: (mode: SetupMode) => void;
   /** Game accent for the selected tile (border + label). */
   accent: string;
   /** Translucent accent for the selected tile background. */
   tint: string;
 }
 
-const OPTIONS: { mode: LocalGameMode; icon: string; label: string; description: string }[] = [
+const OPTIONS: { mode: SetupMode; icon: string; label: string; description: string }[] = [
   { mode: 'bot', icon: '🤖', label: 'vs Bot', description: 'Challenge the computer' },
   {
     mode: 'training',
@@ -28,13 +39,19 @@ const OPTIONS: { mode: LocalGameMode; icon: string; label: string; description: 
     label: 'Pass & Play',
     description: 'Two players, one device',
   },
+  {
+    mode: 'puzzles',
+    icon: '🧩',
+    label: 'Puzzles',
+    description: 'Set positions, one answer',
+  },
 ];
 
 /**
- * Setup-screen mode selector — vs Bot, Training, or Pass & Play. Shared by all
- * three game screens so the tiles look identical; only the accent differs per
- * game. Three tiles don't fit one phone row, so they wrap 2-up like the bot
- * strength grid below them.
+ * Setup-screen mode selector — vs Bot, Training, Pass & Play, or Puzzles.
+ * Shared by all three game screens so the tiles look identical; only the accent
+ * differs per game. The tiles wrap 2-up like the bot strength grid below them,
+ * which the fourth option fills out into an even 2×2.
  */
 export function OpponentPicker({ value, onChange, accent, tint }: OpponentPickerProps) {
   // Repaint when the theme changes; the tokens below are live views.

@@ -7,11 +7,25 @@ const accent = GAME_ACCENTS.chess.base;
 const tint = GAME_ACCENTS.chess.tintBg;
 
 describe('OpponentPicker', () => {
-  it('renders all three modes and marks the current one selected', () => {
+  it('renders all four modes and marks the current one selected', () => {
     render(<OpponentPicker value="bot" onChange={() => {}} accent={accent} tint={tint} />);
     expect(screen.getByRole('button', { name: /vs Bot/ })).toBeSelected();
     expect(screen.getByRole('button', { name: /Training/ })).not.toBeSelected();
     expect(screen.getByRole('button', { name: /Pass & Play/ })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: /Puzzles/ })).not.toBeSelected();
+  });
+
+  it('selects puzzles, which is a mode here but not a game mode', () => {
+    const onChange = jest.fn();
+    render(<OpponentPicker value="bot" onChange={onChange} accent={accent} tint={tint} />);
+    fireEvent.press(screen.getByRole('button', { name: /Puzzles/ }));
+    expect(onChange).toHaveBeenCalledWith('puzzles');
+  });
+
+  it('shows puzzles as the selected tile when it is the value', () => {
+    render(<OpponentPicker value="puzzles" onChange={() => {}} accent={accent} tint={tint} />);
+    expect(screen.getByRole('button', { name: /Puzzles/ })).toBeSelected();
+    expect(screen.getByRole('button', { name: /vs Bot/ })).not.toBeSelected();
   });
 
   it('reports the tapped mode', () => {

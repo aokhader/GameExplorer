@@ -13,8 +13,10 @@ import { CheckersBoard } from '@/board/CheckersBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
-import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
+import { OpponentPicker, FlipBoardCard, type SetupMode } from '@/game/OpponentPicker';
+import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
+import { LearnLink } from '@/game/LearnLink';
 import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
 import { TrainingSetup } from '@/game/TrainingSetup';
@@ -68,7 +70,7 @@ export function CheckersScreen() {
   const userId = user?.id ?? null;
   const { settings } = useSettings();
 
-  const [mode, setMode] = useState<LocalGameMode>('bot');
+  const [mode, setMode] = useState<SetupMode>('bot');
   const [targetElo, setTargetElo] = useState(1100);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [rated, setRated] = useState(true);
@@ -83,6 +85,14 @@ export function CheckersScreen() {
   const online = useIsOnline();
   const isPassAndPlay = mode === 'pass-and-play';
   const isTraining = mode === 'training';
+  // Puzzles configure nothing and start no game — the whole setup below collapses
+  // to one card and the Start button becomes a link.
+  const isPuzzles = mode === 'puzzles';
+  // The plain-bot knobs: training picks strength and rating for you, and neither
+  // pass-and-play nor puzzles has either.
+  const isBotSetup = mode === 'bot';
+  // Colour is picked in both bot modes.
+  const picksColor = mode === 'bot' || mode === 'training';
   // Rated needs connectivity at game start (offline semantics — mobile plan).
   // Training is rated by definition, so it has no toggle — signed in + online
   // is exactly what it requires, and the setup panel says so when it's missing.
@@ -90,9 +100,14 @@ export function CheckersScreen() {
     ? !!userId && online
     : rated && !!userId && !isPassAndPlay && online;
 
+  // Puzzles leave through the router rather than through `started`, so this hook
+  // only ever sees a real game mode; 'bot' is the inert stand-in while the
+  // picker is sitting on Puzzles.
+  const gameMode: LocalGameMode = isPuzzles ? 'bot' : mode;
+
   const game = useLocalGame<CheckersGameState>({
     adapter: checkersAdapter,
-    mode,
+    mode: gameMode,
     playerColor,
     targetElo,
     rated: ratedEffective,
@@ -137,19 +152,11 @@ export function CheckersScreen() {
         <BackHeader fallbackHref="/" />
         <SetupHero game="checkers" />
 
-        <Pressable
-          onPress={() => router.push('/learn/checkers' as never)}
-          accessibilityRole="link"
-          accessibilityLabel="How to play checkers"
-          hitSlop={8}
-          style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
-        >
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: GAME_ACCENTS.checkers.base }}>
-            New to checkers? How to play →
-          </Text>
-        </Pressable>
+        <LearnLink game="checkers" label="New to checkers? How to play →" />
 
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.checkers.base} tint={GAME_ACCENTS.checkers.tintBg} />
+
+        {isPuzzles && <PuzzlesCard game="checkers" />}
 
         {isTraining && (
           <TrainingSetup
@@ -162,7 +169,7 @@ export function CheckersScreen() {
           />
         )}
 
-        {!isPassAndPlay && !isTraining && (
+        {isBotSetup && (
           <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Bot strength
@@ -203,7 +210,7 @@ export function CheckersScreen() {
 
         {/* Colour is picked in both bot modes — training just doesn't choose the
             bot's strength. */}
-        {!isPassAndPlay && (
+        {picksColor && (
           <>
             <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
               Your color
@@ -254,7 +261,7 @@ export function CheckersScreen() {
 
         {/* Rated toggle — needs a signed-in account (rating reads/writes).
             Training has no toggle: it's always rated. */}
-        {!isPassAndPlay && !isTraining && (
+        {isBotSetup && (
           <View
             style={{
               flexDirection: 'row',
@@ -292,8 +299,10 @@ export function CheckersScreen() {
         {isPassAndPlay && <FlipBoardCard />}
 
         <Button
-          label={isTraining ? 'Start Rated Game' : 'Start Game'}
-          onPress={() => setStarted(true)}
+          label={isPuzzles ? 'Start Puzzles' : isTraining ? 'Start Rated Game' : 'Start Game'}
+          onPress={
+            isPuzzles ? () => router.push('/puzzles/checkers' as never) : () => setStarted(true)
+          }
           disabled={!canStart}
           glow
         />

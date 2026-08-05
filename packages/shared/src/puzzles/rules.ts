@@ -2,17 +2,24 @@
  * The three games bound to the puzzle contract.
  *
  * Pure engine wiring — both apps import these, so neither platform carries a
- * rules file of its own. Nothing here reaches for an analyzer or a bot: a
- * puzzle's solution line is scripted and proved forced by the validation suite
- * at authoring time, so the solve loop is plain TypeScript on both platforms.
+ * rules file of its own.
+ *
+ * A puzzle's solution line is scripted and proved forced by the validation
+ * suite at authoring time, so **judging the player is plain TypeScript** on
+ * both platforms with no engine involved. The one analyzer binding below is
+ * used for the opposite job: explaining a wrong move by showing what the
+ * opponent would do to it. See `PuzzleRules.analyze`.
  */
 
 import { ChessEngine } from '../game-logic/chess/engine';
+import { analyzeChessPosition } from '../game-logic/chess/weakEngine';
 import { fenToState, stateToFen } from '../game-logic/chess/fen';
 import { parseUciMoveString, uciMoveString } from '../game-logic/chess/uci';
 import { CheckersEngine } from '../game-logic/checkers/engine';
+import { analyzeCheckersPosition } from '../game-logic/checkers/weakEngine';
 import { checkersFenToState, stateToCheckersFen } from '../game-logic/checkers/fen';
 import { ReversiEngine } from '../game-logic/reversi/engine';
+import { analyzeReversiPosition } from '../game-logic/reversi/weakEngine';
 import { boardStringToState, stateToBoardString } from '../game-logic/reversi/boardString';
 import type { ChessGameState } from '../types/chess.types';
 import type { CheckersGameState } from '../game-logic/checkers/types';
@@ -58,6 +65,16 @@ export const chessPuzzleRules: PuzzleRules<ChessGameState> = {
   },
 
   isGameOver: (state) => state.isCheckmate || state.isStalemate || state.isDraw,
+
+  analyze(state, depth) {
+    const { score, bestMove } = analyzeChessPosition(state, depth);
+    return {
+      score,
+      bestMove: bestMove
+        ? { from: bestMove.from, to: bestMove.to, promotion: bestMove.promotion }
+        : null,
+    };
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -100,6 +117,11 @@ export const checkersPuzzleRules: PuzzleRules<CheckersGameState> = {
   },
 
   isGameOver: (state) => state.isGameOver,
+
+  analyze(state, depth) {
+    const { score, bestMove } = analyzeCheckersPosition(state, depth);
+    return { score, bestMove: bestMove ? { from: bestMove.from, to: bestMove.to } : null };
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -133,6 +155,15 @@ export const reversiPuzzleRules: PuzzleRules<ReversiGameState> = {
   isGameOver: (state) => state.isGameOver,
   mustPass: (state) => ReversiEngine.mustPass(state),
   executePass: (state) => ReversiEngine.executePass(state),
+
+  analyze(state, depth) {
+    const { score, bestMove } = analyzeReversiPosition(state, depth);
+    // A placement has no origin, so `from === to` here as everywhere else.
+    return {
+      score,
+      bestMove: bestMove ? { from: bestMove.position, to: bestMove.position } : null,
+    };
+  },
 };
 
 // ---------------------------------------------------------------------------

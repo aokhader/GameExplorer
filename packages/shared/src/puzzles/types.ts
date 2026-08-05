@@ -127,4 +127,20 @@ export interface PuzzleRules<S> {
   /** Reversi only — the side to move has no legal move and must pass. */
   mustPass?(state: S): boolean;
   executePass?(state: S): S;
+  /**
+   * Best move for the side to move, with the position's score.
+   *
+   * The **only** engine call in the whole feature, and it is never consulted
+   * about whether the player is right — correctness stays scripted and proved
+   * at authoring time. This exists to answer the other question: when the
+   * player plays something that isn't the solution, what does the opponent do
+   * about it?
+   *
+   * `score` is WHITE-positive in every game, so the runtime can measure what a
+   * move cost without knowing which game it is.
+   *
+   * Depth is the caller's choice because the three engines are not remotely
+   * comparable in cost — see `REFUTATION_DEPTH`.
+   */
+  analyze(state: S, depth: number): { score: number; bestMove: PuzzleMove | null };
 }

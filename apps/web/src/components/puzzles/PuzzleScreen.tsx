@@ -23,13 +23,25 @@ const DIFFICULTY_STYLE: Record<string, string> = {
   hard: 'bg-error/15 text-error-hover border-error/40',
 };
 
-/** Headline + supporting line for each phase of the run. */
-function statusFor(phase: string | null): { title: string; description: string } {
+/**
+ * Headline + supporting line for each phase of the run.
+ *
+ * The wrong-move line is the interesting one: it waits on a search, so it says
+ * what it is doing rather than sitting on stale text, and the sentence it lands
+ * on comes from the shared runtime so both platforms say the same thing.
+ */
+function statusFor(
+  phase: string | null,
+  refutationText: string | null,
+): { title: string; description: string } {
   switch (phase) {
     case 'replying':
       return { title: 'Correct', description: 'Watch the reply…' };
     case 'wrong':
-      return { title: 'Not quite', description: 'The position is unchanged — try again.' };
+      return {
+        title: 'Not quite',
+        description: refutationText ?? 'Looking at what your opponent does about that…',
+      };
     case 'solved':
       return { title: 'Solved', description: 'Read why below, then take the next one.' };
     default:
@@ -53,6 +65,9 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     solved,
     total,
     hint,
+    board,
+    refutation,
+    refutationText,
     playMove,
     retry,
     next,
@@ -90,7 +105,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     );
   }
 
-  const status = statusFor(phase);
+  const status = statusFor(phase, refutationText);
   const isSolved = phase === 'solved';
 
   return (
@@ -125,11 +140,15 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
       board={
         <PuzzleBoard
           game={game}
-          state={run.state}
+          // `board`, not `run.state`: after a wrong move the board runs on past
+          // the line to play out the refutation, while `run.state` stays on the
+          // position the player still has to solve.
+          state={board}
           playerColor={puzzle.playerColor}
+          interactive={phase === 'playing'}
           onMove={playMove}
           hint={hint}
-          wrongMove={phase === 'wrong' ? run.wrongMove : null}
+          refutation={refutation?.reply ?? null}
         />
       }
       sidebar={

@@ -29,22 +29,31 @@ export interface PuzzleBoardProps {
   onMove: (move: PuzzleMove) => void;
   /** The solution move, once the player has asked for it. */
   hint?: PuzzleMove | null;
-  /** What the player just played, while it is being shown as wrong. */
-  wrongMove?: PuzzleMove | null;
+  /**
+   * The opponent's answer to a wrong move — the move that refutes it.
+   *
+   * Note this is THEIR move, not the player's. Marking the player's own move in
+   * red said only "that was wrong", which the status banner already said; the
+   * board is the one place that can show *why*, and by the time this is set the
+   * position on screen is the one where their answer lands.
+   */
+  refutation?: PuzzleMove | null;
+  /** History or refutation branch is on screen — no input allowed. */
+  interactive?: boolean;
 }
 
 /** Amber, matching the hint ring the mobile boards and training mode use. */
 const HINT_COLOR = 'rgba(251, 191, 36, 0.9)';
-const WRONG_COLOR = 'rgba(248, 113, 113, 0.9)';
+const REFUTATION_COLOR = 'rgba(248, 113, 113, 0.9)';
 
 /**
  * The right board for the puzzle's game.
  *
  * **No board component needed changing for this.** All three already take
  * everything a puzzle wants: chess and checkers draw `arrows`, reversi has
- * `hintPos`. Interactivity needs no new prop either — the boards gate input on
- * `currentTurn`, so during the opponent's scripted reply they are inert, and
- * anything that slips through is answered with `'ignored'` by the runtime.
+ * `hintPos`. The refutation reuses the same two channels, because it is drawn
+ * on the position where the opponent's answer actually happens — the branch is
+ * played out on the board rather than described beside it.
  */
 export function PuzzleBoard({
   game,
@@ -52,11 +61,20 @@ export function PuzzleBoard({
   playerColor,
   onMove,
   hint,
-  wrongMove,
+  refutation,
+  interactive = true,
 }: PuzzleBoardProps) {
+  // The boards gate input on `currentTurn` and the runtime answers stray moves
+  // with `'ignored'`, but neither helps while a refutation is on screen: it is
+  // the player's turn again in that branch, so without this the board would
+  // happily accept a move in a position that is not the puzzle.
+  const handleMove = interactive ? onMove : () => {};
+
   if (game === 'chess') {
     const arrows = [
-      ...(wrongMove ? [{ from: wrongMove.from, to: wrongMove.to, color: WRONG_COLOR }] : []),
+      ...(refutation
+        ? [{ from: refutation.from, to: refutation.to, color: REFUTATION_COLOR }]
+        : []),
       ...(hint ? [{ from: hint.from, to: hint.to, color: HINT_COLOR }] : []),
     ];
     return (
@@ -65,7 +83,7 @@ export function PuzzleBoard({
         playerColor={playerColor}
         arrows={arrows}
         onMove={(from: Position, to: Position, promotionPiece?: PieceType) =>
-          onMove({ from, to, promotion: promotionPiece })
+          handleMove({ from, to, promotion: promotionPiece })
         }
       />
     );
@@ -73,7 +91,9 @@ export function PuzzleBoard({
 
   if (game === 'checkers') {
     const arrows = [
-      ...(wrongMove ? [{ from: wrongMove.from, to: wrongMove.to, color: WRONG_COLOR }] : []),
+      ...(refutation
+        ? [{ from: refutation.from, to: refutation.to, color: REFUTATION_COLOR }]
+        : []),
       ...(hint ? [{ from: hint.from, to: hint.to, color: HINT_COLOR }] : []),
     ];
     return (
@@ -81,7 +101,7 @@ export function PuzzleBoard({
         gameState={state as CheckersGameState}
         playerColor={playerColor}
         arrows={arrows}
-        onMove={(from: string, to: string) => onMove({ from, to })}
+        onMove={(from: string, to: string) => handleMove({ from, to })}
       />
     );
   }
@@ -91,10 +111,10 @@ export function PuzzleBoard({
       gameState={state as ReversiGameState}
       playerColor={playerColor}
       // Reversi placements have no origin square, so an arrow has nothing to
-      // point from — the ring on the target square is the whole hint.
+      // point from — the ring on the target square is the whole marker.
       hintPos={hint?.to ?? null}
-      highlightPos={wrongMove?.to ?? null}
-      onMove={(position: string) => onMove({ from: position, to: position })}
+      highlightPos={refutation?.to ?? null}
+      onMove={(position: string) => handleMove({ from: position, to: position })}
     />
   );
 }

@@ -18,14 +18,61 @@ export type PuzzlePhase =
   | 'playing'
   /** The player was right; the opponent's scripted answer is owed. */
   | 'replying'
-  /** The player missed; the board is unchanged and a retry is owed. */
+  /** The player missed; a refutation is owed, then a retry. */
   | 'wrong'
   /** The line is finished. */
   | 'solved';
 
+/**
+ * Why the move the player just played doesn't work.
+ *
+ * Computed by `applyRefutation` rather than `applyPlayerMove`, because it is
+ * the one part of this file that runs a search and the caller has to be free to
+ * get "Not quite" on screen first. See `REFUTATION_DEPTH` for what that costs.
+ */
+export interface PuzzleRefutation {
+  /** What the player played. */
+  move: PuzzleMove;
+  /**
+   * The opponent's best answer — present only when the move is actually
+   * refuted. A move that merely fails to solve has no punish to show, and
+   * inventing one would teach the player something false.
+   */
+  reply: PuzzleMove | null;
+  /**
+   * True when the move loses something, as opposed to just not solving the
+   * puzzle. Missing a mate in one is not the same mistake as hanging a rook,
+   * and the copy says so.
+   */
+  refuted: boolean;
+  /** Position value after the answer, from the PLAYER's side. */
+  score: number;
+  /** False when the move was not legal at all — there is nothing to show. */
+  legal: boolean;
+}
+
 export interface PuzzleRun<S> {
   puzzle: Puzzle;
+  /**
+   * The position the player has to move in — the main line only.
+   *
+   * Deliberately untouched by a wrong move: `timeline` may run past it to show
+   * a refutation, but the line itself never advances on a miss, so every rule
+   * below can keep reading this without asking whether a branch is on screen.
+   */
   state: S;
+  /**
+   * Every position the board may show: the main line so far, and — while a
+   * wrong move is being answered — the branch that refutes it.
+   *
+   * Invariant: `timeline[mainLength - 1] === state`, and anything past
+   * `mainLength` is the refutation branch.
+   */
+  timeline: S[];
+  /** How much of `timeline` is the real line. */
+  mainLength: number;
+  /** Which `timeline` entry is on the board. */
+  viewIndex: number;
   /** Index into `puzzle.steps` of the step currently being solved. */
   stepIndex: number;
   phase: PuzzlePhase;
@@ -33,6 +80,8 @@ export interface PuzzleRun<S> {
   attempts: number;
   /** What the player played to get here, while `phase === 'wrong'`. */
   wrongMove: PuzzleMove | null;
+  /** Why that move fails. Null until `applyRefutation` has run. */
+  refutation: PuzzleRefutation | null;
   hintUsed: boolean;
   /**
    * No wrong moves and no hint — the only kind of solve that extends a streak.
@@ -42,6 +91,36 @@ export interface PuzzleRun<S> {
    */
   clean: boolean;
 }
+
+/**
+ * Search depth per game for refuting a wrong move.
+ *
+ * Wildly different numbers because the three engines are wildly different
+ * costs. Measured on the seed positions: checkers and reversi answer at depth 6
+ * in about a millisecond, while chess costs ~30-70ms at depth 3, ~80-470ms at
+ * depth 4 and up to 2.9 SECONDS at depth 5 — and those are near-empty endgames,
+ * so a middlegame puzzle will be worse. Three plies is enough to see a piece
+ * hang, which is what a refutation has to show; it is not an analysis engine
+ * and must not grow into one.
+ */
+export const REFUTATION_DEPTH: Record<string, number> = {
+  chess: 3,
+  checkers: 6,
+  reversi: 6,
+};
+
+/**
+ * How far behind the player has to end up for the move to count as refuted.
+ *
+ * Absolute, not relative to the solution: every non-solving move loses
+ * *something* against a puzzle that has a forced win, so measuring the drop
+ * from the solution would flag every miss — including a perfectly safe move
+ * that simply isn't the fastest mate. What earns the word "refuted" is ending
+ * up worse off than the opponent, full stop. Roughly a pawn in chess and
+ * checkers, and rather more than a corner in reversi, whose scale is
+ * positional (a corner is worth about 40).
+ */
+const REFUTED_SCORE = -50;
 
 export type PuzzleMoveResult = 'correct' | 'wrong' | 'solved' | 'ignored';
 
@@ -76,16 +155,46 @@ function applyScripted<S>(state: S, move: PuzzleMove, rules: PuzzleRules<S>, wha
 }
 
 export function startPuzzle<S>(puzzle: Puzzle, rules: PuzzleRules<S>): PuzzleRun<S> {
+  const state = settle(rules.decode(puzzle.position), rules);
   return {
     puzzle,
-    state: settle(rules.decode(puzzle.position), rules),
+    state,
+    timeline: [state],
+    mainLength: 1,
+    viewIndex: 0,
     stepIndex: 0,
     phase: puzzle.steps.length === 0 ? 'solved' : 'playing',
     attempts: 0,
     wrongMove: null,
+    refutation: null,
     hintUsed: false,
     clean: true,
   };
+}
+
+/** The position currently on the board — main line or refutation branch. */
+export function displayState<S>(run: PuzzleRun<S>): S {
+  return run.timeline[Math.max(0, Math.min(run.timeline.length - 1, run.viewIndex))];
+}
+
+/** True when the board is showing the newest position rather than history. */
+export function isAtLive<S>(run: PuzzleRun<S>): boolean {
+  return run.viewIndex >= run.timeline.length - 1;
+}
+
+/** Step the board through `timeline`. Callers don't need to clamp. */
+export function seekPuzzle<S>(run: PuzzleRun<S>, index: number): PuzzleRun<S> {
+  const viewIndex = Math.max(0, Math.min(run.timeline.length - 1, index));
+  return viewIndex === run.viewIndex ? run : { ...run, viewIndex };
+}
+
+/** Advance the main line by one position, dropping any refutation branch. */
+function advance<S>(run: PuzzleRun<S>, state: S): Pick<
+  PuzzleRun<S>,
+  'state' | 'timeline' | 'mainLength' | 'viewIndex'
+> {
+  const timeline = [...run.timeline.slice(0, run.mainLength), state];
+  return { state, timeline, mainLength: timeline.length, viewIndex: timeline.length - 1 };
 }
 
 /**
@@ -102,18 +211,25 @@ export function applyPlayerMove<S>(
   move: PuzzleMove,
 ): { run: PuzzleRun<S>; result: PuzzleMoveResult } {
   if (run.phase !== 'playing') return { run, result: 'ignored' };
+  // Scrolled back through the history with the nav controls: the board is
+  // showing a position the player is no longer in, so a move on it means
+  // nothing. The UI makes the board inert too — this is the backstop.
+  if (!isAtLive(run)) return { run, result: 'ignored' };
 
   const step = run.puzzle.steps[run.stepIndex];
   const scripted = rules.parseMove(step.move);
 
   if (!rules.sameMove(move, scripted)) {
-    // The board is left exactly as it was. An illegal move and a legal-but-not-
-    // the-solution move are the same answer here, so nothing reaches the engine.
+    // Nothing reaches an engine here, and the line does not move: `state` is
+    // still the position the player has to solve. Working out *why* the move
+    // fails is `applyRefutation`'s job, because it costs a search and this has
+    // to stay instant.
     return {
       run: {
         ...run,
         phase: 'wrong',
         wrongMove: move,
+        refutation: null,
         attempts: run.attempts + 1,
         clean: false,
       },
@@ -124,7 +240,10 @@ export function applyPlayerMove<S>(
   const state = applyScripted(run.state, scripted, rules, 'move');
 
   if (step.reply !== undefined) {
-    return { run: { ...run, state, phase: 'replying', wrongMove: null }, result: 'correct' };
+    return {
+      run: { ...run, ...advance(run, state), phase: 'replying', wrongMove: null },
+      result: 'correct',
+    };
   }
 
   // No reply. Usually that's the end of the line — but in reversi the opponent
@@ -134,8 +253,76 @@ export function applyPlayerMove<S>(
   const stepIndex = run.stepIndex + 1;
   const done = stepIndex >= run.puzzle.steps.length;
   return {
-    run: { ...run, state, stepIndex, phase: done ? 'solved' : 'playing', wrongMove: null },
+    run: {
+      ...run,
+      ...advance(run, state),
+      stepIndex,
+      phase: done ? 'solved' : 'playing',
+      wrongMove: null,
+    },
     result: done ? 'solved' : 'correct',
+  };
+}
+
+/**
+ * Work out why the player's wrong move fails, and put it on the board.
+ *
+ * Split out from `applyPlayerMove` for one reason: this runs a search, and the
+ * player should see "Not quite" the instant they let go of the piece, not
+ * whenever chess finishes thinking. Same separation the scripted reply already
+ * uses — the reducer stays pure and synchronous, and the platform decides when
+ * to spend the time.
+ *
+ * A no-op once a refutation is in place, so a re-render cannot search twice.
+ */
+export function applyRefutation<S>(
+  run: PuzzleRun<S>,
+  rules: PuzzleRules<S>,
+  depth = REFUTATION_DEPTH[rules.game] ?? 3,
+): PuzzleRun<S> {
+  if (run.phase !== 'wrong' || run.refutation !== null || !run.wrongMove) return run;
+
+  const move = run.wrongMove;
+  const played = rules.validateMove(run.state, move);
+
+  // The boards only offer legal moves, so this is the rare path — a promotion
+  // that arrived without a piece, say. There is no position to show and no
+  // opponent answer to find, and returning a refutation (rather than null)
+  // is what stops the caller asking again.
+  if (!played.valid || !played.resultingState) {
+    return { ...run, refutation: { move, reply: null, refuted: false, score: 0, legal: false } };
+  }
+
+  const after = settle(played.resultingState, rules);
+  // White-positive everywhere, so one flip puts every game in the player's terms.
+  const sign = run.puzzle.playerColor === 'white' ? 1 : -1;
+  const { score, bestMove } = rules.analyze(after, depth);
+  const playerScore = sign * score;
+  const refuted = playerScore <= REFUTED_SCORE;
+
+  const timeline = [...run.timeline.slice(0, run.mainLength), after];
+  // Only play the answer out when it is actually an answer. After a missed
+  // mate in one the engine still returns *a* move, but it is whatever the
+  // losing side does with its remaining pawn — showing that as the refutation
+  // would be pure noise.
+  if (refuted && bestMove) {
+    const punished = rules.validateMove(after, bestMove);
+    if (punished.valid && punished.resultingState) {
+      timeline.push(settle(punished.resultingState, rules));
+    }
+  }
+
+  return {
+    ...run,
+    timeline,
+    viewIndex: timeline.length - 1,
+    refutation: {
+      move,
+      reply: refuted ? bestMove : null,
+      refuted,
+      score: playerScore,
+      legal: true,
+    },
   };
 }
 
@@ -155,7 +342,7 @@ export function applyOpponentReply<S>(run: PuzzleRun<S>, rules: PuzzleRules<S>):
   const stepIndex = run.stepIndex + 1;
   const done = stepIndex >= run.puzzle.steps.length;
 
-  return { ...run, state, stepIndex, phase: done ? 'solved' : 'playing' };
+  return { ...run, ...advance(run, state), stepIndex, phase: done ? 'solved' : 'playing' };
 }
 
 /**
@@ -165,12 +352,19 @@ export function applyOpponentReply<S>(run: PuzzleRun<S>, rules: PuzzleRules<S>):
  * puzzle you got wrong, not how you erase having got it wrong.
  */
 export function retryPuzzle<S>(run: PuzzleRun<S>, rules: PuzzleRules<S>): PuzzleRun<S> {
+  const state = settle(rules.decode(run.puzzle.position), rules);
   return {
     ...run,
-    state: settle(rules.decode(run.puzzle.position), rules),
+    state,
+    // The refutation branch goes with it — the whole point of retrying is that
+    // the move that produced it never happened.
+    timeline: [state],
+    mainLength: 1,
+    viewIndex: 0,
     stepIndex: 0,
     phase: 'playing',
     wrongMove: null,
+    refutation: null,
     clean: run.attempts === 0 && !run.hintUsed,
   };
 }
@@ -184,6 +378,51 @@ export function retryPuzzle<S>(run: PuzzleRun<S>, rules: PuzzleRules<S>): Puzzle
 export function hintFor<S>(run: PuzzleRun<S>, rules: PuzzleRules<S>): PuzzleMove | null {
   if (run.phase !== 'playing') return null;
   return rules.parseMove(run.puzzle.steps[run.stepIndex].move);
+}
+
+/** "a1→a8", or just the square for a game whose moves have no origin. */
+export function formatPuzzleMove(move: PuzzleMove): string {
+  return move.from === move.to ? move.to : `${move.from}→${move.to}`;
+}
+
+/** What the puzzle asked for, as a verb phrase: "force mate", "win the game". */
+function goalPhrase(goal: Puzzle['goal']): string {
+  switch (goal) {
+    case 'mate':
+      return 'force mate';
+    case 'win-material':
+      return 'win material';
+    case 'promote':
+      return 'promote';
+    case 'win-game':
+      return 'win the game';
+    default:
+      return 'solve the puzzle';
+  }
+}
+
+/**
+ * One sentence explaining the wrong move, or null before the search has run.
+ *
+ * Lives here rather than in either app so the two platforms cannot drift into
+ * telling the player different things about the same position — and so the
+ * distinction the runtime draws between "refuted" and "merely not the answer"
+ * survives into the words the player actually reads.
+ */
+export function describeRefutation<S>(run: PuzzleRun<S>): string | null {
+  const r = run.refutation;
+  if (!r) return null;
+  if (!r.legal) return 'That move is not legal here.';
+
+  const opponent = run.puzzle.playerColor === 'white' ? 'Black' : 'White';
+  const played = formatPuzzleMove(r.move);
+
+  if (!r.refuted) {
+    return `${played} is playable, but it does not ${goalPhrase(run.puzzle.goal)}.`;
+  }
+  return r.reply
+    ? `After ${played}, ${opponent} answers ${formatPuzzleMove(r.reply)} and you are worse.`
+    : `${played} loses on the spot.`;
 }
 
 /** Record that the player took a hint — costs them the clean solve. */
