@@ -16,7 +16,7 @@
 export type GameId = 'chess' | 'checkers' | 'reversi' | 'liquidate';
 
 /** Play modes a game can offer. Not every game supports every mode. */
-export type GameModeId = 'bot' | 'training' | 'online' | 'local' | 'learn';
+export type GameModeId = 'bot' | 'training' | 'online' | 'local' | 'learn' | 'puzzles';
 
 export interface GameCatalogEntry {
   id: GameId;
@@ -49,7 +49,7 @@ export const GAME_CATALOG: Record<GameId, GameCatalogEntry> = {
     accent: 'chess',
     minPlayers: 2,
     maxPlayers: 2,
-    modes: ['bot', 'training', 'online', 'learn'],
+    modes: ['bot', 'training', 'online', 'learn', 'puzzles'],
     available: true,
     rated: true,
   },
@@ -61,7 +61,7 @@ export const GAME_CATALOG: Record<GameId, GameCatalogEntry> = {
     accent: 'checkers',
     minPlayers: 2,
     maxPlayers: 2,
-    modes: ['bot', 'training', 'online', 'learn'],
+    modes: ['bot', 'training', 'online', 'learn', 'puzzles'],
     available: true,
     rated: true,
   },
@@ -73,7 +73,7 @@ export const GAME_CATALOG: Record<GameId, GameCatalogEntry> = {
     accent: 'reversi',
     minPlayers: 2,
     maxPlayers: 2,
-    modes: ['bot', 'training', 'online', 'learn'],
+    modes: ['bot', 'training', 'online', 'learn', 'puzzles'],
     available: true,
     rated: true,
   },

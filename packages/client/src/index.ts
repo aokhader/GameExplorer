@@ -14,3 +14,5 @@ export { useAuth } from './hooks/useAuth';
 export { useSocket } from './hooks/useSocket';
 export { useInvite } from './hooks/useInvite';
 export { useGameSession } from './hooks/useGameSession';
+export { usePuzzle } from './hooks/usePuzzle';
+export type { UsePuzzleOptions, UsePuzzleResult } from './hooks/usePuzzle';

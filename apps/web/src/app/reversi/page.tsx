@@ -39,6 +39,16 @@ export default function ReversiLandingPage() {
       available: true,
     },
     {
+      id: 'puzzles',
+      title: 'Puzzles',
+      description: 'Solve positions one move at a time — no clock, no opponent',
+      icon: '🧩',
+      href: '/reversi/puzzles',
+      gradient: 'from-accent to-accent-hover',
+      available: true,
+      cta: 'Solve Puzzles',
+    },
+    {
       id: 'multiplayer',
       title: 'Online Multiplayer',
       description: 'Play against other players around the world',

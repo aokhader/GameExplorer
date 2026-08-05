@@ -39,6 +39,16 @@ export default function CheckersLandingPage() {
       available: true,
     },
     {
+      id: 'puzzles',
+      title: 'Puzzles',
+      description: 'Solve tactics one move at a time — no clock, no opponent',
+      icon: '🧩',
+      href: '/checkers/puzzles',
+      gradient: 'from-success to-success-hover',
+      available: true,
+      cta: 'Solve Puzzles',
+    },
+    {
       id: 'multiplayer',
       title: 'Online Multiplayer',
       description: 'Play against other players around the world',

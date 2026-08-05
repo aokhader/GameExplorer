@@ -17,7 +17,7 @@
  */
 export function isImmersiveGameRoute(pathname: string): boolean {
   return (
-    /\/(play|bot|training|analysis|local)(\/|$)/.test(pathname) ||
+    /\/(play|bot|training|analysis|local|puzzles)(\/|$)/.test(pathname) ||
     pathname.startsWith('/spectate/')
   );
 }

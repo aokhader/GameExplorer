@@ -39,6 +39,16 @@ export default function ChessLandingPage() {
       available: true,
     },
     {
+      id: 'puzzles',
+      title: 'Puzzles',
+      description: 'Solve tactics one move at a time — no clock, no opponent',
+      icon: '🧩',
+      href: '/chess/puzzles',
+      gradient: 'from-info to-info-hover',
+      available: true,
+      cta: 'Solve Puzzles',
+    },
+    {
       id: 'replays',
       title: 'Game Replays',
       description: 'Review and replay your past games',
