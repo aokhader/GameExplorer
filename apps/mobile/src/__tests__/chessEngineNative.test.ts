@@ -187,3 +187,94 @@ describe('chessEngineNative — evaluation channel', () => {
     await expect(promise).resolves.toEqual({ from: 'b1', to: 'c3', promotion: undefined });
   });
 });
+
+/**
+ * `position startpos moves …` is only correct for a state descended from the
+ * opening. A puzzle or analysis position seeded from a FEN has an empty move
+ * history, so the startpos form would have the engine evaluate the START
+ * position instead of the one on the board — these pin the FEN path.
+ */
+describe('chessEngineNative — seeded positions', () => {
+  let warnSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.resetModules();
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => warnSpy.mockRestore());
+
+  function loadReady() {
+    jest.doMock('react-native-arasan', () => ({ useArasan: () => ({}) }), { virtual: true });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const eng = require('@/engine/chessEngineNative');
+    const sent: string[] = [];
+    eng.registerEngineControls({
+      start: () => {},
+      send: (cmd: string) => sent.push(cmd),
+      setupNetwork: async () => '/tmp/nnue',
+    });
+    eng.ensureEngineStarted();
+    return { eng, sent };
+  }
+
+  async function handshake(eng: ReturnType<typeof loadReady>['eng']) {
+    await Promise.resolve();
+    await Promise.resolve();
+    eng.handleEngineOutput('uciok');
+    eng.handleEngineOutput('readyok');
+  }
+
+  const FEN = '4R1k1/5ppp/8/8/8/8/8/6K1 b - - 0 1';
+  const positionOf = (sent: string[]) => sent.find((c) => c.startsWith('position'));
+
+  it('sends startpos when no seed FEN is given', async () => {
+    const { eng, sent } = loadReady();
+    await handshake(eng);
+
+    eng.getEngineEvaluation({ moveHistory: [] }, 200);
+
+    expect(positionOf(sent)).toBe('position startpos');
+  });
+
+  it('sends the FEN when the state was seeded from one', async () => {
+    const { eng, sent } = loadReady();
+    await handshake(eng);
+
+    eng.getEngineEvaluation({ moveHistory: [] }, 200, FEN);
+
+    expect(positionOf(sent)).toBe(`position fen ${FEN}`);
+  });
+
+  it('appends moves played since the seeded position', async () => {
+    const { eng, sent } = loadReady();
+    await handshake(eng);
+
+    eng.getEngineEvaluation(
+      { moveHistory: [{ from: 'g8', to: 'h8' }, { from: 'e8', to: 'h8' }] },
+      200,
+      FEN,
+    );
+
+    expect(positionOf(sent)).toBe(`position fen ${FEN} moves g8h8 e8h8`);
+  });
+
+  it('takes a seed FEN on the move request too', async () => {
+    const { eng, sent } = loadReady();
+    await handshake(eng);
+
+    eng.getEngineBestMove({ moveHistory: [] }, 1600, FEN);
+
+    expect(positionOf(sent)).toBe(`position fen ${FEN}`);
+  });
+
+  it('leaves the ordinary bot path on startpos', async () => {
+    // The shipped bot path must stay byte-identical — it relies on the move
+    // history for the engine's repetition detection.
+    const { eng, sent } = loadReady();
+    await handshake(eng);
+
+    eng.getEngineBestMove({ moveHistory: [{ from: 'e2', to: 'e4' }] }, 1600);
+
+    expect(positionOf(sent)).toBe('position startpos moves e2e4');
+  });
+});

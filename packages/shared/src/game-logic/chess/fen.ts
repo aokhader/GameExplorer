@@ -1,4 +1,5 @@
 import type { ChessGameState, Board, Piece } from '../../types/chess.types';
+import { ChessEngine } from './engine';
 
 const PIECE_TO_FEN: Record<string, string> = {
   'white-pawn': 'P', 'white-knight': 'N', 'white-bishop': 'B',
@@ -48,6 +49,16 @@ export function stateToFen(state: ChessGameState): string {
   return `${rows.join('/')} ${activeColor} ${castling} ${enPassant} ${state.halfMoveClock} ${state.fullMoveNumber}`;
 }
 
+/**
+ * Decode a FEN into a game state.
+ *
+ * The terminal-status flags are computed from the position rather than assumed
+ * false: a FEN is routinely a position that is already in check, mate, or
+ * stalemate (puzzle start positions especially), and callers read those flags
+ * to decide whether the board is playable. `moveHistory` is necessarily empty —
+ * a FEN carries no history — so anything needing the moves that led here must
+ * replay them itself.
+ */
 export function fenToState(fen: string): ChessGameState {
   const parts = fen.trim().split(/\s+/);
   if (parts.length < 4) throw new Error('Invalid FEN: too few fields');
@@ -73,7 +84,7 @@ export function fenToState(fen: string): ChessGameState {
     }
   }
 
-  return {
+  return ChessEngine.withStatusFlags({
     board,
     currentTurn: activeColor === 'w' ? 'white' : 'black',
     moveHistory: [],
@@ -90,5 +101,5 @@ export function fenToState(fen: string): ChessGameState {
     isCheckmate: false,
     isStalemate: false,
     isDraw: false,
-  };
+  });
 }

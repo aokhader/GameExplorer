@@ -2,6 +2,7 @@
 // Main chess game engine - validates and executes moves
 
 import type {
+  Board,
   ChessGameState,
   Move,
   Position,
@@ -21,6 +22,14 @@ import {
 import { getPossibleMoves, isKingInCheck } from './moves';
 
 /**
+ * Plies without a capture or pawn move that draw the game.
+ *
+ * The fifty-move rule counts 50 moves BY EACH PLAYER, and `halfMoveClock`
+ * counts plies — so the threshold is 100, not 50.
+ */
+export const FIFTY_MOVE_PLIES = 100;
+
+/**
  * Check if a pawn move results in promotion
  */
 function isPawnPromotion(piece: Piece, to: Position): boolean {
@@ -28,6 +37,20 @@ function isPawnPromotion(piece: Piece, to: Position): boolean {
   const toCoords = positionToCoordinates(to);
   return (piece.color === 'white' && toCoords.row === 7) ||
          (piece.color === 'black' && toCoords.row === 0);
+}
+
+/** Both kings on the board — see `ChessEngine.withStatusFlags`. */
+function hasBothKings(board: Board): boolean {
+  let white = false;
+  let black = false;
+  for (const row of board) {
+    for (const piece of row) {
+      if (piece?.type !== 'king') continue;
+      if (piece.color === 'white') white = true;
+      else black = true;
+    }
+  }
+  return white && black;
 }
 
 /**
@@ -312,14 +335,42 @@ export class ChessEngine {
     );
 
     if (!skipGameEndCheck) {
-      const opponentColor = newState.currentTurn;
-      newState.isCheck = isKingInCheck(newState.board, opponentColor);
-      newState.isCheckmate = this.isCheckmate(newState);
-      newState.isStalemate = this.isStalemate(newState);
-      newState.isDraw = this.isDraw(newState);
+      return this.withStatusFlags(newState);
     }
 
     return newState;
+  }
+
+  /**
+   * Recompute the four terminal-status flags (`isCheck`, `isCheckmate`,
+   * `isStalemate`, `isDraw`) for a position.
+   *
+   * Shared by `executeMove` and `fenToState` so a position that did NOT arrive
+   * via a move — one decoded from a FEN — carries the same flags a played one
+   * would. Order matters here: `isDraw` reads `isStalemate`.
+   *
+   * A position missing either king is not legal chess, and terminal status is
+   * meaningless there: `isKingInCheck` reports "not in check" when there is no
+   * king to find, and a board with no pieces has no legal moves — so the naive
+   * answer for the analysis page's cleared editor board would be "stalemate,
+   * and a draw". Those positions get all four flags false instead.
+   */
+  static withStatusFlags(gameState: ChessGameState): ChessGameState {
+    const next = { ...gameState };
+
+    if (!hasBothKings(next.board)) {
+      next.isCheck = false;
+      next.isCheckmate = false;
+      next.isStalemate = false;
+      next.isDraw = false;
+      return next;
+    }
+
+    next.isCheck = isKingInCheck(next.board, next.currentTurn);
+    next.isCheckmate = this.isCheckmate(next);
+    next.isStalemate = this.isStalemate(next);
+    next.isDraw = this.isDraw(next);
+    return next;
   }
 
   private static simulateMove(
@@ -404,8 +455,12 @@ export class ChessEngine {
     return false;
   }
 
+  /**
+   * Draws this engine detects. Insufficient material and threefold repetition
+   * are not modelled — the multiplayer server reports this as `fifty_move`.
+   */
   private static isDraw(gameState: ChessGameState): boolean {
-    if (gameState.halfMoveClock >= 50) return true;
+    if (gameState.halfMoveClock >= FIFTY_MOVE_PLIES) return true;
     if (gameState.isStalemate) return true;
     return false;
   }

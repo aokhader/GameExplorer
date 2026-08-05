@@ -161,3 +161,91 @@ describe('ChessEngine — checkmate detection (Fool\'s Mate)', () => {
     expect(final.isCheckmate).toBe(true);
   });
 });
+
+describe('ChessEngine — fifty-move rule', () => {
+  /**
+   * A position with only the two kings, so both sides can shuffle indefinitely
+   * without ever resetting the clock.
+   */
+  function kingsOnly(halfMoveClock: number): ChessGameState {
+    return {
+      ...createInitialGameState(),
+      board: emptyBoardWithKings(),
+      currentTurn: 'white',
+      halfMoveClock,
+    };
+  }
+
+  it('does not draw at 50 plies — the rule counts 50 moves by EACH player', () => {
+    // Regression test for the old `halfMoveClock >= 50` threshold, which drew
+    // the game at 25 moves each.
+    const next = ChessEngine.validateMove(kingsOnly(50), 'e1', 'd1').resultingState!;
+    expect(next.halfMoveClock).toBe(51);
+    expect(next.isDraw).toBe(false);
+  });
+
+  it('does not draw at 99 plies', () => {
+    const next = ChessEngine.validateMove(kingsOnly(98), 'e1', 'd1').resultingState!;
+    expect(next.halfMoveClock).toBe(99);
+    expect(next.isDraw).toBe(false);
+  });
+
+  it('draws at 100 plies', () => {
+    const next = ChessEngine.validateMove(kingsOnly(99), 'e1', 'd1').resultingState!;
+    expect(next.halfMoveClock).toBe(100);
+    expect(next.isDraw).toBe(true);
+  });
+
+  it('resets the clock on a pawn move, clearing an imminent draw', () => {
+    let board = emptyBoardWithKings();
+    board = setPieceAt(board, 'a2', { type: 'pawn', color: 'white' });
+    const state: ChessGameState = {
+      ...createInitialGameState(),
+      board,
+      currentTurn: 'white',
+      halfMoveClock: 99,
+    };
+
+    const next = ChessEngine.validateMove(state, 'a2', 'a3').resultingState!;
+    expect(next.halfMoveClock).toBe(0);
+    expect(next.isDraw).toBe(false);
+  });
+
+  it('resets the clock on a capture', () => {
+    let board = emptyBoardWithKings();
+    board = setPieceAt(board, 'd4', { type: 'rook', color: 'white' });
+    board = setPieceAt(board, 'd7', { type: 'rook', color: 'black' });
+    const state: ChessGameState = {
+      ...createInitialGameState(),
+      board,
+      currentTurn: 'white',
+      halfMoveClock: 99,
+    };
+
+    const next = ChessEngine.validateMove(state, 'd4', 'd7').resultingState!;
+    expect(next.halfMoveClock).toBe(0);
+    expect(next.isDraw).toBe(false);
+  });
+
+  it('draws after 100 quiet plies actually played out, and not after 98', () => {
+    // Two kings shuffling between two squares each — 4 plies per cycle.
+    const cycle = [
+      ['e1', 'd1'], ['e8', 'd8'], ['d1', 'e1'], ['d8', 'e8'],
+    ] as const;
+
+    let state = kingsOnly(0);
+    const seen: boolean[] = [];
+    for (let ply = 0; ply < 100; ply++) {
+      const [from, to] = cycle[ply % 4];
+      const result = ChessEngine.validateMove(state, from, to);
+      expect(result.valid).toBe(true);
+      state = result.resultingState!;
+      seen.push(state.isDraw);
+    }
+
+    expect(state.halfMoveClock).toBe(100);
+    expect(seen[97]).toBe(false); // after 98 plies
+    expect(seen[98]).toBe(false); // after 99 plies
+    expect(seen[99]).toBe(true);  // after 100 plies
+  });
+});

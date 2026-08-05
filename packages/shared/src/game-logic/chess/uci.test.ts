@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ENGINE_MIN_ELO,
   buildUciPositionCommand,
+  buildUciPositionFromFen,
   clampStockfishElo,
   parseUciBestMove,
   parseUciInfoScore,
@@ -51,6 +52,37 @@ describe('buildUciPositionCommand', () => {
         { from: 'b7', to: 'b8', promotion: 'knight' },
       ]),
     ).toBe('position startpos moves e2e4 b7b8n');
+  });
+});
+
+describe('buildUciPositionFromFen', () => {
+  const FEN = '4R1k1/5ppp/8/8/8/8/8/6K1 b - - 0 1';
+
+  it('sends the bare position when nothing has been played from it', () => {
+    expect(buildUciPositionFromFen(FEN)).toBe(`position fen ${FEN}`);
+  });
+
+  it('treats an empty history the same as none', () => {
+    expect(buildUciPositionFromFen(FEN, [])).toBe(`position fen ${FEN}`);
+  });
+
+  it('appends moves played since the seeded position', () => {
+    expect(
+      buildUciPositionFromFen(FEN, [
+        { from: 'g8', to: 'h8' },
+        { from: 'e8', to: 'h8' },
+      ]),
+    ).toBe(`position fen ${FEN} moves g8h8 e8h8`);
+  });
+
+  it('includes promotion suffixes', () => {
+    expect(
+      buildUciPositionFromFen(FEN, [{ from: 'b7', to: 'b8', promotion: 'knight' }]),
+    ).toBe(`position fen ${FEN} moves b7b8n`);
+  });
+
+  it('never claims the start position — that is the whole point of this builder', () => {
+    expect(buildUciPositionFromFen(FEN)).not.toContain('startpos');
   });
 });
 

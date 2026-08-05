@@ -22,6 +22,10 @@ export * from './types/socket.types';
 
 // "How to play" tutorial content (web + mobile)
 export * from './constants/tutorials';
+// Puzzles — model, engine bindings, solve loop, source and progress helpers
+export * from './puzzles';
+// Puzzle content (web + mobile) — pure data, see the module's contract note
+export * from './constants/puzzles';
 // Game catalog (id, players, modes) — see the scope note in the module
 export * from './constants/games';
 

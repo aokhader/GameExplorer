@@ -5,3 +5,4 @@ export type { CheckersPremove } from './premove';
 export { getBestCheckersMove, analyzeCheckersPosition } from './weakEngine';
 export type { CheckersBotMove, CheckersPositionEval } from './weakEngine';
 export * from './pdn';
+export * from './fen';

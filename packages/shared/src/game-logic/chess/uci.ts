@@ -68,6 +68,28 @@ export function buildUciPositionCommand(moveHistory: readonly UciMoveInput[]): s
   return `position startpos moves ${moveHistory.map(uciMoveString).join(' ')}`;
 }
 
+/**
+ * The full `position` command for a game that began from an arbitrary position
+ * rather than the initial one — a puzzle, or an analysis setup.
+ *
+ * `buildUciPositionCommand` is only correct for a state that descends from the
+ * start position: a state seeded from a FEN has a history that doesn't, and
+ * with an empty history the engine would happily evaluate the START position
+ * instead of the one on the board.
+ *
+ * Prefer the startpos form when it applies — it hands the engine the full move
+ * history, which is what its repetition detection needs.
+ */
+export function buildUciPositionFromFen(
+  fen: string,
+  moveHistory: readonly UciMoveInput[] = [],
+): string {
+  const base = `position fen ${fen}`;
+  return moveHistory.length === 0
+    ? base
+    : `${base} moves ${moveHistory.map(uciMoveString).join(' ')}`;
+}
+
 export interface UciBestMove {
   from: Position;
   to: Position;

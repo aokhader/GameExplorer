@@ -1,5 +1,6 @@
 import {
   buildUciPositionCommand,
+  buildUciPositionFromFen,
   parseUciBestMove,
   parseUciInfoScore,
   parseUciMoveString,
@@ -260,12 +261,35 @@ export function cancelEngineSearch(reason = 'Search cancelled'): void {
 }
 
 /**
+ * The `position` command for a state, as the engine needs to hear it.
+ *
+ * `position startpos moves …` is only correct for a state that descends from
+ * the initial position. A state seeded from an arbitrary FEN — a puzzle, an
+ * analysis setup — has a history that doesn't start there, and with an empty
+ * history the engine would evaluate the START position instead of the one on
+ * the board. Callers that seeded a position pass the FEN they seeded it with.
+ *
+ * The startpos form stays the default because it hands over the full move
+ * history, which is what the engine's repetition detection needs; a FEN carries
+ * the halfmove clock but not the positions that came before it.
+ */
+function positionCommand(gameState: ChessGameState, startFen?: string): string {
+  return startFen
+    ? buildUciPositionFromFen(startFen, gameState.moveHistory)
+    : buildUciPositionCommand(gameState.moveHistory);
+}
+
+/**
  * Best move at the given strength — the same option/position/go sequence as
  * web's useStockfish.getBestMove, over the native transport.
+ *
+ * Pass `startFen` when `gameState` was seeded from a FEN rather than played out
+ * from the opening; see `positionCommand`.
  */
 export function getEngineBestMove(
   gameState: ChessGameState,
   targetElo: number,
+  startFen?: string,
 ): Promise<UciBestMove> {
   return new Promise((resolve, reject) => {
     if (!controls || !started || !ready) {
@@ -281,7 +305,7 @@ export function getEngineBestMove(
     const elo = Math.max(ARASAN_UCI_ELO_MIN, Math.min(ARASAN_UCI_ELO_MAX, targetElo));
     controls.send('setoption name UCI_LimitStrength value true');
     controls.send(`setoption name UCI_Elo value ${elo}`);
-    controls.send(buildUciPositionCommand(gameState.moveHistory));
+    controls.send(positionCommand(gameState, startFen));
     controls.send(`go movetime ${Math.max(MIN_MOVE_TIME_MS, engineMoveTimeMs(targetElo))}`);
   });
 }
@@ -299,6 +323,7 @@ export function getEngineBestMove(
 export function getEngineEvaluation(
   gameState: ChessGameState,
   movetimeMs: number,
+  startFen?: string,
 ): Promise<EngineEvaluation> {
   return new Promise((resolve, reject) => {
     if (!controls || !started || !ready) {
@@ -314,7 +339,7 @@ export function getEngineEvaluation(
     };
 
     controls.send('setoption name UCI_LimitStrength value false');
-    controls.send(buildUciPositionCommand(gameState.moveHistory));
+    controls.send(positionCommand(gameState, startFen));
     controls.send(`go movetime ${Math.max(MIN_MOVE_TIME_MS, movetimeMs)}`);
   });
 }
