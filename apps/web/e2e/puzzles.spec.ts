@@ -1,4 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+import { staticPuzzleSource, WEB_PUZZLE_PROGRESS_KEY } from '@gameexplorer/shared';
+import type { PuzzleGame } from '@gameexplorer/shared';
 
 /**
  * Puzzles, end to end, signed out.
@@ -30,13 +32,49 @@ function status(page: Page) {
   return page.locator('[role="status"] [data-title]');
 }
 
-async function openChessPuzzles(page: Page) {
-  await page.goto('/chess/puzzles');
+/**
+ * Open a game's puzzle page sitting on one specific puzzle.
+ *
+ * The page always serves the first unsolved puzzle in progression order, so
+ * pinning one means marking everything before it solved. The list comes from
+ * the shipped source rather than a hand-written array of ids — content gets
+ * added, and a test that hard-codes "the second puzzle" quietly starts testing
+ * a different position when it does.
+ */
+async function openPuzzle(page: Page, game: PuzzleGame, id?: string) {
+  const ordered = await staticPuzzleSource.listPuzzles({ game });
+  const index = id ? ordered.findIndex((p) => p.id === id) : 0;
+  expect(index, `${id} is not in the ${game} set`).toBeGreaterThanOrEqual(0);
+
+  const solved = ordered.slice(0, index).map((p) => p.id);
+  await page.addInitScript(
+    ([key, ids]) => {
+      // Seed once. This script runs on every navigation, so writing
+      // unconditionally would wipe a solve the moment the page reloaded — which
+      // is precisely what one of the tests below is checking survives.
+      if (localStorage.getItem(key as string)) return;
+      localStorage.setItem(
+        key as string,
+        JSON.stringify({
+          v: 1,
+          solved: ids,
+          streak: 0,
+          bestStreak: 0,
+          lastSeen: {},
+          updatedAt: '',
+        }),
+      );
+    },
+    [WEB_PUZZLE_PROGRESS_KEY, solved] as const,
+  );
+
+  await page.goto(`/${game}/puzzles`);
   await expect(page.getByTestId('puzzle-prompt')).toBeVisible();
+  return { ordered, solved };
 }
 
 test('renders without the global navbar', async ({ page }) => {
-  await openChessPuzzles(page);
+  await openPuzzle(page, 'chess');
   // `isImmersiveGameRoute` and the shells must agree: if this route stopped
   // matching, the page would keep the fixed nav AND the shell would still drop
   // its `pt-16`, leaving a 64px gap above the board.
@@ -44,57 +82,50 @@ test('renders without the global navbar', async ({ page }) => {
   await expect(page.locator('a[href="/chess"]').first()).toBeVisible();
 });
 
-test('opens on the first puzzle with progress at zero', async ({ page }) => {
-  await openChessPuzzles(page);
+test('opens on the easiest unsolved puzzle with progress at zero', async ({ page }) => {
+  const total = await staticPuzzleSource.countPuzzles('chess');
+  await openPuzzle(page, 'chess');
+
   await expect(page.getByTestId('puzzle-prompt')).toContainText('mate in one');
-  await expect(page.getByTestId('puzzle-progress')).toContainText('0 / 2 solved');
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`0 / ${total} solved`);
   await expect(status(page)).toHaveText('Your move');
 });
 
 test('a wrong move is refused, explained, and can be retried', async ({ page }) => {
-  await openChessPuzzles(page);
+  await openPuzzle(page, 'chess', 'chess-003');
 
-  // Kg1–f1 is legal chess and not the solution.
-  await chessSquare(page, 'g1').click();
-  await chessSquare(page, 'f1').click();
+  // Qb7 is a legal queen move and not the mate.
+  await chessSquare(page, 'b1').click();
+  await chessSquare(page, 'b7').click();
 
   await expect(status(page)).toHaveText('Not quite');
-  // Kf1 costs White nothing — it simply isn't mate. The copy has to say that
+  // Qb7 costs White nothing — it simply isn't mate. The copy has to say that
   // rather than claim a punish, so this is the case that proves the runtime's
   // "refuted" / "merely wrong" split reaches the screen.
   await expect(page.getByText('is playable, but it does not force mate')).toBeVisible();
 
-  // The solution was never played: the rook is still on a1 and a8 is empty.
-  // (The board does move — it plays the king step out — so this checks the
-  // line itself did not advance, not that nothing happened.)
-  await expect(chessSquare(page, 'a1').locator('svg')).toHaveAttribute('aria-label', 'white rook');
-  await expect(chessSquare(page, 'a8').locator('svg')).toHaveCount(0);
+  // The solution was never played: b8 is still empty.
+  await expect(chessSquare(page, 'b8').locator('svg')).toHaveCount(0);
 
   await page.getByTestId('puzzle-retry').click();
   await expect(status(page)).toHaveText('Your move');
-  // The branch went with it — the king is back home.
-  await expect(chessSquare(page, 'g1').locator('svg')).toHaveAttribute('aria-label', 'white king');
+  // The branch went with it — the queen is back home.
+  await expect(chessSquare(page, 'b1').locator('svg')).toHaveAttribute('aria-label', 'white queen');
 });
 
 test('the opponent’s refutation is played out and named', async ({ page }) => {
-  await page.addInitScript(() =>
-    localStorage.setItem(
-      'ge:puzzles',
-      JSON.stringify({ v: 1, solved: ['chess-001'], streak: 0, bestStreak: 0, lastSeen: {}, updatedAt: '' }),
-    ),
-  );
-  await openChessPuzzles(page);
-  await expect(page.getByTestId('puzzle-prompt')).toContainText('mate in two');
+  // A position with a black queen in it, so a wrong move can actually be
+  // punished rather than merely missing the point.
+  await openPuzzle(page, 'chess', 'chess-007');
 
-  // Rb1–a1 hangs the rook. Unlike the king step above this really is refuted,
-  // and the board runs two plies on to show Black taking it.
-  await chessSquare(page, 'b1').click();
-  await chessSquare(page, 'a1').click();
+  // Rd7 hangs the rook to the queen it was supposed to capture.
+  await chessSquare(page, 'd1').click();
+  await chessSquare(page, 'd7').click();
 
   await expect(status(page)).toHaveText('Not quite');
-  await expect(page.getByText('Black answers a8→a1')).toBeVisible();
-  // Black's rook is now sitting on a1, where White's just was.
-  await expect(chessSquare(page, 'a1').locator('svg')).toHaveAttribute('aria-label', 'black rook');
+  await expect(page.getByText('Black answers d8→d7')).toBeVisible();
+  // The queen is now sitting on d7, where White's rook just was.
+  await expect(chessSquare(page, 'd7').locator('svg')).toHaveAttribute('aria-label', 'black queen');
   // …and the red arrow points at THEIR move. This is the one marker the board
   // draws for a wrong move, and it used to point at the player's own; a
   // regression would silently go back to marking the wrong thing.
@@ -106,33 +137,27 @@ test('the opponent’s refutation is played out and named', async ({ page }) => 
 });
 
 test('solving records progress that survives a reload', async ({ page }) => {
-  await openChessPuzzles(page);
+  const total = await staticPuzzleSource.countPuzzles('chess');
+  await openPuzzle(page, 'chess', 'chess-003');
 
-  await chessSquare(page, 'a1').click();
-  await chessSquare(page, 'a8').click();
+  await chessSquare(page, 'b1').click();
+  await chessSquare(page, 'b8').click();
 
   await expect(status(page)).toHaveText('Solved');
-  await expect(page.getByTestId('puzzle-explanation')).toContainText('back rank');
-  await expect(page.getByTestId('puzzle-progress')).toContainText('1 / 2 solved');
+  await expect(page.getByTestId('puzzle-explanation')).toContainText('Qb8 is mate');
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`1 / ${total} solved`);
   // Solved first try with no hint — that is what a streak counts.
   await expect(page.getByTestId('puzzle-progress')).toContainText('streak 1');
 
   await page.reload();
   // The solved one is not served again, so the next puzzle loads and the count
   // has stuck.
-  await expect(page.getByTestId('puzzle-progress')).toContainText('1 / 2 solved');
-  await expect(page.getByTestId('puzzle-prompt')).toContainText('mate in two');
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`1 / ${total} solved`);
+  await expect(page.getByTestId('puzzle-prompt')).toBeVisible();
 });
 
 test('plays the opponent’s scripted reply and finishes a two-move line', async ({ page }) => {
-  // Skip straight to the mate in two by marking the first one solved.
-  await page.addInitScript(() =>
-    localStorage.setItem(
-      'ge:puzzles',
-      JSON.stringify({ v: 1, solved: ['chess-001'], streak: 0, bestStreak: 0, lastSeen: {}, updatedAt: '' }),
-    ),
-  );
-  await openChessPuzzles(page);
+  await openPuzzle(page, 'chess', 'chess-002');
   await expect(page.getByTestId('puzzle-prompt')).toContainText('mate in two');
 
   await chessSquare(page, 'b2').click();
@@ -152,14 +177,15 @@ test('plays the opponent’s scripted reply and finishes a two-move line', async
 });
 
 test('the hint points at the solution and costs the streak', async ({ page }) => {
-  await openChessPuzzles(page);
+  const total = await staticPuzzleSource.countPuzzles('chess');
+  await openPuzzle(page, 'chess', 'chess-003');
   await page.getByRole('button', { name: 'Hint' }).click();
 
-  await chessSquare(page, 'a1').click();
-  await chessSquare(page, 'a8').click();
+  await chessSquare(page, 'b1').click();
+  await chessSquare(page, 'b8').click();
 
   await expect(status(page)).toHaveText('Solved');
-  await expect(page.getByTestId('puzzle-progress')).toContainText('1 / 2 solved');
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`1 / ${total} solved`);
   // Counted as solved, but a hinted solve is not a clean one.
   await expect(page.getByTestId('puzzle-progress')).not.toContainText('streak');
 });
@@ -175,7 +201,8 @@ function gridCell(page: Page, square: string) {
 }
 
 test('checkers: a multi-jump is answered by its first and last square', async ({ page }) => {
-  await page.goto('/checkers/puzzles');
+  const total = await staticPuzzleSource.countPuzzles('checkers');
+  const { solved } = await openPuzzle(page, 'checkers', 'checkers-001');
   await expect(page.getByTestId('puzzle-prompt')).toContainText('Two jumps are on offer');
 
   // e2–g4–e6–c8 is a triple jump ending in a crowning. The board only ever
@@ -185,30 +212,28 @@ test('checkers: a multi-jump is answered by its first and last square', async ({
   await gridCell(page, 'c8').click();
 
   await expect(status(page)).toHaveText('Solved');
-  await expect(page.getByTestId('puzzle-progress')).toContainText('1 / 2 solved');
+  await expect(page.getByTestId('puzzle-progress')).toContainText(
+    `${solved.length + 1} / ${total} solved`,
+  );
 });
 
 test('checkers: the tempting shorter jump is refused', async ({ page }) => {
-  await page.goto('/checkers/puzzles');
-  await expect(page.getByTestId('puzzle-prompt')).toBeVisible();
+  const { solved } = await openPuzzle(page, 'checkers', 'checkers-001');
 
   // c2–e4–g6 is legal, and a double capture — just not the best one.
   await gridCell(page, 'c2').click();
   await gridCell(page, 'g6').click();
 
   await expect(status(page)).toHaveText('Not quite');
-  await expect(page.getByTestId('puzzle-progress')).toContainText('0 / 2 solved');
+  const total = await staticPuzzleSource.countPuzzles('checkers');
+  await expect(page.getByTestId('puzzle-progress')).toContainText(
+    `${solved.length} / ${total} solved`,
+  );
 });
 
 test('reversi: the opponent’s forced pass hands the move straight back', async ({ page }) => {
-  // Skip to the parity endgame, which is the only puzzle with a forced pass.
-  await page.addInitScript(() =>
-    localStorage.setItem(
-      'ge:puzzles',
-      JSON.stringify({ v: 1, solved: ['reversi-001'], streak: 0, bestStreak: 0, lastSeen: {}, updatedAt: '' }),
-    ),
-  );
-  await page.goto('/reversi/puzzles');
+  // The parity endgame is the puzzle with a forced pass in the middle of it.
+  const { solved } = await openPuzzle(page, 'reversi', 'reversi-002');
   await expect(page.getByTestId('puzzle-prompt')).toContainText('Win the game');
 
   await gridCell(page, 'h1').click();
@@ -225,7 +250,10 @@ test('reversi: the opponent’s forced pass hands the move straight back', async
 
   await gridCell(page, 'a1').click();
   await expect(status(page)).toHaveText('Solved');
-  await expect(page.getByTestId('puzzle-progress')).toContainText('2 / 2 solved');
+  const total = await staticPuzzleSource.countPuzzles('reversi');
+  await expect(page.getByTestId('puzzle-progress')).toContainText(
+    `${solved.length + 1} / ${total} solved`,
+  );
 });
 
 for (const game of ['chess', 'checkers', 'reversi'] as const) {
