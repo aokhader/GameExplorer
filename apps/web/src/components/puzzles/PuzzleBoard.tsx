@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import type {
   ChessGameState,
   CheckersGameState,
@@ -68,7 +68,27 @@ export function PuzzleBoard({
   // with `'ignored'`, but neither helps while a refutation is on screen: it is
   // the player's turn again in that branch, so without this the board would
   // happily accept a move in a position that is not the puzzle.
-  const handleMove = interactive ? onMove : () => {};
+  //
+  // `interactive` is also handed to the boards themselves. Swallowing the
+  // callback alone left pieces draggable on a dead board, which reads as the
+  // move having been rejected rather than never offered.
+  //
+  // Each board's adapter is memoized on `onMove`, which `usePuzzle` already
+  // keeps stable. Inline arrows here were rebuilt every render and defeated the
+  // `React.memo` on all three boards on every state change the hook made.
+  const onChessMove = useCallback(
+    (from: Position, to: Position, promotionPiece?: PieceType) =>
+      onMove({ from, to, promotion: promotionPiece }),
+    [onMove],
+  );
+  const onCheckersMove = useCallback(
+    (from: string, to: string) => onMove({ from, to }),
+    [onMove],
+  );
+  const onReversiMove = useCallback(
+    (position: string) => onMove({ from: position, to: position }),
+    [onMove],
+  );
 
   if (game === 'chess') {
     const arrows = [
@@ -82,9 +102,8 @@ export function PuzzleBoard({
         gameState={state as ChessGameState}
         playerColor={playerColor}
         arrows={arrows}
-        onMove={(from: Position, to: Position, promotionPiece?: PieceType) =>
-          handleMove({ from, to, promotion: promotionPiece })
-        }
+        interactive={interactive}
+        onMove={onChessMove}
       />
     );
   }
@@ -101,7 +120,8 @@ export function PuzzleBoard({
         gameState={state as CheckersGameState}
         playerColor={playerColor}
         arrows={arrows}
-        onMove={(from: string, to: string) => handleMove({ from, to })}
+        onMove={onCheckersMove}
+        interactive={interactive}
       />
     );
   }
@@ -114,7 +134,8 @@ export function PuzzleBoard({
       // point from — the ring on the target square is the whole marker.
       hintPos={hint?.to ?? null}
       highlightPos={refutation?.to ?? null}
-      onMove={(position: string) => handleMove({ from: position, to: position })}
+      onMove={onReversiMove}
+      interactive={interactive}
     />
   );
 }

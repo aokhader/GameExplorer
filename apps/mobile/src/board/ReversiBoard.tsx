@@ -8,7 +8,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { ReversiEngine } from '@gameexplorer/shared';
+import { BOARD_ANIM_MS, ReversiEngine } from '@gameexplorer/shared';
 import type { ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 import { ReversiDisc, REVERSI_BOARD_COLORS, SHADOWS_NATIVE } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
@@ -48,9 +48,18 @@ function squareAt(x: number, y: number, size: number): string {
 }
 
 /**
- * A single disc, absolutely positioned, with a reanimated cue on the latest move:
- * a pop when just placed (scale 1.1) and a quick dip when just flipped (scale
- * 0.9 → 1) — the native mirror of web's `scale-110` / `scale-90` transitions.
+ * A single disc, absolutely positioned, with a reanimated cue on the latest
+ * move: a pop when just placed, and a real turn-over when just flipped.
+ *
+ * The flip stacks both faces and narrows one while widening the other, which is
+ * how a disc actually turns: the old colour collapses to an edge, then the new
+ * colour opens out of it. A dip in scale — what this did before — reads as a
+ * nudge, not a flip, and left the colour change itself instantaneous.
+ *
+ * Note this board does NOT use `useBoardMotion` like chess and checkers do. It
+ * has no need to infer anything: a disc never travels, and the engine already
+ * reports exactly which squares flipped in `moveHistory`. Diffing two positions
+ * to rediscover that would be strictly worse information.
  */
 function DiscView({
   x,
@@ -70,6 +79,8 @@ function DiscView({
   reduceMotion: boolean;
 }) {
   const scale = useSharedValue(1);
+  // 1 is "settled, showing `color`". A flip drops it to 0 and plays it back.
+  const turn = useSharedValue(1);
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -80,16 +91,24 @@ function DiscView({
         withTiming(1, { duration: 130 }),
       );
     } else if (flipped) {
-      scale.value = withSequence(
-        withTiming(0.9, { duration: 130 }),
-        withTiming(1, { duration: 160 }),
-      );
+      turn.value = 0;
+      turn.value = withTiming(1, { duration: BOARD_ANIM_MS });
     }
     // Re-run only when the move cue for this square changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placed, flipped]);
 
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  // The face being turned away. `color` is already the new one by the time a
+  // flip is announced, so the outgoing face is simply its opposite.
+  const outgoing = useAnimatedStyle(() => ({
+    opacity: turn.value < 0.5 ? 1 : 0,
+    transform: [{ scaleX: Math.max(0, 1 - turn.value * 2) }],
+  }));
+  const incoming = useAnimatedStyle(() => ({
+    opacity: turn.value < 0.5 ? 0 : 1,
+    transform: [{ scaleX: Math.max(0, turn.value * 2 - 1) }],
+  }));
 
   return (
     <Animated.View
@@ -107,7 +126,12 @@ function DiscView({
         anim,
       ]}
     >
-      <ReversiDisc color={color} size={sq * DISC_RATIO} />
+      <Animated.View style={[{ position: 'absolute' }, outgoing]}>
+        <ReversiDisc color={color === 'black' ? 'white' : 'black'} size={sq * DISC_RATIO} />
+      </Animated.View>
+      <Animated.View style={incoming}>
+        <ReversiDisc color={color} size={sq * DISC_RATIO} />
+      </Animated.View>
     </Animated.View>
   );
 }

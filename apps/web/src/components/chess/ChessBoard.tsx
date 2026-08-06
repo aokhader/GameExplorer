@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
+  BOARD_ANIM_MS,
+  CHESS_DIFF,
   ChessEngine,
   ChessGameState,
   Position,
@@ -12,6 +14,11 @@ import {
   isChessPremovePromotion,
   type ChessPremove,
 } from '@gameexplorer/shared';
+import {
+  type PieceOffset,
+  motionKey,
+  useBoardMotion,
+} from '@gameexplorer/client/hooks/useBoardMotion';
 import { ChessPiece } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { useGameSfx } from '@/hooks/useGameSfx';
@@ -55,6 +62,78 @@ interface ChessBoardProps {
    * `playerColor` is board orientation rather than "the side I own".
    */
   allowPremoves?: boolean;
+  /**
+   * Board is inert — no selection, no drag, no click-to-move.
+   *
+   * Real inertness, not a no-op `onMove`: the puzzle screens used to fake this
+   * by swallowing the callback, which left pieces draggable on a board that
+   * would silently discard the move. The native boards have had this since M2.
+   */
+  interactive?: boolean;
+}
+
+/**
+ * One piece, positioned over the board and animated between squares.
+ *
+ * Pieces live in their own absolutely-positioned layer rather than inside the
+ * square divs, which is what makes movement possible at all: a piece parented
+ * to a grid cell cannot travel out of it, and a captured piece is unmounted
+ * before it has a chance to fade. This is also how chessground does it.
+ *
+ * The travel itself is FLIP — mount at the origin, then move to the real square
+ * on the next frame with a transition attached. The transition is deliberately
+ * absent on that first paint: present, it would animate from the layer's corner
+ * to the origin square, and every piece would fly in from a1 on first render.
+ */
+function PieceSlot({
+  square,
+  col,
+  row,
+  offset,
+  fading,
+  children,
+}: {
+  /**
+   * The square this piece stands on. Not used for layout — that is the
+   * transform — but pieces are no longer children of their squares, so this is
+   * the only way anything outside can ask "what is on d7", tests included.
+   */
+  square: Position;
+  col: number;
+  row: number;
+  /** Where this piece came from, in squares. Null means it did not travel. */
+  offset: PieceOffset | null;
+  fading?: boolean;
+  children: React.ReactNode;
+}) {
+  // Captured at mount and never read from props again. `offset` describes the
+  // arrival that created this instance, and it goes null a tick later when the
+  // board swaps its optimistic copy for the parent's confirmed state — which
+  // would otherwise cancel the transition mid-flight and snap the piece to its
+  // destination.
+  const [from] = useState(() => offset);
+  const [settled, setSettled] = useState(!from);
+
+  useLayoutEffect(() => {
+    if (!from) return;
+    const id = requestAnimationFrame(() => setSettled(true));
+    return () => cancelAnimationFrame(id);
+    // Mount-only by construction: `from` is frozen at creation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const x = settled || !from ? col : col + from.dx;
+  const y = settled || !from ? row : row + from.dy;
+
+  return (
+    <div
+      data-square={square}
+      data-fading={fading ? '' : undefined}
+      className={`piece-slot${from && settled ? ' travelling' : ''}${fading ? ' fading' : ''}`}
+      style={{ transform: `translate(${x * 100}%, ${y * 100}%)` }}
+    >
+      {children}
+    </div>
+  );
 }
 
 interface PendingPromotion {
@@ -186,6 +265,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   allowSelectAnyColor = false,
   legalMovesMap,
   allowPremoves = false,
+  interactive = true,
 }: ChessBoardProps) {
   // ── Optimistic state ───────────────────────────────────────────────────────
   // Applied immediately on move confirmation via executeMove(skipGameEndCheck=true).
@@ -219,9 +299,23 @@ export const ChessBoard = React.memo(function ChessBoard({
   const [captureFlash, setCaptureFlash] = useState<Position | null>(null);
 
   const sfx = useGameSfx();
-  const { settings } = useSettings();
+  // `reducedMotion` is the merged value (OS query + explicit setting). The CSS
+  // here honours the media query on its own, but the JS-driven travel has to be
+  // told, and only the provider knows about the in-app toggle.
+  const { settings, reducedMotion } = useSettings();
   // The page can force coordinates off; the user setting can also hide them.
   const coordsOn = showCoordinates && settings.showCoordinates;
+
+  // What travelled to get to this position. Animates only between consecutive
+  // positions — stepping through a game's history or loading a new one snaps.
+  const motion = useBoardMotion(effectiveState.board, {
+    ...CHESS_DIFF,
+    historyLength: effectiveState.moveHistory.length,
+    // Inline rather than the `isFlipped` below it: that is declared further
+    // down with the refs, and this hook has to run before the first render use.
+    isFlipped: playerColor === 'black',
+    enabled: !reducedMotion,
+  });
 
   // Whose-turn signifier + check highlight. Computed each render (cheap).
   const gameOver =
@@ -306,6 +400,10 @@ export const ChessBoard = React.memo(function ChessBoard({
       onSquareClick?.(position);
       return;
     }
+
+    // Inert board: no selection, no aiming, no move. Edit mode is exempt above
+    // because a position editor is interactive in a different sense.
+    if (!interactive) return;
 
     if (pendingPromotion) return;
 
@@ -486,6 +584,7 @@ export const ChessBoard = React.memo(function ChessBoard({
 
   /** Pieces this board will let the pointer pick up right now. */
   const canGrab = (piece: Piece): boolean => {
+    if (!interactive) return false;
     if (editMode || allowSelectAnyColor) return false;
     return premoveMode ? piece.color === playerColor : piece.color === effectiveState.currentTurn;
   };
@@ -500,7 +599,11 @@ export const ChessBoard = React.memo(function ChessBoard({
 
     selectPiece(position);
 
-    const { width } = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    // currentTarget is the square, so scale to the piece's own footprint —
+    // `.piece` is 90% of its square, and a ghost the full square size reads as
+    // the piece growing the instant it is picked up.
+    const { width: squareWidth } = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const width = squareWidth * 0.9;
     const halfSize = width / 2;
 
     // Position ghost immediately (imperative, no re-render).
@@ -576,11 +679,8 @@ export const ChessBoard = React.memo(function ChessBoard({
         const isLight = (displayRow + displayCol) % 2 === 0;
         const isSelected = selectedSquare === position;
         const isValidMove = validMoves.includes(position);
-        const isDragging = dragging?.from === position;
         const isLastMoveSquare = lastMove && (lastMove.from === position || lastMove.to === position);
-        const justArrived = lastMoveTo === position;
         const isCheckKing = kingInCheckPos === position;
-        const isShaking = shakeSquare === position;
         const isPremoveSquare = !!premove && (premove.from === position || premove.to === position);
 
         squares.push(
@@ -589,13 +689,19 @@ export const ChessBoard = React.memo(function ChessBoard({
             className={`
               square
               ${isLight ? 'light' : 'dark'}
+              ${piece && canGrab(piece) ? 'grabbable' : ''}
               ${isSelected ? 'selected' : ''}
               ${isValidMove ? 'valid-move' : ''}
-              ${isDragging ? 'dragging' : ''}
               ${isLastMoveSquare ? 'last-move' : ''}
               ${isPremoveSquare ? 'premove' : ''}
             `}
             onClick={() => handleSquareClick(position)}
+            // Pointer-down lives on the square now that pieces are drawn in a
+            // layer above with pointer-events off — the square is what the
+            // pointer actually lands on, and it knows what is standing on it.
+            onPointerDown={
+              piece && canGrab(piece) ? handlePiecePointerDown(position, piece) : undefined
+            }
           >
             {coordsOn && col === (isFlipped ? 7 : 0) && (
               <div className="rank-label">{displayRow + 1}</div>
@@ -611,21 +717,85 @@ export const ChessBoard = React.memo(function ChessBoard({
 
             {isCheckKing && <div className="check-ring" />}
             {captureFlash === position && <div className="capture-flash" />}
-
-            {piece && (
-              <div
-                className={`piece${justArrived ? ' just-arrived' : ''}${isShaking ? ' shake' : ''}`}
-                onPointerDown={canGrab(piece) ? handlePiecePointerDown(position, piece) : undefined}
-              >
-                <ChessPiece type={piece.type} color={piece.color} size="100%" />
-              </div>
-            )}
           </div>
         );
       }
     }
 
     return squares;
+  };
+
+  /**
+   * The piece layer, drawn over the squares.
+   *
+   * Ordered by screen position rather than board position so the DOM order
+   * matches what a screen reader would walk, and so a piece never sits under
+   * one it should be over during a slide.
+   */
+  const renderPieces = () => {
+    const slots = [];
+
+    // Captured pieces first, so a live piece arriving on the square is drawn
+    // over the ghost it is replacing rather than under it.
+    for (const fade of motion.fades) {
+      const screenRow = isFlipped ? fade.at.row : 7 - fade.at.row;
+      const screenCol = isFlipped ? 7 - fade.at.col : fade.at.col;
+      slots.push(
+        <PieceSlot
+          key={`f-${motion.epoch}-${fade.at.row}-${fade.at.col}`}
+          square={getPositionFromCoords(fade.at.row, fade.at.col)}
+          col={screenCol}
+          row={screenRow}
+          offset={null}
+          fading
+        >
+          <div className="piece">
+            <ChessPiece type={fade.piece.type} color={fade.piece.color} size="100%" />
+          </div>
+        </PieceSlot>,
+      );
+    }
+
+    for (let row = 7; row >= 0; row--) {
+      for (let col = 0; col < 8; col++) {
+        const displayRow = isFlipped ? 7 - row : row;
+        const displayCol = isFlipped ? 7 - col : col;
+        const piece = effectiveState.board[displayRow][displayCol];
+        if (!piece) continue;
+
+        const position = getPositionFromCoords(displayRow, displayCol);
+        const screenRow = isFlipped ? displayRow : 7 - displayRow;
+        const screenCol = isFlipped ? 7 - displayCol : displayCol;
+        const offset = motion.offsets.get(motionKey(displayRow, displayCol)) ?? null;
+        // A piece that slid has already announced itself; popping it as well
+        // reads as a stutter at the end of the travel.
+        const justArrived = lastMoveTo === position && !offset;
+        const isShaking = shakeSquare === position;
+
+        slots.push(
+          <PieceSlot
+            // The piece is part of the key, not just the square: a capture must
+            // mount a fresh slot so the arriving piece starts at its origin
+            // instead of inheriting the captured piece's settled position.
+            key={`p-${position}-${piece.color}-${piece.type}`}
+            square={position}
+            col={screenCol}
+            row={screenRow}
+            offset={offset}
+          >
+            <div
+              className={`piece${justArrived ? ' just-arrived' : ''}${isShaking ? ' shake' : ''}${
+                dragging?.from === position ? ' lifted' : ''
+              }`}
+            >
+              <ChessPiece type={piece.type} color={piece.color} size="100%" />
+            </div>
+          </PieceSlot>,
+        );
+      }
+    }
+
+    return slots;
   };
 
   return (
@@ -635,7 +805,16 @@ export const ChessBoard = React.memo(function ChessBoard({
         <div
           className={`chess-board${myTurn ? ' my-turn' : ''}`}
           ref={boardRef}
-          style={{ touchAction: 'none' }}
+          // The animation duration is owned by BOARD_ANIM_MS in shared, which
+          // usePuzzle also times the opponent's reply against. Handing it to CSS
+          // as a variable keeps one number authoritative instead of two that
+          // drift.
+          style={
+            {
+              touchAction: 'none',
+              '--gx-board-anim': `${BOARD_ANIM_MS}ms`,
+            } as React.CSSProperties
+          }
           onPointerMove={handleBoardPointerMove}
           onPointerUp={handleBoardPointerUp}
           onPointerCancel={handleBoardPointerCancel}
@@ -648,6 +827,8 @@ export const ChessBoard = React.memo(function ChessBoard({
           }}
         >
           {renderBoard()}
+          {/* Pieces ride above the squares so they can travel between them. */}
+          <div className="piece-layer">{renderPieces()}</div>
         </div>
 
         {/* Drag ghost — positioned imperatively on every pointermove so React

@@ -9,11 +9,20 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import {
+  BOARD_ANIM_MS,
+  CHESS_DIFF,
   ChessEngine,
   getChessPremoveDestinations,
   isChessPremoveLegal,
 } from '@gameexplorer/shared';
-import type { ChessGameState, ChessPremove, PieceType } from '@gameexplorer/shared';
+import type { ChessGameState, ChessPremove, Piece, PieceType } from '@gameexplorer/shared';
+// Deep import: the `@gameexplorer/client` barrel builds a Supabase client at
+// import time, which a board has no business needing.
+import {
+  type PieceOffset,
+  motionKey,
+  useBoardMotion,
+} from '@gameexplorer/client/hooks/useBoardMotion';
 import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
@@ -107,7 +116,7 @@ function isPromotion(state: ChessGameState, from: string, to: string): boolean {
   return (piece.color === 'white' && toRow === 7) || (piece.color === 'black' && toRow === 0);
 }
 
-/** A single piece, absolutely positioned, with an "arrive" pop on the last move. */
+/** A single piece, absolutely positioned, travelling in from wherever it was. */
 function BoardPiece({
   x,
   y,
@@ -116,6 +125,7 @@ function BoardPiece({
   color,
   dimmed,
   pop,
+  offset,
   reduceMotion,
 }: {
   x: number;
@@ -125,12 +135,31 @@ function BoardPiece({
   color: 'white' | 'black';
   dimmed: boolean;
   pop: boolean;
+  /** Where this piece came from, in squares. Null means it did not travel. */
+  offset: PieceOffset | null;
   reduceMotion: boolean;
 }) {
   const scale = useSharedValue(1);
+  // Seeded at creation rather than in an effect, because an effect runs after
+  // paint: the piece would show for one frame at its destination, then snap
+  // back to its origin to begin. Every piece that travels is newly mounted —
+  // the key carries the square AND the piece, so a capture replaces the
+  // component rather than reusing the captured piece's instance.
+  const tx = useSharedValue(offset ? offset.dx * sq : 0);
+  const ty = useSharedValue(offset ? offset.dy * sq : 0);
 
   useEffect(() => {
-    if (pop && !reduceMotion) {
+    if (!offset || reduceMotion) return;
+    tx.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    ty.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    // Mount-only: `offset` describes the arrival that created this instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // A piece that slid has already announced itself; popping it as well reads
+    // as a stutter at the end of the travel.
+    if (pop && !reduceMotion && !offset) {
       scale.value = 0.75;
       scale.value = withSequence(
         withTiming(1.1, { duration: 130 }),
@@ -140,7 +169,9 @@ function BoardPiece({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pop]);
 
-  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const anim = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: scale.value }],
+  }));
 
   return (
     <Animated.View
@@ -160,6 +191,56 @@ function BoardPiece({
       ]}
     >
       <ChessPiece type={type} color={color} size={sq * PIECE_RATIO} />
+    </Animated.View>
+  );
+}
+
+/**
+ * A captured piece, still drawn where it stood while it fades.
+ *
+ * Without this a capture is instantaneous in a way nothing else on the board
+ * is: the taking piece glides over for 200ms towards a square that emptied the
+ * moment the move was made.
+ */
+function FadingPiece({
+  x,
+  y,
+  sq,
+  piece,
+  reduceMotion,
+}: {
+  x: number;
+  y: number;
+  sq: number;
+  piece: Piece;
+  reduceMotion: boolean;
+}) {
+  const opacity = useSharedValue(reduceMotion ? 0 : 1);
+
+  useEffect(() => {
+    if (!reduceMotion) opacity.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          left: x,
+          top: y,
+          width: sq,
+          height: sq,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        anim,
+      ]}
+    >
+      <ChessPiece type={piece.type} color={piece.color} size={sq * PIECE_RATIO} />
     </Animated.View>
   );
 }
@@ -272,6 +353,16 @@ function ChessBoardInner({
 
   // Full move generation is expensive — recompute only when the state changes.
   const legalMoves = useMemo(() => ChessEngine.getAllLegalMoves(gameState), [gameState]);
+
+  // What travelled to get to this position, so pieces slide rather than blink
+  // into place. Animates only between consecutive positions — seeking through
+  // a puzzle line or loading a new game snaps, as it should.
+  const motion = useBoardMotion(gameState.board, {
+    ...CHESS_DIFF,
+    historyLength: gameState.moveHistory.length,
+    isFlipped,
+    enabled: !reducedMotion,
+  });
 
   const dragTX = useSharedValue(0);
   const dragTY = useSharedValue(0);
@@ -679,7 +770,11 @@ function ChessBoardInner({
               const { x, y } = screenXY(pos, isFlipped, sq);
               pieces.push(
                 <BoardPiece
-                  key={`p-${pos}`}
+                  // The piece is part of the key, not just the square: a capture
+                  // must mount a fresh component so the arriving piece can be
+                  // seeded at its origin instead of inheriting the captured
+                  // piece's already-settled position.
+                  key={`p-${pos}-${piece.color}-${piece.type}`}
                   x={x}
                   y={y}
                   sq={sq}
@@ -687,12 +782,29 @@ function ChessBoardInner({
                   color={piece.color}
                   dimmed={draggingFrom === pos}
                   pop={lastMoveTo === pos}
+                  offset={motion.offsets.get(motionKey(boardRow, boardCol)) ?? null}
                   reduceMotion={reducedMotion}
                 />,
               );
             }
           }
         }
+
+        // Captured pieces, drawn under the live ones while they fade out.
+        const fading = motion.fades.map((fade) => {
+          const pos = posFromCoords(fade.at.row, fade.at.col);
+          const { x, y } = screenXY(pos, isFlipped, sq);
+          return (
+            <FadingPiece
+              key={`f-${motion.epoch}-${pos}`}
+              x={x}
+              y={y}
+              sq={sq}
+              piece={fade.piece}
+              reduceMotion={reducedMotion}
+            />
+          );
+        });
 
         // Floating copy of the piece being dragged (above everything).
         let floating: React.ReactNode = null;
@@ -740,6 +852,7 @@ function ChessBoardInner({
               ]}
             >
               {squares}
+              {fading}
               {pieces}
               {floating}
               {pending && (

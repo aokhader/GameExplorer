@@ -9,11 +9,24 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import {
+  BOARD_ANIM_MS,
+  CHECKERS_DIFF,
   CheckersEngine,
   getCheckersPremoveDestinations,
   isCheckersPremoveLegal,
 } from '@gameexplorer/shared';
-import type { CheckersGameState, CheckersPremove } from '@gameexplorer/shared';
+import type {
+  CheckersGameState,
+  CheckersPiece as CheckersPieceModel,
+  CheckersPremove,
+} from '@gameexplorer/shared';
+// Deep import: the `@gameexplorer/client` barrel builds a Supabase client at
+// import time, which a board has no business needing.
+import {
+  type PieceOffset,
+  motionKey,
+  useBoardMotion,
+} from '@gameexplorer/client/hooks/useBoardMotion';
 import {
   CheckersPiece,
   CHECKERS_BOARD_COLORS,
@@ -88,9 +101,9 @@ function squareAt(x: number, y: number, isFlipped: boolean, size: number): strin
 }
 
 /**
- * A single piece, absolutely positioned, with a reanimated "arrive" pop when it
- * lands (mirrors web's `scale-110` transition on the just-moved square). The
- * origin piece dims while its owner drags it (the "lifted" look).
+ * A single piece, absolutely positioned, travelling in from wherever it was.
+ * It pops on arrival only when it did not slide. The origin piece dims while
+ * its owner drags it (the "lifted" look).
  */
 function BoardPiece({
   x,
@@ -100,6 +113,7 @@ function BoardPiece({
   color,
   dimmed,
   pop,
+  offset,
   reduceMotion,
 }: {
   x: number;
@@ -109,12 +123,24 @@ function BoardPiece({
   color: 'white' | 'black';
   dimmed: boolean;
   pop: boolean;
+  /** Where this piece came from, in squares. Null means it did not travel. */
+  offset: PieceOffset | null;
   reduceMotion: boolean;
 }) {
   const scale = useSharedValue(1);
+  // Seeded at creation, not in an effect — see the note on chess's BoardPiece.
+  const tx = useSharedValue(offset ? offset.dx * sq : 0);
+  const ty = useSharedValue(offset ? offset.dy * sq : 0);
 
   useEffect(() => {
-    if (pop && !reduceMotion) {
+    if (!offset || reduceMotion) return;
+    tx.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    ty.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (pop && !reduceMotion && !offset) {
       scale.value = 0.75;
       scale.value = withSequence(
         withTiming(1.1, { duration: 130 }),
@@ -125,7 +151,9 @@ function BoardPiece({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pop]);
 
-  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const anim = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: scale.value }],
+  }));
 
   return (
     <Animated.View
@@ -145,6 +173,54 @@ function BoardPiece({
       ]}
     >
       <CheckersPiece type={type} color={color} size={sq * PIECE_RATIO} />
+    </Animated.View>
+  );
+}
+
+/**
+ * A jumped piece, still drawn where it stood while it fades. Multi-jumps remove
+ * several at once, which is exactly when pieces vanishing instantly is most
+ * jarring — the chain reads as one long slide past ghosts.
+ */
+function FadingPiece({
+  x,
+  y,
+  sq,
+  piece,
+  reduceMotion,
+}: {
+  x: number;
+  y: number;
+  sq: number;
+  piece: CheckersPieceModel;
+  reduceMotion: boolean;
+}) {
+  const opacity = useSharedValue(reduceMotion ? 0 : 1);
+
+  useEffect(() => {
+    if (!reduceMotion) opacity.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          left: x,
+          top: y,
+          width: sq,
+          height: sq,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        anim,
+      ]}
+    >
+      <CheckersPiece type={piece.type} color={piece.color} size={sq * PIECE_RATIO} />
     </Animated.View>
   );
 }
@@ -188,6 +264,15 @@ function CheckersBoardInner({
 
   // Full move generation is expensive — recompute only when the state changes.
   const legalMoves = useMemo(() => CheckersEngine.getAllLegalMoves(gameState), [gameState]);
+
+  // What travelled to get here. A multi-jump is one long slide with a fade per
+  // victim, which is what makes a chain read as a chain.
+  const motion = useBoardMotion(gameState.board, {
+    ...CHECKERS_DIFF,
+    historyLength: gameState.moveHistory.length,
+    isFlipped,
+    enabled: !reducedMotion,
+  });
 
   // Drag translation (UI thread) + pickup lift.
   const dragTX = useSharedValue(0);
@@ -596,7 +681,9 @@ function CheckersBoardInner({
               const { x, y } = screenXY(pos, isFlipped, sq);
               pieces.push(
                 <BoardPiece
-                  key={`p-${pos}`}
+                  // The piece is part of the key so a capture mounts a fresh
+                  // component — see the chess board for why.
+                  key={`p-${pos}-${piece.color}-${piece.type}`}
                   x={x}
                   y={y}
                   sq={sq}
@@ -604,12 +691,29 @@ function CheckersBoardInner({
                   color={piece.color}
                   dimmed={draggingFrom === pos}
                   pop={lastMoveTo === pos}
+                  offset={motion.offsets.get(motionKey(boardRow, boardCol)) ?? null}
                   reduceMotion={reducedMotion}
                 />,
               );
             }
           }
         }
+
+        // Jumped pieces, drawn under the live ones while they fade.
+        const fading = motion.fades.map((fade) => {
+          const pos = posFromCoords(fade.at.row, fade.at.col);
+          const { x, y } = screenXY(pos, isFlipped, sq);
+          return (
+            <FadingPiece
+              key={`f-${motion.epoch}-${pos}`}
+              x={x}
+              y={y}
+              sq={sq}
+              piece={fade.piece}
+              reduceMotion={reducedMotion}
+            />
+          );
+        });
 
         // Floating copy of the piece being dragged (drawn above everything).
         let floating: React.ReactNode = null;
@@ -657,6 +761,7 @@ function CheckersBoardInner({
               ]}
             >
               {squares}
+              {fading}
               {pieces}
               {floating}
             </View>

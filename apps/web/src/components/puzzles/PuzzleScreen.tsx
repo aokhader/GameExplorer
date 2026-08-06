@@ -2,7 +2,11 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePuzzle } from '@gameexplorer/client';
+// Deep import, not the package barrel — the same reason mobile does it. The
+// barrel re-exports `useSocket`, which pulls `@gameexplorer/db` (a Supabase
+// client built at import time) and socket.io onto this route's chunk, neither
+// of which a puzzle touches.
+import { usePuzzle } from '@gameexplorer/client/hooks/usePuzzle';
 import type { PuzzleGame } from '@gameexplorer/shared';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { StatusBanner } from '@/components/game/StatusBanner';
@@ -59,6 +63,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     run,
     phase,
     loading,
+    swapping,
     error,
     exhausted,
     progress,
@@ -75,6 +80,8 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     startOver,
   } = usePuzzle<unknown>({ game, source: staticPuzzleSource, progress: webPuzzleProgressStore });
 
+  // Only when there is nothing to show. A Next press keeps the old board up —
+  // see `swapping`, which makes it inert instead of replacing it.
   if (loading) return <GameSkeleton />;
 
   if (error || (!puzzle && !exhausted)) {
@@ -145,7 +152,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
           // position the player still has to solve.
           state={board}
           playerColor={puzzle.playerColor}
-          interactive={phase === 'playing'}
+          interactive={phase === 'playing' && !swapping}
           onMove={playMove}
           hint={hint}
           refutation={refutation?.reply ?? null}

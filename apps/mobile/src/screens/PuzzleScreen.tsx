@@ -68,6 +68,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     run,
     phase,
     loading,
+    swapping,
     error,
     exhausted,
     progress,
@@ -92,6 +93,8 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     progress: mobilePuzzleProgressStore,
   });
 
+  // Only when there is nothing to show. A Next press keeps the old board up —
+  // see `swapping`, which makes it inert instead of replacing it.
   if (loading) {
     return (
       <Screen scroll={false}>
@@ -190,7 +193,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
           // the player still has to solve.
           state={board}
           playerColor={puzzle.playerColor}
-          interactive={phase === 'playing' && atLive}
+          interactive={phase === 'playing' && atLive && !swapping}
           onMove={playMove}
           hint={hint}
           refutation={refutation?.reply ?? null}

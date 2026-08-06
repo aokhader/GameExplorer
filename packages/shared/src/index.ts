@@ -17,6 +17,9 @@ export * from './game-logic/reversi';
 // Liquidate — cosmic property-trading game (2–6 players)
 export * from './game-logic/liquidate';
 
+// Board animation — what changed between two positions, for both renderers
+export * from './board';
+
 // Socket event protocol
 export * from './types/socket.types';
 

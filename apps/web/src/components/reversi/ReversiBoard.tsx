@@ -32,6 +32,13 @@ interface ReversiiBoardProps {
   highlightPos?: string | null;
   /** Show a hint ring on this square */
   hintPos?: string | null;
+  /**
+   * Board is inert — legal-move dots still show, but a tap does nothing.
+   *
+   * Real inertness, not a no-op `onMove`: the puzzle screens used to fake this
+   * by swallowing the callback, which left the board looking playable.
+   */
+  interactive?: boolean;
 }
 
 function posFromCoords(row: number, col: number): string {
@@ -47,6 +54,7 @@ export const ReversiBoard = React.memo(function ReversiBoard({
   showCoordinates = true,
   highlightPos,
   hintPos,
+  interactive = true,
 }: ReversiiBoardProps) {
   const [justFlipped, setJustFlipped] = useState<Set<string>>(new Set());
   const [justPlaced, setJustPlaced]   = useState<string | null>(null);
@@ -108,7 +116,7 @@ export const ReversiBoard = React.memo(function ReversiBoard({
             aspectRatio: '1 / 1',
           }}
           className={`relative flex items-center justify-center ${isLegal ? 'cursor-pointer' : 'cursor-default'}`}
-          onClick={() => isLegal && onMove(pos)}
+          onClick={() => interactive && isLegal && onMove(pos)}
         >
           {/* Coordinate labels */}
           {showRank && (

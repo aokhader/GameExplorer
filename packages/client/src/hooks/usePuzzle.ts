@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  BOARD_ANIM_MS,
   EMPTY_PROGRESS,
   applyOpponentReply,
   applyPlayerMove,
@@ -43,8 +44,15 @@ import type {
   PuzzleSource,
 } from '@gameexplorer/shared';
 
-/** Long enough to read as a reply, short enough not to feel like waiting. */
-const DEFAULT_REPLY_DELAY_MS = 450;
+/**
+ * Beat before the opponent's scripted reply.
+ *
+ * Derived from the piece animation rather than picked independently, so the
+ * reply lands just after the player's move finishes travelling instead of
+ * stepping on it. Lichess times theirs the same way — `animation.duration`
+ * times 1 to 1.5 — and lands in the same 200-300ms range.
+ */
+const DEFAULT_REPLY_DELAY_MS = Math.round(BOARD_ANIM_MS * 1.3);
 
 /**
  * Gap between "Not quite" and the refutation search.
@@ -53,6 +61,12 @@ const DEFAULT_REPLY_DELAY_MS = 450;
  * blocks the thread — a few milliseconds for checkers and reversi but tens for
  * chess — so the feedback has to be painted before it starts, or the board
  * appears to hang on the player's mistake.
+ *
+ * It now has cover as well as a head start: the wrong move is animating across
+ * the board while the search runs, and worst-case chess (~103ms at depth 4)
+ * finishes well inside that window. On mobile the animation runs on the UI
+ * thread, so a blocked JS thread underneath it is invisible rather than merely
+ * disguised.
  */
 const REFUTATION_DELAY_MS = 60;
 
@@ -69,7 +83,13 @@ export interface UsePuzzleResult<S> {
   puzzle: Puzzle | null;
   run: PuzzleRun<S> | null;
   phase: PuzzlePhase | null;
+  /** True only when there is nothing on screen yet. Never true for a Next. */
   loading: boolean;
+  /**
+   * True while a *replacement* puzzle is being fetched with one still painted.
+   * Consumers should keep drawing the old board and make it inert, not blank it.
+   */
+  swapping: boolean;
   error: string | null;
   /** True when this game has no unsolved puzzles left. */
   exhausted: boolean;
@@ -112,6 +132,7 @@ export function usePuzzle<S>({
   const [progress, setProgress] = useState<PuzzleProgress>(EMPTY_PROGRESS);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [swapping, setSwapping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [hint, setHint] = useState<PuzzleMove | null>(null);
@@ -127,11 +148,23 @@ export function usePuzzle<S>({
   // double-fired effect cannot bank it twice.
   const recordedRef = useRef<string | null>(null);
 
+  // What is currently painted. A `loadToken` bump asks for a different puzzle
+  // in the SAME set, which is the Next button; changing game or pinning an id
+  // is a different set and has nothing worth keeping on screen.
+  const paintedKeyRef = useRef<string | null>(null);
+  const loadKey = `${game}:${puzzleId ?? ''}`;
+
   // -- load ----------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
-    setLoading(true);
+    // Blank the screen only when there is nothing on it. Puzzle data is an
+    // in-memory array; showing a skeleton over a board the player is already
+    // looking at, for the time it takes to scan 42 rows, was the single most
+    // conspicuous stall in the mode.
+    const replacing = paintedKeyRef.current === loadKey;
+    if (replacing) setSwapping(true);
+    else setLoading(true);
     setError(null);
     setHint(null);
 
@@ -150,6 +183,7 @@ export function usePuzzle<S>({
         if (cancelled) return;
 
         if (!found) {
+          paintedKeyRef.current = null;
           setPuzzle(null);
           setRun(null);
           setExhausted(true);
@@ -157,6 +191,7 @@ export function usePuzzle<S>({
         }
 
         recordedRef.current = null;
+        paintedKeyRef.current = loadKey;
         setExhausted(false);
         setPuzzle(found);
         setRun(startPuzzle<S>(found, rules));
@@ -169,7 +204,10 @@ export function usePuzzle<S>({
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load a puzzle.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setSwapping(false);
+        }
       }
     })();
 
@@ -271,6 +309,7 @@ export function usePuzzle<S>({
     run,
     phase: run?.phase ?? null,
     loading,
+    swapping,
     error,
     exhausted,
     progress,

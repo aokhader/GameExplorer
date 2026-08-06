@@ -16,11 +16,26 @@ import type { PuzzleGame } from '@gameexplorer/shared';
  * The board renders 64 `.square` divs row-major from rank 8 with White at the
  * bottom, and the squares carry no id of their own — so this is the coordinate
  * translation, kept in one place. a8 is 0, a1 is 56.
+ *
+ * This is what to CLICK. It is not where the pieces are: they live in a
+ * separate `.piece-layer` so they can travel between squares, so asking a
+ * square what is standing on it no longer works — use `chessPiece` for that.
  */
 function chessSquare(page: Page, square: string) {
   const file = square.charCodeAt(0) - 'a'.charCodeAt(0);
   const rank = Number(square[1]);
   return page.locator('.chess-board > .square').nth((8 - rank) * 8 + file);
+}
+
+/**
+ * The piece standing on a square, if any.
+ *
+ * Scoped away from `[data-fading]`, which is a captured piece still being drawn
+ * at its old square while it fades — visible for one animation frame's worth of
+ * time and emphatically not the occupant.
+ */
+function chessPiece(page: Page, square: string) {
+  return page.locator(`.piece-layer [data-square="${square}"]:not([data-fading])`);
 }
 
 /**
@@ -105,12 +120,12 @@ test('a wrong move is refused, explained, and can be retried', async ({ page }) 
   await expect(page.getByText('is playable, but it does not force mate')).toBeVisible();
 
   // The solution was never played: b8 is still empty.
-  await expect(chessSquare(page, 'b8').locator('svg')).toHaveCount(0);
+  await expect(chessPiece(page, 'b8').locator('svg')).toHaveCount(0);
 
   await page.getByTestId('puzzle-retry').click();
   await expect(status(page)).toHaveText('Your move');
   // The branch went with it — the queen is back home.
-  await expect(chessSquare(page, 'b1').locator('svg')).toHaveAttribute('aria-label', 'white queen');
+  await expect(chessPiece(page, 'b1').locator('svg')).toHaveAttribute('aria-label', 'white queen');
 });
 
 test('the opponent’s refutation is played out and named', async ({ page }) => {
@@ -125,7 +140,7 @@ test('the opponent’s refutation is played out and named', async ({ page }) => 
   await expect(status(page)).toHaveText('Not quite');
   await expect(page.getByText('Black answers d8→d7')).toBeVisible();
   // The queen is now sitting on d7, where White's rook just was.
-  await expect(chessSquare(page, 'd7').locator('svg')).toHaveAttribute('aria-label', 'black queen');
+  await expect(chessPiece(page, 'd7').locator('svg')).toHaveAttribute('aria-label', 'black queen');
   // …and the red arrow points at THEIR move. This is the one marker the board
   // draws for a wrong move, and it used to point at the player's own; a
   // regression would silently go back to marking the wrong thing.
@@ -165,7 +180,7 @@ test('plays the opponent’s scripted reply and finishes a two-move line', async
   await expect(status(page)).toHaveText('Correct');
 
   // Black's only legal answer is Rxb8, played for the player after the beat.
-  await expect(chessSquare(page, 'b8').locator('svg')).toHaveAttribute(
+  await expect(chessPiece(page, 'b8').locator('svg')).toHaveAttribute(
     'aria-label',
     'black rook',
     { timeout: 5_000 },
@@ -174,6 +189,32 @@ test('plays the opponent’s scripted reply and finishes a two-move line', async
   await chessSquare(page, 'b1').click();
   await chessSquare(page, 'b8').click();
   await expect(status(page)).toHaveText('Solved');
+});
+
+test('a moved piece travels to its square instead of appearing on it', async ({ page }) => {
+  // Guards the whole point of the piece layer. Nothing else here would notice
+  // if pieces went back to teleporting — every other assertion is about where a
+  // piece ended up, which is equally true of a board that just redraws.
+  // A mate in one, so the line ends on the player's move. On a two-move puzzle
+  // the opponent's reply lands 260ms later and captures on the same square,
+  // which leaves both an arriving piece and a fading one there to race with.
+  await openPuzzle(page, 'chess', 'chess-003');
+
+  const arriving = chessPiece(page, 'b8');
+  await expect(arriving).toHaveCount(0);
+
+  await chessSquare(page, 'b1').click();
+  await chessSquare(page, 'b8').click();
+  await expect(status(page)).toHaveText('Solved');
+
+  // `travelling` is added on the frame the piece starts moving and stays for
+  // the life of that slot, so this is not a race against the 200ms transition.
+  await expect(arriving).toHaveClass(/travelling/);
+  await expect(arriving).toHaveCSS('transition-duration', '0.2s');
+
+  // Exactly one piece moved. Without this the assertion above would also pass
+  // on a board that marked every piece as travelling on every render.
+  await expect(page.locator('.piece-layer .travelling')).toHaveCount(1);
 });
 
 test('the hint points at the solution and costs the streak', async ({ page }) => {

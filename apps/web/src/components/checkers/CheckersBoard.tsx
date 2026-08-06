@@ -64,6 +64,14 @@ interface CheckersBoardProps {
    * elsewhere `playerColor` is board orientation, not "the side I own".
    */
   allowPremoves?: boolean;
+  /**
+   * Board is inert — no selection, no drag, no click-to-move.
+   *
+   * Real inertness, not a no-op `onMove`: the puzzle screens used to fake this
+   * by swallowing the callback, which left pieces draggable on a board that
+   * would silently discard the move.
+   */
+  interactive?: boolean;
 }
 
 function isDark(row: number, col: number): boolean {
@@ -128,6 +136,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   showCoordinates = true,
   arrows,
   allowPremoves = false,
+  interactive = true,
 }: CheckersBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves]         = useState<string[]>([]);
@@ -195,7 +204,9 @@ export const CheckersBoard = React.memo(function CheckersBoard({
 
   /** Pieces the board will let the player pick up right now. */
   const canGrab = (piece: { color: 'white' | 'black' } | null): boolean =>
-    !!piece && (premoveMode ? piece.color === playerColor : piece.color === gameState.currentTurn);
+    interactive &&
+    !!piece &&
+    (premoveMode ? piece.color === playerColor : piece.color === gameState.currentTurn);
 
   /** Queue a move for the moment the turn comes back. */
   const queuePremove = (from: string, to: string) => {
@@ -204,6 +215,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   };
 
   const handleSquareClick = (pos: string, row: number, col: number) => {
+    if (!interactive) return;
     if (!isDark(row, col) || gameState.isGameOver) return;
 
     const piece = gameState.board[row][col];

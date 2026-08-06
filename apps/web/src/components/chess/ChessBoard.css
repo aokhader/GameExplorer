@@ -9,6 +9,7 @@
 /* Chess Board — fills the shared <BoardFrame>, which owns all responsive sizing
    (min(vhCap·svh, maxPx, 100%) + square aspect). See components/board/BoardFrame. */
 .chess-board {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
@@ -56,9 +57,9 @@
   box-shadow: inset 0 0 0 3px #9a7a26;
 }
 
-.square.dragging {
-  opacity: 0.4;
-}
+/* The square a piece was lifted from. The dimming is on the piece itself
+   (`.piece.lifted`) now that pieces are not children of squares — dimming the
+   square would fade the board colour instead. */
 
 /* Last move highlighting */
 .square.last-move {
@@ -167,6 +168,63 @@
   filter: brightness(0.9);
 }
 
+/* ── Piece layer ───────────────────────────────────────────────────────────
+   Pieces are drawn over the square grid rather than inside it. A piece parented
+   to a grid cell cannot travel out of that cell, and a captured piece is
+   unmounted before it can fade — so movement is impossible by construction.
+   This is the same arrangement chessground uses, and it is what the mobile
+   boards have always had.
+
+   The layer is absolutely positioned inside `.chess-board`, so `inset: 0`
+   resolves to the padding box and lines the pieces up with the squares without
+   having to account for the board's 2px border. */
+.piece-layer {
+  position: absolute;
+  inset: 0;
+  /* The pointer belongs to the squares underneath: they are what carries
+     click-to-move and pointer-down, and they know what is standing on them. */
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* One square's worth of space, positioned by transform. Percentages here are
+   of the slot's own size, so `translate(100%)` is exactly one square. */
+.piece-slot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 12.5%;
+  height: 12.5%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+/* Added only on the frame the piece starts travelling — never on its first
+   paint, or every piece would slide in from the board's corner on mount. */
+.piece-slot.travelling {
+  transition: transform var(--gx-board-anim, 200ms) cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* A captured piece, still drawn where it stood. A keyframe rather than a
+   transition because it has to run on mount, where there is no previous value
+   to transition from. */
+.piece-slot.fading {
+  z-index: -1;
+  animation: piece-fade var(--gx-board-anim, 200ms) linear forwards;
+}
+
+@keyframes piece-fade {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece-slot.travelling { transition: none; }
+  .piece-slot.fading { animation: none; opacity: 0; }
+}
+
 /* Chess Pieces — SVG-based, sized as a fraction of the square. The vector art
    fills ~89% of its own viewBox, so ~90% here lands the piece at play scale with
    a small margin off the square edges (matches the design doc + the native board). */
@@ -177,12 +235,23 @@
   align-items: center;
   justify-content: center;
   user-select: none;
-  cursor: grab;
-  z-index: 3;
   position: relative;
 }
 
-.piece:active {
+/* Lifted for a drag — the ghost under the cursor is the real one now. */
+.piece.lifted {
+  opacity: 0.4;
+}
+
+/* Grab affordance lives on the square, not the piece: the piece layer has
+   pointer-events off, so `:hover` and `cursor` on `.piece` would never apply.
+   The board adds `.grabbable` to squares holding a piece it will let you pick
+   up right now, which is more honest than a grab cursor over every piece. */
+.square.grabbable {
+  cursor: grab;
+}
+
+.square.grabbable:active {
   cursor: grabbing;
 }
 
@@ -195,16 +264,6 @@
   0%   { transform: scale(0.75); }
   60%  { transform: scale(1.1);  }
   100% { transform: scale(1);    }
-}
-
-/* Hover effect for pieces */
-.piece:hover {
-  transform: scale(1.05);
-  transition: transform 0.1s ease;
-}
-
-.piece:active {
-  transform: scale(0.95);
 }
 
 /* Illegal-drop shake — a short "no" wobble on the source piece. */

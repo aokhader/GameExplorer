@@ -9,6 +9,7 @@
     "./config": "./src/config.ts",
     "./apiFetch": "./src/apiFetch.ts",
     "./hooks/useAuth": "./src/hooks/useAuth.ts",
+    "./hooks/useBoardMotion": "./src/hooks/useBoardMotion.ts",
     "./hooks/usePuzzle": "./src/hooks/usePuzzle.ts",
     "./stores/authStore": "./src/stores/authStore.ts",
     "./package.json": "./package.json"
