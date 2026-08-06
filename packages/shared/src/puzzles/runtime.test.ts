@@ -336,6 +336,55 @@ describe('the timeline', () => {
   });
 });
 
+describe('a wrong move on the board', () => {
+  it('is played immediately, with no engine involved', () => {
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    const before = displayState(run);
+
+    // Kh1 is legal and not the solution. No `applyRefutation` here on purpose:
+    // the move has to show up before anything searches, because the search is
+    // what used to make the board sit still for a frame plus 100ms while the
+    // player wondered whether their move had registered at all.
+    run = applyPlayerMove(run, chessPuzzleRules, { from: 'g1', to: 'h1' }).run;
+
+    expect(run.phase).toBe('wrong');
+    const shown = displayState(run);
+    expect(shown).not.toBe(before);
+    expect(shown.moveHistory.at(-1)).toMatchObject({ from: 'g1', to: 'h1' });
+    // One more ply than the position it came from — this is what the boards
+    // read to decide the move is a step worth animating rather than a jump.
+    expect(shown.moveHistory).toHaveLength(before.moveHistory.length + 1);
+  });
+
+  it('leaves the main line alone, so Retry still restores the puzzle', () => {
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    const solveFrom = run.state;
+
+    run = applyPlayerMove(run, chessPuzzleRules, { from: 'g1', to: 'h1' }).run;
+    // The branch is drawn past the main line; `state` is untouched.
+    expect(run.state).toBe(solveFrom);
+    expect(run.timeline[run.mainLength - 1]).toBe(run.state);
+    expect(run.timeline.length).toBeGreaterThan(run.mainLength);
+
+    run = retryPuzzle(run, chessPuzzleRules);
+    expect(displayState(run)).toBe(run.state);
+    expect(run.timeline).toHaveLength(1);
+  });
+
+  it('still refuses a second move while the wrong one is showing', () => {
+    let run = startPuzzle<ChessGameState>(MATE_IN_TWO, chessPuzzleRules);
+    run = applyPlayerMove(run, chessPuzzleRules, { from: 'g1', to: 'h1' }).run;
+    // The board now sits on a position where it is White's move again, so
+    // without the phase guard the branch would be playable.
+    const { run: after, result } = applyPlayerMove(run, chessPuzzleRules, {
+      from: 'b2',
+      to: 'b8',
+    });
+    expect(result).toBe('ignored');
+    expect(after).toBe(run);
+  });
+});
+
 describe('refuting a wrong move', () => {
   it('plays the punish out on the board and names it', () => {
     // 1...Rb1–a1?? drops the rook: the a8 rook simply takes it.

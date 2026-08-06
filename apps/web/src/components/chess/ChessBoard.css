@@ -187,43 +187,11 @@
   z-index: 3;
 }
 
-/* One square's worth of space, positioned by transform. Percentages here are
-   of the slot's own size, so `translate(100%)` is exactly one square. */
-.piece-slot {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 12.5%;
-  height: 12.5%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  will-change: transform;
-}
-
-/* Added only on the frame the piece starts travelling — never on its first
-   paint, or every piece would slide in from the board's corner on mount. */
-.piece-slot.travelling {
-  transition: transform var(--gx-board-anim, 200ms) cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-/* A captured piece, still drawn where it stood. A keyframe rather than a
-   transition because it has to run on mount, where there is no previous value
-   to transition from. */
-.piece-slot.fading {
-  z-index: -1;
-  animation: piece-fade var(--gx-board-anim, 200ms) linear forwards;
-}
-
-@keyframes piece-fade {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .piece-slot.travelling { transition: none; }
-  .piece-slot.fading { animation: none; opacity: 0; }
-}
+/* The slot each piece sits in — position, travel and fade — is styled inline by
+   `components/board/PieceSlot.tsx` rather than here. That component is shared
+   with the checkers board, whose routes do not import this stylesheet, so
+   anything it relied on from this file would work on one board and silently
+   collapse on the other. */
 
 /* Chess Pieces — SVG-based, sized as a fraction of the square. The vector art
    fills ~89% of its own viewBox, so ~90% here lands the piece at play scale with

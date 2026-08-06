@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   BOARD_ANIM_MS,
   CHESS_DIFF,
@@ -14,13 +14,10 @@ import {
   isChessPremovePromotion,
   type ChessPremove,
 } from '@gameexplorer/shared';
-import {
-  type PieceOffset,
-  motionKey,
-  useBoardMotion,
-} from '@gameexplorer/client/hooks/useBoardMotion';
+import { motionKey, useBoardMotion } from '@gameexplorer/client/hooks/useBoardMotion';
 import { ChessPiece } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
+import { PieceSlot } from '@/components/board/PieceSlot';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
@@ -72,69 +69,6 @@ interface ChessBoardProps {
   interactive?: boolean;
 }
 
-/**
- * One piece, positioned over the board and animated between squares.
- *
- * Pieces live in their own absolutely-positioned layer rather than inside the
- * square divs, which is what makes movement possible at all: a piece parented
- * to a grid cell cannot travel out of it, and a captured piece is unmounted
- * before it has a chance to fade. This is also how chessground does it.
- *
- * The travel itself is FLIP — mount at the origin, then move to the real square
- * on the next frame with a transition attached. The transition is deliberately
- * absent on that first paint: present, it would animate from the layer's corner
- * to the origin square, and every piece would fly in from a1 on first render.
- */
-function PieceSlot({
-  square,
-  col,
-  row,
-  offset,
-  fading,
-  children,
-}: {
-  /**
-   * The square this piece stands on. Not used for layout — that is the
-   * transform — but pieces are no longer children of their squares, so this is
-   * the only way anything outside can ask "what is on d7", tests included.
-   */
-  square: Position;
-  col: number;
-  row: number;
-  /** Where this piece came from, in squares. Null means it did not travel. */
-  offset: PieceOffset | null;
-  fading?: boolean;
-  children: React.ReactNode;
-}) {
-  // Captured at mount and never read from props again. `offset` describes the
-  // arrival that created this instance, and it goes null a tick later when the
-  // board swaps its optimistic copy for the parent's confirmed state — which
-  // would otherwise cancel the transition mid-flight and snap the piece to its
-  // destination.
-  const [from] = useState(() => offset);
-  const [settled, setSettled] = useState(!from);
-
-  useLayoutEffect(() => {
-    if (!from) return;
-    const id = requestAnimationFrame(() => setSettled(true));
-    return () => cancelAnimationFrame(id);
-    // Mount-only by construction: `from` is frozen at creation.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const x = settled || !from ? col : col + from.dx;
-  const y = settled || !from ? row : row + from.dy;
-
-  return (
-    <div
-      data-square={square}
-      data-fading={fading ? '' : undefined}
-      className={`piece-slot${from && settled ? ' travelling' : ''}${fading ? ' fading' : ''}`}
-      style={{ transform: `translate(${x * 100}%, ${y * 100}%)` }}
-    >
-      {children}
-    </div>
-  );
-}
 
 interface PendingPromotion {
   from: Position;
@@ -748,10 +682,10 @@ export const ChessBoard = React.memo(function ChessBoard({
           row={screenRow}
           offset={null}
           fading
+          reducedMotion={reducedMotion}
+          pieceClassName="piece"
         >
-          <div className="piece">
-            <ChessPiece type={fade.piece.type} color={fade.piece.color} size="100%" />
-          </div>
+          <ChessPiece type={fade.piece.type} color={fade.piece.color} size="100%" />
         </PieceSlot>,
       );
     }
@@ -782,14 +716,12 @@ export const ChessBoard = React.memo(function ChessBoard({
             col={screenCol}
             row={screenRow}
             offset={offset}
+            reducedMotion={reducedMotion}
+            pieceClassName={`piece${justArrived ? ' just-arrived' : ''}${
+              isShaking ? ' shake' : ''
+            }${dragging?.from === position ? ' lifted' : ''}`}
           >
-            <div
-              className={`piece${justArrived ? ' just-arrived' : ''}${isShaking ? ' shake' : ''}${
-                dragging?.from === position ? ' lifted' : ''
-              }`}
-            >
-              <ChessPiece type={piece.type} color={piece.color} size="100%" />
-            </div>
+            <ChessPiece type={piece.type} color={piece.color} size="100%" />
           </PieceSlot>,
         );
       }

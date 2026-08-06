@@ -14,6 +14,7 @@ import { GameSkeleton } from '@/components/game/GameSkeleton';
 import { staticPuzzleSource } from '@gameexplorer/shared';
 import { webPuzzleProgressStore } from '@/lib/puzzleProgress';
 import { PuzzleBoard } from './PuzzleBoard';
+import { usePuzzleFeedback } from './usePuzzleFeedback';
 
 const GAME_LABEL: Record<PuzzleGame, string> = {
   chess: 'Chess',
@@ -79,6 +80,8 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     showHint,
     startOver,
   } = usePuzzle<unknown>({ game, source: staticPuzzleSource, progress: webPuzzleProgressStore });
+
+  usePuzzleFeedback({ phase, attempts: run?.attempts ?? 0, puzzleId: puzzle?.id ?? null });
 
   // Only when there is nothing to show. A Next press keeps the old board up —
   // see `swapping`, which makes it inert instead of replacing it.

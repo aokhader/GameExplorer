@@ -232,13 +232,36 @@ export function applyPlayerMove<S>(
   const scripted = rules.parseMove(step.move);
 
   if (!rules.sameMove(move, scripted)) {
-    // Nothing reaches an engine here, and the line does not move: `state` is
-    // still the position the player has to solve. Working out *why* the move
-    // fails is `applyRefutation`'s job, because it costs a search and this has
-    // to stay instant.
+    // Play it anyway, onto the branch.
+    //
+    // `state` does not move — that is still the position the player has to
+    // solve, and the invariant `timeline[mainLength - 1] === state` is what
+    // Retry and the nav controls rely on. What changes is what is *shown*: the
+    // move the player actually made, on the board, immediately.
+    //
+    // This used to wait for `applyRefutation`, which meant the board sat
+    // unchanged for a frame plus a search — the player's move appeared to have
+    // been silently refused, and then the position jumped two plies at once.
+    // Validating costs no search, so it belongs on the instant path; working
+    // out *why* the move fails is still the searching half's job.
+    //
+    // Note we do NOT take it back after a beat the way Lichess does. Leaving it
+    // on screen is what makes the opponent's answer legible when it lands on
+    // top of it, and Retry is right there.
+    const played = rules.validateMove(run.state, move);
+    const branch =
+      played.valid && played.resultingState
+        ? {
+            timeline: [...run.timeline.slice(0, run.mainLength), settle(played.resultingState, rules)],
+          }
+        : null;
+
     return {
       run: {
         ...run,
+        ...(branch
+          ? { timeline: branch.timeline, viewIndex: branch.timeline.length - 1 }
+          : {}),
         phase: 'wrong',
         wrongMove: move,
         refutation: null,

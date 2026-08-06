@@ -151,6 +151,19 @@ test('the opponent’s refutation is played out and named', async ({ page }) => 
   await expect(page.locator('polygon[fill="rgba(248, 113, 113, 0.9)"]')).toHaveCount(1);
 });
 
+test('a solved puzzle stays on screen until Next is pressed', async ({ page }) => {
+  // Solving deliberately does not advance on its own: the explanation is the
+  // point of the mode, and it cannot be read if the board moves on.
+  await openPuzzle(page, 'chess', 'chess-003');
+
+  await chessSquare(page, 'b1').click();
+  await chessSquare(page, 'b8').click();
+  await expect(status(page)).toHaveText('Solved');
+
+  await page.waitForTimeout(2_500);
+  await expect(status(page)).toHaveText('Solved');
+});
+
 test('solving records progress that survives a reload', async ({ page }) => {
   const total = await staticPuzzleSource.countPuzzles('chess');
   await openPuzzle(page, 'chess', 'chess-003');
@@ -207,14 +220,14 @@ test('a moved piece travels to its square instead of appearing on it', async ({ 
   await chessSquare(page, 'b8').click();
   await expect(status(page)).toHaveText('Solved');
 
-  // `travelling` is added on the frame the piece starts moving and stays for
+  // `data-travelling` is set on the frame the piece starts moving and stays for
   // the life of that slot, so this is not a race against the 200ms transition.
-  await expect(arriving).toHaveClass(/travelling/);
-  await expect(arriving).toHaveCSS('transition-duration', '0.2s');
+  await expect(arriving).toHaveAttribute('data-travelling', '');
+  await expect(arriving).toHaveCSS('transition-duration', '0.2s, 0.2s');
 
   // Exactly one piece moved. Without this the assertion above would also pass
   // on a board that marked every piece as travelling on every render.
-  await expect(page.locator('.piece-layer .travelling')).toHaveCount(1);
+  await expect(page.locator('.piece-layer [data-travelling]')).toHaveCount(1);
 });
 
 test('the hint points at the solution and costs the streak', async ({ page }) => {

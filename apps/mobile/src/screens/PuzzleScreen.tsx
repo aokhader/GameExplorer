@@ -15,6 +15,7 @@ import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { StatusBanner } from '@/game/StatusBanner';
 import { PuzzleBoard } from '@/puzzles/PuzzleBoard';
 import { PuzzleBar } from '@/puzzles/PuzzleBar';
+import { usePuzzleFeedback } from '@/puzzles/usePuzzleFeedback';
 import { FONTS } from '@/theme/typography';
 
 const GAME_LABEL: Record<PuzzleGame, string> = {
@@ -92,6 +93,8 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     source: staticPuzzleSource,
     progress: mobilePuzzleProgressStore,
   });
+
+  usePuzzleFeedback({ phase, attempts: run?.attempts ?? 0, puzzleId: puzzle?.id ?? null });
 
   // Only when there is nothing to show. A Next press keeps the old board up —
   // see `swapping`, which makes it inert instead of replacing it.
