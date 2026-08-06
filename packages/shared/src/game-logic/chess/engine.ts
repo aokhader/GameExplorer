@@ -4,6 +4,7 @@
 import type {
   Board,
   ChessGameState,
+  Color,
   Move,
   Position,
   MoveValidationResult,
@@ -37,6 +38,62 @@ function isPawnPromotion(piece: Piece, to: Position): boolean {
   const toCoords = positionToCoordinates(to);
   return (piece.color === 'white' && toCoords.row === 7) ||
          (piece.color === 'black' && toCoords.row === 0);
+}
+
+/**
+ * Would playing `from`→`to` leave `color`'s own king attacked?
+ *
+ * This is the innermost loop of the entire engine — every legality scan asks it
+ * once per pseudo-legal move — so it does the least work that answers the
+ * question. Only the one or two ranks the move touches are copied, and the
+ * piece objects are shared rather than spread, which is safe because nothing
+ * downstream mutates a piece in place.
+ *
+ * The clone-based `simulateMove` it replaces copied the whole game state, then
+ * the whole board twice more via `setPieceAt`, to answer the same boolean.
+ */
+function leavesKingInCheck(
+  board: Board,
+  from: Position,
+  to: Position,
+  enPassantTarget: Position | null,
+  color: Color,
+): boolean {
+  const f = positionToCoordinates(from);
+  const t = positionToCoordinates(to);
+  const piece = board[f.row][f.col];
+  if (!piece) return false;
+
+  const next = board.slice() as Board;
+  const copyRow = (r: number) => {
+    if (next[r] === board[r]) next[r] = board[r].slice();
+  };
+  copyRow(f.row);
+  copyRow(t.row);
+
+  next[f.row][f.col] = null;
+  next[t.row][t.col] = piece;
+
+  // En passant takes a pawn standing on neither square: same rank as the
+  // capturing pawn started on, same file as it lands on.
+  if (piece.type === 'pawn' && to === enPassantTarget) {
+    next[f.row][t.col] = null;
+  }
+
+  return isKingInCheck(next, color);
+}
+
+/**
+ * Write a square in place.
+ *
+ * `setPieceAt` returns a fresh board, which is right for callers holding a
+ * position they must not disturb — but `executeMove` has already cloned, so
+ * chaining it there copied all 64 squares two to four more times per move for
+ * nothing.
+ */
+function put(board: Board, position: Position, piece: Piece | null): void {
+  const { row, col } = positionToCoordinates(position);
+  board[row][col] = piece;
 }
 
 /** Both kings on the board — see `ChessEngine.withStatusFlags`. */
@@ -97,9 +154,8 @@ export class ChessEngine {
         return { valid: false, reason: 'Illegal move for this piece' };
       }
 
-      // 5. Simulate the move and check if it leaves king in check
-      const simulatedState = this.simulateMove(gameState, from, to);
-      if (isKingInCheck(simulatedState.board, piece.color)) {
+      // 5. Check whether the move leaves our own king in check
+      if (leavesKingInCheck(gameState.board, from, to, gameState.enPassantTarget, piece.color)) {
         return { valid: false, reason: 'Move would leave king in check' };
       }
 
@@ -233,28 +289,18 @@ export class ChessEngine {
       const row = fromCoords.row;
       const isKingside = toCoords.col > fromCoords.col;
 
-      let newBoard = setPieceAt(newState.board, from, null);
-      newBoard = setPieceAt(newBoard, to, piece);
+      const board = newState.board;
+      put(board, from, null);
+      put(board, to, piece);
 
-      if (isKingside) {
-        const rookFrom = coordinatesToPosition({ row, col: 7 });
-        const rookTo = coordinatesToPosition({ row, col: 5 });
-        const rook = getPieceAt(newBoard, rookFrom);
-        if (rook) {
-          newBoard = setPieceAt(newBoard, rookFrom, null);
-          newBoard = setPieceAt(newBoard, rookTo, rook);
-        }
-      } else {
-        const rookFrom = coordinatesToPosition({ row, col: 0 });
-        const rookTo = coordinatesToPosition({ row, col: 3 });
-        const rook = getPieceAt(newBoard, rookFrom);
-        if (rook) {
-          newBoard = setPieceAt(newBoard, rookFrom, null);
-          newBoard = setPieceAt(newBoard, rookTo, rook);
-        }
+      const rookFrom = coordinatesToPosition({ row, col: isKingside ? 7 : 0 });
+      const rookTo = coordinatesToPosition({ row, col: isKingside ? 5 : 3 });
+      const rook = getPieceAt(board, rookFrom);
+      if (rook) {
+        put(board, rookFrom, null);
+        put(board, rookTo, rook);
       }
 
-      newState.board = newBoard;
       newState.moveHistory.push({
         from, to, piece,
         isCastling: true,
@@ -288,18 +334,17 @@ export class ChessEngine {
         isEnPassant: isEnPassant || undefined,
       };
 
-      let newBoard = setPieceAt(newState.board, from, null);
-      newBoard = setPieceAt(newBoard, to, landingPiece);
+      const board = newState.board;
+      put(board, from, null);
+      put(board, to, landingPiece);
 
       // En passant: remove the captured pawn (same row as attacker, same col as target)
       if (isEnPassant) {
         const fromCoords = positionToCoordinates(from);
         const toCoords = positionToCoordinates(to);
-        const capturedPawnPos = coordinatesToPosition({ row: fromCoords.row, col: toCoords.col });
-        newBoard = setPieceAt(newBoard, capturedPawnPos, null);
+        put(board, coordinatesToPosition({ row: fromCoords.row, col: toCoords.col }), null);
       }
 
-      newState.board = newBoard;
       newState.moveHistory.push(move);
     }
 
@@ -373,28 +418,47 @@ export class ChessEngine {
     return next;
   }
 
-  private static simulateMove(
+  /**
+   * Is `from`→`to` legal? The same decision `validateMove` makes, without
+   * building the resulting position.
+   *
+   * `validateMove` executes the move so it can hand back `resultingState`, and
+   * that is most of its cost. The two scans below ask thousands of times per
+   * search whether a move is legal and throw every resulting state away, so
+   * they ask this instead.
+   */
+  private static isLegalMove(
     gameState: ChessGameState,
     from: Position,
     to: Position,
-  ): ChessGameState {
-    const simulatedState = cloneGameState(gameState);
-    const piece = getPieceAt(simulatedState.board, from);
-    if (!piece) return simulatedState;
+  ): boolean {
+    const piece = getPieceAt(gameState.board, from);
+    if (!piece || piece.color !== gameState.currentTurn) return false;
 
-    let newBoard = setPieceAt(simulatedState.board, from, null);
-    newBoard = setPieceAt(newBoard, to, piece);
+    const possibleMoves = getPossibleMoves(gameState.board, from, true, gameState.enPassantTarget);
+    if (!possibleMoves.includes(to)) return false;
 
-    // En passant: also remove the captured pawn (not on 'to', but beside 'from')
-    if (piece.type === 'pawn' && to === gameState.enPassantTarget) {
-      const fromCoords = positionToCoordinates(from);
-      const toCoords = positionToCoordinates(to);
-      const capturedPawnPos = coordinatesToPosition({ row: fromCoords.row, col: toCoords.col });
-      newBoard = setPieceAt(newBoard, capturedPawnPos, null);
+    return this.isLegalCandidate(gameState, from, to, piece);
+  }
+
+  /**
+   * The half of `isLegalMove` that remains once the caller already holds the
+   * pseudo-legal list `to` came out of.
+   *
+   * Worth splitting because the scans below iterate that list: asking the full
+   * question per candidate regenerated the same piece's moves once for every
+   * move it had, turning each piece's scan quadratic.
+   */
+  private static isLegalCandidate(
+    gameState: ChessGameState,
+    from: Position,
+    to: Position,
+    piece: Piece,
+  ): boolean {
+    if (this.isCastlingMove(gameState, from, to)) {
+      return this.validateCastling(gameState, from, to).valid;
     }
-
-    simulatedState.board = newBoard;
-    return simulatedState;
+    return !leavesKingInCheck(gameState.board, from, to, gameState.enPassantTarget, piece.color);
   }
 
   private static updateCastlingRights(
@@ -445,8 +509,7 @@ export class ChessEngine {
           const possibleMoves = getPossibleMoves(gameState.board, from, true, gameState.enPassantTarget);
 
           for (const to of possibleMoves) {
-            const result = this.validateMove(gameState, from, to, true, 'queen');
-            if (result.valid && !result.needsPromotion) return true;
+            if (this.isLegalCandidate(gameState, from, to, piece)) return true;
           }
         }
       }
@@ -479,9 +542,11 @@ export class ChessEngine {
           const possibleMoves = getPossibleMoves(gameState.board, from, true, gameState.enPassantTarget);
 
           for (const to of possibleMoves) {
-            // Pass 'queen' so promotion moves are treated as valid without UI
-            const result = this.validateMove(gameState, from, to, true, 'queen');
-            if (result.valid && !result.needsPromotion) {
+            // Promotions count once here, as the move itself — which piece the
+            // pawn becomes is the caller's business, and `validateMove`'s
+            // `needsPromotion` signal exists for a UI picker that has no say in
+            // a search.
+            if (this.isLegalCandidate(gameState, from, to, piece)) {
               legalMoves.push({ from, to });
             }
           }

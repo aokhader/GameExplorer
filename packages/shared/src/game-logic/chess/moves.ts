@@ -288,28 +288,94 @@ function getSlidingMoves(
 /**
  * Check if a square is under attack by the opponent
  */
+const KNIGHT_JUMPS: readonly (readonly [number, number])[] = [
+  [1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2],
+];
+const DIAGONAL_RAYS: readonly (readonly [number, number])[] = [
+  [1, 1], [1, -1], [-1, 1], [-1, -1],
+];
+const ORTHOGONAL_RAYS: readonly (readonly [number, number])[] = [
+  [1, 0], [-1, 0], [0, 1], [0, -1],
+];
+
+/**
+ * Is `position` attacked by `byColor`?
+ *
+ * Asked from the attacked square outward — is there a knight on a knight
+ * square, a pawn on an attacking diagonal, a slider down an open ray — rather
+ * than by generating every enemy piece's moves and searching the results. The
+ * old form built a `Position[]` of algebraic strings per enemy piece and ran
+ * `.includes()` over each, roughly sixteen move generations and sixteen array
+ * allocations per call. This is the hottest function in the engine: every
+ * legality test for every candidate move in every search node lands here.
+ *
+ * One deliberate difference, and it is why this is a safe swap: the old version
+ * asked what a pawn could *move* to, which is not what a pawn *attacks* — it
+ * missed the diagonals when the target square was empty and counted the push
+ * square when it wasn't. Neither case was reachable, because the only caller is
+ * `isKingInCheck` and the target square always has a king standing on it. This
+ * version answers the attack question directly, so it is also correct for the
+ * empty squares the old one got wrong.
+ */
 export function isSquareUnderAttack(
   board: Board,
   position: Position,
   byColor: Color
 ): boolean {
-  const opponentPieces = [];
+  const { row, col } = positionToCoordinates(position);
+  return isSquareAttackedAt(board, row, col, byColor);
+}
 
-  // Find all opponent pieces
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const piece = board[row][col];
-      if (piece && piece.color === byColor) {
-        opponentPieces.push(coordinatesToPosition({ row, col }));
-      }
+/** `isSquareUnderAttack` by coordinates, so hot callers skip the algebraic round trip. */
+function isSquareAttackedAt(
+  board: Board,
+  row: number,
+  col: number,
+  byColor: Color,
+): boolean {
+  // A white pawn captures toward rank 8, so one attacking this square stands a
+  // rank below it; a black pawn stands a rank above.
+  const pawnRow = byColor === 'white' ? row - 1 : row + 1;
+  if (pawnRow >= 0 && pawnRow < 8) {
+    for (const c of [col - 1, col + 1]) {
+      if (c < 0 || c > 7) continue;
+      const p = board[pawnRow][c];
+      if (p && p.color === byColor && p.type === 'pawn') return true;
     }
   }
 
-  // Check if any opponent piece can attack this square
-  for (const piecePos of opponentPieces) {
-    const possibleMoves = getPossibleMoves(board, piecePos);
-    if (possibleMoves.includes(position)) {
-      return true;
+  for (const [dr, dc] of KNIGHT_JUMPS) {
+    const r = row + dr;
+    const c = col + dc;
+    if (r < 0 || r > 7 || c < 0 || c > 7) continue;
+    const p = board[r][c];
+    if (p && p.color === byColor && p.type === 'knight') return true;
+  }
+
+  for (const [dr, dc] of [...DIAGONAL_RAYS, ...ORTHOGONAL_RAYS]) {
+    const r = row + dr;
+    const c = col + dc;
+    if (r < 0 || r > 7 || c < 0 || c > 7) continue;
+    const p = board[r][c];
+    if (p && p.color === byColor && p.type === 'king') return true;
+  }
+
+  for (const rays of [DIAGONAL_RAYS, ORTHOGONAL_RAYS]) {
+    const slider = rays === DIAGONAL_RAYS ? 'bishop' : 'rook';
+    for (const [dr, dc] of rays) {
+      let r = row + dr;
+      let c = col + dc;
+      while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+        const p = board[r][c];
+        if (p) {
+          // The first piece on the ray is the only one that can attack along
+          // it; anything behind it is blocked.
+          if (p.color === byColor && (p.type === slider || p.type === 'queen')) return true;
+          break;
+        }
+        r += dr;
+        c += dc;
+      }
     }
   }
 
@@ -320,21 +386,14 @@ export function isSquareUnderAttack(
  * Check if the king is in check
  */
 export function isKingInCheck(board: Board, kingColor: Color): boolean {
-  // Find king position
-  let kingPos: Position | null = null;
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
       const piece = board[row][col];
       if (piece && piece.type === 'king' && piece.color === kingColor) {
-        kingPos = coordinatesToPosition({ row, col });
-        break;
+        const opponentColor = kingColor === 'white' ? 'black' : 'white';
+        return isSquareAttackedAt(board, row, col, opponentColor);
       }
     }
-    if (kingPos) break;
   }
-
-  if (!kingPos) return false; // No king found (shouldn't happen)
-
-  const opponentColor = kingColor === 'white' ? 'black' : 'white';
-  return isSquareUnderAttack(board, kingPos, opponentColor);
+  return false; // No king found (shouldn't happen)
 }

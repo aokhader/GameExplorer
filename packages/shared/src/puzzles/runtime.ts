@@ -95,16 +95,28 @@ export interface PuzzleRun<S> {
 /**
  * Search depth per game for refuting a wrong move.
  *
- * Wildly different numbers because the three engines are wildly different
- * costs. Measured on the seed positions: checkers and reversi answer at depth 6
- * in about a millisecond, while chess costs ~30-70ms at depth 3, ~80-470ms at
- * depth 4 and up to 2.9 SECONDS at depth 5 — and those are near-empty endgames,
- * so a middlegame puzzle will be worse. Three plies is enough to see a piece
- * hang, which is what a refutation has to show; it is not an analysis engine
- * and must not grow into one.
+ * Different numbers because the three engines cost differently. Checkers and
+ * reversi answer at depth 6 in about a millisecond. Chess was the outlier and
+ * the reason this was pinned at 3: it used to cost 67 ms on average and 246 ms
+ * at worst across the shipped puzzle set, with depth 5 reaching **18 seconds**
+ * on the heaviest position.
+ *
+ * That was the engine wasting work, not the search being deep — see
+ * `isSquareUnderAttack` and `ChessEngine.isLegalCandidate`. After that pass the
+ * same measurement over all 20 chess puzzles reads:
+ *
+ *     depth 3    mean   8 ms   worst   26 ms
+ *     depth 4    mean  25 ms   worst  103 ms
+ *     depth 5    mean 209 ms   worst 1244 ms
+ *
+ * So chess sits at 4, which now costs less than depth 3 did before, and buys
+ * the ply that matters: three plies sees the opponent take the piece you hung,
+ * four sees whether you get it back. Depth 5 is still too slow to put in front
+ * of someone waiting for an answer. This is a refutation, not an analysis
+ * engine, and it must not grow into one.
  */
 export const REFUTATION_DEPTH: Record<string, number> = {
-  chess: 3,
+  chess: 4,
   checkers: 6,
   reversi: 6,
 };

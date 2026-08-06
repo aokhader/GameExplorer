@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { ChessEngine } from './engine';
 import { createInitialGameState, setPieceAt } from './utils';
-import type { Board, ChessGameState } from '../../types/chess.types';
+import { isSquareUnderAttack } from './moves';
+import type { Board, ChessGameState, Color, PieceType } from '../../types/chess.types';
 
 /** Build an otherwise-empty board with both kings (so check detection works). */
 function emptyBoardWithKings(): Board {
@@ -247,5 +248,88 @@ describe('ChessEngine — fifty-move rule', () => {
     expect(seen[97]).toBe(false); // after 98 plies
     expect(seen[98]).toBe(false); // after 99 plies
     expect(seen[99]).toBe(true);  // after 100 plies
+  });
+});
+
+/**
+ * `isSquareUnderAttack` was rewritten from "generate every enemy piece's moves
+ * and search the results" to a geometric probe outward from the square, because
+ * it is the hottest function in the engine. These pin the cases where the two
+ * forms could disagree.
+ */
+describe('attack detection', () => {
+  function board(pieces: Record<string, [PieceType, Color]>): Board {
+    let b: Board = Array.from({ length: 8 }, () => Array(8).fill(null));
+    for (const [square, [type, color]] of Object.entries(pieces)) {
+      b = setPieceAt(b, square, { type, color });
+    }
+    return b;
+  }
+
+  it('sees a pawn covering an EMPTY square, which the move-list form could not', () => {
+    // A pawn's legal moves only list a diagonal when something is standing on
+    // it, so asking "what can this pawn move to" missed the squares it covers.
+    const b = board({ d4: ['pawn', 'white'] });
+    expect(isSquareUnderAttack(b, 'c5', 'white')).toBe(true);
+    expect(isSquareUnderAttack(b, 'e5', 'white')).toBe(true);
+  });
+
+  it('does not treat a pawn PUSH square as attacked', () => {
+    const b = board({ d4: ['pawn', 'white'] });
+    expect(isSquareUnderAttack(b, 'd5', 'white')).toBe(false);
+    expect(isSquareUnderAttack(b, 'd6', 'white')).toBe(false);
+    // …and a pawn never attacks backwards.
+    expect(isSquareUnderAttack(b, 'c3', 'white')).toBe(false);
+  });
+
+  it('stops a slider at the first piece on the ray', () => {
+    const b = board({ a1: ['rook', 'white'], a4: ['pawn', 'black'] });
+    expect(isSquareUnderAttack(b, 'a4', 'white')).toBe(true);  // the blocker itself
+    expect(isSquareUnderAttack(b, 'a5', 'white')).toBe(false); // behind it
+    expect(isSquareUnderAttack(b, 'h1', 'white')).toBe(true);  // open rank
+  });
+
+  it('separates the two slider families', () => {
+    const b = board({ d4: ['bishop', 'white'] });
+    expect(isSquareUnderAttack(b, 'h8', 'white')).toBe(true);
+    expect(isSquareUnderAttack(b, 'd8', 'white')).toBe(false);
+
+    const r = board({ d4: ['rook', 'white'] });
+    expect(isSquareUnderAttack(r, 'd8', 'white')).toBe(true);
+    expect(isSquareUnderAttack(r, 'h8', 'white')).toBe(false);
+
+    const q = board({ d4: ['queen', 'white'] });
+    expect(isSquareUnderAttack(q, 'h8', 'white')).toBe(true);
+    expect(isSquareUnderAttack(q, 'd8', 'white')).toBe(true);
+  });
+
+  it('handles knights and kings, and ignores the attacker’s own colour', () => {
+    const b = board({ d4: ['knight', 'black'], h1: ['king', 'black'] });
+    expect(isSquareUnderAttack(b, 'e6', 'black')).toBe(true);
+    expect(isSquareUnderAttack(b, 'e5', 'black')).toBe(false); // not a knight square
+    expect(isSquareUnderAttack(b, 'g2', 'black')).toBe(true);
+    expect(isSquareUnderAttack(b, 'f1', 'black')).toBe(false); // two files from the king
+    expect(isSquareUnderAttack(b, 'e6', 'white')).toBe(false); // wrong colour
+  });
+
+  it('reports check through the engine, and legality follows it', () => {
+    const state = ChessEngine.withStatusFlags({
+      ...createInitialGameState(),
+      // Both kings, or `withStatusFlags` declines to report status at all.
+      board: board({
+        e1: ['king', 'white'],
+        h8: ['king', 'black'],
+        e7: ['rook', 'black'],
+        a2: ['pawn', 'white'],
+      }),
+    });
+    expect(state.isCheck).toBe(true);
+    expect(state.isCheckmate).toBe(false);
+
+    // Every legal answer must deal with the check — the a2 pawn cannot move.
+    const moves = ChessEngine.getAllLegalMoves(state);
+    expect(moves.length).toBeGreaterThan(0);
+    expect(moves.every((m) => m.from === 'e1')).toBe(true);
+    expect(moves.some((m) => m.to === 'e2')).toBe(false); // still on the file
   });
 });

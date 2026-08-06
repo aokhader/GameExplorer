@@ -172,7 +172,12 @@ function orderMoves(
   state: ChessGameState,
   moves: { from: Position; to: Position }[],
 ): { from: Position; to: Position }[] {
-  return [...moves].sort((a, b) => scoreMove(state, b) - scoreMove(state, a));
+  // Score once per move, not once per comparison: `sort` calls its comparator
+  // O(n log n) times, and `scoreMove` parses two algebraic squares and reads
+  // the board on every call.
+  const scored = moves.map((move) => ({ move, score: scoreMove(state, move) }));
+  scored.sort((a, b) => b.score - a.score);
+  return scored.map((s) => s.move);
 }
 
 // ---------------------------------------------------------------------------
@@ -331,13 +336,24 @@ export function analyzeChessPosition(state: ChessGameState, depth = 4): ChessPos
   let bestMove = legalMoves[0];
   let bestScore = isMaximizing ? -Infinity : Infinity;
 
+  // The root gets a narrowing window like every other node. Handing each root
+  // move a fresh (-∞, +∞) threw away the pruning at the level where the subtrees
+  // are largest — the one place it is worth the most. Exact, not a heuristic:
+  // a child that fails outside the window scores no better than the best so
+  // far, so it could never have been chosen, and ties still keep the first move
+  // because the comparison below is strict.
+  let alpha = -Infinity;
+  let beta = Infinity;
+
   for (const move of orderMoves(state, legalMoves)) {
     const next = ChessEngine.executeMove(state, move.from, move.to, false, 'queen');
-    const score = minimax(next, depth - 1, -Infinity, Infinity, !isMaximizing, 0);
+    const score = minimax(next, depth - 1, alpha, beta, !isMaximizing, 0);
     if (isMaximizing ? score > bestScore : score < bestScore) {
       bestScore = score;
       bestMove = move;
     }
+    if (isMaximizing) alpha = Math.max(alpha, bestScore);
+    else beta = Math.min(beta, bestScore);
   }
 
   return {
