@@ -262,9 +262,6 @@ function CheckersBoardInner({
     !!premoveColor && interactive && !gameState.isGameOver &&
     gameState.currentTurn !== premoveColor;
 
-  // Full move generation is expensive — recompute only when the state changes.
-  const legalMoves = useMemo(() => CheckersEngine.getAllLegalMoves(gameState), [gameState]);
-
   // What travelled to get here. A multi-jump is one long slide with a fade per
   // victim, which is what makes a chain read as a chain.
   const motion = useBoardMotion(gameState.board, {
@@ -283,8 +280,6 @@ function CheckersBoardInner({
   // gesture (built once, memoized) read fresh values without re-registering.
   const stateRef = useRef(gameState);
   stateRef.current = gameState;
-  const legalRef = useRef(legalMoves);
-  legalRef.current = legalMoves;
   const flipRef = useRef(isFlipped);
   flipRef.current = isFlipped;
   const sizeRef = useRef(0);
@@ -299,6 +294,28 @@ function CheckersBoardInner({
   const onMoveRef = useRef(onMove);
   onMoveRef.current = onMove;
   const premoveRef = useRef<CheckersPremove | null>(null);
+
+  // Full move generation is expensive, and computing it during render put it on
+  // the paint path of the very frame that shows the move which caused it.
+  // Nothing in render needs it — the legal-move dots come from `validMoves`
+  // state — so it is deferred to the first pick-up and cached against the
+  // position, which is a lazy `useMemo` in all but name.
+  //
+  // It reads `stateRef`, not the render-scope `gameState`, for the same reason
+  // the rest of `selectSquare` does: everything a gesture handler decides from
+  // is read at fire time, so one source keeps the cache key and the moves it
+  // holds from ever describing different positions.
+  const legalCache = useRef<{
+    state: CheckersGameState;
+    moves: ReturnType<typeof CheckersEngine.getAllLegalMoves>;
+  } | null>(null);
+  const getLegalMoves = () => {
+    const state = stateRef.current;
+    if (legalCache.current?.state !== state) {
+      legalCache.current = { state, moves: CheckersEngine.getAllLegalMoves(state) };
+    }
+    return legalCache.current.moves;
+  };
 
   // Interaction refs — the source of truth for selection/drag DURING a gesture.
   // Critically these are updated SYNCHRONOUSLY by the mutators below (not from
@@ -352,7 +369,9 @@ function CheckersBoardInner({
       pos,
       premoveModeRef.current
         ? getCheckersPremoveDestinations(stateRef.current, pos)
-        : legalRef.current.filter((m) => m.from === pos).map((m) => m.to),
+        : getLegalMoves()
+            .filter((m) => m.from === pos)
+            .map((m) => m.to),
     );
   const commitMove = (from: string, to: string) => {
     setDrag(null);

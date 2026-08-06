@@ -351,9 +351,6 @@ function ChessBoardInner({
   const lastMove = lastMoveEntry ? { from: lastMoveEntry.from, to: lastMoveEntry.to } : null;
   const kingInCheckPos = gameState.isCheck ? findKing(gameState.board, gameState.currentTurn) : null;
 
-  // Full move generation is expensive — recompute only when the state changes.
-  const legalMoves = useMemo(() => ChessEngine.getAllLegalMoves(gameState), [gameState]);
-
   // What travelled to get to this position, so pieces slide rather than blink
   // into place. Animates only between consecutive positions — seeking through
   // a puzzle line or loading a new game snaps, as it should.
@@ -371,8 +368,6 @@ function ChessBoardInner({
   // Props/derived refs — mirror render every render (read by the memoized gesture).
   const stateRef = useRef(gameState);
   stateRef.current = gameState;
-  const legalRef = useRef(legalMoves);
-  legalRef.current = legalMoves;
   const flipRef = useRef(isFlipped);
   flipRef.current = isFlipped;
   const sizeRef = useRef(0);
@@ -386,6 +381,28 @@ function ChessBoardInner({
   // after the opponent's move landed, by which point the parent has re-rendered.
   const onMoveRef = useRef(onMove);
   onMoveRef.current = onMove;
+
+  // Full move generation is expensive, and computing it during render put it on
+  // the paint path of the very frame that shows the move which caused it.
+  // Nothing in render needs it — the legal-move dots come from `validMoves`
+  // state — so it is deferred to the first pick-up and cached against the
+  // position, which is a lazy `useMemo` in all but name.
+  //
+  // It reads `stateRef`, not the render-scope `gameState`, for the same reason
+  // the rest of `selectSquare` does: everything a gesture handler decides from
+  // is read at fire time, so one source keeps the cache key and the moves it
+  // holds from ever describing different positions.
+  const legalCache = useRef<{
+    state: ChessGameState;
+    moves: ReturnType<typeof ChessEngine.getAllLegalMoves>;
+  } | null>(null);
+  const getLegalMoves = () => {
+    const state = stateRef.current;
+    if (legalCache.current?.state !== state) {
+      legalCache.current = { state, moves: ChessEngine.getAllLegalMoves(state) };
+    }
+    return legalCache.current.moves;
+  };
 
   // Interaction refs — source of truth during a gesture (see CheckersBoard for why
   // these must be written synchronously, not from render).
@@ -443,7 +460,9 @@ function ChessBoardInner({
       pos,
       premoveModeRef.current
         ? getChessPremoveDestinations(stateRef.current, pos)
-        : legalRef.current.filter((m) => m.from === pos).map((m) => m.to),
+        : getLegalMoves()
+            .filter((m) => m.from === pos)
+            .map((m) => m.to),
     );
 
   const commitMove = (from: string, to: string) => {

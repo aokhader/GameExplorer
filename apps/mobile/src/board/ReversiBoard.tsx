@@ -31,6 +31,9 @@ interface ReversiBoardProps {
 
 const DISC_RATIO = 0.86;
 // Amber, matching the warning treatment web's hint UI uses.
+/** Shared empty result, so skipping generation doesn't allocate per render. */
+const NO_MOVES: readonly string[] = [];
+
 const HINT_RING = 'rgba(245,158,11,0.95)';
 const HINT_FILL = 'rgba(245,158,11,0.28)';
 
@@ -160,19 +163,33 @@ function ReversiBoardInner({
   const coordsOn = showCoordinates && settings.showCoordinates;
   const isPlayerTurn = !gameState.isGameOver && gameState.currentTurn === playerColor;
 
-  // Full move generation is expensive — recompute only when the state changes.
-  const legalMoves = useMemo(() => ReversiEngine.getAllLegalMoves(gameState), [gameState]);
-
   // Refs so the memoized gesture reads fresh values without re-registering.
   const stateRef = useRef(gameState);
   stateRef.current = gameState;
-  const legalRef = useRef(legalMoves);
-  legalRef.current = legalMoves;
   const playerColorRef = useRef(playerColor);
   playerColorRef.current = playerColor;
   const interactiveRef = useRef(interactive);
   interactiveRef.current = interactive;
   const sizeRef = useRef(0);
+
+  // Unlike chess and checkers, reversi's dots ARE render output — every legal
+  // placement is shown at once, not just the ones for a selected piece — so this
+  // cannot be deferred to a touch. What it can skip is the opponent's turn, and
+  // that is the frame that matters: the one right after the player places, where
+  // the flips are animating and no dots are drawn anyway.
+  //
+  // Reads `stateRef` rather than the render-scope `gameState` so render and the
+  // tap handler — which judges the tap off that same ref — can never disagree
+  // about which position the cached list belongs to.
+  const legalCache = useRef<{ state: ReversiGameState; moves: string[] } | null>(null);
+  const getLegalMoves = () => {
+    const state = stateRef.current;
+    if (legalCache.current?.state !== state) {
+      legalCache.current = { state, moves: ReversiEngine.getAllLegalMoves(state) };
+    }
+    return legalCache.current.moves;
+  };
+  const legalNow = isPlayerTurn ? getLegalMoves() : NO_MOVES;
 
   // Announce the latest move (placement pop + flip cue + sound), like web.
   useEffect(() => {
@@ -201,7 +218,7 @@ function ReversiBoardInner({
     if (s.isGameOver) return;
     if (s.currentTurn !== playerColorRef.current) return;
     const pos = squareAt(x, y, sizeRef.current);
-    if (legalRef.current.includes(pos)) onMove(pos);
+    if (getLegalMoves().includes(pos)) onMove(pos);
     else sfx.play('illegal');
   };
 
@@ -234,7 +251,7 @@ function ReversiBoardInner({
             const boardCol = screenCol;
             const pos = posFromCoords(boardRow, boardCol);
             const disc = gameState.board[boardRow][boardCol];
-            const isLegal = isPlayerTurn && legalMoves.includes(pos);
+            const isLegal = legalNow.includes(pos);
             const isHighlighted = highlightPos === pos;
             const isHint = hintPos === pos;
 
