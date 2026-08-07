@@ -4,6 +4,9 @@ import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplo
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
+/** Shared by the fill and the glow-casting wrapper so the halo tracks the corners. */
+const RADIUS = 14;
+
 interface ButtonProps {
   label: string;
   onPress: () => void;
@@ -63,14 +66,25 @@ export function Button({
 
   const base: ViewStyle = {
     height: 52,
-    borderRadius: 14,
+    borderRadius: RADIUS,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    opacity: isDisabled ? 0.5 : 1,
   };
 
+  /**
+   * The glow must sit on a view that has BOTH the rounded corners and an opaque
+   * fill. iOS derives a layer's `shadowPath` from its background; with a
+   * transparent one it falls back to the layer *bounds* and casts a hard square
+   * halo whose corners poke out past the button's rounded ones (this is the case
+   * RN warns about with "cannot calculate shadow efficiently … consider setting a
+   * background color"). Android traces the view outline instead, which is why the
+   * square corners only ever showed up on iOS.
+   *
+   * Applies to the surfaces below too — keep `glow` off `ghost`, whose surface is
+   * transparent and would hit the same fallback.
+   */
   const glowStyle: ViewStyle | undefined =
     glow && !isDisabled ? { boxShadow: GLOWS_NATIVE.glowAccent } : undefined;
 
@@ -82,18 +96,30 @@ export function Button({
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityState={{ disabled: isDisabled, busy: loading }}
-        style={[glowStyle, style]}
+        style={style}
       >
         {({ pressed }) => (
-          <LinearGradient
-            colors={GRADIENTS_NATIVE.accent.colors}
-            locations={GRADIENTS_NATIVE.accent.locations}
-            start={GRADIENTS_NATIVE.accent.start}
-            end={GRADIENTS_NATIVE.accent.end}
-            style={[base, { opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1 }]}
+          // Gold underlay: gives the shadow caster the opaque rounded rect it
+          // needs (the gradient covers it), and carries the press/disabled
+          // dimming so the glow fades with the fill rather than hanging at full
+          // strength behind a dimmed button.
+          <View
+            style={[
+              { borderRadius: RADIUS, backgroundColor: COLORS.accent },
+              glowStyle,
+              { opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1 },
+            ]}
           >
-            {content}
-          </LinearGradient>
+            <LinearGradient
+              colors={GRADIENTS_NATIVE.accent.colors}
+              locations={GRADIENTS_NATIVE.accent.locations}
+              start={GRADIENTS_NATIVE.accent.start}
+              end={GRADIENTS_NATIVE.accent.end}
+              style={base}
+            >
+              {content}
+            </LinearGradient>
+          </View>
         )}
       </Pressable>
     );
@@ -116,7 +142,9 @@ export function Button({
       style={style}
     >
       {({ pressed }) => (
-        <View style={[base, surface, { opacity: isDisabled ? 0.5 : pressed ? 0.7 : 1 }]}>
+        <View
+          style={[base, surface, glowStyle, { opacity: isDisabled ? 0.5 : pressed ? 0.7 : 1 }]}
+        >
           {content}
         </View>
       )}
