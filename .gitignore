@@ -33,6 +33,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Native build output — CMake/NDK regenerates this per machine and the
+# fingerprints embed absolute local toolchain paths.
+**/.cxx/
+
 # Misc
 .DS_Store
 *.pem
