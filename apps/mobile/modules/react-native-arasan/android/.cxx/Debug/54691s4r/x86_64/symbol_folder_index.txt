@@ -1,1 +1,0 @@
-C:\Users\azizk\Documents\GitHub\GameExplorer\apps\mobile\modules\react-native-arasan\android\build\intermediates\cxx\Debug\54691s4r\obj\x86_64

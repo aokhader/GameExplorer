@@ -1,1 +1,0 @@
-C:\Users\azizk\Documents\GitHub\GameExplorer\apps\mobile\modules\react-native-arasan\android\CMakeLists.txt

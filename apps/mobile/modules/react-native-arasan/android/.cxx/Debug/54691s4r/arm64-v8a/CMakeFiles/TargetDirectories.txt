@@ -1,3 +1,0 @@
-C:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/.cxx/Debug/54691s4r/arm64-v8a/CMakeFiles/react-native-arasan.dir
-C:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/.cxx/Debug/54691s4r/arm64-v8a/CMakeFiles/edit_cache.dir
-C:/Users/azizk/Documents/GitHub/GameExplorer/apps/mobile/modules/react-native-arasan/android/.cxx/Debug/54691s4r/arm64-v8a/CMakeFiles/rebuild_cache.dir
