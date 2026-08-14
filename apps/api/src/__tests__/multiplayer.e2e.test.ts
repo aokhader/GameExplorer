@@ -478,7 +478,12 @@ describe('invite flow', () => {
     const linkSeen = once<any>(host, 'invite_link_created');
     host.emit('create_invite_link', { gameType: 'reversi', timeControl: 'rapid', username: 'Hosty' });
     const { inviteId, url } = await linkSeen;
-    expect(url).toContain(`/reversi/play?invite=${inviteId}`);
+    // toContain alone would pass on a malformed base — a joined CORS_ORIGIN list
+    // still ends in the right path — so assert the whole URL is well-formed.
+    expect(url).not.toContain(',');
+    const parsed = new URL(url);
+    expect(parsed.pathname).toBe('/reversi/play');
+    expect(parsed.searchParams.get('invite')).toBe(inviteId);
 
     const guest = client('inv-guest');
     await connected(guest);

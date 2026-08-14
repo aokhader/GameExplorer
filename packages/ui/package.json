@@ -6,13 +6,15 @@
   "types": "./src/index.ts",
   "scripts": {
     "build": "tsc --noEmit",
-    "dev": "tsc --noEmit --watch"
+    "dev": "tsc --noEmit --watch",
+    "test": "vitest run"
   },
   "peerDependencies": {
     "react": ">=18"
   },
   "devDependencies": {
     "typescript": "^5.3.3",
-    "@types/react": "^19"
+    "@types/react": "^19",
+    "vitest": "^2.1.8"
   }
 }

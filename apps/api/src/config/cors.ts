@@ -71,6 +71,21 @@ export function isAllowedOrigin(origin: string): boolean {
 }
 
 /**
+ * The canonical public web origin, for links the server hands to clients
+ * (invite links today). CORS_ORIGIN is a *list* — reading it raw would build
+ * "https://a.example,https://b.example/chess/play?invite=…" the moment a second
+ * origin is configured — so the first entry wins, which is the production alias
+ * by convention (previews and native apps are additions to it, never the
+ * canonical link target).
+ */
+export function publicWebUrl(): string {
+  const fallback = 'http://localhost:3000';
+  // parseList drops blanks, so CORS_ORIGIN="" or "," yields an empty list.
+  const [first = fallback] = parseList(process.env.CORS_ORIGIN, fallback);
+  return first.replace(/\/+$/, '');
+}
+
+/**
  * The `origin` option for both `cors()` and Socket.io. Requests with no Origin
  * header (curl, native apps, same-origin/server-to-server) are allowed — CORS
  * only governs browsers, which always send one.

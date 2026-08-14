@@ -3,7 +3,7 @@ import { ChessEngine, CheckersEngine, ReversiEngine } from '@gameexplorer/shared
 import { gameSessionService, TIME_CONTROL_CONFIGS } from '../../services/gameSession.service';
 import { clockService }       from '../../services/clock.service';
 import { persistenceService } from '../../services/persistence.service';
-import { inviteService }      from '../../services/invite.service';
+import { inviteService, inviteUrl } from '../../services/invite.service';
 import { blockService }        from '../../services/block.service';
 import { RedisService } from '../../config/redis';
 import { logger }             from '../../utils/logger';
@@ -211,8 +211,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     socket.data.username = safeUsername;
     socket.data.rating   = rating;
     const inviteId = await inviteService.createInvite(userId, safeUsername, rating, gameType, timeControl);
-    const baseUrl  = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
-    socket.emit('invite_link_created', { inviteId, url: `${baseUrl}/${gameType}/play?invite=${inviteId}` });
+    socket.emit('invite_link_created', { inviteId, url: inviteUrl(gameType, inviteId) });
   });
 
   socket.on('accept_invite', async ({ inviteId, username }: { inviteId: string; username: string; rating?: number }) => {

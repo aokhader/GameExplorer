@@ -1,9 +1,19 @@
 import { redis } from '../config/redis';
+import { publicWebUrl } from '../config/cors';
 import type { GameType, TimeControl } from '@gameexplorer/shared';
 
 const INVITE_TTL = 600; // 10 minutes
 
 function inviteKey(inviteId: string) { return `invite:${inviteId}`; }
+
+/**
+ * The shareable link for an invite. Both the socket handler and the REST
+ * controller hand this to clients, so the path lives here rather than being
+ * written out at each call site.
+ */
+export function inviteUrl(gameType: string, inviteId: string): string {
+  return `${publicWebUrl()}/${gameType}/play?invite=${inviteId}`;
+}
 
 export interface InviteData {
   fromId:      string;

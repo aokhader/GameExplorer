@@ -70,6 +70,39 @@ describe('isAllowedOrigin', () => {
   });
 });
 
+// CORS_ORIGIN doubles as the source of the public web origin the server puts in
+// invite links. Once it became a list, reading it raw produced
+// "https://a,https://b/chess/play?invite=…" — so the first entry wins.
+describe('publicWebUrl', () => {
+  const saved = { ...process.env };
+  afterEach(() => {
+    process.env = { ...saved };
+  });
+
+  it('returns the only origin when one is configured', async () => {
+    const { publicWebUrl } = await loadWith({ CORS_ORIGIN: PROD });
+    expect(publicWebUrl()).toBe(PROD);
+  });
+
+  it('returns the FIRST origin of a comma-separated list, never the joined string', async () => {
+    const { publicWebUrl } = await loadWith({ CORS_ORIGIN: `${PROD}, http://localhost:3000` });
+    expect(publicWebUrl()).toBe(PROD);
+    expect(publicWebUrl()).not.toContain(',');
+  });
+
+  it('tolerates surrounding whitespace and a trailing slash', async () => {
+    const { publicWebUrl } = await loadWith({ CORS_ORIGIN: `  ${PROD}/  , http://localhost:3000` });
+    expect(publicWebUrl()).toBe(PROD);
+  });
+
+  it('falls back to localhost when CORS_ORIGIN is unset or blank', async () => {
+    const unset = await loadWith({ CORS_ORIGIN: undefined });
+    expect(unset.publicWebUrl()).toBe('http://localhost:3000');
+    const blank = await loadWith({ CORS_ORIGIN: ' , ' });
+    expect(blank.publicWebUrl()).toBe('http://localhost:3000');
+  });
+});
+
 describe('corsOrigin callback', () => {
   const saved = { ...process.env };
   afterEach(() => {

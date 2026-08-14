@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { gameSessionService } from '../services/gameSession.service';
-import { inviteService }      from '../services/invite.service';
+import { inviteService, inviteUrl } from '../services/invite.service';
 import { clockService }       from '../services/clock.service';
 import type { AuthRequest }   from '../middleware/auth';
 
@@ -63,7 +63,6 @@ export const gameController = {
       timeControl as any,
     );
 
-    const baseUrl = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
-    res.json({ inviteId, url: `${baseUrl}/${gameType}/play?invite=${inviteId}` });
+    res.json({ inviteId, url: inviteUrl(gameType, inviteId) });
   },
 };
