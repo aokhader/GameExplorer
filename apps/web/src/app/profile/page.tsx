@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { END_REASON_LABELS } from '@gameexplorer/shared';
 import { getPublicProfile, getGames, getUserRatings, supabase } from '@gameexplorer/db';
 import type { AuthUser, Profile, GameListItem, UserRating, GameType } from '@gameexplorer/db';
 import { useRouter } from 'next/navigation';
@@ -28,14 +29,8 @@ function relativeTime(iso: string) {
   return formatDate(iso);
 }
 
-// Human-readable label for how a game ended. Set on multiplayer games; bot/legacy
-// rows have no end_reason and simply omit it.
-const END_REASON_LABELS: Record<string, string> = {
-  checkmate: 'checkmate', stalemate: 'stalemate', flag: 'on time',
-  resign: 'resignation', draw_agreement: 'agreement', fifty_move: 'fifty-move rule',
-  repetition: 'repetition', disconnect: 'disconnection', board_full: 'board full',
-  no_moves: 'no moves',
-};
+// END_REASON_LABELS now lives in @gameexplorer/shared — mobile's history list
+// reads the same table (it used to show no end reason at all).
 
 // Per-game accents: a tinted rating card with a matching bloom, and an accent
 // color for the big rating numeral. Every value reads the theme's tint ramp

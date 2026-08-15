@@ -1,10 +1,12 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { DIFFICULTY_ELO } from '@gameexplorer/shared';
+import { useAuth } from '@gameexplorer/client';
 import { Screen, Button } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
-import { markOnboarded } from '@/lib/onboarding';
+import { markOnboarded, markSaveProgressPending } from '@/lib/onboarding';
 
 type GameId = 'chess' | 'checkers' | 'reversi';
 type Difficulty = 'relaxed' | 'balanced' | 'sharp';
@@ -95,6 +97,7 @@ export default function WelcomeScreen() {
   useThemeName();
 
   const router = useRouter();
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [game, setGame] = useState<GameId>('chess');
   const [difficulty, setDifficulty] = useState<Difficulty>('relaxed');
@@ -104,9 +107,44 @@ export default function WelcomeScreen() {
     markOnboarded();
   }, []);
 
+  // Set once the tour has launched a game. Because that hand-off is a `push`
+  // (see `start`), this screen stays underneath it — so if the player backs out
+  // of their first game they would land back in onboarding. Bounce them to the
+  // hub instead, which is where `replace` would have left them.
+  const handedOff = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (handedOff.current) router.replace('/' as never);
+    }, [router]),
+  );
+
   const totalSteps = 3;
 
-  const start = () => router.replace({ pathname: '/play/[game]', params: { game } } as never);
+  // The picked vibe is carried through as an ELO, the way web's tour does it —
+  // it used to be collected and then dropped, so every tour started the default
+  // bot no matter which card the player chose.
+  const start = () => {
+    // Queue the "save your progress" ask for after their first game ends.
+    if (!user) void markSaveProgressPending();
+    // `push`, never `replace`. Replacing this screen with a game screen crashes
+    // Fabric on Android roughly two times in three:
+    //
+    //   addViewAt: failed to insert view … Caused by: The specified child
+    //   already has a parent
+    //
+    // Measured on a Pixel 8 emulator: `replace` 4 crashes / 6 runs, `push` 0 /
+    // 6, and entering the same screen from the hub (also a push) 0 / 5. Doing
+    // both — replace to the hub, then push — still crashed 2 / 6 even a frame
+    // apart, so there is no ordering that makes `replace` safe here.
+    //
+    // The cost of pushing is that the tour stays under the game, which is what
+    // `handedOff` below undoes.
+    handedOff.current = true;
+    router.push({
+      pathname: '/play/[game]',
+      params: { game, elo: String(DIFFICULTY_ELO[game][difficulty]), start: '1' },
+    } as never);
+  };
 
   const advance = () => {
     if (step === 2) start();

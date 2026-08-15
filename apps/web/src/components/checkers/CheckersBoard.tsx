@@ -61,6 +61,12 @@ interface CheckersBoardProps {
   gameState: CheckersGameState;
   onMove: (from: string, to: string) => void;
   playerColor?: 'white' | 'black';
+  /**
+   * Which side is at the BOTTOM. Purely visual — defaults to `playerColor`.
+   * Separate because `playerColor` also gates what you may pick up, so flipping
+   * the view through it would hand you the opponent's pieces too.
+   */
+  orientation?: 'white' | 'black';
   showCoordinates?: boolean;
   arrows?: BoardArrow[];
   /**
@@ -139,6 +145,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   gameState,
   onMove,
   playerColor = 'white',
+  orientation,
   showCoordinates = true,
   arrows,
   allowPremoves = false,
@@ -157,7 +164,9 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   const boardRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
 
-  const isFlipped = playerColor === 'black';
+  // Orientation only — the ownership tests below keep using `playerColor`, so
+  // flipping the view never changes what you can move.
+  const isFlipped = (orientation ?? playerColor) === 'black';
   // Premove mode: the opponent is on the clock, so picking a piece queues a
   // move instead of playing one.
   const premoveMode =

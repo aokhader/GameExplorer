@@ -13,6 +13,7 @@ import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
+import { RatedToggle } from '@/components/game/RatedToggle';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -111,6 +112,10 @@ export default function CheckersBotPage() {
   const [gameSaved, setGameSaved]   = useState(false);
   // Player-initiated end (½ Draw / Resign) — still applies the rated outcome.
   const [manualEnd, setManualEnd]   = useState<'resign' | 'draw' | null>(null);
+  // Rated is opt-out, and needs an account to read/write a rating.
+  const [rated, setRated]           = useState(true);
+  // View only — which colour sits at the bottom. Never changes what you own.
+  const [flipped, setFlipped]       = useState(false);
 
   const { user } = useAuth();
 
@@ -126,10 +131,15 @@ export default function CheckersBotPage() {
   userRatingRef.current = userRating;
   const manualEndRef   = useRef(manualEnd);
   manualEndRef.current = manualEnd;
+  const ratedRef       = useRef(rated);
+  ratedRef.current     = rated;
 
   const liveState   = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
   const isAtLive    = viewIndex === timeline.length - 1;
+  const orientation = flipped
+    ? (playerColor === 'white' ? 'black' : 'white')
+    : playerColor;
 
   useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
@@ -217,7 +227,7 @@ export default function CheckersBotPage() {
     const current = userRatingRef.current;
     const uid = userId;
 
-    if (current && uid) {
+    if (current && uid && ratedRef.current) {
       const rawDelta = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played) - current.rating;
       const newRating = Math.max(100, current.rating + rawDelta);
 
@@ -368,6 +378,8 @@ export default function CheckersBotPage() {
             </div>
           </div>
 
+          <RatedToggle checked={rated} onChange={setRated} gameLabel="checkers" userId={userId} />
+
           <button
             onClick={handleStartGame}
             className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
@@ -437,6 +449,7 @@ export default function CheckersBotPage() {
             gameState={displayState}
             onMove={handleMove}
             playerColor={playerColor}
+            orientation={orientation}
             showCoordinates
             // Line up a reply while the bot thinks. Off while reviewing history
             // (the board isn't showing the live position) or after a manual end.
@@ -572,6 +585,7 @@ export default function CheckersBotPage() {
                 className="shrink-0"
                 onDraw={() => endManually('draw')}
                 onResign={() => endManually('resign')}
+                onFlip={() => setFlipped(f => !f)}
                 disabled={!!gameOverMsg}
               />
           </>

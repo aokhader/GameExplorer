@@ -88,6 +88,8 @@ export default function CheckersTrainingPage() {
   const [gameSaved, setGameSaved] = useState(false);
   // Player-initiated end (½ Draw / Resign) — still applies the rated outcome.
   const [manualEnd, setManualEnd] = useState<'resign' | 'draw' | null>(null);
+  // View only — which colour sits at the bottom. Never changes what you own.
+  const [flipped, setFlipped] = useState(false);
 
   const timelineRef = useRef(timeline);
   timelineRef.current = timeline;
@@ -105,6 +107,9 @@ export default function CheckersTrainingPage() {
   const liveState = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
   const isAtLive = viewIndex === timeline.length - 1;
+  const orientation = flipped
+    ? (playerColor === 'white' ? 'black' : 'white')
+    : playerColor;
   const botElo = Math.min(2000, Math.max(400, userRating?.rating ?? 1200));
 
   // ── Auth guard ────────────────────────────────────────────────────────────
@@ -473,6 +478,7 @@ export default function CheckersTrainingPage() {
             gameState={displayState}
             onMove={handleMove}
             playerColor={playerColor}
+            orientation={orientation}
             showCoordinates
             arrows={hintArrow ? [hintArrow] : undefined}
           />
@@ -629,6 +635,7 @@ export default function CheckersTrainingPage() {
                 className="shrink-0"
                 onDraw={() => endManually('draw')}
                 onResign={() => endManually('resign')}
+                onFlip={() => setFlipped(f => !f)}
                 disabled={!!gameOverMsg}
               />
           </>

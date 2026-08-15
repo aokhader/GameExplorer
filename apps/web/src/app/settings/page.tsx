@@ -2,50 +2,17 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Card } from '@/components/ui';
+import { Card, Toggle } from '@/components/ui';
 import { GradientText } from '@/components/visual';
 import {
   useSettings,
   type Settings,
   type ThemeChoice,
 } from '@/components/providers/SettingsProvider';
-import { useGameSfx } from '@/hooks/useGameSfx';
+import { playSfx } from '@/lib/sound/synth';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
 import { SUPPORT_EMAIL } from '@/lib/support';
 import { cn } from '@/lib/utils';
-
-// ── Toggle switch ─────────────────────────────────────────────────────────────
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-      className={cn(
-        'w-12 h-7 rounded-full transition-colors shrink-0',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ring-offset-2 ring-offset-surface-alt',
-        checked ? 'bg-accent' : 'bg-surface-muted',
-      )}
-    >
-      <div
-        className={cn(
-          'w-5 h-5 bg-white rounded-full shadow mx-1 transition-transform',
-          checked && 'translate-x-5',
-        )}
-      />
-    </button>
-  );
-}
 
 // ── Setting row ───────────────────────────────────────────────────────────────
 /** Settings a Toggle can drive — the boolean ones. */
@@ -239,8 +206,6 @@ function ThemePicker() {
 }
 
 export default function SettingsPage() {
-  const sfx = useGameSfx();
-
   return (
     <div className="relative min-h-dvh pt-16">
       <div className="container mx-auto max-w-2xl px-4 py-12">
@@ -273,13 +238,25 @@ export default function SettingsPage() {
               description="Play subtle sounds for moves, captures, and wins."
               settingKey="sound"
               // Give immediate feedback so the toggle is self-demonstrating.
-              onAfterChange={(next) => next && sfx.play('move')}
+              // Deliberately NOT `useGameSfx`: that hook gates on the *current*
+              // render's `sound`, which is still false in the tick where this
+              // fires, so the confirmation was silently swallowed — and a toggle
+              // that makes no sound reads as "sound is broken". Mobile's settings
+              // screen calls its player directly for the same reason.
+              onAfterChange={(next) => next && void playSfx('move')}
             />
             <SettingRow
               title="Haptics"
               description="Vibrate on key moments (supported devices, e.g. mobile)."
               settingKey="haptics"
-              onAfterChange={(next) => next && sfx.vibrate(12)}
+              onAfterChange={(next) => {
+                if (!next) return;
+                try {
+                  navigator.vibrate?.(12);
+                } catch {
+                  /* unsupported — ignore */
+                }
+              }}
             />
           </div>
         </Card>

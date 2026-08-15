@@ -22,6 +22,7 @@ import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { eloLabel } from '@/game/eloLabel';
+import { useSetupDeepLink } from '@/game/useSetupDeepLink';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
 import { reversiAnalysis } from '@/analysis/adapters';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
@@ -75,10 +76,12 @@ export function ReversiScreen() {
   const userId = user?.id ?? null;
 
   const [mode, setMode] = useState<SetupMode>('bot');
-  const [targetElo, setTargetElo] = useState(1100);
+  // ?elo=&start=1 from the welcome tour. Read once, as lazy initial state.
+  const deepLink = useSetupDeepLink(DIFFICULTY_LEVELS.map((l) => l.elo));
+  const [targetElo, setTargetElo] = useState(deepLink.elo ?? 1100);
   const [playerColor, setPlayerColor] = useState<ReversiColor>('black');
   const [rated, setRated] = useState(true);
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(deepLink.autoStart);
   // Post-game review. Only reachable once the game is over — see the GameBar
   // handler below.
   const [reviewing, setReviewing] = useState(false);

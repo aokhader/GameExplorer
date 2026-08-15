@@ -36,6 +36,15 @@ interface ChessBoardProps {
   gameState: ChessGameState;
   onMove: (from: Position, to: Position, promotionPiece?: PieceType) => void;
   playerColor?: 'white' | 'black';
+  /**
+   * Which side is at the BOTTOM. Purely visual — defaults to `playerColor`.
+   *
+   * These are two different questions and `playerColor` used to answer both:
+   * it sets the view *and* gates what you may pick up (see `isMyTurn` and the
+   * drag guard). Flipping the board by passing the other colour would therefore
+   * also hand you the opponent's pieces, so orientation gets its own prop.
+   */
+  orientation?: 'white' | 'black';
   showCoordinates?: boolean;
   compact?: boolean;
   /** Draw arrows as an SVG overlay (e.g. for best-move highlights) */
@@ -191,6 +200,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   gameState,
   onMove,
   playerColor = 'white',
+  orientation,
   showCoordinates = true,
   compact = false,
   arrows,
@@ -247,7 +257,7 @@ export const ChessBoard = React.memo(function ChessBoard({
     historyLength: effectiveState.moveHistory.length,
     // Inline rather than the `isFlipped` below it: that is declared further
     // down with the refs, and this hook has to run before the first render use.
-    isFlipped: playerColor === 'black',
+    isFlipped: (orientation ?? playerColor) === 'black',
     enabled: !reducedMotion,
   });
 
@@ -274,7 +284,9 @@ export const ChessBoard = React.memo(function ChessBoard({
   const draggingRef  = useRef(dragging);
   draggingRef.current = dragging;
   const dragMovesRef = useRef<Position[]>([]);
-  const isFlipped = playerColor === 'black';
+  // Orientation only. Every ownership test above deliberately keeps reading
+  // `playerColor`, so flipping the view never changes what you can move.
+  const isFlipped = (orientation ?? playerColor) === 'black';
   // Read at fire time, not closure time: the premove lands a tick after the
   // parent re-rendered with the opponent's move, and its handler may only
   // accept the move in that newer render (the bot page clears `isThinking`

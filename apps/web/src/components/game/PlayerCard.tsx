@@ -14,6 +14,12 @@ export interface PlayerCardProps {
   active?: boolean;
   /** Right-aligned content — e.g. a clock in multiplayer. Overrides the active dot. */
   right?: React.ReactNode;
+  /**
+   * Chess capture tray, shown between the name block and `right`. Deliberately
+   * inline rather than a row below: the card's 46px height is budgeted by
+   * `GameScreenLayout`, and extra height is taken straight out of the board.
+   */
+  captured?: React.ReactNode;
 }
 
 /**
@@ -26,7 +32,7 @@ export interface PlayerCardProps {
  * and every pixel it gives back is a pixel the square board grows by on a short
  * screen. `GameScreenLayout` budgets its column height against that number.
  */
-export function PlayerCard({ name, initial, subline, isYou = false, active = false, right }: PlayerCardProps) {
+export function PlayerCard({ name, initial, subline, isYou = false, active = false, right, captured }: PlayerCardProps) {
   return (
     <div
       className={cn(
@@ -62,6 +68,7 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
           )}
         </div>
       </div>
+      {captured}
       {right ??
         (active && (
           <span

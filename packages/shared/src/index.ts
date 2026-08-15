@@ -32,5 +32,12 @@ export * from './constants/puzzles';
 // Game catalog (id, players, modes) — see the scope note in the module
 export * from './constants/games';
 
+// SFX recipes — one source of truth for web's live synth and the native samples
+export * from './audio/recipes';
+// First-run tour — the vibe→ELO ladder both platforms' welcome screens use
+export * from './constants/onboarding';
+// How a game ended, in words — shared by both platforms' history lists
+export * from './constants/endReasons';
+
 // Free-tier cost-control limits
 export * from './limits';

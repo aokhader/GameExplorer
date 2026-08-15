@@ -11,6 +11,7 @@ import {
   type UserRating,
   type GameType,
 } from '@gameexplorer/db';
+import { endReasonLabel } from '@gameexplorer/shared';
 import { useAuth } from '@gameexplorer/client';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Screen, Card, Button } from '@/components/ui';
@@ -24,6 +25,15 @@ const GAME_META: Record<GameType, { label: string }> = {
   checkers: { label: 'Checkers' },
   reversi: { label: 'Reversi' },
 };
+
+/** History filter — "all" plus one pill per game, mirroring web's profile. */
+type Tab = 'all' | GameType;
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'chess', label: 'Chess' },
+  { id: 'checkers', label: 'Checkers' },
+  { id: 'reversi', label: 'Reversi' },
+];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -121,6 +131,8 @@ export default function YouScreen() {
   const [profile, setProfile] = useState<Pick<Profile, 'id' | 'username' | 'created_at'> | null>(null);
   const [games, setGames] = useState<GameListItem[]>([]);
   const [ratings, setRatings] = useState<Record<GameType, UserRating> | null>(null);
+  // Which game the history list is filtered to, matching web's filter pills.
+  const [tab, setTab] = useState<Tab>('all');
 
   const userId = user?.id;
 
@@ -245,7 +257,8 @@ export default function YouScreen() {
     return g ? ratingDelta(g) : null;
   };
 
-  const recent = games.slice(0, 10);
+  const filtered = tab === 'all' ? games : games.filter((g) => (g.game_type ?? 'chess') === tab);
+  const recent = filtered.slice(0, 10);
 
   return (
     <Screen>
@@ -334,10 +347,49 @@ export default function YouScreen() {
       {/* Recent games */}
       <Card style={{ padding: 16, marginBottom: 20 }}>
         <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.displaySemi, marginBottom: 8 }}>Recent games</Text>
+
+        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+          {TABS.map((t) => {
+            const selected = tab === t.id;
+            return (
+              <Pressable
+                key={t.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setTab(t.id)}
+                hitSlop={4}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: selected ? COLORS.accent : COLORS.border,
+                  backgroundColor: selected ? COLORS.accentMuted : COLORS.surfaceMuted,
+                }}
+              >
+                <Text
+                  style={{
+                    // accentHover, not accent: this is 12px type, and the fill
+                    // colour is tuned for buttons rather than small text — the
+                    // same reason web's player card uses its accent-text slot.
+                    color: selected ? COLORS.accentHover : COLORS.fgMuted,
+                    fontSize: 12,
+                    fontFamily: selected ? FONTS.bodyBold : FONTS.body,
+                  }}
+                >
+                  {t.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         {recent.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-            <GamePieceIcon game="chess" size={32} />
-            <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.body }}>No games played yet</Text>
+            <GamePieceIcon game={tab === 'all' ? 'chess' : tab} size={32} />
+            <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.body }}>
+              {tab === 'all' ? 'No games played yet' : `No ${GAME_META[tab].label.toLowerCase()} games yet`}
+            </Text>
             <Text style={{ color: COLORS.fgSubtle, fontSize: 13, fontFamily: FONTS.body, marginTop: 2 }}>
               Win a rated bot game and it lands here.
             </Text>
@@ -382,6 +434,7 @@ export default function YouScreen() {
                   <Text style={{ color: COLORS.fgMuted, fontSize: 12, fontFamily: FONTS.body }} numberOfLines={1}>
                     {meta.label}
                     {game.difficulty ? ` · ${game.difficulty}` : ''} · as {game.player_color === 'white' ? 'White' : 'Black'}
+                    {endReasonLabel(game.end_reason) ? ` · ${endReasonLabel(game.end_reason)}` : ''}
                   </Text>
                 </View>
                 {delta !== null && delta !== 0 && (

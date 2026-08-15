@@ -14,6 +14,7 @@ import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
+import { RatedToggle } from '@/components/game/RatedToggle';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -69,6 +70,8 @@ export default function ReversiBotPage() {
   const [gameSaved, setGameSaved]     = useState(false);
   // Player-initiated end — reversi has no draw offers, so resign only.
   const [manualEnd, setManualEnd]     = useState<'resign' | null>(null);
+  // Rated is opt-out, and needs an account to read/write a rating.
+  const [rated, setRated]             = useState(true);
 
   const { user } = useAuth();
 
@@ -84,6 +87,8 @@ export default function ReversiBotPage() {
   userRatingRef.current = userRating;
   const manualEndRef   = useRef(manualEnd);
   manualEndRef.current = manualEnd;
+  const ratedRef       = useRef(rated);
+  ratedRef.current     = rated;
 
   const liveState    = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -191,7 +196,7 @@ export default function ReversiBotPage() {
     const current = userRatingRef.current;
     const uid = userId;
 
-    if (current && uid) {
+    if (current && uid && ratedRef.current) {
       const rawDelta = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played) - current.rating;
       const newRating = Math.max(100, current.rating + rawDelta);
 
@@ -330,6 +335,8 @@ export default function ReversiBotPage() {
               ))}
             </div>
           </div>
+
+          <RatedToggle checked={rated} onChange={setRated} gameLabel="reversi" userId={userId} />
 
           <button
             onClick={handleStartGame}

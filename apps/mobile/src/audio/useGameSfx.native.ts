@@ -1,26 +1,15 @@
 import { useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
+import type { SfxEvent } from '@gameexplorer/shared';
 import { useSettings } from '@/providers/SettingsProvider';
+import { playSfx } from './sfxPlayer';
 
 /**
- * Game feedback events — the native mirror of web's `SfxEvent`
- * (apps/web/src/lib/sound/synth.ts). Kept as a local union so the mobile app
- * has no dependency on the web-only WebAudio synth module.
+ * Game feedback events. The union now comes from `@gameexplorer/shared` along
+ * with the sound recipes themselves, so web and native cannot drift on which
+ * events exist.
  */
-export type SfxEvent =
-  | 'move'
-  | 'capture'
-  | 'check'
-  | 'castle'
-  | 'promote'
-  | 'flip'
-  | 'jump'
-  | 'select'
-  | 'illegal'
-  | 'lowTime'
-  | 'win'
-  | 'loss'
-  | 'draw';
+export type { SfxEvent };
 
 /**
  * Per-event haptic mapping. Where web fires a `navigator.vibrate` pattern, native
@@ -55,16 +44,14 @@ const HAPTICS: Partial<Record<SfxEvent, HapticFn>> = {
 };
 
 /**
- * Game feedback hook — native counterpart of web's `useGameSfx`. Fires a haptic
- * for an event, gated by the user's Settings (`haptics`, default OFF). Same
- * `{ play }` contract the shared board/result components call, so board code is
- * identical to web at the call site.
+ * Game feedback hook — native counterpart of web's `useGameSfx`. Fires a sound
+ * and a haptic for an event, each gated by the user's Settings (both default
+ * OFF). Same `{ play }` contract the shared board/result components call, so
+ * board code is identical to web at the call site.
  *
- * Sound: the web synth (`synth.ts`) has no audio files — its recipes must be
- * pre-rendered to samples and shipped as assets before native playback can work
- * (see the mobile plan's "Audio parity" risk). Until those assets land, `sound`
- * gating is honored but playback is a no-op; haptics carry the feedback. Sound
- * defaults OFF, so nothing is missing for the default experience.
+ * Sound plays pre-rendered WAV assets rather than synthesising live: React
+ * Native has no WebAudio, so `scripts/render-sfx.mjs` renders the shared recipes
+ * offline and `sfxPlayer` plays the results.
  */
 export function useGameSfx() {
   const { settings } = useSettings();
@@ -72,8 +59,7 @@ export function useGameSfx() {
 
   const play = useCallback(
     (event: SfxEvent) => {
-      // Sound: reserved for pre-rendered samples (see doc comment). No-op today.
-      void sound;
+      if (sound) playSfx(event);
 
       if (haptics) {
         const fn = HAPTICS[event];

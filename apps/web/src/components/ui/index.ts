@@ -21,6 +21,9 @@ export type { InputProps } from './Input';
 export { Select } from './Select';
 export type { SelectProps } from './Select';
 
+export { Toggle } from './Toggle';
+export type { ToggleProps } from './Toggle';
+
 export { Modal } from './Modal';
 export type { ModalProps } from './Modal';
 

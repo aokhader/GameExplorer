@@ -1,8 +1,10 @@
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import * as Haptics from 'expo-haptics';
 import { COLORS, RADIUS, type ThemeName, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader, Card, Toggle } from '@/components/ui';
 import { useSettings, type Settings } from '@/providers/SettingsProvider';
+import { playSfx } from '@/audio/sfxPlayer';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
 import { PRIVACY_URL, SOURCE_REPO_URL, SUPPORT_EMAIL, supportMailtoUrl } from '@/config/support';
 
@@ -16,11 +18,14 @@ function SettingRow({
   description,
   settingKey,
   first,
+  onAfterChange,
 }: {
   title: string;
   description: string;
   settingKey: BooleanSettingKey;
   first?: boolean;
+  /** Fired after the setting is written — used to demo sound/haptics on enable. */
+  onAfterChange?: (next: boolean) => void;
 }) {
   const { settings, setSetting } = useSettings();
   return (
@@ -41,7 +46,10 @@ function SettingRow({
       <Toggle
         value={settings[settingKey]}
         label={title}
-        onValueChange={(next) => setSetting(settingKey, next)}
+        onValueChange={(next) => {
+          setSetting(settingKey, next);
+          onAfterChange?.(next);
+        }}
       />
     </View>
   );
@@ -304,11 +312,17 @@ export default function SettingsScreen() {
           title="Sound effects"
           description="Play subtle sounds for moves, captures, and wins."
           settingKey="sound"
+          // Give immediate feedback so the toggle is self-demonstrating, the
+          // same way web's settings page does. Called directly rather than
+          // through useGameSfx: the hook reads the setting from context, which
+          // has not re-rendered yet at this point.
+          onAfterChange={(next) => next && playSfx('move')}
         />
         <SettingRow
           title="Haptics"
           description="Vibrate on key moments (supported devices)."
           settingKey="haptics"
+          onAfterChange={(next) => next && void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
         />
       </Card>
 

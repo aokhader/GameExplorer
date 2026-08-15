@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import Link from 'next/link';
-import { ChessGameState, Position, PieceType } from '@gameexplorer/shared';
+import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { ChessPiece } from '@gameexplorer/ui';
@@ -11,12 +11,15 @@ import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList'
 import { useChessEngine } from '@/hooks/useChessEngine';
 import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
 import { useAuth } from '@/hooks/useAuth';
-import { saveGame } from '@/lib/db';
+import { saveGame, getUserRating, upsertUserRating } from '@/lib/db';
+import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { CapturedTray } from '@/components/game/CapturedTray';
 import { GameActions } from '@/components/game/GameActions';
+import { RatedToggle } from '@/components/game/RatedToggle';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -71,6 +74,12 @@ function eloDescription(elo: number): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+interface RatingResult {
+  before: number;
+  after: number;
+  delta: number;
+}
+
 export default function ChessBotPage() {
   // Worker owns the canonical game state; all move validation runs off main thread.
   const { gameState: liveState, legalMoves: legalMovesMap, isReady: engineReady, makeMove, getBotMove, reset } = useChessEngine();
@@ -87,6 +96,13 @@ export default function ChessBotPage() {
   // Player-initiated end (design's ½ Draw / Resign pair) — the engine state
   // stays live, but the game is over from the UI's point of view.
   const [manualEnd, setManualEnd] = useState<'resign' | 'draw' | null>(null);
+  const [userRating, setUserRating] = useState<UserRating | null>(null);
+  const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
+  const [gameSaved, setGameSaved] = useState(false);
+  // Rated is opt-out, and needs an account to read/write a rating.
+  const [rated, setRated] = useState(true);
+  // View only — which colour sits at the bottom. Never changes what you own.
+  const [flipped, setFlipped] = useState(false);
 
   // Defer Stockfish (and its ~7 MB WASM download) until the game actually
   // starts — no need to load the engine while the user is still on the setup
@@ -106,6 +122,10 @@ export default function ChessBotPage() {
   liveStateRef.current  = liveState;
   const manualEndRef    = useRef(manualEnd);
   manualEndRef.current  = manualEnd;
+  const userRatingRef   = useRef(userRating);
+  userRatingRef.current = userRating;
+  const ratedRef        = useRef(rated);
+  ratedRef.current      = rated;
 
   // Deep link from onboarding (?elo=1200&start=1) — preselect strength and skip
   // the setup screen. Read off the URL like /chess/play does for ?invite.
@@ -160,6 +180,12 @@ export default function ChessBotPage() {
 
   useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
+  // Load rating when user is available
+  useEffect(() => {
+    if (!user) return;
+    getUserRating(user.id, 'chess').then(setUserRating);
+  }, [user]);
+
   // ── Trigger bot move when it's the bot's turn ───────────────────────────────
   useEffect(() => {
     if (!gameStarted || !engineReady) return;
@@ -173,20 +199,49 @@ export default function ChessBotPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, targetElo, manualEnd]);
 
-  // ── Save game when it ends ──────────────────────────────────────────────────
+  // ── Save game and update rating when it ends ────────────────────────────────
+  // One effect for both endings. Resign/draw used to save from its own handler,
+  // which meant a resigned game could never carry a rating change — and the two
+  // call sites could both fire for one game. Mirrors checkers/reversi.
   useEffect(() => {
-    if (!gameStarted) return;
-    let result: 'white' | 'black' | 'draw' | null = null;
-    if (liveState.isCheckmate) {
-      result = liveState.currentTurn === 'white' ? 'black' : 'white';
-    } else if (liveState.isStalemate || liveState.isDraw) {
-      result = 'draw';
-    }
-    if (result) {
-      saveGame(liveState, playerColor, result, `elo-${targetEloRef.current}`, userId ?? undefined);
+    if (!gameStarted || gameSaved) return;
+    const naturalEnd = liveState.isCheckmate || liveState.isStalemate || liveState.isDraw;
+    if (!naturalEnd && !manualEnd) return;
+    setGameSaved(true);
+
+    const pc = playerColorRef.current;
+    const result: 'white' | 'black' | 'draw' =
+      manualEnd === 'draw' ? 'draw'
+      : manualEnd === 'resign' ? (pc === 'white' ? 'black' : 'white')
+      : liveState.isCheckmate ? (liveState.currentTurn === 'white' ? 'black' : 'white')
+      : 'draw';
+
+    const outcome: GameOutcome =
+      result === 'draw' ? 'draw' : result === pc ? 'win' : 'loss';
+
+    const current = userRatingRef.current;
+    const uid = userId;
+
+    if (current && uid && ratedRef.current) {
+      const rawDelta = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played) - current.rating;
+      const newRating = Math.max(100, current.rating + rawDelta);
+
+      Promise.all([
+        upsertUserRating(uid, newRating, outcome, 'chess'),
+        saveGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid, {
+          mode: 'rated',
+          rating_before: current.rating,
+          rating_after: newRating,
+        }),
+      ]).then(([updatedRating]) => {
+        setUserRating(updatedRating);
+        setRatingResult({ before: current.rating, after: newRating, delta: rawDelta });
+      });
+    } else {
+      saveGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid ?? undefined);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState.isCheckmate, liveState.isStalemate, liveState.isDraw]);
+  }, [liveState.isCheckmate, liveState.isStalemate, liveState.isDraw, manualEnd]);
 
   // ── Bot move ────────────────────────────────────────────────────────────────
   const makeBotMove = useCallback(async () => {
@@ -245,8 +300,7 @@ export default function ChessBotPage() {
     setManualEnd(kind);
     setIsThinking(false);
     botMovePendingRef.current = false;
-    const result = kind === 'draw' ? 'draw' : playerColor === 'white' ? 'black' : 'white';
-    saveGame(liveState, playerColor, result, `elo-${targetEloRef.current}`, userId ?? undefined);
+    // The save/rating effect above picks this up — it watches `manualEnd`.
   };
 
   const handleNewGame = () => {
@@ -255,6 +309,8 @@ export default function ChessBotPage() {
     setGameStarted(false);
     setIsThinking(false);
     setManualEnd(null);
+    setGameSaved(false);
+    setRatingResult(null);
     botMovePendingRef.current = false;
     reset(); // worker resets to newGame() and broadcasts STATE_UPDATE
   };
@@ -266,6 +322,13 @@ export default function ChessBotPage() {
   const movePairs  = buildMovePairs(timeline);
   const canGoBack  = viewIndex > 0;
   const canGoForward = viewIndex < timeline.length - 1;
+
+  // Capture trays follow the board the player is LOOKING at, not the live one,
+  // so stepping back through the game rewinds the trays with it.
+  const botColor = playerColor === 'white' ? 'black' : 'white';
+  const material = summarizeMaterial(displayState);
+  const whiteLead = material.advantage;
+  const orientation = flipped ? botColor : playerColor;
 
   // ── Setup screen ──────────────────────────────────────────────────────────────
 
@@ -383,6 +446,8 @@ export default function ChessBotPage() {
             </div>
           </div>
 
+          <RatedToggle checked={rated} onChange={setRated} gameLabel="chess" userId={userId} />
+
           <button
             onClick={handleStartGame}
             className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
@@ -445,6 +510,14 @@ export default function ChessBotPage() {
             initial="B"
             active={isThinking}
             subline={isThinking ? `${targetElo} · thinking…` : `${targetElo} · ${eloLabel(targetElo)}`}
+            captured={
+              <CapturedTray
+                pieces={material[botColor]}
+                color={playerColor}
+                advantage={botColor === 'white' ? whiteLead : -whiteLead}
+                ownerLabel="Bot"
+              />
+            }
           />
         }
         board={
@@ -452,6 +525,7 @@ export default function ChessBotPage() {
             gameState={displayState}
             onMove={handleMove}
             playerColor={playerColor}
+            orientation={orientation}
             showCoordinates={true}
             legalMovesMap={isAtLive && !isThinking ? legalMovesMap : undefined}
             // Line up a reply while the bot thinks. Off while reviewing history
@@ -466,6 +540,14 @@ export default function ChessBotPage() {
             isYou
             active={yourTurn}
             subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
+            captured={
+              <CapturedTray
+                pieces={material[playerColor]}
+                color={botColor}
+                advantage={playerColor === 'white' ? whiteLead : -whiteLead}
+                ownerLabel="You"
+              />
+            }
           />
         }
         sidebar={
@@ -521,6 +603,7 @@ export default function ChessBotPage() {
               className="shrink-0"
               onDraw={() => endManually('draw')}
               onResign={() => endManually('resign')}
+              onFlip={() => setFlipped(f => !f)}
               disabled={!!gameOverMsg}
             />
           </>
@@ -531,6 +614,11 @@ export default function ChessBotPage() {
         open={!!myResult}
         result={myResult ?? 'draw'}
         subtitle={gameOverMsg ?? undefined}
+        rating={
+          ratingResult
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            : undefined
+        }
         actions={
           <>
             <Button size="lg" fullWidth onClick={handleNewGame}>

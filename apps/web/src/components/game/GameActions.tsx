@@ -12,7 +12,14 @@ export interface GameActionsProps {
   resignLabel?: string;
   /** Abort (multiplayer, before enough moves are played). Rendered in the resign slot, neutral style. */
   onAbort?: () => void;
-  /** Disables both buttons (e.g. once the game is over). */
+  /**
+   * Turn the board around. Omit for reversi, where `playerColor` is the tap gate
+   * rather than a viewpoint, and for screens with no fixed viewpoint at all.
+   * Stays enabled after the game ends — reviewing a finished board is exactly
+   * when you want to see it from the other side.
+   */
+  onFlip?: () => void;
+  /** Disables the draw/resign buttons (e.g. once the game is over). */
   disabled?: boolean;
   className?: string;
 }
@@ -35,6 +42,7 @@ export function GameActions({
   onResign,
   resignLabel = 'Resign',
   onAbort,
+  onFlip,
   disabled = false,
   className,
 }: GameActionsProps) {
@@ -62,6 +70,17 @@ export function GameActions({
 
   return (
     <div className={cn('flex gap-2.5', className)}>
+      {onFlip && (
+        <button
+          type="button"
+          onClick={onFlip}
+          aria-label="Flip board"
+          title="Flip board"
+          className={cn(buttonBase, neutralClasses, 'flex-none w-11 px-0 text-base')}
+        >
+          ⇅
+        </button>
+      )}
       {onDraw && (
         <button type="button" onClick={onDraw} disabled={disabled} className={cn(buttonBase, neutralClasses)}>
           {drawLabel}

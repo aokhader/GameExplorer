@@ -11,6 +11,8 @@ import { COLORS } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { HINT_PENALTY } from '@/engine/trainingRules';
+import { Confetti } from './Confetti';
+import { SaveProgressPrompt } from './SaveProgressPrompt';
 
 export type GameResult = 'win' | 'loss' | 'draw' | 'aborted';
 
@@ -72,9 +74,11 @@ function useCountUp(from: number, to: number, active: boolean, durationMs = 800)
 
 /**
  * Game-over celebration — native port of web's `GameResultScreen`. A spring-in
- * card over a dim backdrop, an emoji pop, an optional rating count-up, and a
- * terminal chime/haptic. (Web's canvas-confetti has no RN drop-in yet; the
- * spring + emoji pop carry the moment — confetti is a M5 polish item.)
+ * card over a dim backdrop, an emoji pop, confetti on a win, an optional rating
+ * count-up, a terminal chime/haptic, and the one-time guest sign-up ask.
+ *
+ * Confetti is Reanimated rather than web's canvas-confetti (no RN drop-in), and
+ * is suppressed entirely under `reducedMotion`.
  */
 export function GameResultScreen({
   open,
@@ -142,6 +146,8 @@ export function GameResultScreen({
           backgroundColor: 'rgba(0,0,0,0.65)',
         }}
       >
+        {/* Behind the card so pieces fall past it rather than over the text. */}
+        <Confetti active={open && result === 'win'} reducedMotion={reducedMotion} />
         <Animated.View
           accessibilityViewIsModal
           accessibilityLiveRegion="polite"
@@ -278,6 +284,10 @@ export function GameResultScreen({
             )}
             {actions}
           </View>
+
+          {/* Guests only, once, after their first tour game — renders nothing
+              otherwise. Below the actions so it never delays Play Again. */}
+          <SaveProgressPrompt open={open} />
         </Animated.View>
       </View>
     </Modal>

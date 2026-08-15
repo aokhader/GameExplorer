@@ -9,6 +9,7 @@ import {
   PieceType,
   calculateNewRating,
   GameOutcome,
+  summarizeMaterial,
 } from '@gameexplorer/shared';
 import { ChessBoard, BoardArrow } from '@/components/chess/ChessBoard';
 import { ChessPiece } from '@gameexplorer/ui';
@@ -23,6 +24,7 @@ import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { CapturedTray } from '@/components/game/CapturedTray';
 import { GameActions } from '@/components/game/GameActions';
 import { StatusBanner } from '@/components/game/StatusBanner';
 import { Button } from '@/components/ui';
@@ -88,6 +90,9 @@ export default function ChessTrainingPage() {
   const [isHinting, setIsHinting] = useState(false);
   const [hintsUsed, setHintsUsed] = useState(0);
 
+  // View only — which colour sits at the bottom. Never changes what you own.
+  const [flipped, setFlipped] = useState(false);
+
   // Post-game overlay
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
   const [savedGameId, setSavedGameId] = useState<string | null>(null);
@@ -117,6 +122,12 @@ export default function ChessTrainingPage() {
   const displayState = timeline[viewIndex] ?? liveState;
   const isAtLive = timeline.length === 0 || viewIndex === timeline.length - 1;
   const botElo = userRating?.rating ?? 1200;
+
+  // Capture trays follow the board being LOOKED at, so stepping back rewinds them.
+  const botColor = playerColor === 'white' ? 'black' : 'white';
+  const material = summarizeMaterial(displayState);
+  const whiteLead = material.advantage;
+  const orientation = flipped ? botColor : playerColor;
 
   // ── Sync confirmed worker state → timeline ────────────────────────────────
 
@@ -534,6 +545,14 @@ export default function ChessTrainingPage() {
             initial="B"
             active={isThinking}
             subline={isThinking ? `${botElo} · thinking…` : `${botElo} · ${eloLabel(botElo)}`}
+            captured={
+              <CapturedTray
+                pieces={material[botColor]}
+                color={playerColor}
+                advantage={botColor === 'white' ? whiteLead : -whiteLead}
+                ownerLabel="Bot"
+              />
+            }
           />
         }
         board={
@@ -541,6 +560,7 @@ export default function ChessTrainingPage() {
             gameState={displayState}
             onMove={handleMove}
             playerColor={playerColor}
+            orientation={orientation}
             showCoordinates={true}
             // Worker-precomputed legal moves — piece taps are O(1) lookups
             // instead of a synchronous getAllLegalMoves scan.
@@ -555,6 +575,14 @@ export default function ChessTrainingPage() {
             isYou
             active={isPlayerTurn}
             subline={`Playing ${playerColor}${isPlayerTurn ? ' · your move' : ''}`}
+            captured={
+              <CapturedTray
+                pieces={material[playerColor]}
+                color={botColor}
+                advantage={playerColor === 'white' ? whiteLead : -whiteLead}
+                ownerLabel="You"
+              />
+            }
           />
         }
         sidebar={
@@ -637,6 +665,7 @@ export default function ChessTrainingPage() {
               className="shrink-0"
               onDraw={() => endManually('draw')}
               onResign={() => endManually('resign')}
+              onFlip={() => setFlipped(f => !f)}
               disabled={!!gameOverMsg}
             />
           </>

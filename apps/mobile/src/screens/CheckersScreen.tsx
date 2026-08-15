@@ -26,6 +26,7 @@ import { checkersAnalysis } from '@/analysis/adapters';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { checkersAdapter } from '@/engine/checkersAdapter';
+import { useSetupDeepLink } from '@/game/useSetupDeepLink';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
@@ -71,10 +72,12 @@ export function CheckersScreen() {
   const { settings } = useSettings();
 
   const [mode, setMode] = useState<SetupMode>('bot');
-  const [targetElo, setTargetElo] = useState(1100);
+  // ?elo=&start=1 from the welcome tour. Read once, as lazy initial state.
+  const deepLink = useSetupDeepLink(DIFFICULTY_LEVELS.map((l) => l.elo));
+  const [targetElo, setTargetElo] = useState(deepLink.elo ?? 1100);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [rated, setRated] = useState(true);
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(deepLink.autoStart);
   // Manual board flip from the game menu — inverts whatever orientation the
   // mode would otherwise pick (see boardColor below).
   const [flipped, setFlipped] = useState(false);

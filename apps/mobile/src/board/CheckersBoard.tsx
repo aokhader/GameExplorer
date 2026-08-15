@@ -471,8 +471,8 @@ function CheckersBoardInner({
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
     if (canGrab(pos)) {
       setDrag(pos);
+      // Deliberately silent — see the matching note in ChessBoard.
       selectSquare(pos);
-      sfx.play('select');
       if (!reducedMotion) dragScale.value = withTiming(1.1, { duration: 90 });
     }
   };

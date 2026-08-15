@@ -573,8 +573,10 @@ function ChessBoardInner({
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
     if (canGrab(pos)) {
       setDrag(pos);
+      // Deliberately silent. Tapping a piece already selects without a sound,
+      // so only dragging made noise, and web stays quiet on pickup entirely —
+      // the 'select' cue is reserved for queueing a premove (see commitMove).
       selectSquare(pos);
-      sfx.play('select');
       if (!reducedMotion) dragScale.value = withTiming(1.1, { duration: 90 });
     }
   };

@@ -30,6 +30,7 @@ import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { chessAdapter } from '@/engine/chessAdapter';
 import { useEngineNative } from '@/engine/useEngineNative';
+import { useSetupDeepLink } from '@/game/useSetupDeepLink';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
@@ -83,14 +84,17 @@ export function ChessScreen() {
   const userId = user?.id ?? null;
   const { settings } = useSettings();
 
+  // ?elo=&start=1 from the welcome tour. Read once, as lazy initial state.
+  const deepLink = useSetupDeepLink(DIFFICULTY_LEVELS.map((l) => l.elo));
+
   const [mode, setMode] = useState<SetupMode>('bot');
-  const [selectedElo, setSelectedElo] = useState(1200);
+  const [selectedElo, setSelectedElo] = useState(deepLink.elo ?? 1200);
   // Custom tier — the exact-rating picker replaces the preset tiles. Its starting
   // value is whatever preset was highlighted, so the slider opens where you were.
   const [isCustomTier, setIsCustomTier] = useState(false);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [rated, setRated] = useState(true);
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(deepLink.autoStart);
   // Manual board flip from the game menu — inverts whatever orientation the mode
   // would otherwise pick (see boardColor below).
   const [flipped, setFlipped] = useState(false);

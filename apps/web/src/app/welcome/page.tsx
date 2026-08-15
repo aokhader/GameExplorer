@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { DIFFICULTY_ELO } from '@gameexplorer/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { ONBOARDED_KEY, SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
 
@@ -28,13 +29,8 @@ const DIFFICULTIES: { id: Difficulty; name: string; icon: string; tagline: strin
   { id: 'sharp',    name: 'Sharp',    icon: '🔥', tagline: 'Bring your A-game' },
 ];
 
-// Bot strength each vibe maps to, using each game's own ELO scale (the bot
-// pages clamp/snap, so these just need to be sensible presets, not exact).
-const DIFFICULTY_ELO: Record<GameId, Record<Difficulty, number>> = {
-  chess:    { relaxed: 600, balanced: 1200, sharp: 2000 },
-  checkers: { relaxed: 500, balanced: 1100, sharp: 1700 },
-  reversi:  { relaxed: 500, balanced: 1100, sharp: 1700 },
-};
+// DIFFICULTY_ELO now lives in @gameexplorer/shared — mobile's tour reads the
+// same ladder (it used to ignore the choice entirely).
 
 // Selection accent per option, as CSS color / glow pairs. Games glow in their
 // signature hue; opponents in gold; difficulties cool → hot.
