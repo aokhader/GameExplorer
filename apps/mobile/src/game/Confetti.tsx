@@ -13,6 +13,8 @@ import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 /** How many pieces fall. Enough to read as a burst, few enough to stay smooth. */
 const PIECE_COUNT = 28;
 const FALL_MS = 2600;
+/** How long one full rotation takes. */
+const SPIN_MS = 900;
 
 interface PieceSpec {
   /** Horizontal position as a fraction of the screen width. */
@@ -39,7 +41,18 @@ function ConfettiPiece({ spec, height }: { spec: PieceSpec; height: number }) {
     );
     spin.value = withDelay(
       spec.delay,
-      withRepeat(withTiming(1, { duration: 900, easing: Easing.linear }), -1, false),
+      withRepeat(
+        withTiming(1, { duration: SPIN_MS, easing: Easing.linear }),
+        // Finite, and matched to this piece's fall — NOT an infinite repeat.
+        // `active` stays true for as long as the celebration is on screen (a
+        // solved puzzle until Next, a win until the result screen closes), so
+        // `-1` left all 28 pieces rotating on the UI thread indefinitely, long
+        // after each had faded out and translated off the bottom. Invisible, but
+        // it burned battery and meant the app never reached idle — which
+        // accessibility services (and `uiautomator`) block on.
+        Math.max(1, Math.ceil(spec.duration / SPIN_MS)),
+        false,
+      ),
     );
   }
 

@@ -1,17 +1,28 @@
 /**
- * The game catalog.
+ * The game catalog — one source of truth for what games exist, what modes each
+ * offers, and how each is described.
  *
- * Until now there was no central manifest — each surface (home page, nav,
- * per-game hub) carried its own inline array, and the game key was re-declared
- * as a string-literal union in several packages. This file is the start of a
- * single source of truth.
+ * There used to be no central manifest: every surface (home page, nav, welcome
+ * tour, per-game hub) carried its own inline array on each platform, so the same
+ * game was declared four times per platform and a mode landing on web but not
+ * mobile was invisible until someone went looking. Reading from here makes that
+ * kind of drift a **data diff** rather than an archaeology exercise — which is
+ * the entire reason web and mobile diverged in the first place.
  *
- * **Scope note:** only Liquidate reads from this today. Chess, checkers, and
- * reversi still use their existing inline definitions; migrating them touches
- * every listing surface, and folding that into the Liquidate work would have
- * made the change impossible to review. The entries below are accurate for all
- * four so the migration has something to move *to*.
+ * **Copy comes in three registers, and all three live here.** They are named for
+ * the surface's voice, not the platform, because both platforms use all three:
+ * `blurb` is a full sentence (web's home cards), `hook` is a punchy one-liner
+ * (mobile's home cards), `tagline` is two or three words (both welcome tours).
+ * Keeping the registers distinct is deliberate — collapsing them would either
+ * bloat a phone card or gut a marketing one.
+ *
+ * **Icons deliberately stay per-platform.** Web draws Unicode glyphs; mobile
+ * draws the Game Pieces vector art, because those same glyphs get emoji-font
+ * substitution on Android and never matched the design. That is a genuine
+ * platform difference, not drift.
  */
+
+import { DIFFICULTY_ELO, type OnboardingGame } from './onboarding';
 
 export type GameId = 'chess' | 'checkers' | 'reversi' | 'liquidate';
 
@@ -23,8 +34,12 @@ export interface GameCatalogEntry {
   name: string;
   /** URL segment — the game lives at `/{slug}`. */
   slug: string;
-  /** One-line description for cards and listings. */
+  /** Full sentence, for a card with room to breathe (web's home). */
   blurb: string;
+  /** Punchy one-liner, for a card that has to fit a phone (mobile's home). */
+  hook: string;
+  /** Two or three words, for a tight row (both welcome tours). */
+  tagline: string;
   /** Accent key in `GAME_ACCENTS` and the `--c-game-*` CSS vars. */
   accent: GameId;
   minPlayers: number;
@@ -46,10 +61,12 @@ export const GAME_CATALOG: Record<GameId, GameCatalogEntry> = {
     name: 'Chess',
     slug: 'chess',
     blurb: 'The classic strategy game. Checkmate your opponent!',
+    hook: 'Outplay the bot at every level.',
+    tagline: 'Timeless strategy',
     accent: 'chess',
     minPlayers: 2,
     maxPlayers: 2,
-    modes: ['bot', 'training', 'online', 'learn', 'puzzles'],
+    modes: ['bot', 'training', 'online', 'local', 'learn', 'puzzles'],
     available: true,
     rated: true,
   },
@@ -58,10 +75,12 @@ export const GAME_CATALOG: Record<GameId, GameCatalogEntry> = {
     name: 'Checkers',
     slug: 'checkers',
     blurb: 'Jump your way to victory in this classic board game.',
+    hook: 'Fast, punchy, endlessly re-matchable.',
+    tagline: 'Easy to learn',
     accent: 'checkers',
     minPlayers: 2,
     maxPlayers: 2,
-    modes: ['bot', 'training', 'online', 'learn', 'puzzles'],
+    modes: ['bot', 'training', 'online', 'local', 'learn', 'puzzles'],
     available: true,
     rated: true,
   },
@@ -70,10 +89,12 @@ export const GAME_CATALOG: Record<GameId, GameCatalogEntry> = {
     name: 'Reversi',
     slug: 'reversi',
     blurb: 'Flip the board to your color. Strategic and fast-paced!',
+    hook: 'Swing the whole board in one move.',
+    tagline: 'Quick to master',
     accent: 'reversi',
     minPlayers: 2,
     maxPlayers: 2,
-    modes: ['bot', 'training', 'online', 'learn', 'puzzles'],
+    modes: ['bot', 'training', 'online', 'local', 'learn', 'puzzles'],
     available: true,
     rated: true,
   },
@@ -82,6 +103,8 @@ export const GAME_CATALOG: Record<GameId, GameCatalogEntry> = {
     name: 'Liquidate',
     slug: 'liquidate',
     blurb: 'Claim planets, charge rent, and bankrupt your rivals. 2–6 players.',
+    hook: 'Corner the sector and squeeze them out.',
+    tagline: 'Claim the sector',
     accent: 'liquidate',
     minPlayers: 2,
     maxPlayers: 6,
@@ -98,6 +121,30 @@ export const GAME_LIST: readonly GameCatalogEntry[] = [
   GAME_CATALOG.reversi,
   GAME_CATALOG.liquidate,
 ];
+
+/** A catalog entry the first-run tour can actually offer. */
+export interface TourGameEntry extends GameCatalogEntry {
+  id: OnboardingGame;
+}
+
+/**
+ * The games the first-run tour can offer, in order.
+ *
+ * Both halves of the predicate are load-bearing, and neither is "not Liquidate".
+ * The tour ends by picking a bot difficulty on a game's own ELO ladder, so a
+ * game qualifies only if its results move a rating (`rated`) **and** the ladder
+ * has an entry for it (`DIFFICULTY_ELO`). Liquidate fails both: it is casual by
+ * construction, because the `games`/`user_ratings` tables model a two-player
+ * result and cannot represent a six-player free-for-all.
+ *
+ * Checking membership rather than asserting it also narrows the type honestly —
+ * both tours index `DIFFICULTY_ELO` by this id. A rated game added without a
+ * ladder entry drops out of the tour rather than crashing it, which is the safer
+ * of the two failures; the tour is a first-run nicety, not a required path.
+ */
+export const TOUR_GAMES: readonly TourGameEntry[] = GAME_LIST.filter(
+  (g): g is TourGameEntry => g.rated && g.id in DIFFICULTY_ELO,
+);
 
 /** True when a game seats more than two players. */
 export function isMultiSeat(id: GameId): boolean {

@@ -6,13 +6,13 @@ import { useRef, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { isImmersiveGameRoute } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import { GAME_LIST } from '@gameexplorer/shared';
 
+// The games come from the catalog so a new one appears in the nav by existing,
+// not by someone remembering this file. Home and Watch are not games.
 const NAV_ITEMS = [
   { href: '/', label: 'Home' },
-  { href: '/chess', label: 'Chess' },
-  { href: '/checkers', label: 'Checkers' },
-  { href: '/reversi', label: 'Reversi' },
-  { href: '/liquidate', label: 'Liquidate' },
+  ...GAME_LIST.filter((g) => g.available).map((g) => ({ href: `/${g.slug}`, label: g.name })),
   { href: '/spectate', label: 'Watch' },
 ];
 

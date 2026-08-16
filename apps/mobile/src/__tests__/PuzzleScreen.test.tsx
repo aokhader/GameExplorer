@@ -18,6 +18,13 @@ import { SettingsProvider } from '@/providers/SettingsProvider';
  * is the same boundary `PuzzleBoard` was written to.
  */
 
+// The screen celebrates a solve with `Confetti`, which imports reanimated
+// directly. Safe to flatten here precisely because the three boards below are
+// doubled — nothing left in this tree is a `GestureDetector` reaching into
+// reanimated's real internals, which is what the opt-in rule exists to protect.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').mockReanimated());
+
 /** The move the next board press will report. Set by each test before pressing. */
 const mockBoard: { move: string[]; props: Record<string, unknown> } = { move: [], props: {} };
 

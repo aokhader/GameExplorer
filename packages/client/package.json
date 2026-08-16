@@ -13,7 +13,11 @@
     "./hooks/usePuzzle": "./src/hooks/usePuzzle.ts",
     "./stores/authStore": "./src/stores/authStore.ts",
     "./package.json": "./package.json",
-    "./hooks/useGameAnalysis": "./src/hooks/useGameAnalysis.ts"
+    "./hooks/useGameAnalysis": "./src/hooks/useGameAnalysis.ts",
+    "./hooks/useSettingsStore": "./src/hooks/useSettingsStore.ts",
+    "./hooks/usePuzzleFeedback": "./src/hooks/usePuzzleFeedback.ts",
+    "./liquidate/useLiquidateWalk": "./src/liquidate/useLiquidateWalk.ts",
+    "./liquidate/useLiquidateGame": "./src/liquidate/useLiquidateGame.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

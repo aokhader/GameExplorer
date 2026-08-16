@@ -8,7 +8,7 @@ import {
   tileMetrics,
   type LiquidateGameState,
 } from '@gameexplorer/shared';
-import type { PlacedToken } from '@/hooks/useLiquidateWalk';
+import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { LiquidateTileCell } from './LiquidateTile';
 import { TokenLayer } from './TokenLayer';

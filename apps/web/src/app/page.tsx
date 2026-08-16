@@ -7,8 +7,19 @@ import { useAuth } from '@/hooks/useAuth';
 import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY } from '@/lib/onboarding';
 import { SUPPORT_EMAIL } from '@/lib/support';
+import { GAME_LIST, type GameCatalogEntry, type GameId } from '@gameexplorer/shared';
 
-type GameHue = 'chess' | 'checkers' | 'reversi' | 'liquidate';
+/**
+ * Card glyphs stay here rather than in the catalog: mobile draws the Game Pieces
+ * vector art for the same games, because these Unicode symbols get emoji-font
+ * substitution on Android. That is a real platform difference, not drift.
+ */
+const GAME_ICON: Record<GameId, string> = {
+  chess: '♔',
+  checkers: '⚫',
+  reversi: '⚪',
+  liquidate: '🪐',
+};
 
 export default function HomePage() {
   const [hoveredGame, setHoveredGame] = useState<string | null>(null);
@@ -28,44 +39,7 @@ export default function HomePage() {
     }
   }, [loading, user, router]);
 
-  const games = [
-    {
-      id: 'chess',
-      name: 'Chess',
-      description: 'The classic strategy game. Checkmate your opponent!',
-      icon: '♔',
-      hue: 'chess' as GameHue,
-      available: true,
-      path: '/chess',
-    },
-    {
-      id: 'checkers',
-      name: 'Checkers',
-      description: 'Jump your way to victory in this classic board game.',
-      icon: '⚫',
-      hue: 'checkers' as GameHue,
-      available: true,
-      path: '/checkers',
-    },
-    {
-      id: 'reversi',
-      name: 'Reversi',
-      description: 'Flip the board to your color. Strategic and fast-paced!',
-      icon: '⚪',
-      hue: 'reversi' as GameHue,
-      available: true,
-      path: '/reversi',
-    },
-    {
-      id: 'liquidate',
-      name: 'Liquidate',
-      description: 'Claim planets, charge rent, and bankrupt your rivals. 2–6 players.',
-      icon: '🪐',
-      hue: 'liquidate' as GameHue,
-      available: true,
-      path: '/liquidate',
-    },
-  ];
+  const games = GAME_LIST;
 
   return (
     <div className="relative min-h-screen pt-16">
@@ -112,7 +86,7 @@ export default function HomePage() {
                 onMouseLeave={() => setHoveredGame(null)}
               >
                 {game.available ? (
-                  <Link href={game.path}>
+                  <Link href={`/${game.slug}`}>
                     <GameCard game={game} isHovered={hoveredGame === game.id} />
                   </Link>
                 ) : (
@@ -178,25 +152,18 @@ function GameCard({
   game,
   isHovered,
 }: {
-  game: {
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-    hue: GameHue;
-    available: boolean;
-  };
+  game: GameCatalogEntry;
   isHovered: boolean;
 }) {
   // Jewel-tone gradient re-toned to the steel+gold scheme, deepened toward the
   // base so it reads as a rich surface, not a flat saturated rectangle. The card
   // stays dark in every theme (the label on it is static white), so it deepens
   // toward the theme's own shade — mixing warm walnut into a cold navy muddies it.
-  const gradient = `linear-gradient(135deg, var(--c-game-${game.hue}) 0%, color-mix(in srgb, var(--c-game-${game.hue}) 50%, var(--c-game-card-shade, #0b1120)) 100%)`;
+  const gradient = `linear-gradient(135deg, var(--c-game-${game.accent}) 0%, color-mix(in srgb, var(--c-game-${game.accent}) 50%, var(--c-game-card-shade, #0b1120)) 100%)`;
   const glowClass =
-    game.hue === 'chess' ? 'group-hover:[box-shadow:var(--shadow-glow-chess)]'
-    : game.hue === 'checkers' ? 'group-hover:[box-shadow:var(--shadow-glow-checkers)]'
-    : game.hue === 'liquidate' ? 'group-hover:[box-shadow:var(--shadow-glow-liquidate)]'
+    game.accent === 'chess' ? 'group-hover:[box-shadow:var(--shadow-glow-chess)]'
+    : game.accent === 'checkers' ? 'group-hover:[box-shadow:var(--shadow-glow-checkers)]'
+    : game.accent === 'liquidate' ? 'group-hover:[box-shadow:var(--shadow-glow-liquidate)]'
     : 'group-hover:[box-shadow:var(--shadow-glow-reversi)]';
 
   return (
@@ -218,13 +185,13 @@ function GameCard({
           className="text-8xl text-center mb-4 transition-transform duration-300 drop-shadow-lg"
           style={{ transform: isHovered ? 'scale(1.12) rotate(5deg)' : 'scale(1)' }}
         >
-          {game.icon}
+          {GAME_ICON[game.id]}
         </div>
 
         {/* Text — static light on the saturated per-game card. */}
         <div className="text-white">
           <h3 className="text-2xl font-bold mb-2">{game.name}</h3>
-          <p className="text-white/80 text-sm">{game.description}</p>
+          <p className="text-white/80 text-sm">{game.blurb}</p>
         </div>
 
         {/* Status Badge */}

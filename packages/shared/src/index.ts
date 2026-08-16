@@ -42,5 +42,8 @@ export * from './constants/onboarding';
 // How a game ended, in words — shared by both platforms' history lists
 export * from './constants/endReasons';
 
+// Device preferences — the model both platforms' SettingsProviders store
+export * from './settings';
+
 // Free-tier cost-control limits
 export * from './limits';

@@ -13,7 +13,7 @@ import { LIQUIDATE_TIMING, type LiquidatePlayer } from '@gameexplorer/shared';
 import { useSettings } from '@/providers/SettingsProvider';
 import { seatColor } from './lqTheme';
 import type { RingGeometry } from './boardGeom';
-import type { PlacedToken } from './useLiquidateWalk';
+import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
 
 export interface TokenLayerProps {
   players: LiquidatePlayer[];

@@ -1,19 +1,22 @@
-import { useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import type { PuzzlePhase } from '@gameexplorer/shared';
+import { usePuzzleFeedback as usePuzzleFeedbackCore } from '@gameexplorer/client/hooks/usePuzzleFeedback';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 
 /**
- * The verdict a puzzle gives back: right or wrong.
+ * Native's puzzle verdict: the same two cues web plays, through the native SFX
+ * player and its haptics.
  *
- * The web twin of this fires sound and confetti. Here it is **haptics only**,
- * and deliberately so: `useGameSfx.native` honours the sound setting but its
- * playback is a documented no-op, because the web synth has no audio files and
- * the recipes have to be pre-rendered to samples before native can play them.
- * Confetti likewise has no RN drop-in yet. Both are real gaps, not oversights —
- * the haptic is the whole cue on this platform today.
+ * The *timing* — once per attempt, once per puzzle — lives in
+ * `@gameexplorer/client`, shared with web, because both of the bugs this hook
+ * has had were about when it fired rather than what it played.
  *
- * Solving does NOT advance on its own (owner's call, 2026-08-06). The board
- * stays on the solved position with its explanation until Next is pressed.
+ * This used to be haptics-only, with a comment explaining that native had no
+ * audio files and no confetti. Both of those shipped in parity Phase 1 (rendered
+ * WAVs behind `useGameSfx.native`, and a Reanimated `Confetti`), so the comment
+ * outlived the gap it described and quietly kept a solved puzzle silent. The
+ * burst itself is rendered by the screen from `phase`, matching how the
+ * game-result screen drives it.
  */
 export function usePuzzleFeedback({
   phase,
@@ -26,22 +29,11 @@ export function usePuzzleFeedback({
 }): void {
   const sfx = useGameSfx();
 
-  // Keyed on `attempts`, not on the phase: the phase stays 'wrong' while the
-  // refutation search runs and then lands, so a phase-keyed effect would fire
-  // the cue twice for one mistake.
-  const seenAttempts = useRef(attempts);
-  useEffect(() => {
-    if (attempts > seenAttempts.current) sfx.play('illegal');
-    seenAttempts.current = attempts;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempts]);
-
-  const celebrated = useRef<string | null>(null);
-  useEffect(() => {
-    if (phase !== 'solved' || !puzzleId) return;
-    if (celebrated.current === puzzleId) return;
-    celebrated.current = puzzleId;
-    sfx.play('win');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, puzzleId]);
+  usePuzzleFeedbackCore({
+    phase,
+    attempts,
+    puzzleId,
+    onWrong: useCallback(() => sfx.play('illegal'), [sfx]),
+    onSolved: useCallback(() => sfx.play('win'), [sfx]),
+  });
 }

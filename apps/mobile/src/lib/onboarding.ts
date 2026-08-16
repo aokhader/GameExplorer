@@ -1,19 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ONBOARDING_KEYS } from '@gameexplorer/shared';
 
 /**
- * First-run onboarding flag (device-local). Mirrors the web `ge:onboarded`
- * localStorage flag — once the welcome tour has been seen, the home hub stops
- * redirecting there. Stored in AsyncStorage since native has no localStorage.
+ * First-run onboarding flags, device-local in AsyncStorage (native has no
+ * localStorage).
+ *
+ * The keys and what each one means live in `@gameexplorer/shared` next to the
+ * tour's difficulty ladder, so the two platforms cannot document them
+ * differently — including *why* the prefixes differ, which is the part that
+ * looks like a bug and must not be "fixed".
+ *
+ * The accessors stay here rather than being shared: AsyncStorage is async and
+ * web's localStorage is not, and web reads the onboarded flag synchronously in
+ * its redirect effect. Sharing four one-line wrappers is not worth putting a
+ * frame of the wrong screen in front of every new web visitor.
  */
-const ONBOARDED_KEY = 'gx:onboarded';
-
-/**
- * Set when a signed-out visitor starts their first game from the tour. The
- * game-result screen consumes it to show the one-time "save your progress"
- * sign-up ask — the account request comes *after* they have played, and only
- * once. Mirrors web's `ge:save-progress-pending`.
- */
-const SAVE_PROGRESS_PENDING_KEY = 'gx:save-progress-pending';
+const ONBOARDED_KEY = ONBOARDING_KEYS.native.onboarded;
+const SAVE_PROGRESS_PENDING_KEY = ONBOARDING_KEYS.native.saveProgressPending;
 
 export async function hasOnboarded(): Promise<boolean> {
   try {

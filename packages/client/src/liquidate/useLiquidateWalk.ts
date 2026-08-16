@@ -1,8 +1,5 @@
-'use client';
-
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LIQUIDATE_TIMING, type LiquidatePlayer } from '@gameexplorer/shared';
-import { useSettings } from '@/components/providers/SettingsProvider';
 
 const {
   diceRollMs: DICE_ROLL_MS,
@@ -31,19 +28,29 @@ const NO_PLAYERS: LiquidatePlayer[] = [];
  * The board's own clock: where each piece is *shown*, as distinct from where the
  * engine has already put it.
  *
- * This lives outside the token layer because it is no longer only about drawing.
- * A roll and the move it causes land in the same engine update, so without a
- * notion of "the board has caught up" the property card appeared while the piece
- * was still walking toward it, and a bot took its next turn over the top of its
- * own animation. Both now wait on `moving`, so this is the single source of
- * truth for that and has to be readable by the game hook, not just the board.
+ * This is not only about drawing, which is why it sits beside the game hook
+ * rather than inside a board component. A roll and the move it causes land in
+ * the SAME engine update, so without a notion of "the board has caught up", the
+ * property card appears while the piece is still walking toward it, and a bot
+ * takes its next turn over the top of its own animation. Both wait on `moving`.
+ *
+ * Only the placement is tracked here; the tween itself belongs to whatever draws
+ * the tokens (CSS transitions on web, Reanimated on native). This hook just says
+ * which tile each piece is on *right now* — which is exactly why it could be
+ * shared: it had been written twice, identically apart from `window.setTimeout`
+ * and where `reducedMotion` came from.
  */
 export function useLiquidateWalk(
   players: LiquidatePlayer[] | undefined,
   dice: [number, number] | null,
   total: number,
+  /**
+   * Effective reduced motion. Passed in rather than read from a settings hook:
+   * that hook is a per-platform React context (localStorage on web, AsyncStorage
+   * on native), and it is the only thing that stopped this file being shared.
+   */
+  reducedMotion: boolean,
 ): LiquidateWalk {
-  const { reducedMotion } = useSettings();
   const seats = players ?? NO_PLAYERS;
 
   const seatKey = seats.map((p) => p.id).join('|');
@@ -55,8 +62,7 @@ export function useLiquidateWalk(
   // A changed roster means a new game or a resumed save: every piece starts
   // where the engine says it is, because there is no prior position to animate
   // from. Adjusted during render rather than in an effect — React re-runs this
-  // component before committing, so the pieces never paint at a stale spot, and
-  // seeding from an effect would be a cascading render for the same result.
+  // component before committing, so the pieces never paint at a stale spot.
   if (seatKey !== knownSeats) {
     setKnownSeats(seatKey);
     setPlaced(Object.fromEntries(seats.map((p) => [p.id, { tile: p.tile, jumped: false }])));
@@ -68,12 +74,11 @@ export function useLiquidateWalk(
   const settledDice = useRef(dice);
 
   useEffect(() => {
-    // Reduced motion has no walk to run, so this effect has nothing to schedule
-    // — the engine's positions are used directly below instead of being copied
-    // into state, which also keeps the walk out of the render loop entirely.
+    // Reduced motion has no walk to run, so there is nothing to schedule; the
+    // engine's positions are used directly below rather than copied into state.
     if (reducedMotion) return;
 
-    const lagging = seats.filter((p) => placed[p.id] !== undefined && placed[p.id].tile !== p.tile);
+    const lagging = seats.filter((p) => placed[p.id] !== undefined && placed[p.id]!.tile !== p.tile);
     if (lagging.length === 0) {
       walking.current = false;
       // A roll that moved nobody (failed doubles in Impound) is consumed here,
@@ -85,7 +90,7 @@ export function useLiquidateWalk(
     const first = !walking.current;
     const afterRoll = dice !== settledDice.current;
     const lead = afterRoll ? DICE_ROLL_MS + POST_ROLL_BEAT_MS : NO_ROLL_START_MS;
-    const timer = window.setTimeout(
+    const timer = setTimeout(
       () => {
         walking.current = true;
         settledDice.current = dice;
@@ -105,12 +110,12 @@ export function useLiquidateWalk(
       },
       first ? lead : STEP_MS,
     );
-    return () => window.clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [seats, placed, total, reducedMotion, dice]);
 
   // With motion suppressed the pieces simply ARE where the engine says, so the
   // stored placement is bypassed rather than kept in sync with it.
-  const shown = React.useMemo(
+  const shown = useMemo(
     () =>
       reducedMotion
         ? Object.fromEntries(seats.map((p) => [p.id, { tile: p.tile, jumped: true }]))
@@ -124,7 +129,7 @@ export function useLiquidateWalk(
   // motion: there is no walk, so nothing waits.
   const moving =
     !reducedMotion &&
-    seats.some((p) => placed[p.id] !== undefined && placed[p.id].tile !== p.tile);
+    seats.some((p) => placed[p.id] !== undefined && placed[p.id]!.tile !== p.tile);
 
   return { placed: shown, moving };
 }

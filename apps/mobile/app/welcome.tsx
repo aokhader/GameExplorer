@@ -2,21 +2,19 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
-import { DIFFICULTY_ELO } from '@gameexplorer/shared';
+import { DIFFICULTY_ELO, TOUR_GAMES, type OnboardingGame } from '@gameexplorer/shared';
 import { useAuth } from '@gameexplorer/client';
 import { Screen, Button } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { markOnboarded, markSaveProgressPending } from '@/lib/onboarding';
 
-type GameId = 'chess' | 'checkers' | 'reversi';
+// The tour's games are the rated ones (see TOUR_GAMES) — the last step picks a
+// bot difficulty on a game's own ELO ladder, which only means something for a
+// game whose results move a rating. `OnboardingGame` is the ladder's own key
+// type, so the two cannot drift apart.
+type GameId = OnboardingGame;
 type Opponent = 'bot' | 'friend' | 'online';
 type Difficulty = 'relaxed' | 'balanced' | 'sharp';
-
-const GAMES: { id: GameId; name: string; tagline: string }[] = [
-  { id: 'chess', name: 'Chess', tagline: 'Timeless strategy' },
-  { id: 'checkers', name: 'Checkers', tagline: 'Easy to learn' },
-  { id: 'reversi', name: 'Reversi', tagline: 'Quick to master' },
-];
 
 /**
  * Matches web's tour, now that mobile has online play to offer.
@@ -235,7 +233,7 @@ export default function WelcomeScreen() {
             You can switch anytime.
           </Text>
           <View style={{ gap: 12 }}>
-            {GAMES.map((g) => (
+            {TOUR_GAMES.map((g) => (
               <OptionRow
                 key={g.id}
                 icon={<GamePieceIcon game={g.id} size={30} />}

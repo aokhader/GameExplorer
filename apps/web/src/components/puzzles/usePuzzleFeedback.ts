@@ -1,21 +1,19 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import type { PuzzlePhase } from '@gameexplorer/shared';
+import { usePuzzleFeedback as usePuzzleFeedbackCore } from '@gameexplorer/client/hooks/usePuzzleFeedback';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
 /**
- * The verdict a puzzle gives back: right or wrong.
+ * Web's puzzle verdict: a sound cue on a wrong move, and a cue plus confetti on
+ * a solve.
  *
- * The boards already announce the *moves* — they fire `move` / `capture` on
- * every position change, and have since the game screens shipped. What was
- * missing is the puzzle's own answer, which is a different thing: whether the
- * move was the one the position wanted.
- *
- * Solving does NOT advance on its own (owner's call, 2026-08-06). The board
- * stays on the solved position with its explanation until Next is pressed —
- * which is instant now that the hook no longer tears the screen down for it.
+ * The *timing* — once per attempt, once per puzzle — lives in
+ * `@gameexplorer/client`, shared with native, because that is where both of the
+ * bugs this hook has had actually were. What stays here is what web's
+ * celebration is made of.
  */
 export function usePuzzleFeedback({
   phase,
@@ -29,22 +27,7 @@ export function usePuzzleFeedback({
   const sfx = useGameSfx();
   const { reducedMotion } = useSettings();
 
-  // Keyed on `attempts`, not on the phase: the phase stays 'wrong' while the
-  // refutation search runs and then lands, so a phase-keyed effect would fire
-  // the cue twice for one mistake.
-  const seenAttempts = useRef(attempts);
-  useEffect(() => {
-    if (attempts > seenAttempts.current) sfx.play('illegal');
-    seenAttempts.current = attempts;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempts]);
-
-  const celebrated = useRef<string | null>(null);
-  useEffect(() => {
-    if (phase !== 'solved' || !puzzleId) return;
-    if (celebrated.current === puzzleId) return;
-    celebrated.current = puzzleId;
-
+  const onSolved = useCallback(() => {
     sfx.play('win');
     if (reducedMotion) return;
 
@@ -60,6 +43,13 @@ export function usePuzzleFeedback({
         disableForReducedMotion: true,
       });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, puzzleId, reducedMotion]);
+  }, [sfx, reducedMotion]);
+
+  usePuzzleFeedbackCore({
+    phase,
+    attempts,
+    puzzleId,
+    onWrong: useCallback(() => sfx.play('illegal'), [sfx]),
+    onSolved,
+  });
 }

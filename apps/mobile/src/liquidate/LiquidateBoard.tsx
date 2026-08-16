@@ -7,7 +7,7 @@ import { LiquidateTileCell } from './LiquidateTile';
 import { BoardOverlay } from './BoardOverlay';
 import { TokenLayer } from './TokenLayer';
 import { ringGeometry } from './boardGeom';
-import type { PlacedToken } from './useLiquidateWalk';
+import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
 
 export interface LiquidateBoardProps {
   state: LiquidateGameState;

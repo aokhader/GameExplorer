@@ -3,19 +3,25 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DIFFICULTY_ELO } from '@gameexplorer/shared';
+import { DIFFICULTY_ELO, TOUR_GAMES, type OnboardingGame } from '@gameexplorer/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { ONBOARDED_KEY, SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
 
-type GameId = 'chess' | 'checkers' | 'reversi';
+// The tour's games are the rated ones (see TOUR_GAMES) — the last step picks a
+// bot difficulty on a game's own ELO ladder, which only means something for a
+// game whose results move a rating. `OnboardingGame` is the ladder's own key
+// type, so the two cannot drift apart.
+type GameId = OnboardingGame;
 type Opponent = 'bot' | 'friend' | 'online';
 type Difficulty = 'relaxed' | 'balanced' | 'sharp';
 
-const GAMES: { id: GameId; name: string; icon: string; tagline: string }[] = [
-  { id: 'chess',    name: 'Chess',    icon: '♞', tagline: 'Timeless strategy' },
-  { id: 'checkers', name: 'Checkers', icon: '⛃', tagline: 'Easy to learn' },
-  { id: 'reversi',  name: 'Reversi',  icon: '⚫', tagline: 'Quick to master' },
-];
+// Glyphs stay local — mobile's tour draws the Game Pieces vector art for the
+// same three rows, because these symbols get emoji-font substitution on Android.
+const GAME_ICON: Record<GameId, string> = {
+  chess: '♞',
+  checkers: '⛃',
+  reversi: '⚫',
+};
 
 const OPPONENTS: { id: Opponent; name: string; icon: string; tagline: string; taglineSelected?: string }[] = [
   { id: 'bot',    name: 'Practice vs the bot', icon: '🤖', tagline: 'Recommended for your first game' },
@@ -170,10 +176,10 @@ export default function WelcomePage() {
               <h1 className="text-[23px] font-bold text-center mb-1.5">What do you feel like playing?</h1>
               <p className="text-sm text-fg-muted text-center mb-5">You can switch anytime.</p>
               <div className="flex flex-col gap-3">
-                {GAMES.map(g => (
+                {TOUR_GAMES.map(g => (
                   <OptionRow
                     key={g.id}
-                    icon={g.icon}
+                    icon={GAME_ICON[g.id]}
                     iconSize={30}
                     name={g.name}
                     tagline={g.tagline}

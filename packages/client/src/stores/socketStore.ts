@@ -37,6 +37,13 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
       reconnection: true,
       reconnectionDelay:    1000,
       reconnectionAttempts: 10,
+      // The API runs on a free Render instance that sleeps after ~15 minutes
+      // idle. A measured cold start takes ~21s, and Render HOLDS the upgrade
+      // open while the instance boots rather than refusing it — so socket.io's
+      // 20s default fired a beat before the server became ready, making the
+      // first connection after every sleep fail with "timeout". 45s clears a
+      // cold start with room to spare.
+      timeout: 45000,
     }) as GameSocket;
 
     // Only mutate the store for events from the socket that is still current,
@@ -45,10 +52,28 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
     socket.on('connect',    () => { if (isCurrent()) set({ connected: true, connectionError: null }); });
     socket.on('disconnect', () => { if (isCurrent()) set({ connected: false }); });
     // Surface handshake/auth failures (e.g. missing SUPABASE_URL on the
-    // server, invalid token, server down) instead of silently staying on "Connecting…".
+    // server, invalid token) instead of silently staying on "Connecting…" —
+    // but ONLY once they are final.
+    //
+    // `socket.active` is socket.io's own "will I try again?" flag. A server-side
+    // middleware rejection (bad/expired token, misconfigured server) calls
+    // destroy() before emitting connect_error, so `active` is false: retrying
+    // with the same token cannot help, and the user should be told now. A
+    // transport failure leaves `active` true with a retry already scheduled —
+    // reporting "Connection failed" there told the user the game was broken
+    // while it was, in fact, seconds from connecting. That is exactly what a
+    // cold-starting server looks like.
     socket.on('connect_error', (err) => {
+      if (!isCurrent()) return;
+      // Always log: a dev pointing at a stopped local API wants the real reason.
       console.error('WebSocket connect_error:', err.message);
-      if (isCurrent()) set({ connected: false, connectionError: err.message });
+      if (socket.active) { set({ connected: false }); return; }
+      set({ connected: false, connectionError: err.message });
+    });
+
+    // Every retry is spent, so the failure is now real.
+    socket.io.on('reconnect_failed', () => {
+      if (isCurrent()) set({ connected: false, connectionError: 'Could not reach the server' });
     });
 
     set({ socket, connected: socket.connected, connectionError: null });

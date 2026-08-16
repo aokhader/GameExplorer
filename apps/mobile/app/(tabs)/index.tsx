@@ -17,17 +17,15 @@ import { GlowBackdrop } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { getLastPlayed } from '@/lib/lastPlayed';
 import { hasOnboarded } from '@/lib/onboarding';
+import { GAME_LIST } from '@gameexplorer/shared';
 import { FONTS } from '@/theme/typography';
 
-// Only the game's identity lives at module scope. Storing `accent:
-// GAME_ACCENTS.chess` here would freeze the accent at import time — the token
-// objects are live views, so they have to be read during render.
-const GAMES = [
-  { key: 'chess', label: 'Chess', tagline: 'Outplay the bot at every level.' },
-  { key: 'checkers', label: 'Checkers', tagline: 'Fast, punchy, endlessly re-matchable.' },
-  { key: 'reversi', label: 'Reversi', tagline: 'Swing the whole board in one move.' },
-  { key: 'liquidate', label: 'Liquidate', tagline: 'Corner the sector and squeeze them out.' },
-] as const;
+// The catalog is pure data, so reading it at module scope is safe — unlike a
+// token: storing `accent: GAME_ACCENTS.chess` here would freeze the accent at
+// import time, because the token objects are live views that have to be read
+// during render. `hook` is the catalog's phone-sized register (web's home cards
+// use the longer `blurb`), so the copy stays one source of truth without either
+// surface having to wear the other's voice.
 
 const FEATURES = [
   { icon: '⚡', label: 'Instant play' },
@@ -224,18 +222,18 @@ export default function HomeScreen() {
             CHOOSE YOUR GAME
           </Text>
           <View style={{ gap: 12 }}>
-            {GAMES.map((g) => (
+            {GAME_LIST.map((g) => (
               <Pressable
-                key={g.key}
+                key={g.id}
                 onPress={() =>
-                  router.push({ pathname: '/play/[game]', params: { game: g.key } } as never)
+                  router.push({ pathname: '/play/[game]', params: { game: g.id } } as never)
                 }
                 accessibilityRole="button"
-                accessibilityLabel={`Play ${g.label}`}
+                accessibilityLabel={`Play ${g.name}`}
                 style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
               >
                 <LinearGradient
-                  colors={[GAME_ACCENTS[g.key].tintBg, GAME_ACCENTS[g.key].tintBgSoft]}
+                  colors={[GAME_ACCENTS[g.id].tintBg, GAME_ACCENTS[g.id].tintBgSoft]}
                   start={{ x: 0.5, y: 0 }}
                   end={{ x: 0.5, y: 1 }}
                   style={{
@@ -245,10 +243,10 @@ export default function HomeScreen() {
                     padding: 16,
                     borderRadius: 18,
                     borderWidth: 1,
-                    borderColor: GAME_ACCENTS[g.key].tintBorder,
+                    borderColor: GAME_ACCENTS[g.id].tintBorder,
                     // The design's per-card bloom — tighter than GLOWS_NATIVE's
                     // shared halo, so it stays inline rather than tokenized.
-                    boxShadow: `0 0 34px -16px ${GAME_ACCENTS[g.key].glow}`,
+                    boxShadow: `0 0 34px -16px ${GAME_ACCENTS[g.id].glow}`,
                   }}
                 >
                   <View
@@ -258,17 +256,17 @@ export default function HomeScreen() {
                       borderRadius: 15,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: GAME_ACCENTS[g.key].tintBg,
+                      backgroundColor: GAME_ACCENTS[g.id].tintBg,
                       borderWidth: 1,
-                      borderColor: GAME_ACCENTS[g.key].tintBorder,
-                      boxShadow: `0 0 22px -6px ${GAME_ACCENTS[g.key].glow}`,
+                      borderColor: GAME_ACCENTS[g.id].tintBorder,
+                      boxShadow: `0 0 22px -6px ${GAME_ACCENTS[g.id].glow}`,
                     }}
                   >
-                    <GamePieceIcon game={g.key} size={34} />
+                    <GamePieceIcon game={g.id} size={34} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={{ fontFamily: FONTS.display, fontSize: 19, color: COLORS.fg }}>
-                      {g.label}
+                      {g.name}
                     </Text>
                     <Text
                       style={{
@@ -279,10 +277,10 @@ export default function HomeScreen() {
                         marginTop: 2,
                       }}
                     >
-                      {g.tagline}
+                      {g.hook}
                     </Text>
                   </View>
-                  <Text style={{ color: GAME_ACCENTS[g.key].light, fontSize: 24, fontFamily: FONTS.bodyBold }}>
+                  <Text style={{ color: GAME_ACCENTS[g.id].light, fontSize: 24, fontFamily: FONTS.bodyBold }}>
                     ›
                   </Text>
                 </LinearGradient>

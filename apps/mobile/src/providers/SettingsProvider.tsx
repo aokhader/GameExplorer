@@ -1,48 +1,48 @@
 import React from 'react';
 import { AccessibilityInfo } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// Subpath import, not the barrel: `@gameexplorer/client`'s index pulls in
+// `useSocket` → `@gameexplorer/db` → the Supabase client, which constructs
+// itself at import time and needs env that a settings provider has no business
+// requiring. Reaching straight for the hook keeps that whole tree out.
+import {
+  useSettingsStore,
+  type SettingsStorage,
+} from '@gameexplorer/client/hooks/useSettingsStore';
+import type { Settings, ThemeChoice } from '@gameexplorer/shared';
 import { setActiveTheme, type ThemeName } from '@gameexplorer/ui';
 
 /**
  * App-wide user preferences (device-local, persisted to AsyncStorage).
  *
- * The native mirror of the web `SettingsProvider` — same `Settings` shape and
- * `useSettings()` contract so screens read the exact same semantic vocabulary.
- * Differences from web:
- *   - persistence is AsyncStorage (async) instead of localStorage (sync), so we
- *     load in an effect and re-render, exactly like web's hydration pass;
- *   - OS reduced-motion comes from `AccessibilityInfo` instead of a matchMedia
- *     query.
- *
- * Sound + haptics default OFF (opt-in), matching web.
+ * The model, hydration and persistence live in `@gameexplorer/shared` and
+ * `@gameexplorer/client`, shared verbatim with web. What stays here is the part
+ * that genuinely differs: AsyncStorage, OS reduced-motion from
+ * `AccessibilityInfo` rather than a media query, and applying the theme by
+ * pushing it into the shared token runtime rather than setting a DOM attribute.
  */
 
-export interface Settings {
-  /** Play game sound effects (default off — opt-in). */
-  sound: boolean;
-  /** Vibrate on key events (default off — opt-in). */
-  haptics: boolean;
-  /** User override that forces reduced motion regardless of the OS setting. */
-  reduceMotion: boolean;
-  /** Show rank/file coordinate labels on boards. */
-  showCoordinates: boolean;
-  /** Flip the board between turns in pass-and-play (M4). Kept here so the store
-   *  shape is stable; unused until pass-and-play ships. */
-  flipBoardPassAndPlay: boolean;
-  /** Visual theme. Applied by pushing it into the shared token runtime. */
-  theme: ThemeName;
-}
+export type { Settings };
 
-const DEFAULTS: Settings = {
-  sound: false,
-  haptics: false,
-  reduceMotion: false,
-  showCoordinates: true,
-  flipBoardPassAndPlay: true,
-  theme: 'dark',
+/**
+ * The theme union is declared in two packages that cannot import each other —
+ * `packages/shared` has no dependencies, and `packages/ui` is where the runtime
+ * lives. This app imports both, so it is the right place to make the compiler
+ * check they agree; a member added to one and not the other fails here.
+ */
+type ThemeUnionsAgree = ThemeChoice extends ThemeName
+  ? ThemeName extends ThemeChoice
+    ? true
+    : never
+  : never;
+const _themeUnionsAgree: ThemeUnionsAgree = true;
+void _themeUnionsAgree;
+
+/** AsyncStorage is already promise-based, so it satisfies the interface as-is. */
+const nativeStorage: SettingsStorage = {
+  get: (key) => AsyncStorage.getItem(key),
+  set: (key, value) => AsyncStorage.setItem(key, value),
 };
-
-const STORAGE_KEY = 'gx:settings';
 
 interface SettingsContextValue {
   settings: Settings;
@@ -63,41 +63,13 @@ export function useSettings(): SettingsContextValue {
 }
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = React.useState<Settings>(DEFAULTS);
+  const { settings, setSetting, hydrated } = useSettingsStore({
+    storage: nativeStorage,
+    // The token runtime is what actually repaints the app; context state just
+    // keeps the picker in sync and persists the choice.
+    onTheme: setActiveTheme,
+  });
   const [osReduceMotion, setOsReduceMotion] = React.useState(false);
-  const [hydrated, setHydrated] = React.useState(false);
-
-  // Load persisted settings once on mount.
-  React.useEffect(() => {
-    let cancelled = false;
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
-        if (cancelled) return;
-        if (raw) {
-          try {
-            const stored = { ...DEFAULTS, ...JSON.parse(raw) } as Settings;
-            // A theme written by a newer build would leave every token resolving
-            // to undefined — fall back rather than render an unpainted app.
-            if (stored.theme !== 'cozy') stored.theme = 'dark';
-            // Push before the state update so the first painted frame is already
-            // in the right theme, with no flash of the default.
-            setActiveTheme(stored.theme);
-            setSettings(stored);
-          } catch {
-            /* corrupt storage — keep defaults */
-          }
-        }
-      })
-      .catch(() => {
-        /* unavailable storage — keep defaults */
-      })
-      .finally(() => {
-        if (!cancelled) setHydrated(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Track the OS reduced-motion accessibility preference.
   React.useEffect(() => {
@@ -113,21 +85,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       sub.remove();
     };
   }, []);
-
-  const setSetting = React.useCallback(
-    <K extends keyof Settings>(key: K, value: Settings[K]) => {
-      setSettings((prev) => {
-        const next = { ...prev, [key]: value };
-        // The token runtime is the thing that actually repaints the app; context
-        // state just keeps the picker in sync and persists the choice.
-        if (key === 'theme') setActiveTheme(next.theme);
-        // Fire-and-forget persist; UI state is the source of truth in-session.
-        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
-        return next;
-      });
-    },
-    [],
-  );
 
   const value = React.useMemo<SettingsContextValue>(
     () => ({

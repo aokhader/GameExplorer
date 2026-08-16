@@ -16,6 +16,8 @@ import { StatusBanner } from '@/game/StatusBanner';
 import { PuzzleBoard } from '@/puzzles/PuzzleBoard';
 import { PuzzleBar } from '@/puzzles/PuzzleBar';
 import { usePuzzleFeedback } from '@/puzzles/usePuzzleFeedback';
+import { Confetti } from '@/game/Confetti';
+import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
 
 const GAME_LABEL: Record<PuzzleGame, string> = {
@@ -95,6 +97,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
   });
 
   usePuzzleFeedback({ phase, attempts: run?.attempts ?? 0, puzzleId: puzzle?.id ?? null });
+  const { reducedMotion } = useSettings();
 
   // Only when there is nothing to show. A Next press keeps the old board up —
   // see `swapping`, which makes it inert instead of replacing it.
@@ -132,6 +135,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
   const accent = GAME_ACCENTS[game];
 
   return (
+    <>
     <GameScreenLayout
       accent={game}
       backHref="/"
@@ -287,6 +291,13 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
         />
       }
     />
+
+      {/* Solving is the whole point of the screen, so it gets the same burst a
+          won game does. Driven off `phase` rather than an event, matching
+          `GameResultScreen` — 'solved' persists until Next is pressed, which is
+          exactly how long the celebration should last. */}
+      <Confetti active={phase === 'solved'} reducedMotion={reducedMotion} />
+    </>
   );
 }
 
