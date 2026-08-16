@@ -48,6 +48,12 @@ interface ChessBoardProps {
    * screens is board orientation and inverts with the "Flip board" setting.
    */
   premoveColor?: 'white' | 'black';
+  /**
+   * Position-editing hook for the analysis board: when set, a tap reports the
+   * square and no move logic runs at all. Dragging is still disabled the usual
+   * way, via `interactive`.
+   */
+  onSquarePress?: (position: string) => void;
 }
 
 // The vector piece art fills ~89% of its viewBox; 0.9 seats it at play scale with
@@ -325,6 +331,7 @@ function ChessBoardInner({
   interactive = true,
   hintMove,
   premoveColor,
+  onSquarePress,
 }: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves] = useState<string[]>([]);
@@ -377,6 +384,8 @@ function ChessBoardInner({
   premoveModeRef.current = premoveMode;
   const premoveColorRef = useRef(premoveColor);
   premoveColorRef.current = premoveColor;
+  const onSquarePressRef = useRef(onSquarePress);
+  onSquarePressRef.current = onSquarePress;
   // Read at fire time, not closure time: the queued move is released a tick
   // after the opponent's move landed, by which point the parent has re-rendered.
   const onMoveRef = useRef(onMove);
@@ -547,6 +556,14 @@ function ChessBoardInner({
   const handleTap = (x: number, y: number) => {
     if (!interactiveRef.current || pendingRef.current) return;
     const s = stateRef.current;
+    // Position editing takes the tap before any rules apply: the analysis board
+    // places and erases pieces in positions that are not legal chess (and often
+    // are not even a playable game), so turn order and terminal flags must not
+    // gate it.
+    if (onSquarePressRef.current) {
+      onSquarePressRef.current(squareAt(x, y, flipRef.current, sizeRef.current));
+      return;
+    }
     if (s.isCheckmate || s.isStalemate || s.isDraw) return;
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
 

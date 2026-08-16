@@ -286,6 +286,11 @@ export default function SettingsPage() {
               description="Display rank and file labels (a–h, 1–8) along the board edge."
               settingKey="showCoordinates"
             />
+            <SettingRow
+              title="Flip board in pass & play"
+              description="Turn the board around between turns so the player to move is always at the bottom."
+              settingKey="flipBoardPassAndPlay"
+            />
           </div>
         </Card>
 

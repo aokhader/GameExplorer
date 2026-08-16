@@ -39,6 +39,7 @@ function makeAdapter(overrides: Partial<AnalysisAdapter<FakeState>> = {}): Analy
       }),
     ),
     lastMove: (s) => s.played,
+    currentTurn: (s) => s.turn,
     formatScore: ({ score }) => String(score),
     whiteShare: () => 0.5,
     thresholds: { inaccuracy: 50, mistake: 100, blunder: 200 },
@@ -58,7 +59,6 @@ function renderAnalysis(
       adapter,
       timeline,
       viewIndex: opts.viewIndex ?? 0,
-      currentTurn: (s) => s.turn,
       enabled: opts.enabled ?? true,
     }),
   );

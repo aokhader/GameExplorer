@@ -23,6 +23,8 @@ import { GameBar } from '@/game/GameBar';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { eloLabel } from '@/game/eloLabel';
 import { useSetupDeepLink } from '@/game/useSetupDeepLink';
+import { ReversiOnline } from '@/multiplayer/ReversiOnline';
+import { OnlineSetupCard } from '@/multiplayer/OnlineSetupCard';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
 import { reversiAnalysis } from '@/analysis/adapters';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
@@ -75,13 +77,15 @@ export function ReversiScreen() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
 
-  const [mode, setMode] = useState<SetupMode>('bot');
-  // ?elo=&start=1 from the welcome tour. Read once, as lazy initial state.
+  // ?elo=&start=1 from the welcome tour, ?online=1&invite= from an invite link.
+  // Read once, as lazy initial state.
   const deepLink = useSetupDeepLink(DIFFICULTY_LEVELS.map((l) => l.elo));
+  const [mode, setMode] = useState<SetupMode>(deepLink.online ? 'online' : 'bot');
   const [targetElo, setTargetElo] = useState(deepLink.elo ?? 1100);
   const [playerColor, setPlayerColor] = useState<ReversiColor>('black');
   const [rated, setRated] = useState(true);
-  const [started, setStarted] = useState(deepLink.autoStart);
+  // An invite link skips setup entirely — the game it points at already exists.
+  const [started, setStarted] = useState(deepLink.autoStart || deepLink.online);
   // Post-game review. Only reachable once the game is over — see the GameBar
   // handler below.
   const [reviewing, setReviewing] = useState(false);
@@ -92,8 +96,11 @@ export function ReversiScreen() {
   // Puzzles configure nothing and start no game — the whole setup below collapses
   // to one card and the Start button becomes a link.
   const isPuzzles = mode === 'puzzles';
-  // The plain-bot knobs: training picks strength and rating for you, and neither
-  // pass-and-play nor puzzles has either.
+  // Online is configured on its own screen (time control, rated, invite), so the
+  // setup below collapses to one explanatory card, like puzzles.
+  const isOnlineMode = mode === 'online';
+  // The plain-bot knobs: training picks strength and rating for you, and none of
+  // pass-and-play, puzzles or online has either.
   const isBotSetup = mode === 'bot';
   // Colour is picked in both bot modes.
   const picksColor = mode === 'bot' || mode === 'training';
@@ -104,10 +111,12 @@ export function ReversiScreen() {
     ? !!userId && online
     : rated && !!userId && !isPassAndPlay && online;
 
-  // Puzzles leave through the router rather than through `started`, so this hook
-  // only ever sees a real game mode; 'bot' is the inert stand-in while the
-  // picker is sitting on Puzzles.
-  const gameMode: LocalGameMode = isPuzzles ? 'bot' : mode;
+  // Neither puzzles nor online is a `LocalGameMode` — puzzles leave through the
+  // router, and online is driven by the server session. 'bot' is the inert
+  // stand-in while the picker sits on either, and `started` is withheld below so
+  // this hook never actually runs a game underneath one of them.
+  const isLocalMode = !isPuzzles && !isOnlineMode;
+  const gameMode: LocalGameMode = isLocalMode ? mode : 'bot';
 
   const game = useLocalGame<ReversiGameState>({
     adapter: reversiAdapter,
@@ -117,12 +126,16 @@ export function ReversiScreen() {
     rated: ratedEffective,
     userId,
     eloBounds: TRAINING_ELO_BOUNDS,
-    started,
+    started: started && isLocalMode,
   });
 
   // Training matches the bot to the player; every other mode uses the picked tier.
   const botElo = game.botElo;
-  const canStart = isTraining ? ratedEffective && !game.ratingLoading : true;
+  const canStart = isTraining
+    ? ratedEffective && !game.ratingLoading
+    : isOnlineMode
+      ? !!userId && online
+      : true;
 
   const handleNewGame = () => {
     game.newGame();
@@ -141,9 +154,16 @@ export function ReversiScreen() {
     adapter: reversiAnalysis,
     timeline: game.timeline,
     viewIndex: game.viewIndex,
-    currentTurn: (s) => s.currentTurn,
     enabled: reviewing,
   });
+
+  // ── Online ──────────────────────────────────────────────────────────────────
+  // Mounted only once online play has started, so a bot game never opens a
+  // websocket it has no use for. Sits after every hook above it, so the hook
+  // order is the same on every render.
+  if (started && isOnlineMode) {
+    return <ReversiOnline inviteId={deepLink.inviteId} onExit={() => setStarted(false)} />;
+  }
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
@@ -160,6 +180,8 @@ export function ReversiScreen() {
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.reversi.base} tint={GAME_ACCENTS.reversi.tintBg} />
 
         {isPuzzles && <PuzzlesCard game="reversi" />}
+
+        {isOnlineMode && <OnlineSetupCard signedIn={!!userId} connected={online} />}
 
         {isTraining && (
           <TrainingSetup
@@ -311,7 +333,15 @@ export function ReversiScreen() {
         )}
 
         <Button
-          label={isPuzzles ? 'Start Puzzles' : isTraining ? 'Start Rated Game' : 'Start Game'}
+          label={
+            isPuzzles
+              ? 'Start Puzzles'
+              : isOnlineMode
+                ? 'Find an Opponent'
+                : isTraining
+                  ? 'Start Rated Game'
+                  : 'Start Game'
+          }
           onPress={
             isPuzzles ? () => router.push('/puzzles/reversi' as never) : () => setStarted(true)
           }

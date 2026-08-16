@@ -58,6 +58,15 @@ export default function CheckersLandingPage() {
       available: true,
     },
     {
+      id: 'local',
+      title: 'Local 2-Player',
+      description: 'Play with a friend on the same device',
+      icon: '👥',
+      href: '/checkers/local',
+      gradient: 'from-warning to-danger',
+      available: true,
+    },
+    {
       id: 'learn',
       title: 'How to Play',
       description: 'New to checkers? Learn the rules and pick up beginner tips in two minutes',

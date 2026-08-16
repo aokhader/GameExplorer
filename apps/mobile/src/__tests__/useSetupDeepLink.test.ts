@@ -24,7 +24,12 @@ afterEach(() => {
 
 describe('useSetupDeepLink', () => {
   it('returns nothing when the screen was opened directly', () => {
-    expect(probe(CHESS_TIERS)).toEqual({ elo: null, autoStart: false });
+    expect(probe(CHESS_TIERS)).toEqual({
+      elo: null,
+      autoStart: false,
+      online: false,
+      inviteId: null,
+    });
   });
 
   it('snaps a requested strength to the nearest tier', () => {
@@ -43,6 +48,26 @@ describe('useSetupDeepLink', () => {
     for (const elo of ['', 'abc', '0', '-500']) {
       mockParams = { elo };
       expect(probe(CHESS_TIERS).elo).toBeNull();
+    }
+  });
+
+  /**
+   * An invite link carries no `online` flag of its own — `+native-intent` adds
+   * one, but a link typed by hand or an older build's link would not. There is
+   * nothing else an invite id could mean, so it implies the mode.
+   */
+  it('treats an invite id as a request for online play', () => {
+    mockParams = { invite: 'abc123' };
+    expect(probe(CHESS_TIERS)).toMatchObject({ online: true, inviteId: 'abc123' });
+
+    mockParams = { online: '1' };
+    expect(probe(CHESS_TIERS)).toMatchObject({ online: true, inviteId: null });
+  });
+
+  it('ignores a blank invite rather than trying to redeem it', () => {
+    for (const invite of ['', '   ']) {
+      mockParams = { invite };
+      expect(probe(CHESS_TIERS)).toMatchObject({ online: false, inviteId: null });
     }
   });
 

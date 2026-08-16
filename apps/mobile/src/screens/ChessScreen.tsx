@@ -27,6 +27,8 @@ import { eloLabel } from '@/game/eloLabel';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
 import { chessAnalysis } from '@/analysis/adapters';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
+import { ChessOnline } from '@/multiplayer/ChessOnline';
+import { OnlineSetupCard } from '@/multiplayer/OnlineSetupCard';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { chessAdapter } from '@/engine/chessAdapter';
 import { useEngineNative } from '@/engine/useEngineNative';
@@ -87,14 +89,15 @@ export function ChessScreen() {
   // ?elo=&start=1 from the welcome tour. Read once, as lazy initial state.
   const deepLink = useSetupDeepLink(DIFFICULTY_LEVELS.map((l) => l.elo));
 
-  const [mode, setMode] = useState<SetupMode>('bot');
+  const [mode, setMode] = useState<SetupMode>(deepLink.online ? 'online' : 'bot');
   const [selectedElo, setSelectedElo] = useState(deepLink.elo ?? 1200);
   // Custom tier — the exact-rating picker replaces the preset tiles. Its starting
   // value is whatever preset was highlighted, so the slider opens where you were.
   const [isCustomTier, setIsCustomTier] = useState(false);
   const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [rated, setRated] = useState(true);
-  const [started, setStarted] = useState(deepLink.autoStart);
+  // An invite link skips setup entirely — the game it points at already exists.
+  const [started, setStarted] = useState(deepLink.autoStart || deepLink.online);
   // Manual board flip from the game menu — inverts whatever orientation the mode
   // would otherwise pick (see boardColor below).
   const [flipped, setFlipped] = useState(false);
@@ -108,8 +111,11 @@ export function ChessScreen() {
   // Puzzles configure nothing and start no game — the whole setup below collapses
   // to one card and the Start button becomes a link.
   const isPuzzles = mode === 'puzzles';
-  // The plain-bot knobs: training picks strength and rating for you, and neither
-  // pass-and-play nor puzzles has either.
+  // Online is configured on its own screen (time control, rated, invite), so the
+  // setup below collapses to one explanatory card, like puzzles.
+  const isOnlineMode = mode === 'online';
+  // The plain-bot knobs: training picks strength and rating for you, and none of
+  // pass-and-play, puzzles or online has either.
   const isBotSetup = mode === 'bot';
   // Colour is picked in both bot modes.
   const picksColor = mode === 'bot' || mode === 'training';
@@ -120,8 +126,9 @@ export function ChessScreen() {
     ? !!userId && online
     : rated && !!userId && !isPassAndPlay && online;
 
-  // Training plays a bot too, so it warms the same engine.
-  const isBotMode = !isPassAndPlay && !isPuzzles;
+  // Training plays a bot too, so it warms the same engine. Online never does —
+  // the opponent is a person and the engine would be a 60MB no-op.
+  const isBotMode = !isPassAndPlay && !isPuzzles && !isOnlineMode;
   // Warm the engine once any bot game starts (the NNUE load is heavy); it then
   // stays up for the app session. Every tier now plays through Arasan. Review
   // needs it too — including after a pass-and-play game, which never used it.
@@ -141,10 +148,12 @@ export function ChessScreen() {
   // never outrun what this binary's engine can actually play.
   const targetElo = Math.max(CUSTOM_ELO_MIN, Math.min(maxElo, selectedElo));
 
-  // Puzzles leave through the router rather than through `started`, so this hook
-  // only ever sees a real game mode; 'bot' is the inert stand-in while the
-  // picker is sitting on Puzzles.
-  const gameMode: LocalGameMode = isPuzzles ? 'bot' : mode;
+  // Neither puzzles nor online is a `LocalGameMode` — puzzles leave through the
+  // router, and online is driven by the server session. 'bot' is the inert
+  // stand-in while the picker sits on either, and `started` is withheld so this
+  // hook never actually runs a game underneath one of them.
+  const isLocalMode = !isPuzzles && !isOnlineMode;
+  const gameMode: LocalGameMode = isLocalMode ? mode : 'bot';
 
   const game = useLocalGame<ChessGameState>({
     adapter: chessAdapter,
@@ -156,13 +165,17 @@ export function ChessScreen() {
     // Training matches the bot to the player's rating; clamp it to what this
     // binary's engine can actually play (same ceiling the preset tiles use).
     eloBounds: { min: CUSTOM_ELO_MIN, max: maxElo },
-    started,
+    started: started && isLocalMode,
     botReady: !engineActive || engine.isReady,
   });
 
   // The tier picked on setup, or — in training — the player's own rating.
   const botElo = game.botElo;
-  const canStart = isTraining ? ratedEffective && !game.ratingLoading : true;
+  const canStart = isTraining
+    ? ratedEffective && !game.ratingLoading
+    : isOnlineMode
+      ? !!userId && online
+      : true;
 
   const handleNewGame = () => {
     game.newGame();
@@ -180,11 +193,18 @@ export function ChessScreen() {
     adapter: chessAnalysis,
     timeline: game.timeline,
     viewIndex: game.viewIndex,
-    currentTurn: (s) => s.currentTurn,
     // The engine handshake has to finish before any search is sent, or every
     // position would fail with "Engine not ready".
     enabled: reviewing && engine.isReady,
   });
+
+  // ── Online ──────────────────────────────────────────────────────────────────
+  // Mounted only once online play has started, so a bot game never opens a
+  // websocket it has no use for. Sits after every hook above it, so the hook
+  // order is the same on every render.
+  if (started && isOnlineMode) {
+    return <ChessOnline inviteId={deepLink.inviteId} onExit={() => setStarted(false)} />;
+  }
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
@@ -198,9 +218,24 @@ export function ChessScreen() {
 
         <LearnLink game="chess" label="New to chess? How to play →" />
 
+        {/* Chess only, like web: the analysis board is a position editor with an
+            engine behind it, and the other two games have no engine to ask. */}
+        <Pressable
+          onPress={() => router.push('/analysis' as never)}
+          accessibilityRole="link"
+          accessibilityLabel="Open the analysis board"
+          style={{ paddingVertical: 6 }}
+        >
+          <Text style={{ color: GAME_ACCENTS.chess.base, fontFamily: FONTS.bodySemi, fontSize: 14 }}>
+            Analysis board — set up any position →
+          </Text>
+        </Pressable>
+
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.chess.base} tint={GAME_ACCENTS.chess.tintBg} />
 
         {isPuzzles && <PuzzlesCard game="chess" />}
+
+        {isOnlineMode && <OnlineSetupCard signedIn={!!userId} connected={online} />}
 
         {isTraining && (
           <TrainingSetup
@@ -383,7 +418,15 @@ export function ChessScreen() {
         {isPassAndPlay && <FlipBoardCard />}
 
         <Button
-          label={isPuzzles ? 'Start Puzzles' : isTraining ? 'Start Rated Game' : 'Start Game'}
+          label={
+            isPuzzles
+              ? 'Start Puzzles'
+              : isOnlineMode
+                ? 'Find an Opponent'
+                : isTraining
+                  ? 'Start Rated Game'
+                  : 'Start Game'
+          }
           onPress={
             isPuzzles ? () => router.push('/puzzles/chess' as never) : () => setStarted(true)
           }

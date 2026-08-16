@@ -22,6 +22,11 @@ export interface PlayerCardProps {
   /** Pulsing "to move" dot on the right. */
   active?: boolean;
   /**
+   * Trailing content on the name row, left of the "to move" dot — multiplayer
+   * puts the player's clock here, matching web's `PlayerCard` right slot.
+   */
+  right?: ReactNode;
+  /**
    * Optional second row inside the card, under the name — chess uses it for the
    * capture tray. Renders nothing (and adds no spacing) when omitted, so the
    * other games keep the original one-line card.
@@ -41,6 +46,7 @@ export function PlayerCard({
   subline,
   isYou = false,
   active = false,
+  right,
   footer,
 }: PlayerCardProps) {
   const { reducedMotion } = useSettings();
@@ -109,14 +115,17 @@ export function PlayerCard({
             )}
           </View>
         </View>
-        {active && (
-          <Animated.View
-            style={[
-              { width: 10, height: 10, borderRadius: 5, backgroundColor: dotColor },
-              dotStyle,
-            ]}
-          />
-        )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {right}
+          {active && (
+            <Animated.View
+              style={[
+                { width: 10, height: 10, borderRadius: 5, backgroundColor: dotColor },
+                dotStyle,
+              ]}
+            />
+          )}
+        </View>
       </View>
       {footer}
     </View>

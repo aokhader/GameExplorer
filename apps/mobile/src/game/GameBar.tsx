@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useState } from 'react';
+import { View } from 'react-native';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Sheet } from '@/components/ui/Sheet';
 import { useGameSfx } from '@/audio/useGameSfx.native';
-import { FONTS } from '@/theme/typography';
+import { BarButton, useTwoTapConfirm } from '@/game/BarButton';
+import { MenuRow } from '@/game/MenuRow';
 import type { GameAccent } from '@/game/GameScreenLayout';
 
 export interface GameBarProps {
@@ -47,9 +48,6 @@ export interface GameBarProps {
    */
   onAnalysis?: () => void;
 }
-
-/** Seconds the flag stays armed after the first tap. */
-const CONFIRM_MS = 3000;
 
 /**
  * The in-game control bar, pinned under the board for the whole game.
@@ -99,35 +97,8 @@ export function GameBar({
     onSeek(next);
   };
 
-  // ── Resign, two-tap ─────────────────────────────────────────────────────────
-  const [confirming, setConfirming] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Source of truth read synchronously: `confirming` state alone races on a fast
-  // double-tap, since both handlers close over confirming=false. Same reasoning
-  // as GameActions.
-  const confirmingRef = useRef(false);
-
-  const stopTimer = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = null;
-  };
-  useEffect(() => () => stopTimer(), []);
-
-  const handleResign = () => {
-    if (confirmingRef.current) {
-      stopTimer();
-      confirmingRef.current = false;
-      setConfirming(false);
-      onResign();
-      return;
-    }
-    confirmingRef.current = true;
-    setConfirming(true);
-    timeoutRef.current = setTimeout(() => {
-      confirmingRef.current = false;
-      setConfirming(false);
-    }, CONFIRM_MS);
-  };
+  // Resign asks for a second tap first, so a stray touch can't throw a game.
+  const { armed: confirming, press: handleResign } = useTwoTapConfirm(onResign);
 
   return (
     <>
@@ -196,85 +167,6 @@ export function GameBar({
   );
 }
 
-function BarButton({
-  glyph,
-  label,
-  hint,
-  badge,
-  onPress,
-  disabled = false,
-  danger = false,
-}: {
-  glyph: string;
-  label: string;
-  hint?: string;
-  /** Small counter in the corner (hints taken). */
-  badge?: string;
-  onPress: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-}) {
-  // Repaint when the theme changes; the tokens below are live views.
-  useThemeName();
-
-  // `style` stays a plain object and the pressed state is read from the children
-  // function, matching `Button`/`GameActions`. A function-form `style` is
-  // silently dropped on this app's Pressable (NativeWind wraps it), which shows
-  // up as buttons with no background and no width.
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={hint}
-      accessibilityState={{ disabled }}
-      style={{ flex: 1 }}
-    >
-      {({ pressed }) => (
-        <View
-          style={{
-            flex: 1,
-            minHeight: 46,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: danger ? COLORS.danger : COLORS.border,
-            backgroundColor: danger
-              ? COLORS.dangerMuted
-              : pressed
-                ? COLORS.surfaceHover
-                : COLORS.surfaceMuted,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: disabled ? 0.35 : 1,
-          }}
-        >
-          <Text style={{ color: danger ? COLORS.dangerHover : COLORS.fg, fontSize: 16 }}>
-            {glyph}
-          </Text>
-          {badge && (
-            <Text
-              // The count is already in the button's accessibility label; a
-              // bare number here would just repeat it out of context.
-              importantForAccessibility="no"
-              style={{
-                position: 'absolute',
-                top: 4,
-                right: 6,
-                color: COLORS.warningHover,
-                fontSize: 10,
-                fontWeight: '800',
-              }}
-            >
-              {badge}
-            </Text>
-          )}
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
 /**
  * The bar's overflow menu — a bottom sheet over a dim backdrop, matching
  * `GameResultScreen`'s Modal treatment. Actions close the sheet before firing so
@@ -330,74 +222,5 @@ function GameMenu({
       )}
       <MenuRow glyph="♟️" label="New game" onPress={run(onNewGame)} accent={accentColor} />
     </Sheet>
-  );
-}
-
-function MenuRow({
-  glyph,
-  label,
-  onPress,
-  soon = false,
-  disabled = false,
-  accent,
-}: {
-  glyph: string;
-  label: string;
-  onPress?: () => void;
-  /** Placeholder entry — rendered, disabled, and badged so it reads as unbuilt. */
-  soon?: boolean;
-  /** Built, but unavailable right now (e.g. the game is already over). */
-  disabled?: boolean;
-  accent: string;
-}) {
-  // Repaint when the theme changes; the tokens below are live views.
-  useThemeName();
-
-  const inactive = soon || disabled;
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={inactive}
-      accessibilityRole="button"
-      accessibilityLabel={soon ? `${label} (coming soon)` : label}
-      accessibilityState={{ disabled: inactive }}
-    >
-      {({ pressed }) => (
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 14,
-            minHeight: 52,
-            paddingHorizontal: 12,
-            borderRadius: 12,
-            backgroundColor: pressed && !inactive ? COLORS.surfaceHover : 'transparent',
-            opacity: inactive ? 0.45 : 1,
-          }}
-        >
-          <Text style={{ fontSize: 20 }}>{glyph}</Text>
-          <Text style={{ flex: 1, color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 16 }}>
-            {label}
-          </Text>
-          {soon && (
-            <Text
-              style={{
-                color: accent,
-                fontSize: 11,
-                fontWeight: '800',
-                letterSpacing: 0.5,
-                borderWidth: 1,
-                borderColor: accent,
-                borderRadius: 999,
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-              }}
-            >
-              SOON
-            </Text>
-          )}
-        </View>
-      )}
-    </Pressable>
   );
 }

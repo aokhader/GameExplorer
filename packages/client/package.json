@@ -12,7 +12,8 @@
     "./hooks/useBoardMotion": "./src/hooks/useBoardMotion.ts",
     "./hooks/usePuzzle": "./src/hooks/usePuzzle.ts",
     "./stores/authStore": "./src/stores/authStore.ts",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./hooks/useGameAnalysis": "./src/hooks/useGameAnalysis.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

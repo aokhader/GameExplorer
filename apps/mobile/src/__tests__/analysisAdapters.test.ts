@@ -1,5 +1,10 @@
 import { ChessEngine, CheckersEngine, ReversiEngine } from '@gameexplorer/shared';
-import { chessAnalysis, checkersAnalysis, reversiAnalysis } from '@/analysis/adapters';
+import {
+  chessAnalysis,
+  chessPositionAnalysis,
+  checkersAnalysis,
+  reversiAnalysis,
+} from '@/analysis/adapters';
 
 const mockEvaluation = jest.fn();
 const mockAvailable = jest.fn(() => true);
@@ -214,5 +219,41 @@ describe('analysis adapters — board-game scoring', () => {
     expect(checkersAnalysis.formatScore({ ...base, score: 100_000 })).toBe('White wins');
     expect(reversiAnalysis.formatScore({ ...base, score: -100_000 })).toBe('Black wins');
     expect(reversiAnalysis.formatScore({ ...base, score: 0 })).toBe('Draw');
+  });
+});
+
+describe('chessPositionAnalysis — an edited position must be sent as a FEN', () => {
+  /**
+   * Regression guard for a bug that was invisible on screen: the analysis board
+   * builds positions that do not descend from the opening, so the ordinary
+   * "position startpos moves …" command degenerates to "position startpos" and
+   * the engine scores the INITIAL position instead of the board in front of you.
+   * On device that showed up as every edited position returning +0.45 — the
+   * opening's evaluation — which reads exactly like a real answer.
+   */
+  it('passes the position FEN, and clears the history so it is not replayed', async () => {
+    mockEvaluation.mockResolvedValue({ cp: 900, mate: null, depth: 20, bestMove: null });
+    // A played-out state: it HAS a move history, which must not be sent on top
+    // of a FEN that already accounts for those moves.
+    const played = ChessEngine.validateMove(ChessEngine.newGame(), 'e2', 'e4').resultingState!;
+
+    await chessPositionAnalysis.evaluate(played, 300);
+
+    const [stateArg, , fenArg] = mockEvaluation.mock.calls[0];
+    expect(typeof fenArg).toBe('string');
+    expect(fenArg).toContain('/');
+    expect((stateArg as { moveHistory: unknown[] }).moveHistory).toHaveLength(0);
+  });
+
+  it('still scores a finished position from the rules, never the engine', async () => {
+    mockEvaluation.mockRejectedValue(new Error('engine must not be asked'));
+    // Fool's mate.
+    let state = ChessEngine.newGame();
+    for (const [from, to] of [['f2', 'f3'], ['e7', 'e5'], ['g2', 'g4'], ['d8', 'h4']] as const) {
+      state = ChessEngine.validateMove(state, from, to).resultingState!;
+    }
+    const result = await chessPositionAnalysis.evaluate(state, 300);
+    expect(result.terminal).toBe(true);
+    expect(result.mate).toBe(0);
   });
 });

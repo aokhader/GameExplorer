@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import Link from 'next/link';
-import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome } from '@gameexplorer/shared';
+import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToOthello } from '@gameexplorer/shared';
+import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +23,13 @@ import { Button } from '@/components/ui';
 // chunk (smaller first-load JS / faster first navigation to this page).
 const GameResultScreen = dynamic(
   () => import('@/components/game/GameResultScreen').then(m => m.GameResultScreen),
+  { ssr: false },
+);
+
+// Review is opened by hand after a game ends, so its markup has no business
+// in the initial route chunk either.
+const ReviewPanel = dynamic(
+  () => import('@/components/game/ReviewPanel').then(m => m.ReviewPanel),
   { ssr: false },
 );
 
@@ -56,7 +64,26 @@ interface RatingResult {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ReversiBotPage() {
+/** "black" -> "Black", for the pass-and-play player cards. */
+function capitalize(color: string): string {
+  return color.charAt(0).toUpperCase() + color.slice(1);
+}
+
+export interface ReversiGameScreenProps {
+  /**
+   * `bot` plays the engine; `local` is two people sharing one screen.
+   *
+   * Reversi never flips the board between turns, unlike chess and checkers:
+   * `playerColor` is what gates which discs may be placed, so in pass-and-play
+   * it follows the mover instead. Turning the board as well would move every
+   * legal-move dot under the next player mid-thought for no benefit — the
+   * position reads the same from both sides.
+   */
+  mode: 'bot' | 'local';
+}
+
+export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
+  const isLocal = mode === 'local';
   const [timeline, setTimeline]       = useState<ReversiGameState[]>(() => [ReversiEngine.newGame()]);
   const [viewIndex, setViewIndex]     = useState(0);
   const [targetElo, setTargetElo]     = useState(1100);
@@ -92,6 +119,21 @@ export default function ReversiBotPage() {
 
   const liveState    = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
+
+  // Post-game review. Gated on the game being over: mid-game it would be an
+  // unlimited free hint, which is exactly what training charges rating for.
+  // Reversi's adapter is the shared one — no per-platform engine involved.
+  const [reviewing, setReviewing] = useState(false);
+  const analysis = useGameAnalysis({
+    adapter: reversiAnalysis,
+    timeline,
+    viewIndex,
+    enabled: reviewing,
+  });
+  const othelloMoves = useMemo(
+    () => (reviewing ? moveHistoryToOthello(timeline[timeline.length - 1].moveHistory) : []),
+    [reviewing, timeline],
+  );
   const isAtLive     = viewIndex === timeline.length - 1;
 
   const lastMove = liveState.moveHistory[liveState.moveHistory.length - 1];
@@ -159,13 +201,13 @@ export default function ReversiBotPage() {
   useEffect(() => {
     if (!gameStarted || liveState.isGameOver || isThinking || manualEnd) return;
 
-    const isBotTurn    = liveState.currentTurn !== playerColor;
+    const isBotTurn    = !isLocal && liveState.currentTurn !== playerColor;
     const currentMoves = ReversiEngine.getAllLegalMoves(liveState);
     const mustPass     = currentMoves.length === 0;
 
     if (mustPass) {
-      const who = isBotTurn ? 'Bot' : 'You';
-      setPassMsg(`${who} ${isBotTurn ? 'has' : 'have'} no legal moves — passing`);
+      const who = isLocal ? capitalize(liveState.currentTurn) : isBotTurn ? 'Bot' : 'You';
+      setPassMsg(`${who} ${isLocal || isBotTurn ? 'has' : 'have'} no legal moves — passing`);
       const t = setTimeout(() => {
         setPassMsg(null);
         appendState(ReversiEngine.executePass(liveState));
@@ -179,6 +221,8 @@ export default function ReversiBotPage() {
 
   // Save game and update rating on completion
   useEffect(() => {
+    // Pass-and-play is casual by definition — no rating and no saved row.
+    if (isLocal) return;
     if (!gameStarted || gameSaved) return;
     if (!liveState.isGameOver && !manualEnd) return;
     setGameSaved(true);
@@ -219,7 +263,8 @@ export default function ReversiBotPage() {
 
   const handleMove = (position: string) => {
     if (!isAtLive || isThinking || liveState.isGameOver || manualEnd) return;
-    if (liveState.currentTurn !== playerColor) return;
+    // Pass-and-play: both colours are human, so the side to move may always move.
+    if (!isLocal && liveState.currentTurn !== playerColor) return;
     const result = ReversiEngine.validateMove(liveState, position);
     if (result.valid && result.resultingState) {
       appendState(result.resultingState);
@@ -270,10 +315,10 @@ export default function ReversiBotPage() {
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-fg mb-8 text-center">Play vs Bot</h1>
+          <h1 className="text-4xl font-bold text-fg mb-8 text-center">{isLocal ? 'Pass & Play' : 'Play vs Bot'}</h1>
 
-          {/* Difficulty selector */}
-          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+          {/* Difficulty selector — no bot in pass-and-play, so nothing to calibrate. */}
+          <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
             <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {DIFFICULTY_LEVELS.map((level) => {
@@ -306,8 +351,9 @@ export default function ReversiBotPage() {
             </div>
           </div>
 
-          {/* Color selector */}
-          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+          {/* Color selector — nothing to choose in pass-and-play: the board never
+              flips (see the note on the mode prop) and black always starts. */}
+          <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
             <h2 className="text-2xl font-semibold text-fg mb-6">Choose Your Colour</h2>
             <div className="grid grid-cols-2 gap-4">
               {(['black', 'white'] as const).map(color => (
@@ -329,14 +375,17 @@ export default function ReversiBotPage() {
                   </div>
                   <div className="font-semibold capitalize">{color}</div>
                   <div className={`text-sm ${playerColor === color ? 'text-on-accent/80' : 'text-fg-muted'}`}>
-                    {color === 'black' ? 'You move first' : 'Bot moves first'}
+                    {isLocal ? (color === 'black' ? 'Moves first' : 'Moves second') : color === 'black' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
               ))}
             </div>
           </div>
 
-          <RatedToggle checked={rated} onChange={setRated} gameLabel="reversi" userId={userId} />
+          {/* Pass-and-play is casual by definition — nothing to rate. */}
+          {!isLocal && (
+            <RatedToggle checked={rated} onChange={setRated} gameLabel="reversi" userId={userId} />
+          )}
 
           <button
             onClick={handleStartGame}
@@ -352,10 +401,12 @@ export default function ReversiBotPage() {
   // ── Game screen ───────────────────────────────────────────────────────────────
 
   const gameOverMsg = manualEnd === 'resign'
-    ? 'You resigned'
+    ? (isLocal ? `${capitalize(liveState.currentTurn)} resigned` : 'You resigned')
     : liveState.isGameOver
     ? liveState.winner === null
       ? `Draw! ${counts.black}–${counts.white}`
+      : isLocal
+        ? `${capitalize(liveState.winner)} wins ${counts[liveState.winner]}–${counts[liveState.winner === 'black' ? 'white' : 'black']}`
       : liveState.winner === playerColor
         ? `You win! ${counts[playerColor]}–${counts[playerColor === 'black' ? 'white' : 'black']} 🎉`
         : `Bot wins. ${counts[playerColor === 'black' ? 'white' : 'black']}–${counts[playerColor]}`
@@ -363,11 +414,30 @@ export default function ReversiBotPage() {
 
   // Player-relative result for the celebration screen.
   const myResult: GameResult = manualEnd === 'resign'
-    ? 'loss'
-    : liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
+    ? (isLocal ? 'win' : 'loss')
+    : liveState.winner === null ? 'draw'
+    : isLocal ? 'win'
+    : liveState.winner === playerColor ? 'win' : 'loss';
+
+  /**
+   * Winner-named headline for pass-and-play. A resignation is by the side to
+   * move, so the winner is the other one; a natural end already names a winner.
+   */
+  const localResultTitle = !isLocal || myResult === 'draw'
+    ? undefined
+    : manualEnd === 'resign'
+      ? `${capitalize(liveState.currentTurn === 'black' ? 'white' : 'black')} wins`
+      : liveState.winner
+        ? `${capitalize(liveState.winner)} wins`
+        : undefined;
 
   const botLabel = DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label ?? String(targetElo);
   const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
+  // Reversi does not flip; the cards simply name the two seats, black at the
+  // bottom because black moves first.
+  const bottomColor = isLocal ? 'black' : playerColor;
+  const topColor = bottomColor === 'black' ? 'white' : 'black';
+  const boardColor = isLocal ? liveState.currentTurn : playerColor;
 
   return (
     <>
@@ -396,10 +466,14 @@ export default function ReversiBotPage() {
         }
         topCard={
           <PlayerCard
-            name="Bot"
-            initial="B"
-            active={isThinking}
-            subline={isThinking ? `${botLabel} · thinking…` : botLabel}
+            name={isLocal ? capitalize(topColor) : 'Bot'}
+            initial={isLocal ? capitalize(topColor)[0] : 'B'}
+            active={isLocal ? liveState.currentTurn === topColor && !gameOverMsg : isThinking}
+            subline={
+              isLocal
+                ? (liveState.currentTurn === topColor && !gameOverMsg ? 'to move' : `Playing ${topColor}`)
+                : isThinking ? `${botLabel} · thinking…` : botLabel
+            }
           />
         }
         // Live disc-count bar above the board, per the design.
@@ -408,18 +482,24 @@ export default function ReversiBotPage() {
           <ReversiBoard
             gameState={displayState}
             onMove={handleMove}
-            playerColor={playerColor}
+            // The board shows legal placements for this colour and accepts its
+            // taps. In pass-and-play that has to be whoever is on move.
+            playerColor={boardColor}
             showCoordinates
             highlightPos={isAtLive ? lastPlacedPos : null}
           />
         }
         bottomCard={
           <PlayerCard
-            name="You"
-            initial="Y"
-            isYou
-            active={yourTurn}
-            subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
+            name={isLocal ? capitalize(bottomColor) : 'You'}
+            initial={isLocal ? capitalize(bottomColor)[0] : 'Y'}
+            isYou={!isLocal}
+            active={isLocal ? liveState.currentTurn === bottomColor && !gameOverMsg : yourTurn}
+            subline={
+              isLocal
+                ? (liveState.currentTurn === bottomColor && !gameOverMsg ? 'to move' : `Playing ${bottomColor}`)
+                : `Playing ${playerColor}${yourTurn ? ' · your move' : ''}`
+            }
           />
         }
         sidebar={
@@ -431,7 +511,7 @@ export default function ReversiBotPage() {
               {/* Info card */}
               <div className="shrink-0 bg-white/[0.04] rounded-xl border border-white/10 p-4">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                  <div className="flex gap-1.5">
+                  <div className={`flex gap-1.5 ${isLocal ? 'hidden' : ''}`}>
                     <span className="text-fg-muted">Bot:</span>
                     <span className="font-semibold text-fg">
                       {DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label}
@@ -524,8 +604,11 @@ export default function ReversiBotPage() {
           shows here); the rating block simply stays absent until the rated
           update resolves for signed-in players. */}
       <GameResultScreen
-        open={!!gameOverMsg}
+        // Hidden while review is open: the result screen sits above it and its
+        // backdrop would swallow every click meant for the panel.
+        open={!!gameOverMsg && !reviewing}
         result={myResult}
+        title={localResultTitle}
         subtitle={gameOverMsg ?? undefined}
         rating={
           ratingResult
@@ -537,6 +620,9 @@ export default function ReversiBotPage() {
             <Button size="lg" fullWidth onClick={handleNewGame}>
               Play Again
             </Button>
+            <Button size="lg" fullWidth variant="secondary" onClick={() => setReviewing(true)}>
+              Review Game
+            </Button>
             <Link
               href="/reversi"
               className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
@@ -546,6 +632,39 @@ export default function ReversiBotPage() {
           </>
         }
       />
+
+      {reviewing && (
+        <ReviewPanel
+          adapter={reversiAnalysis}
+          moves={othelloMoves}
+          board={
+            <ReversiBoard
+              gameState={displayState}
+              onMove={() => {}}
+              playerColor={playerColor}
+              showCoordinates
+              interactive={false}
+            />
+          }
+          viewIndex={viewIndex}
+          onSeek={setViewIndex}
+          total={timeline.length}
+          playerColor={playerColor}
+          // No "you" in pass-and-play — tally both sides evenly.
+          showBothSides={isLocal}
+          evaluation={analysis.current}
+          grades={analysis.grades}
+          summary={analysis.summary}
+          scanning={analysis.scanning}
+          progress={analysis.progress}
+          complete={analysis.complete}
+          liveBusy={analysis.liveBusy}
+          error={analysis.error}
+          onScan={analysis.scan}
+          onStopScan={analysis.stopScan}
+          onExit={() => setReviewing(false)}
+        />
+      )}
     </>
   );
 }

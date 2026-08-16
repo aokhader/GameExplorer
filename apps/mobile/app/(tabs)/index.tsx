@@ -290,6 +290,43 @@ export default function HomeScreen() {
             ))}
           </View>
 
+          {/* Watch live games — the only way into the spectate lobby, which
+              otherwise has no entry point outside a shared link. */}
+          <Pressable
+            onPress={() => router.push('/spectate' as never)}
+            accessibilityRole="button"
+            accessibilityLabel="Watch live games"
+            accessibilityHint="Browse games other people are playing right now"
+            style={{ marginTop: 22 }}
+          >
+            {({ pressed }) => (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  minHeight: 56,
+                  paddingHorizontal: 16,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: COLORS.border,
+                  backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceAlt,
+                }}
+              >
+                <Text style={{ fontSize: 20 }}>👁</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 15, color: COLORS.fg }}>
+                    Watch live games
+                  </Text>
+                  <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: COLORS.fgMuted }}>
+                    See what other players are up to
+                  </Text>
+                </View>
+                <Text style={{ color: COLORS.fgMuted, fontSize: 20 }}>›</Text>
+              </View>
+            )}
+          </Pressable>
+
           {/* Feature tiles */}
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 22 }}>
             {FEATURES.map((f) => (

@@ -9,12 +9,29 @@ import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { markOnboarded, markSaveProgressPending } from '@/lib/onboarding';
 
 type GameId = 'chess' | 'checkers' | 'reversi';
+type Opponent = 'bot' | 'friend' | 'online';
 type Difficulty = 'relaxed' | 'balanced' | 'sharp';
 
 const GAMES: { id: GameId; name: string; tagline: string }[] = [
   { id: 'chess', name: 'Chess', tagline: 'Timeless strategy' },
   { id: 'checkers', name: 'Checkers', tagline: 'Easy to learn' },
   { id: 'reversi', name: 'Reversi', tagline: 'Quick to master' },
+];
+
+/**
+ * Matches web's tour, now that mobile has online play to offer.
+ *
+ * "Invite a friend" and "Match online" both land on the same screen — the
+ * matchmaking panel has Find Game and Play a Friend side by side — so they are
+ * two doors into one place rather than two destinations. They are still worth
+ * listing separately: "share a link with someone I know" and "find a stranger"
+ * are different intentions, and a player who only wants the first should not
+ * have to guess that it lives behind a button labelled for the second.
+ */
+const OPPONENTS: { id: Opponent; name: string; icon: string; tagline: string }[] = [
+  { id: 'bot', name: 'Practice vs the bot', icon: '🤖', tagline: 'Recommended for your first game' },
+  { id: 'friend', name: 'Invite a friend', icon: '🤝', tagline: 'Share a link, play together' },
+  { id: 'online', name: 'Match online', icon: '🌐', tagline: 'Find someone at your level' },
 ];
 
 // Colors are looked up during render, never captured here — the token objects
@@ -100,6 +117,7 @@ export default function WelcomeScreen() {
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [game, setGame] = useState<GameId>('chess');
+  const [opponent, setOpponent] = useState<Opponent>('bot');
   const [difficulty, setDifficulty] = useState<Difficulty>('relaxed');
 
   // Seeing the tour counts as taking it.
@@ -118,7 +136,10 @@ export default function WelcomeScreen() {
     }, [router]),
   );
 
-  const totalSteps = 3;
+  // Four dots even though a non-bot opponent skips the difficulty step: the
+  // count is the tour's shape, not a live estimate that shrinks under the
+  // player as they choose. Same as web.
+  const totalSteps = 4;
 
   // The picked vibe is carried through as an ELO, the way web's tour does it —
   // it used to be collected and then dropped, so every tour started the default
@@ -142,12 +163,20 @@ export default function WelcomeScreen() {
     handedOff.current = true;
     router.push({
       pathname: '/play/[game]',
-      params: { game, elo: String(DIFFICULTY_ELO[game][difficulty]), start: '1' },
+      params:
+        opponent === 'bot'
+          ? { game, elo: String(DIFFICULTY_ELO[game][difficulty]), start: '1' }
+          : // Online picks its own terms on the matchmaking screen — time
+            // control, rated, and whether to queue or send a link — so there is
+            // no bot difficulty to carry.
+            { game, online: '1' },
     } as never);
   };
 
   const advance = () => {
-    if (step === 2) start();
+    // A non-bot opponent has no difficulty to choose, so step 2 is its last.
+    if (step === 2 && opponent !== 'bot') start();
+    else if (step === 3) start();
     else setStep((s) => s + 1);
   };
 
@@ -223,6 +252,38 @@ export default function WelcomeScreen() {
       )}
 
       {step === 2 && (
+        <>
+          <Text style={{ color: COLORS.fg, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+            Who&apos;s your first opponent?
+          </Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
+            {user
+              ? 'Every mode is available from the game screen too.'
+              : 'Online games need an account — we ask when you get there.'}
+          </Text>
+          <View style={{ gap: 12 }}>
+            {OPPONENTS.map((o) => (
+              <OptionRow
+                key={o.id}
+                icon={o.icon}
+                name={o.name}
+                tagline={o.tagline}
+                selected={opponent === o.id}
+                accent={COLORS.accent}
+                onPress={() => setOpponent(o.id)}
+              />
+            ))}
+          </View>
+          <Button
+            label={opponent === 'bot' ? 'Continue →' : 'Start playing →'}
+            onPress={advance}
+            glow={opponent !== 'bot'}
+            style={{ marginTop: 20 }}
+          />
+        </>
+      )}
+
+      {step === 3 && (
         <>
           <Text style={{ color: COLORS.fg, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
             How tough should the bot be?

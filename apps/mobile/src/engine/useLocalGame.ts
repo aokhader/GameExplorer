@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   calculateNewRating,
+  type EngineMove,
   type GameOutcome,
 } from '@gameexplorer/shared';
 import {
@@ -15,12 +16,12 @@ import { HINT_PENALTY, HINT_VISIBLE_MS } from './trainingRules';
 export type LocalGameMode = 'bot' | 'pass-and-play' | 'training';
 export type Color = 'white' | 'black';
 
-/** A move as the loop passes it around. Reversi collapses `from === to`. */
-export interface LocalMove {
-  from: string;
-  to: string;
-  promotion?: string;
-}
+/**
+ * A move as the loop passes it around. Reversi collapses `from === to`.
+ * Defined in shared as `EngineMove` so the play loop and the analysis layer
+ * describe a move exactly once; aliased here to keep the loop's own vocabulary.
+ */
+export type LocalMove = EngineMove;
 
 /**
  * Everything `useLocalGame` needs to drive a single game without knowing its

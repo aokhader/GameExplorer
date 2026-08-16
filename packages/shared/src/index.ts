@@ -20,6 +20,9 @@ export * from './game-logic/liquidate';
 // Board animation — what changed between two positions, for both renderers
 export * from './board';
 
+// Game review — grading, eval normalisation, and the two engine-neutral adapters
+export * from './analysis';
+
 // Socket event protocol
 export * from './types/socket.types';
 

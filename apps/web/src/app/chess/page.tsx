@@ -82,7 +82,7 @@ export default function ChessLandingPage() {
       icon: '👥',
       href: '/chess/local',
       gradient: 'from-success to-success-hover',
-      available: false,
+      available: true,
     },
     {
       id: 'learn',

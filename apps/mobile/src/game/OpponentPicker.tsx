@@ -8,13 +8,17 @@ import type { LocalGameMode } from '@/engine/useLocalGame';
 /**
  * What the setup screen can be configuring.
  *
- * Puzzles is a mode here but not a `LocalGameMode`: it doesn't run a game at
- * all, so it never reaches `useLocalGame`. Picking it turns the Start button
- * into a link to the puzzle route (see any of the three game screens). That
- * split is deliberate — modelling it as a fourth `LocalGameMode` would put a
+ * Two of these are modes here but not `LocalGameMode`s, for the same reason:
+ * neither runs a local game, so neither reaches `useLocalGame`.
+ *  - **Puzzles** doesn't run a game at all; picking it turns the Start button
+ *    into a link to the puzzle route.
+ *  - **Online** runs a game, but the server owns it — `useGameSession` drives
+ *    the loop, the clock and the result.
+ *
+ * That split is deliberate: modelling either as a `LocalGameMode` would put a
  * value into that hook which none of its branches can answer for.
  */
-export type SetupMode = LocalGameMode | 'puzzles';
+export type SetupMode = LocalGameMode | 'puzzles' | 'online';
 
 export interface OpponentPickerProps {
   value: SetupMode;
@@ -27,6 +31,12 @@ export interface OpponentPickerProps {
 
 const OPTIONS: { mode: SetupMode; icon: string; label: string; description: string }[] = [
   { mode: 'bot', icon: '🤖', label: 'vs Bot', description: 'Challenge the computer' },
+  {
+    mode: 'online',
+    icon: '🌐',
+    label: 'Online',
+    description: 'Real opponent, live clock',
+  },
   {
     mode: 'training',
     icon: '🎯',
@@ -48,10 +58,15 @@ const OPTIONS: { mode: SetupMode; icon: string; label: string; description: stri
 ];
 
 /**
- * Setup-screen mode selector — vs Bot, Training, Pass & Play, or Puzzles.
- * Shared by all three game screens so the tiles look identical; only the accent
- * differs per game. The tiles wrap 2-up like the bot strength grid below them,
- * which the fourth option fills out into an even 2×2.
+ * Setup-screen mode selector — vs Bot, Online, Training, Pass & Play, or
+ * Puzzles. Shared by all three game screens so the tiles look identical; only
+ * the accent differs per game. The tiles wrap 2-up like the bot strength grid
+ * below them; the fifth grows to fill its row rather than sitting in a half-
+ * width gap, which is `flexGrow: 1` doing its job.
+ *
+ * Online sits second rather than last: it is the mode with a person on the
+ * other end, and burying it under the solo modes is how mobile ended up feeling
+ * like a different product from web.
  */
 export function OpponentPicker({ value, onChange, accent, tint }: OpponentPickerProps) {
   // Repaint when the theme changes; the tokens below are live views.

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import Link from 'next/link';
-import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome } from '@gameexplorer/shared';
+import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome, checkersAnalysis, moveHistoryToPdn } from '@gameexplorer/shared';
+import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
 import { saveCheckersGame, getUserRating, upsertUserRating } from '@/lib/db';
@@ -14,6 +15,7 @@ import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
+import { useSettings } from '@/components/providers/SettingsProvider';
 import { Button } from '@/components/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -21,6 +23,13 @@ import { Button } from '@/components/ui';
 // chunk (smaller first-load JS / faster first navigation to this page).
 const GameResultScreen = dynamic(
   () => import('@/components/game/GameResultScreen').then(m => m.GameResultScreen),
+  { ssr: false },
+);
+
+// Review is opened by hand after a game ends, so its markup has no business
+// in the initial route chunk either.
+const ReviewPanel = dynamic(
+  () => import('@/components/game/ReviewPanel').then(m => m.ReviewPanel),
   { ssr: false },
 );
 
@@ -99,7 +108,23 @@ function formatMove(move: CheckersGameState['moveHistory'][number]): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function CheckersBotPage() {
+/** "white" -> "White", for the pass-and-play player cards. */
+function capitalize(color: string): string {
+  return color.charAt(0).toUpperCase() + color.slice(1);
+}
+
+export interface CheckersGameScreenProps {
+  /**
+   * `bot` plays the engine; `local` is two people sharing one screen.
+   * Pass-and-play is a mode of this screen rather than its own — only who
+   * supplies the reply and whether the result counts actually change.
+   */
+  mode: 'bot' | 'local';
+}
+
+export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
+  const isLocal = mode === 'local';
+  const { settings } = useSettings();
   const [timeline, setTimeline]     = useState<CheckersGameState[]>(() => [CheckersEngine.newGame()]);
   const [viewIndex, setViewIndex]   = useState(0);
   const [targetElo, setTargetElo]   = useState(1100);
@@ -116,6 +141,9 @@ export default function CheckersBotPage() {
   const [rated, setRated]           = useState(true);
   // View only — which colour sits at the bottom. Never changes what you own.
   const [flipped, setFlipped]       = useState(false);
+  // Post-game review. Gated on the game being over: mid-game it would be an
+  // unlimited free hint, which is exactly what training charges rating for.
+  const [reviewing, setReviewing] = useState(false);
 
   const { user } = useAuth();
 
@@ -136,10 +164,33 @@ export default function CheckersBotPage() {
 
   const liveState   = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
+
+  // Checkers review needs no per-platform engine: the adapter is the shared one,
+  // so web and mobile grade a game with byte-identical code.
+  const analysis = useGameAnalysis({
+    adapter: checkersAnalysis,
+    timeline,
+    viewIndex,
+    enabled: reviewing,
+  });
+  const pdnMoves = useMemo(
+    () => (reviewing ? moveHistoryToPdn(timeline[timeline.length - 1].moveHistory) : []),
+    [reviewing, timeline],
+  );
   const isAtLive    = viewIndex === timeline.length - 1;
-  const orientation = flipped
-    ? (playerColor === 'white' ? 'black' : 'white')
+  // Pass-and-play turns the board around between turns so whoever is thinking
+  // sits at the bottom. Reads the *live* turn, not the displayed one: stepping
+  // back through the game should not spin the board under you.
+  const baseOrientation = isLocal
+    ? (settings.flipBoardPassAndPlay ? liveState.currentTurn : 'white')
     : playerColor;
+  const orientation = flipped
+    ? (baseOrientation === 'white' ? 'black' : 'white')
+    : baseOrientation;
+  // Vs the bot the cards are fixed (Bot above, You below) however the board is
+  // turned. In pass-and-play there is no "you", so they follow the board.
+  const bottomColor = isLocal ? orientation : playerColor;
+  const topColor = bottomColor === 'white' ? 'black' : 'white';
 
   useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
@@ -200,6 +251,8 @@ export default function CheckersBotPage() {
 
   // Trigger bot move when it's the bot's turn
   useEffect(() => {
+    // Pass-and-play has no bot to move: the second player supplies the reply.
+    if (isLocal) return;
     if (!gameStarted) return;
     if (liveState.isGameOver || manualEnd) return;
     const isBotTurn = liveState.currentTurn !== playerColor;
@@ -209,6 +262,8 @@ export default function CheckersBotPage() {
 
   // Save game and update rating when it ends (naturally or by resign/draw)
   useEffect(() => {
+    // Pass-and-play is casual by definition — no rating and no saved row.
+    if (isLocal) return;
     if (!gameStarted || gameSaved) return;
     if (!liveState.isGameOver && !manualEnd) return;
     setGameSaved(true);
@@ -250,7 +305,8 @@ export default function CheckersBotPage() {
 
   const handleMove = (from: string, to: string) => {
     if (!isAtLive || isThinking || liveState.isGameOver || manualEnd) return;
-    if (liveState.currentTurn !== playerColor) return;
+    // Pass-and-play: both colours are human, so the side to move may always move.
+    if (!isLocal && liveState.currentTurn !== playerColor) return;
 
     const result = CheckersEngine.validateMove(liveState, from, to);
     if (result.valid && result.resultingState) {
@@ -308,11 +364,11 @@ export default function CheckersBotPage() {
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">
           <h1 className="text-4xl font-bold text-fg mb-8 text-center">
-            Play vs Bot
+            {isLocal ? 'Pass & Play' : 'Play vs Bot'}
           </h1>
 
-          {/* Difficulty selector */}
-          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+          {/* Difficulty selector — no bot in pass-and-play, so nothing to calibrate. */}
+          <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
             <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {DIFFICULTY_LEVELS.map((level) => {
@@ -349,7 +405,7 @@ export default function CheckersBotPage() {
 
           {/* Color selector */}
           <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-fg mb-6">Choose Your Color</h2>
+            <h2 className="text-2xl font-semibold text-fg mb-6">{isLocal ? 'Who Sits at the Bottom' : 'Choose Your Color'}</h2>
             <div className="grid grid-cols-2 gap-4">
               {(['white', 'black'] as const).map(color => (
                 <button
@@ -371,14 +427,19 @@ export default function CheckersBotPage() {
                   </div>
                   <div className="font-semibold capitalize">{color}</div>
                   <div className={`text-sm ${playerColor === color ? 'text-on-accent/80' : 'text-fg-muted'}`}>
-                    {color === 'white' ? 'You move first' : 'Bot moves first'}
+                    {isLocal
+                      ? (color === 'white' ? 'Moves first' : 'Moves second')
+                      : (color === 'white' ? 'You move first' : 'Bot moves first')}
                   </div>
                 </button>
               ))}
             </div>
           </div>
 
-          <RatedToggle checked={rated} onChange={setRated} gameLabel="checkers" userId={userId} />
+          {/* Pass-and-play is casual by definition — nothing to rate. */}
+          {!isLocal && (
+            <RatedToggle checked={rated} onChange={setRated} gameLabel="checkers" userId={userId} />
+          )}
 
           <button
             onClick={handleStartGame}
@@ -394,21 +455,37 @@ export default function CheckersBotPage() {
   // ── Game screen ───────────────────────────────────────────────────────────────
 
   const gameOverMsg = manualEnd === 'resign'
-    ? 'You resigned'
+    ? (isLocal ? `${capitalize(liveState.currentTurn)} resigned` : 'You resigned')
     : manualEnd === 'draw' ? 'Draw by agreement'
     : liveState.isGameOver
     ? liveState.winner === null
       ? 'Draw — 40 moves without capture'
-      : liveState.winner === playerColor
-        ? 'You win! 🎉'
-        : 'Bot wins'
+      : isLocal
+        ? `${capitalize(liveState.winner)} wins`
+        : liveState.winner === playerColor
+          ? 'You win! 🎉'
+          : 'Bot wins'
     : null;
 
   // Player-relative result for the celebration screen.
   const myResult: GameResult = manualEnd === 'resign'
-    ? 'loss'
+    ? (isLocal ? 'win' : 'loss')
     : manualEnd === 'draw' ? 'draw'
-    : liveState.winner === null ? 'draw' : liveState.winner === playerColor ? 'win' : 'loss';
+    : liveState.winner === null ? 'draw'
+    : isLocal ? 'win'
+    : liveState.winner === playerColor ? 'win' : 'loss';
+
+  /**
+   * Winner-named headline for pass-and-play. A resignation is by the side to
+   * move, so the winner is the other one; a natural end already names a winner.
+   */
+  const localResultTitle = !isLocal || myResult === 'draw'
+    ? undefined
+    : manualEnd === 'resign'
+      ? `${capitalize(liveState.currentTurn === 'white' ? 'black' : 'white')} wins`
+      : liveState.winner
+        ? `${capitalize(liveState.winner)} wins`
+        : undefined;
 
   const botLabel = DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label ?? String(targetElo);
   const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
@@ -438,10 +515,14 @@ export default function CheckersBotPage() {
         }
         topCard={
           <PlayerCard
-            name="Bot"
-            initial="B"
-            active={isThinking}
-            subline={isThinking ? `${botLabel} · thinking…` : botLabel}
+            name={isLocal ? capitalize(topColor) : 'Bot'}
+            initial={isLocal ? capitalize(topColor)[0] : 'B'}
+            active={isLocal ? liveState.currentTurn === topColor && !gameOverMsg : isThinking}
+            subline={
+              isLocal
+                ? (liveState.currentTurn === topColor && !gameOverMsg ? 'to move' : `Playing ${topColor}`)
+                : isThinking ? `${botLabel} · thinking…` : botLabel
+            }
           />
         }
         board={
@@ -453,16 +534,21 @@ export default function CheckersBotPage() {
             showCoordinates
             // Line up a reply while the bot thinks. Off while reviewing history
             // (the board isn't showing the live position) or after a manual end.
-            allowPremoves={isAtLive && !manualEnd}
+            // Nobody to pre-empt in pass-and-play: the next mover is right there.
+            allowPremoves={!isLocal && isAtLive && !manualEnd}
           />
         }
         bottomCard={
           <PlayerCard
-            name="You"
-            initial="Y"
-            isYou
-            active={yourTurn}
-            subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
+            name={isLocal ? capitalize(bottomColor) : 'You'}
+            initial={isLocal ? capitalize(bottomColor)[0] : 'Y'}
+            isYou={!isLocal}
+            active={isLocal ? liveState.currentTurn === bottomColor && !gameOverMsg : yourTurn}
+            subline={
+              isLocal
+                ? (liveState.currentTurn === bottomColor && !gameOverMsg ? 'to move' : `Playing ${bottomColor}`)
+                : `Playing ${playerColor}${yourTurn ? ' · your move' : ''}`
+            }
           />
         }
         sidebar={
@@ -474,7 +560,7 @@ export default function CheckersBotPage() {
               {/* Info card */}
               <div className="shrink-0 bg-white/[0.04] rounded-xl border border-white/10 p-3">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                  <div className="flex gap-1.5">
+                  <div className={`flex gap-1.5 ${isLocal ? 'hidden' : ''}`}>
                     <span className="text-fg-muted">Bot:</span>
                     <span className="font-semibold text-fg">
                       {DIFFICULTY_LEVELS.find(l => l.elo === targetElo)?.label ?? targetElo}
@@ -596,9 +682,12 @@ export default function CheckersBotPage() {
           shows here); the rating block simply stays absent until the rated
           update resolves for signed-in players. */}
       <GameResultScreen
-        open={!!gameOverMsg}
+        // Hidden while review is open: the result screen sits above it and its
+        // backdrop would swallow every click meant for the panel.
+        open={!!gameOverMsg && !reviewing}
         result={myResult}
-        subtitle={myResult === 'win' ? undefined : gameOverMsg ?? undefined}
+        title={localResultTitle}
+        subtitle={isLocal ? gameOverMsg ?? undefined : myResult === 'win' ? undefined : gameOverMsg ?? undefined}
         rating={
           ratingResult
             ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
@@ -609,6 +698,9 @@ export default function CheckersBotPage() {
             <Button size="lg" fullWidth onClick={handleNewGame}>
               Play Again
             </Button>
+            <Button size="lg" fullWidth variant="secondary" onClick={() => setReviewing(true)}>
+              Review Game
+            </Button>
             <Link
               href="/checkers"
               className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
@@ -618,6 +710,40 @@ export default function CheckersBotPage() {
           </>
         }
       />
+
+      {reviewing && (
+        <ReviewPanel
+          adapter={checkersAnalysis}
+          moves={pdnMoves}
+          board={
+            <CheckersBoard
+              gameState={displayState}
+              onMove={() => {}}
+              playerColor={playerColor}
+              orientation={orientation}
+              showCoordinates
+              interactive={false}
+            />
+          }
+          viewIndex={viewIndex}
+          onSeek={setViewIndex}
+          total={timeline.length}
+          playerColor={playerColor}
+          // No "you" in pass-and-play — tally both sides evenly.
+          showBothSides={isLocal}
+          evaluation={analysis.current}
+          grades={analysis.grades}
+          summary={analysis.summary}
+          scanning={analysis.scanning}
+          progress={analysis.progress}
+          complete={analysis.complete}
+          liveBusy={analysis.liveBusy}
+          error={analysis.error}
+          onScan={analysis.scan}
+          onStopScan={analysis.stopScan}
+          onExit={() => setReviewing(false)}
+        />
+      )}
     </>
   );
 }

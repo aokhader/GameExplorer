@@ -16,6 +16,7 @@ import { useAuth } from '@gameexplorer/client';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Screen, Card, Button } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
+import { BlockedPlayers } from '@/multiplayer/BlockedPlayers';
 import { FONTS } from '@/theme/typography';
 
 // Colors are looked up during render, never captured here — the token objects
@@ -404,8 +405,13 @@ export default function YouScreen() {
             const color = isDraw ? COLORS.fgMuted : won ? COLORS.successHover : COLORS.dangerHover;
             const delta = ratingDelta(game);
             return (
-              <View
+              <Pressable
                 key={game.id}
+                // Every finished game is reviewable: the stored moves replay into
+                // the same timeline the in-game review uses.
+                onPress={() => router.push({ pathname: '/review/[id]', params: { id: game.id } } as never)}
+                accessibilityRole="button"
+                accessibilityLabel={`Review ${meta.label} game against ${game.opponent}`}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -449,11 +455,14 @@ export default function YouScreen() {
                   </Text>
                 )}
                 <Text style={{ color: COLORS.fgSubtle, fontSize: 11, fontFamily: FONTS.body }}>{relativeTime(game.created_at)}</Text>
-              </View>
+              </Pressable>
             );
           })
         )}
       </Card>
+
+      {/* Renders nothing unless there is a block to manage. */}
+      <BlockedPlayers />
 
       <Pressable onPress={signOut} accessibilityRole="button" style={{ alignItems: 'center', paddingVertical: 12 }}>
         <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.bodySemi }}>Sign out</Text>

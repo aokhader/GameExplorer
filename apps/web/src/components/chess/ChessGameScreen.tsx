@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import Link from 'next/link';
-import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial } from '@gameexplorer/shared';
+import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial, timelineToSan } from '@gameexplorer/shared';
+import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
+import { useChessReviewAdapter } from '@/hooks/useChessReviewAdapter';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { ChessPiece } from '@gameexplorer/ui';
@@ -21,12 +23,20 @@ import { CapturedTray } from '@/components/game/CapturedTray';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
 import { Button } from '@/components/ui';
+import { useSettings } from '@/components/providers/SettingsProvider';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
 // chunk (smaller first-load JS / faster first navigation to this page).
 const GameResultScreen = dynamic(
   () => import('@/components/game/GameResultScreen').then(m => m.GameResultScreen),
+  { ssr: false },
+);
+
+// Review is opened by hand after a game ends, so its markup has no business in
+// the initial route chunk either.
+const ReviewPanel = dynamic(
+  () => import('@/components/game/ReviewPanel').then(m => m.ReviewPanel),
   { ssr: false },
 );
 
@@ -72,6 +82,11 @@ function eloDescription(elo: number): string {
   return 'Elite — extremely strong';
 }
 
+/** "white" → "White", for the pass-and-play player cards. */
+function capitalize(color: string): string {
+  return color.charAt(0).toUpperCase() + color.slice(1);
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface RatingResult {
@@ -80,7 +95,20 @@ interface RatingResult {
   delta: number;
 }
 
-export default function ChessBotPage() {
+export interface ChessGameScreenProps {
+  /**
+   * `bot` plays the engine; `local` is two people sharing one screen.
+   * Pass-and-play is a mode of this screen rather than its own, because the only
+   * things that change are who supplies the reply and whether the result counts —
+   * everything else (timeline, review, board, move list) is identical.
+   */
+  mode: 'bot' | 'local';
+}
+
+export function ChessGameScreen({ mode }: ChessGameScreenProps) {
+  const isLocal = mode === 'local';
+  const { settings } = useSettings();
+
   // Worker owns the canonical game state; all move validation runs off main thread.
   const { gameState: liveState, legalMoves: legalMovesMap, isReady: engineReady, makeMove, getBotMove, reset } = useChessEngine();
   const { user } = useAuth();
@@ -103,11 +131,27 @@ export default function ChessBotPage() {
   const [rated, setRated] = useState(true);
   // View only — which colour sits at the bottom. Never changes what you own.
   const [flipped, setFlipped] = useState(false);
+  // Post-game review. Gated on the game being over: mid-game it would be an
+  // unlimited free hint, which is exactly what training charges rating for.
+  const [reviewing, setReviewing] = useState(false);
 
   // Defer Stockfish (and its ~7 MB WASM download) until the game actually
   // starts — no need to load the engine while the user is still on the setup
   // screen picking ELO / colour.
   const stockfish = useStockfish({ enabled: gameStarted });
+
+  // Review runs its own Stockfish worker, created only when review is opened —
+  // the play engine keeps its search running and UCI is a single channel, so the
+  // two cannot share one.
+  const { adapter: reviewAdapter, ready: reviewEngineReady } = useChessReviewAdapter(reviewing);
+  const analysis = useGameAnalysis({
+    adapter: reviewAdapter,
+    timeline,
+    viewIndex,
+    // The handshake has to finish before any search is sent, or every position
+    // would fail with "Engine not ready".
+    enabled: reviewing && reviewEngineReady,
+  });
 
   // Tracks whether a bot MAKE_MOVE is in flight so we clear isThinking only
   // when the worker confirms, not when makeMove() posts the message.
@@ -178,6 +222,14 @@ export default function ChessBotPage() {
   const isAtLive    = viewIndex === timeline.length - 1;
   const displayState = timeline[viewIndex] ?? liveState;
 
+  // SAN for the review move list. Derived from the timeline rather than the move
+  // history because disambiguation ("Nbd2") needs the position each move was
+  // played in. Only computed once review is open — it walks the whole game.
+  const sanMoves = useMemo(
+    () => (reviewing ? timelineToSan(timeline) : []),
+    [reviewing, timeline],
+  );
+
   useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
   // Load rating when user is available
@@ -188,6 +240,8 @@ export default function ChessBotPage() {
 
   // ── Trigger bot move when it's the bot's turn ───────────────────────────────
   useEffect(() => {
+    // Pass-and-play has no bot to move: the second player supplies the reply.
+    if (isLocal) return;
     if (!gameStarted || !engineReady) return;
     // Weak bots (< STOCKFISH_MIN_ELO) run in the chess-engine worker and don't
     // need Stockfish; only wait on it when the selected ELO actually uses it.
@@ -204,6 +258,9 @@ export default function ChessBotPage() {
   // which meant a resigned game could never carry a rating change — and the two
   // call sites could both fire for one game. Mirrors checkers/reversi.
   useEffect(() => {
+    // Pass-and-play is casual by definition — no rating and no saved row. There
+    // is no single "player" whose result could be recorded against an account.
+    if (isLocal) return;
     if (!gameStarted || gameSaved) return;
     const naturalEnd = liveState.isCheckmate || liveState.isStalemate || liveState.isDraw;
     if (!naturalEnd && !manualEnd) return;
@@ -289,7 +346,9 @@ export default function ChessBotPage() {
   // ── Player move ─────────────────────────────────────────────────────────────
   const handleMove = (from: Position, to: Position, promotionPiece?: PieceType) => {
     if (!isAtLive || isThinking || !engineReady || manualEnd) return;
-    if (liveState.currentTurn !== playerColor) return;
+    // Pass-and-play: both colours are human, so the side to move is always the
+    // one allowed to move.
+    if (!isLocal && liveState.currentTurn !== playerColor) return;
     // Post to worker — returns immediately; validation runs off main thread.
     makeMove(from, to, promotionPiece);
   };
@@ -325,10 +384,26 @@ export default function ChessBotPage() {
 
   // Capture trays follow the board the player is LOOKING at, not the live one,
   // so stepping back through the game rewinds the trays with it.
-  const botColor = playerColor === 'white' ? 'black' : 'white';
   const material = summarizeMaterial(displayState);
   const whiteLead = material.advantage;
-  const orientation = flipped ? botColor : playerColor;
+  // Pass-and-play turns the board around between turns so whoever is thinking
+  // sits at the bottom — off it goes by the player's fixed seat, as vs the bot.
+  // Reads the *live* turn, not the displayed one: stepping back through the game
+  // to look at a position should not spin the board under you.
+  const passAndPlayOrientation = settings.flipBoardPassAndPlay
+    ? liveState.currentTurn
+    : 'white';
+  const baseOrientation = isLocal ? passAndPlayOrientation : playerColor;
+  const orientation = flipped
+    ? (baseOrientation === 'white' ? 'black' : 'white')
+    : baseOrientation;
+
+  // Which colour each player card describes. Vs the bot the cards are fixed
+  // (Bot above, You below) however the board is turned — you own one side all
+  // game. In pass-and-play there is no "you", so the cards follow the board:
+  // whoever is at the bottom of the screen gets the bottom card.
+  const bottomColor = isLocal ? orientation : playerColor;
+  const topColor = bottomColor === 'white' ? 'black' : 'white';
 
   // ── Setup screen ──────────────────────────────────────────────────────────────
 
@@ -349,11 +424,11 @@ export default function ChessBotPage() {
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">
           <h1 className="text-4xl font-bold text-fg mb-8 text-center">
-            Play vs Bot
+            {isLocal ? 'Pass & Play' : 'Play vs Bot'}
           </h1>
 
-          {/* ELO selector */}
-          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+          {/* ELO selector — no bot in pass-and-play, so nothing to calibrate. */}
+          <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
             <h2 className="text-2xl font-semibold text-fg mb-6">
               Bot Strength
             </h2>
@@ -409,10 +484,11 @@ export default function ChessBotPage() {
             </div>
           </div>
 
-          {/* Color selector */}
+          {/* Color selector — in pass-and-play this picks which seat is "bottom"
+              when the flip-between-turns setting is off. */}
           <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
             <h2 className="text-2xl font-semibold text-fg mb-6">
-              Choose Your Color
+              {isLocal ? 'Who Sits at the Bottom' : 'Choose Your Color'}
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <button
@@ -426,7 +502,7 @@ export default function ChessBotPage() {
                 <div className="flex justify-center mb-2"><ChessPiece type="king" color="white" size={40} /></div>
                 <div className="font-semibold">White</div>
                 <div className={`text-sm ${playerColor === 'white' ? 'text-on-accent/80' : 'text-fg-muted'}`}>
-                  You move first
+                  {isLocal ? 'Moves first' : 'You move first'}
                 </div>
               </button>
               <button
@@ -440,13 +516,16 @@ export default function ChessBotPage() {
                 <div className="flex justify-center mb-2"><ChessPiece type="king" color="black" size={40} /></div>
                 <div className="font-semibold">Black</div>
                 <div className={`text-sm ${playerColor === 'black' ? 'text-on-accent/80' : 'text-fg-muted'}`}>
-                  Bot moves first
+                  {isLocal ? 'Moves second' : 'Bot moves first'}
                 </div>
               </button>
             </div>
           </div>
 
-          <RatedToggle checked={rated} onChange={setRated} gameLabel="chess" userId={userId} />
+          {/* Pass-and-play is casual by definition — nothing to rate. */}
+          {!isLocal && (
+            <RatedToggle checked={rated} onChange={setRated} gameLabel="chess" userId={userId} />
+          )}
 
           <button
             onClick={handleStartGame}
@@ -462,7 +541,9 @@ export default function ChessBotPage() {
   // ── Game screen ───────────────────────────────────────────────────────────────
 
   const gameOverMsg = manualEnd === 'resign'
-    ? 'You resigned'
+    // In pass-and-play the side to move is the one giving up, so name them —
+    // "You resigned" has no referent when two people share the screen.
+    ? (isLocal ? `${capitalize(liveState.currentTurn)} resigned` : 'You resigned')
     : manualEnd === 'draw' ? 'Draw by agreement'
     : liveState.isCheckmate
     ? `Checkmate — ${liveState.currentTurn === 'white' ? 'Black' : 'White'} wins`
@@ -470,14 +551,28 @@ export default function ChessBotPage() {
     : liveState.isDraw ? 'Draw'
     : null;
 
-  // Player-relative result for the celebration screen.
+  // Player-relative result for the celebration screen. Pass-and-play has no
+  // "you" to lose, so a decisive game is always somebody's win — the headline
+  // names the winner in `localResultTitle` below.
   const myResult: GameResult | null = manualEnd === 'resign'
-    ? 'loss'
+    ? (isLocal ? 'win' : 'loss')
     : manualEnd === 'draw' ? 'draw'
     : liveState.isCheckmate
-    ? ((liveState.currentTurn === 'white' ? 'black' : 'white') === playerColor ? 'win' : 'loss')
+    ? (isLocal
+        ? 'win'
+        : ((liveState.currentTurn === 'white' ? 'black' : 'white') === playerColor ? 'win' : 'loss'))
     : liveState.isStalemate || liveState.isDraw ? 'draw'
     : null;
+
+  /**
+   * Winner-named headline for pass-and-play, e.g. "Black wins".
+   * Both decisive endings resolve the same way: the side to move is either the
+   * one just mated or the one who resigned, so the winner is always the other.
+   */
+  const localResultTitle =
+    !isLocal || !myResult || myResult === 'draw'
+      ? undefined
+      : `${capitalize(liveState.currentTurn === 'white' ? 'black' : 'white')} wins`;
 
   const yourTurn = isAtLive && !isThinking && !gameOverMsg && liveState.currentTurn === playerColor;
 
@@ -506,16 +601,24 @@ export default function ChessBotPage() {
         }
         topCard={
           <PlayerCard
-            name="Bot"
-            initial="B"
-            active={isThinking}
-            subline={isThinking ? `${targetElo} · thinking…` : `${targetElo} · ${eloLabel(targetElo)}`}
+            name={isLocal ? capitalize(topColor) : 'Bot'}
+            initial={isLocal ? capitalize(topColor)[0] : 'B'}
+            active={isLocal ? liveState.currentTurn === topColor && !gameOverMsg : isThinking}
+            subline={
+              isLocal
+                ? liveState.currentTurn === topColor && !gameOverMsg
+                  ? 'to move'
+                  : `Playing ${topColor}`
+                : isThinking
+                  ? `${targetElo} · thinking…`
+                  : `${targetElo} · ${eloLabel(targetElo)}`
+            }
             captured={
               <CapturedTray
-                pieces={material[botColor]}
-                color={playerColor}
-                advantage={botColor === 'white' ? whiteLead : -whiteLead}
-                ownerLabel="Bot"
+                pieces={material[topColor]}
+                color={bottomColor}
+                advantage={topColor === 'white' ? whiteLead : -whiteLead}
+                ownerLabel={isLocal ? capitalize(topColor) : 'Bot'}
               />
             }
           />
@@ -530,22 +633,30 @@ export default function ChessBotPage() {
             legalMovesMap={isAtLive && !isThinking ? legalMovesMap : undefined}
             // Line up a reply while the bot thinks. Off while reviewing history
             // (the board isn't showing the live position) or after a manual end.
-            allowPremoves={isAtLive && !manualEnd}
+            // Nobody to pre-empt in pass-and-play: the next mover is sitting
+            // right there and moves on the same board.
+            allowPremoves={!isLocal && isAtLive && !manualEnd}
           />
         }
         bottomCard={
           <PlayerCard
-            name="You"
-            initial="Y"
-            isYou
-            active={yourTurn}
-            subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
+            name={isLocal ? capitalize(bottomColor) : 'You'}
+            initial={isLocal ? capitalize(bottomColor)[0] : 'Y'}
+            isYou={!isLocal}
+            active={isLocal ? liveState.currentTurn === bottomColor && !gameOverMsg : yourTurn}
+            subline={
+              isLocal
+                ? liveState.currentTurn === bottomColor && !gameOverMsg
+                  ? 'to move'
+                  : `Playing ${bottomColor}`
+                : `Playing ${playerColor}${yourTurn ? ' · your move' : ''}`
+            }
             captured={
               <CapturedTray
-                pieces={material[playerColor]}
-                color={botColor}
-                advantage={playerColor === 'white' ? whiteLead : -whiteLead}
-                ownerLabel="You"
+                pieces={material[bottomColor]}
+                color={topColor}
+                advantage={bottomColor === 'white' ? whiteLead : -whiteLead}
+                ownerLabel={isLocal ? capitalize(bottomColor) : 'You'}
               />
             }
           />
@@ -559,7 +670,7 @@ export default function ChessBotPage() {
             {/* Game facts */}
             <div className="shrink-0 bg-white/[0.04] rounded-xl border border-white/10 p-3">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                <div className="flex gap-1.5">
+                <div className={`flex gap-1.5 ${isLocal ? 'hidden' : ''}`}>
                   <span className="text-fg-muted">ELO:</span>
                   <span className="font-semibold text-fg">
                     {targetElo}
@@ -611,8 +722,11 @@ export default function ChessBotPage() {
       />
 
       <GameResultScreen
-        open={!!myResult}
+        // Hidden while review is open: the result screen sits above it and its
+        // backdrop would swallow every click meant for the panel.
+        open={!!myResult && !reviewing}
         result={myResult ?? 'draw'}
+        title={localResultTitle}
         subtitle={gameOverMsg ?? undefined}
         rating={
           ratingResult
@@ -624,6 +738,9 @@ export default function ChessBotPage() {
             <Button size="lg" fullWidth onClick={handleNewGame}>
               Play Again
             </Button>
+            <Button size="lg" fullWidth variant="secondary" onClick={() => setReviewing(true)}>
+              Review Game
+            </Button>
             <Link
               href="/chess"
               className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
@@ -633,6 +750,45 @@ export default function ChessBotPage() {
           </>
         }
       />
+
+      {reviewing && (
+        <ReviewPanel
+          adapter={reviewAdapter}
+          moves={sanMoves}
+          board={
+            <ChessBoard
+              gameState={displayState}
+              // Required by the board's props, but `interactive={false}` means
+              // no gesture can ever reach it.
+              onMove={() => {}}
+              playerColor={playerColor}
+              orientation={orientation}
+              showCoordinates={true}
+              interactive={false}
+            />
+          }
+          viewIndex={viewIndex}
+          onSeek={setViewIndex}
+          total={timeline.length}
+          playerColor={playerColor}
+          // No "you" in pass-and-play — tally both sides evenly.
+          showBothSides={isLocal}
+          evaluation={analysis.current}
+          grades={analysis.grades}
+          summary={analysis.summary}
+          scanning={analysis.scanning}
+          progress={analysis.progress}
+          complete={analysis.complete}
+          // The WASM engine has to download and hand-shake on the first review of
+          // a session; showing that as "busy" is closer to the truth than an
+          // empty eval.
+          liveBusy={analysis.liveBusy || !reviewEngineReady}
+          error={analysis.error}
+          onScan={analysis.scan}
+          onStopScan={analysis.stopScan}
+          onExit={() => setReviewing(false)}
+        />
+      )}
     </>
   );
 }

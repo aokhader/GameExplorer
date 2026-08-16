@@ -29,6 +29,12 @@ export interface Settings {
   reduceMotion: boolean;
   /** Show rank/file coordinate labels on boards. */
   showCoordinates: boolean;
+  /**
+   * Pass-and-play: turn the board around between turns so the player to move is
+   * always at the bottom. Defaults ON, matching mobile — two people sharing one
+   * screen expect the board to face whoever is thinking.
+   */
+  flipBoardPassAndPlay: boolean;
   /** Active visual theme. */
   theme: ThemeChoice;
 }
@@ -38,6 +44,7 @@ const DEFAULTS: Settings = {
   haptics: false,
   reduceMotion: false,
   showCoordinates: true,
+  flipBoardPassAndPlay: true,
   theme: 'dark',
 };
 

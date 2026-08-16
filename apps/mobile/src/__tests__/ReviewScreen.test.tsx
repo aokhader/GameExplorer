@@ -18,6 +18,7 @@ jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').m
 const adapter: AnalysisAdapter<unknown> = {
   evaluate: jest.fn(),
   lastMove: () => null,
+  currentTurn: () => 'white',
   formatScore: ({ score }) => `${score > 0 ? '+' : ''}${(score / 100).toFixed(2)}`,
   whiteShare: () => 0.62,
   thresholds: { inaccuracy: 50, mistake: 100, blunder: 200 },
