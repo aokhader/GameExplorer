@@ -1,16 +1,20 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import type { GameTutorial, TutorialGame } from '@gameexplorer/shared';
+import { GoStone } from '@gameexplorer/ui';
 import { GradientText, Reveal } from '@/components/visual';
 import { TutorialBoard } from './TutorialBoard';
 
 const GAME_META: Record<
   TutorialGame,
-  { name: string; icon: string; glowVar: string; hubHref: string; botHref: string }
+  { name: string; icon: ReactNode; glowVar: string; hubHref: string; botHref: string }
 > = {
   chess: { name: 'Chess', icon: '♔', glowVar: '--shadow-glow-chess', hubHref: '/chess', botHref: '/chess/bot' },
   checkers: { name: 'Checkers', icon: '🔴', glowVar: '--shadow-glow-checkers', hubHref: '/checkers', botHref: '/checkers/bot' },
   reversi: { name: 'Reversi', icon: '⚫', glowVar: '--shadow-glow-reversi', hubHref: '/reversi', botHref: '/reversi/bot' },
-  go: { name: 'Go', icon: '⬤', glowVar: '--shadow-glow-go', hubHref: '/go', botHref: '/go/bot' },
+  // The real stone rather than ⬤ — that glyph is black, and Go's piece reads
+  // white everywhere else in the app.
+  go: { name: 'Go', icon: <GoStone color="white" size="1em" />, glowVar: '--shadow-glow-go', hubHref: '/go', botHref: '/go/bot' },
   liquidate: { name: 'Liquidate', icon: '🪐', glowVar: '--shadow-glow-liquidate', hubHref: '/liquidate', botHref: '/liquidate/bot' },
 };
 
@@ -43,7 +47,7 @@ export function TutorialArticle({ tutorial }: { tutorial: GameTutorial }) {
             className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-surface-alt border border-border mb-6 motion-safe:animate-float"
             style={{ boxShadow: `var(${meta.glowVar})` }}
           >
-            <span className="text-4xl">{meta.icon}</span>
+            <span className="text-4xl inline-flex items-center">{meta.icon}</span>
           </Reveal>
           <Reveal as="h1" delay={80} className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
             <GradientText>{tutorial.title}</GradientText>

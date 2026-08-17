@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { GoStone } from '@gameexplorer/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 
@@ -77,7 +78,7 @@ export default function GoLandingPage() {
         {/* Hero */}
         <div className="text-center mb-16">
           <Reveal className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-surface-alt border border-border mb-6 motion-safe:animate-float [box-shadow:var(--shadow-glow-go)]">
-            <span className="text-4xl">⚫</span>
+            <span className="text-4xl inline-flex items-center"><GoStone color="white" size="1em" /></span>
           </Reveal>
           <Reveal as="h1" delay={80} className="text-5xl md:text-6xl font-bold tracking-tight mb-4">
             <GradientText>Play Go</GradientText>

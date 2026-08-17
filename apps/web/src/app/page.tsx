@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { GoStone } from '@gameexplorer/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY } from '@/lib/onboarding';
@@ -13,12 +14,18 @@ import { GAME_LIST, type GameCatalogEntry, type GameId } from '@gameexplorer/sha
  * Card glyphs stay here rather than in the catalog: mobile draws the Game Pieces
  * vector art for the same games, because these Unicode symbols get emoji-font
  * substitution on Android. That is a real platform difference, not drift.
+ *
+ * Go is the exception that draws its real vector art here too: the only glyph
+ * for a Go stone is ⬤, which is *black*, and a black circle is both the wrong
+ * colour for the piece we show everywhere else and indistinguishable from
+ * reversi's ⚫ at tile size. `size="1em"` makes the SVG scale off whatever
+ * `text-*` class the surrounding container already sets.
  */
-const GAME_ICON: Record<GameId, string> = {
+const GAME_ICON: Record<GameId, ReactNode> = {
   chess: '♔',
   checkers: '⚫',
   reversi: '⚪',
-  go: '⬤',
+  go: <GoStone color="white" size="1em" />,
   liquidate: '🪐',
 };
 
@@ -183,7 +190,7 @@ function GameCard({
       <div className="relative p-8 h-64 flex flex-col justify-between">
         {/* Icon */}
         <div
-          className="text-8xl text-center mb-4 transition-transform duration-300 drop-shadow-lg"
+          className="text-8xl text-center mb-4 flex items-center justify-center transition-transform duration-300 drop-shadow-lg"
           style={{ transform: isHovered ? 'scale(1.12) rotate(5deg)' : 'scale(1)' }}
         >
           {GAME_ICON[game.id]}

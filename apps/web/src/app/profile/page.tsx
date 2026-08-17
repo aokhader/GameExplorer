@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { GoStone } from '@gameexplorer/ui';
 import { END_REASON_LABELS } from '@gameexplorer/shared';
 import { getPublicProfile, getGames, getUserRatings, supabase } from '@gameexplorer/db';
 import type { AuthUser, Profile, GameListItem, UserRating, GameType } from '@gameexplorer/db';
@@ -36,7 +37,7 @@ function relativeTime(iso: string) {
 // color for the big rating numeral. Every value reads the theme's tint ramp
 // (`--c-game-*-tint*` in globals.css) rather than a literal, so the cards follow
 // the active theme — they were the last neon left on this page under Cozy.
-const GAME_META: Record<GameType, { label: string; icon: string; text: string; card: string }> = {
+const GAME_META: Record<GameType, { label: string; icon: ReactNode; text: string; card: string }> = {
   chess: {
     label: 'Chess', icon: '♞', text: 'text-[var(--c-game-chess-light)]',
     card: 'bg-[linear-gradient(180deg,var(--c-game-chess-tint),var(--c-game-tint-tail))] border-[var(--c-game-chess-tint-border)] [box-shadow:var(--c-game-chess-card-glow)]',
@@ -50,7 +51,9 @@ const GAME_META: Record<GameType, { label: string; icon: string; text: string; c
     card: 'bg-[linear-gradient(180deg,var(--c-game-reversi-tint),var(--c-game-tint-tail))] border-[var(--c-game-reversi-tint-border)] [box-shadow:var(--c-game-reversi-card-glow)]',
   },
   go: {
-    label: 'Go', icon: '⬤', text: 'text-[var(--c-game-go-light)]',
+    // The real stone, not ⬤ — that glyph is black, which is both the wrong
+    // colour for the piece shown everywhere else and a twin of reversi's ⚫.
+    label: 'Go', icon: <GoStone color="white" size="1em" />, text: 'text-[var(--c-game-go-light)]',
     card: 'bg-[linear-gradient(180deg,var(--c-game-go-tint),var(--c-game-tint-tail))] border-[var(--c-game-go-tint-border)] [box-shadow:var(--c-game-go-card-glow)]',
   },
 };
@@ -166,8 +169,8 @@ export default function ProfilePage() {
             ))}
           </div>
           {/* Per-game rating cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
-            {[0, 1, 2].map((i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+            {[0, 1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-36 rounded-2xl" />
             ))}
           </div>
@@ -272,8 +275,9 @@ export default function ProfilePage() {
           <StatTile label="Top rating" value={topRating > 0 ? topRating : '—'} valueClass="text-[var(--c-accent-text)]" />
         </div>
 
-        {/* Per-game ratings */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
+        {/* Per-game ratings — four games now, so the row splits 2-up on tablets
+            and 4-up on desktop; at sm:grid-cols-3 Go orphaned onto its own row. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
           {ratings.map(({ type, rating }) => {
             const meta = GAME_META[type];
             const delta = deltaFor(type);
@@ -281,7 +285,7 @@ export default function ProfilePage() {
             return (
               <div key={type} className={`rounded-2xl border p-5 ${meta.card}`}>
                 <div className="flex items-center gap-2.5 mb-3">
-                  <span className="text-2xl select-none">{meta.icon}</span>
+                  <span className="text-2xl select-none inline-flex items-center">{meta.icon}</span>
                   <span className="font-display font-bold text-fg">{meta.label}</span>
                 </div>
                 {rated ? (
@@ -348,7 +352,7 @@ export default function ProfilePage() {
               {/* Driven off GAME_META and the tab's own id rather than a
                   ternary chain: the chain silently fell through to chess for
                   any game added after it was written. */}
-              <div className="text-3xl mb-2 select-none">
+              <div className="text-3xl mb-2 select-none flex items-center justify-center">
                 {activeTab === 'all' ? '♞' : GAME_META[activeTab].icon}
               </div>
               <p className="text-fg-muted text-sm">
