@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
 import { GoEngine, moveHistoryToGo, toGoPoint, type GoColor, type GoGameState } from '@gameexplorer/shared';
 import {
@@ -16,6 +15,7 @@ import { GoBoard } from '@/board/GoBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
+import { BackToHomeButton } from '@/game/resultDismiss';
 import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
@@ -68,7 +68,6 @@ export function GoScreen() {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
-  const router = useRouter();
   const { user } = useAuth();
   const userId = user?.id ?? null;
 
@@ -503,7 +502,7 @@ export function GoScreen() {
         actions={
           <>
             <Button label="Play Again" onPress={handleNewGame} glow />
-            <Button label="Back to Home" variant="secondary" onPress={() => router.replace('/' as never)} />
+            <BackToHomeButton />
           </>
         }
       />
