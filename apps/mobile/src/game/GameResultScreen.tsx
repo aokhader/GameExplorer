@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -12,6 +12,7 @@ import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { HINT_PENALTY } from '@/engine/trainingRules';
 import { Confetti } from './Confetti';
+import { ResultDismissContext, type DismissThen } from './resultDismiss';
 import { SaveProgressPrompt } from './SaveProgressPrompt';
 
 export type GameResult = 'win' | 'loss' | 'draw' | 'aborted';
@@ -96,7 +97,58 @@ export function GameResultScreen({
   const sfx = useGameSfx();
   const copy = COPY[result];
 
-  const animateCount = open && !reducedMotion;
+  /**
+   * Leaving the screen happens in two steps: hide the Modal, then act on a
+   * later frame.
+   *
+   * `open` is derived from game state, so it stays true while an action tears
+   * the screen down — and navigating out from under a *visible* Modal makes
+   * Fabric try to reparent a view the modal host still owns. That surfaces as
+   * `addViewAt: … View already has a parent`, usually on the next tab press
+   * seconds later rather than on the navigation itself.
+   *
+   * Hiding first is what avoids it: RN's Modal renders `null` when hidden, so
+   * the whole card unmounts in that commit, and the rAF lets Fabric flush the
+   * resulting delete instructions before the next screen mounts.
+   */
+  const [closing, setClosing] = useState(false);
+  const pendingAction = useRef<(() => void) | null>(null);
+  const visible = open && !closing;
+
+  const dismissThen = useCallback<DismissThen>((action) => {
+    pendingAction.current = action;
+    setClosing(true);
+  }, []);
+
+  useEffect(() => {
+    const action = pendingAction.current;
+    if (!closing || !action) return;
+    pendingAction.current = null;
+
+    // Two frames rather than one: the first ends the commit that hid the Modal,
+    // the second gives Fabric a frame to mount the resulting deletions before
+    // the next screen asks for the same views. (`InteractionManager` would read
+    // better here, but RN has deprecated it.)
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(action);
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [closing]);
+
+  // Re-arm for the next game — a dismissal that only closed the card (Review,
+  // say) must not leave it hidden for good.
+  useEffect(() => {
+    if (!open) {
+      setClosing(false);
+      pendingAction.current = null;
+    }
+  }, [open]);
+
+  const animateCount = visible && !reducedMotion;
   const ratingValue = useCountUp(rating?.before ?? 0, rating?.after ?? 0, animateCount);
 
   const cardScale = useSharedValue(reducedMotion ? 1 : 0.9);
@@ -106,7 +158,7 @@ export function GameResultScreen({
   // Fire the chime/haptic + entrance animation once per open.
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (open && !wasOpen.current) {
+    if (visible && !wasOpen.current) {
       wasOpen.current = true;
       if (result !== 'aborted') sfx.play(result);
       cardOpacity.value = withTiming(1, { duration: 180 });
@@ -120,14 +172,14 @@ export function GameResultScreen({
           withSpring(1, { damping: 8 }),
         );
       }
-    } else if (!open) {
+    } else if (!visible) {
       wasOpen.current = false;
       cardOpacity.value = 0;
       cardScale.value = reducedMotion ? 1 : 0.9;
       emojiScale.value = reducedMotion ? 1 : 0.5;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, result, reducedMotion]);
+  }, [visible, result, reducedMotion]);
 
   const cardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
@@ -136,7 +188,7 @@ export function GameResultScreen({
   const emojiStyle = useAnimatedStyle(() => ({ transform: [{ scale: emojiScale.value }] }));
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={() => {}} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={() => {}} statusBarTranslucent>
       <View
         style={{
           flex: 1,
@@ -147,7 +199,7 @@ export function GameResultScreen({
         }}
       >
         {/* Behind the card so pieces fall past it rather than over the text. */}
-        <Confetti active={open && result === 'win'} reducedMotion={reducedMotion} />
+        <Confetti active={visible && result === 'win'} reducedMotion={reducedMotion} />
         <Animated.View
           accessibilityViewIsModal
           accessibilityLiveRegion="polite"
@@ -253,41 +305,46 @@ export function GameResultScreen({
             </View>
           )}
 
-          <View style={{ marginTop: 22, gap: 10, alignSelf: 'stretch' }}>
-            {onReview && (
-              <Pressable
-                onPress={onReview}
-                accessibilityRole="button"
-                accessibilityLabel="Review this game"
-              >
-                {({ pressed }) => (
-                  <View
-                    style={{
-                      minHeight: 48,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: COLORS.borderStrong,
-                      backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceMuted,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'row',
-                      gap: 8,
-                    }}
-                  >
-                    <Text style={{ fontSize: 16 }}>📈</Text>
-                    <Text style={{ color: COLORS.fg, fontSize: 16, fontWeight: '700' }}>
-                      Review Game
-                    </Text>
-                  </View>
-                )}
-              </Pressable>
-            )}
-            {actions}
-          </View>
+          {/* Every action in here leaves the card behind — `BackToHomeButton`
+              navigates, Review swaps the screen's whole tree — so they go
+              through the dismiss-first hop rather than acting on the spot. */}
+          <ResultDismissContext.Provider value={dismissThen}>
+            <View style={{ marginTop: 22, gap: 10, alignSelf: 'stretch' }}>
+              {onReview && (
+                <Pressable
+                  onPress={() => dismissThen(onReview)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Review this game"
+                >
+                  {({ pressed }) => (
+                    <View
+                      style={{
+                        minHeight: 48,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: COLORS.borderStrong,
+                        backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceMuted,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: 'row',
+                        gap: 8,
+                      }}
+                    >
+                      <Text style={{ fontSize: 16 }}>📈</Text>
+                      <Text style={{ color: COLORS.fg, fontSize: 16, fontWeight: '700' }}>
+                        Review Game
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              )}
+              {actions}
+            </View>
+          </ResultDismissContext.Provider>
 
           {/* Guests only, once, after their first tour game — renders nothing
               otherwise. Below the actions so it never delays Play Again. */}
-          <SaveProgressPrompt open={open} />
+          <SaveProgressPrompt open={visible} />
         </Animated.View>
       </View>
     </Modal>

@@ -27,6 +27,7 @@ import {
 import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { GameResultScreen } from '@/game/GameResultScreen';
+import { BackToHomeButton } from '@/game/resultDismiss';
 import { Button } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 import { LiquidateBoard, BoardWellCaption } from './LiquidateBoard';
@@ -534,11 +535,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
         actions={
           <>
             <Button label="Play Again" onPress={onQuit} glow />
-            <Button
-              label="Back to Home"
-              variant="secondary"
-              onPress={() => router.replace('/' as never)}
-            />
+            <BackToHomeButton />
           </>
         }
         onReview={() => setResultDismissed(true)}

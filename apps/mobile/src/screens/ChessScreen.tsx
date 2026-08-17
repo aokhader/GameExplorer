@@ -14,6 +14,7 @@ import { ChessBoard } from '@/board/ChessBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
+import { BackToHomeButton } from '@/game/resultDismiss';
 import { OpponentPicker, FlipBoardCard, type SetupMode } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
@@ -763,7 +764,7 @@ export function ChessScreen() {
         actions={
           <>
             <Button label="Play Again" onPress={handleNewGame} glow />
-            <Button label="Back to Home" variant="secondary" onPress={() => router.replace('/' as never)} />
+            <BackToHomeButton />
           </>
         }
       />
