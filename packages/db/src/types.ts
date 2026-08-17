@@ -29,8 +29,21 @@ export interface ReversiStoredMove {
   color: 'black' | 'white';
 }
 
+// What we store per go move
+export interface GoStoredMove {
+  position: string | null; // null = pass
+  color: 'black' | 'white';
+  /** Stones this move removed from the board. */
+  captures: string[];
+}
+
 export type GameResult = 'white' | 'black' | 'draw';
-export type GameType = 'chess' | 'checkers' | 'reversi';
+/**
+ * NOTE: deliberately wider than the multiplayer `GameType` in
+ * `@gameexplorer/shared/types/socket.types` — Go is saved and rated locally but
+ * has no online mode, so the socket protocol must not accept it.
+ */
+export type GameType = 'chess' | 'checkers' | 'reversi' | 'go';
 
 export interface SavedGame {
   id: string;

@@ -27,6 +27,16 @@ export interface OpponentPickerProps {
   accent: string;
   /** Translucent accent for the selected tile background. */
   tint: string;
+  /**
+   * Which modes this game actually offers. Defaults to all of them, in the
+   * order below.
+   *
+   * Go passes a subset: it has no puzzles, because the puzzle gate proves a
+   * solution forced by replaying it through an engine and no Go engine here can
+   * settle that. Showing a tile that leads nowhere would be worse than not
+   * showing it.
+   */
+  modes?: readonly SetupMode[];
 }
 
 const OPTIONS: { mode: SetupMode; icon: string; label: string; description: string }[] = [
@@ -68,9 +78,13 @@ const OPTIONS: { mode: SetupMode; icon: string; label: string; description: stri
  * other end, and burying it under the solo modes is how mobile ended up feeling
  * like a different product from web.
  */
-export function OpponentPicker({ value, onChange, accent, tint }: OpponentPickerProps) {
+export function OpponentPicker({ value, onChange, accent, tint, modes }: OpponentPickerProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
+
+  // Filtered rather than reordered: the tile order above is a deliberate one
+  // (Online second, because it is the mode with a person on the other end).
+  const options = modes ? OPTIONS.filter((o) => modes.includes(o.mode)) : OPTIONS;
 
   return (
     <>
@@ -78,7 +92,7 @@ export function OpponentPicker({ value, onChange, accent, tint }: OpponentPicker
         Mode
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
-        {OPTIONS.map((opt) => {
+        {options.map((opt) => {
           const selected = value === opt.mode;
           return (
             <Pressable

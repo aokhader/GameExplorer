@@ -18,6 +18,7 @@ const GAME_ICON: Record<GameId, string> = {
   chess: '♔',
   checkers: '⚫',
   reversi: '⚪',
+  go: '⬤',
   liquidate: '🪐',
 };
 

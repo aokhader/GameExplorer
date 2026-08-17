@@ -38,6 +38,7 @@
   --color-game-chess:     var(--c-game-chess);
   --color-game-checkers:  var(--c-game-checkers);
   --color-game-reversi:   var(--c-game-reversi);
+  --color-game-go:        var(--c-game-go);
   --color-game-liquidate: var(--c-game-liquidate);
 
   --color-danger:         var(--c-danger);
@@ -85,6 +86,8 @@
   --c-game-checkers-glow:  rgba(236, 72, 153, 0.45);
   --c-game-reversi:        #a3e635;
   --c-game-reversi-glow:   rgba(163, 230, 53, 0.42);
+  --c-game-go:             #22d3ee;
+  --c-game-go-glow:        rgba(34, 211, 238, 0.42);
   --c-game-liquidate:      #8b5cf6;
   --c-game-liquidate-glow: rgba(139, 92, 246, 0.45);
 
@@ -105,6 +108,10 @@
   --c-game-reversi-tint:         rgba(163, 230, 53, 0.12);
   --c-game-reversi-tint-border:  rgba(163, 230, 53, 0.32);
   --c-game-reversi-card-glow:    0 0 30px -16px rgba(163, 230, 53, 0.6);
+  --c-game-go-light:             #67e8f9;
+  --c-game-go-tint:              rgba(34, 211, 238, 0.12);
+  --c-game-go-tint-border:       rgba(34, 211, 238, 0.32);
+  --c-game-go-card-glow:         0 0 30px -16px rgba(34, 211, 238, 0.6);
   --c-game-liquidate-light:       #c4b5fd;
   --c-game-liquidate-tint:        rgba(139, 92, 246, 0.14);
   --c-game-liquidate-tint-border: rgba(139, 92, 246, 0.35);
@@ -153,6 +160,7 @@
   --shadow-glow-chess:    0 0 0 1px rgba(59,130,246,0.35), 0 0 40px -8px rgba(59,130,246,0.65);
   --shadow-glow-checkers: 0 0 0 1px rgba(236,72,153,0.35), 0 0 40px -8px rgba(236,72,153,0.65);
   --shadow-glow-reversi:  0 0 0 1px rgba(163,230,53,0.32), 0 0 40px -8px rgba(163,230,53,0.55);
+  --shadow-glow-go:       0 0 0 1px rgba(34,211,238,0.32), 0 0 40px -8px rgba(34,211,238,0.55);
   --shadow-glow-liquidate: 0 0 0 1px rgba(139,92,246,0.35), 0 0 40px -8px rgba(139,92,246,0.65);
 
   /* Gradients (pair: GRADIENTS in tokens.ts). */
@@ -170,6 +178,7 @@
   --page-glow-chess:     radial-gradient(900px 500px at 20% 0%, rgba(59,130,246,0.12),  transparent 55%);
   --page-glow-checkers:  radial-gradient(900px 500px at 20% 0%, rgba(236,72,153,0.13),  transparent 55%);
   --page-glow-reversi:   radial-gradient(900px 500px at 20% 0%, rgba(163,230,53,0.12),  transparent 55%);
+  --page-glow-go:        radial-gradient(900px 500px at 20% 0%, rgba(34,211,238,0.11),  transparent 55%);
   --page-glow-liquidate: radial-gradient(900px 500px at 20% 0%, rgba(139,92,246,0.13),  transparent 55%);
   --page-glow-gold:      radial-gradient(900px 500px at 50% 0%, rgba(205,164,63,0.10),  transparent 55%);
   --page-glow-profile:
@@ -214,6 +223,20 @@
   --gx-reversi-board-valid-white: rgba(255, 255, 255, 0.32);
   --gx-reversi-board-lastmove-ring: rgba(190, 242, 100, 0.85);
   --gx-reversi-board-turn-glow:   0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(163,230,53,0.6), 0 0 30px -2px rgba(163,230,53,0.5);
+
+  /* Go board — pairs with GO_BOARD_COLORS in the ui package. A Go board has no
+     cells to colour: it is a wood field with a grid ruled across it, and stones
+     sit on the crossings. So these name a surface, a line and the star points. */
+  --gx-go-board-surface:       #2a2118;
+  --gx-go-board-surface-edge:  #1d160f;
+  --gx-go-board-line:          rgba(226, 205, 168, 0.55);
+  --gx-go-board-line-strong:   rgba(226, 205, 168, 0.75);
+  --gx-go-board-hoshi:         rgba(226, 205, 168, 0.85);
+  --gx-go-board-border:        #15100b;
+  --gx-go-board-coordinate:    rgba(226, 205, 168, 0.65);
+  --gx-go-board-last-move:     rgba(103, 232, 249, 0.95);
+  --gx-go-board-ghost:         rgba(226, 205, 168, 0.35);
+  --gx-go-board-hint:          rgba(245, 158, 11, 0.95);
 
   /* Liquidate board — pairs with LIQUIDATE_BOARD_COLORS in the ui package.
      Text sitting ON the board gets its own fg pair rather than the page's,
@@ -405,6 +428,7 @@
   --shadow-glow-chess:    0 0 0 1px rgba(139,90,43,0.45),  0 10px 24px -10px rgba(124,82,48,0.50);
   --shadow-glow-checkers: 0 0 0 1px rgba(47,110,78,0.45),  0 10px 24px -10px rgba(47,110,78,0.50);
   --shadow-glow-reversi:  0 0 0 1px rgba(59,46,33,0.40),   0 10px 24px -10px rgba(59,46,33,0.45);
+  --shadow-glow-go:       0 0 0 1px rgba(44,99,96,0.45),   0 10px 24px -10px rgba(44,99,96,0.50);
   --shadow-glow-liquidate:0 0 0 1px rgba(184,114,74,0.45), 0 10px 24px -10px rgba(184,114,74,0.50);
 
   /* Top stop is darker than the hover green: this gradient is a CTA fill carrying
@@ -428,6 +452,7 @@
   --page-glow-chess:     radial-gradient(900px 500px at 20% 0%, rgba(169,116,63,0.15), transparent 60%);
   --page-glow-checkers:  radial-gradient(900px 500px at 20% 0%, rgba(47,110,78,0.12),  transparent 60%);
   --page-glow-reversi:   radial-gradient(900px 500px at 20% 0%, rgba(59,46,33,0.10),   transparent 60%);
+  --page-glow-go:        radial-gradient(900px 500px at 20% 0%, rgba(44,99,96,0.11),   transparent 60%);
   --page-glow-liquidate: radial-gradient(900px 500px at 20% 0%, rgba(184,114,74,0.13), transparent 60%);
   --page-glow-gold:      radial-gradient(1000px 500px at 50% -10%, rgba(169,116,63,0.14), transparent 60%);
   --page-glow-profile:
@@ -474,6 +499,21 @@
   --gx-reversi-board-valid-white: rgba(255, 255, 255, 0.35);
   --gx-reversi-board-lastmove-ring: rgba(250, 244, 232, 0.90);
   --gx-reversi-board-turn-glow:   0 12px 28px -6px rgba(60,40,20,0.35), 0 0 0 2px rgba(47,110,78,0.75);
+
+  /* Go board — real kaya-board yellow with brown-black lines. Like Liquidate's
+     tabletop board this is LIGHTER than the page, which is what a Go board
+     actually looks like; its coordinates and lines therefore stay dark in both
+     themes rather than following the page's foreground. */
+  --gx-go-board-surface:       #e8c88a;
+  --gx-go-board-surface-edge:  #dcb771;
+  --gx-go-board-line:          rgba(45, 30, 15, 0.62);
+  --gx-go-board-line-strong:   rgba(45, 30, 15, 0.85);
+  --gx-go-board-hoshi:         rgba(45, 30, 15, 0.9);
+  --gx-go-board-border:        #8b5a2b;
+  --gx-go-board-coordinate:    rgba(45, 30, 15, 0.7);
+  --gx-go-board-last-move:     rgba(162, 72, 46, 0.95);
+  --gx-go-board-ghost:         rgba(45, 30, 15, 0.28);
+  --gx-go-board-hint:          rgba(138, 102, 29, 0.95);
 
   /* Chess pieces — cream vs near-black walnut. Both sides gain an outline: the
      board's light square is itself cream, so an unstroked pale piece vanishes. */
@@ -744,13 +784,23 @@ html {
 .glow-chess    { box-shadow: var(--shadow-glow-chess); }
 .glow-checkers { box-shadow: var(--shadow-glow-checkers); }
 .glow-reversi  { box-shadow: var(--shadow-glow-reversi); }
+.glow-go       { box-shadow: var(--shadow-glow-go); }
 .glow-liquidate { box-shadow: var(--shadow-glow-liquidate); }
+
+/* A captured Go stone, leaving the board. Mounted where the stone stood and
+ * played once — a `transition` cannot do this, because the element only appears
+ * at the moment it should already be fading. */
+@keyframes gx-stone-captured {
+  from { opacity: 0.85; transform: scale(1); }
+  to   { opacity: 0;    transform: scale(0.6); }
+}
 
 /* Per-game ambient page glow — the in-game screens each carry a soft radial
  * wash of their accent at the top-left, per the Arcade Glow design. */
 .page-glow-chess,
 .page-glow-checkers,
 .page-glow-reversi,
+.page-glow-go,
 .page-glow-liquidate,
 .page-glow-gold,
 .page-glow-profile {
@@ -759,6 +809,7 @@ html {
 .page-glow-chess     { background-image: var(--page-glow-chess); }
 .page-glow-checkers  { background-image: var(--page-glow-checkers); }
 .page-glow-reversi   { background-image: var(--page-glow-reversi); }
+.page-glow-go        { background-image: var(--page-glow-go); }
 .page-glow-liquidate { background-image: var(--page-glow-liquidate); }
 .page-glow-gold      { background-image: var(--page-glow-gold); }
 /* Profile carries the design's dual wash: blue top-left + pink top-right. */

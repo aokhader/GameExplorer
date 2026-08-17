@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type GameKey = 'chess' | 'checkers' | 'reversi' | 'liquidate';
+export type GameKey = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
 const STORAGE_KEY = 'gx:lastGame';
 
-const isGameKey = (v: unknown): v is GameKey =>
-  v === 'chess' || v === 'checkers' || v === 'reversi' || v === 'liquidate';
+export const isGameKey = (v: unknown): v is GameKey =>
+  v === 'chess' || v === 'checkers' || v === 'reversi' || v === 'go' || v === 'liquidate';
 
 /** The game the tab bar's Play button jumps into. Defaults to chess. */
 export async function getLastPlayed(): Promise<GameKey> {

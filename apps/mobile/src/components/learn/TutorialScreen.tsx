@@ -13,6 +13,7 @@ const GLOW_KEY = {
   chess: 'glowChess',
   checkers: 'glowCheckers',
   reversi: 'glowReversi',
+  go: 'glowGo',
   liquidate: 'glowLiquidate',
 } as const;
 

@@ -60,12 +60,23 @@ export interface LocalGameAdapter<S> {
   /** Padding delay (ms) so a bot reply doesn't feel instant. */
   thinkTimeForElo(elo: number): number;
   /**
-   * Reversi only — the current player has no legal move and must pass. When both
-   * are provided the loop auto-passes (append `executePass(state)`) after a short
-   * delay instead of expecting a move. Undefined for chess/checkers (never pass).
+   * Reversi and Go — the current player has no legal move and must pass. When
+   * both are provided the loop auto-passes (append `executePass(state)`) after a
+   * short delay instead of expecting a move. Undefined for chess/checkers
+   * (never pass).
    */
   mustPass?(state: S): boolean;
   executePass?(state: S): S;
+  /**
+   * Go only — passing is a *move*, not just what happens when you are stuck.
+   *
+   * Reversi's pass is forced and automatic: `mustPass` is the whole story, and a
+   * player is never offered the choice. In Go a player may pass at any time, and
+   * two passes are how every game ends, so the screen needs a Pass button and
+   * the loop needs an action behind it. Set alongside `executePass`, which does
+   * the work for both cases.
+   */
+  allowsVoluntaryPass?: boolean;
   save(args: {
     state: S;
     playerColor: Color;
@@ -457,6 +468,23 @@ export function useLocalGame<S>({
     [adapter, vsBot, appendState, clearHint],
   );
 
+  /**
+   * Pass the turn deliberately (Go). Same guards as `handleMove`, because a
+   * pass IS a move: it consumes the turn, ends the game if it is the second in
+   * a row, and must not be playable from a reviewed position or on the bot's
+   * turn. No-op for a game whose adapter does not offer it.
+   */
+  const pass = useCallback(() => {
+    if (!adapter.allowsVoluntaryPass || !adapter.executePass) return;
+    const live = timelineRef.current[timelineRef.current.length - 1];
+    if (viewIndexRef.current !== timelineRef.current.length - 1) return;
+    if (adapter.isGameOver(live) || manualEndRef.current) return;
+    if (vsBot && adapter.currentTurn(live) !== playerColorRef.current) return;
+
+    clearHint();
+    appendState(adapter.executePass(live));
+  }, [adapter, vsBot, appendState, clearHint]);
+
   const endManually = useCallback(
     (kind: 'resign' | 'draw') => {
       const live = timelineRef.current[timelineRef.current.length - 1];
@@ -498,6 +526,9 @@ export function useLocalGame<S>({
     saveError,
     retrySave: () => saveAttemptRef.current?.(),
     handleMove,
+    /** Go only — a no-op unless the adapter sets `allowsVoluntaryPass`. */
+    pass,
+    canPass: !!adapter.allowsVoluntaryPass,
     resign: () => endManually('resign'),
     agreeDraw: () => endManually('draw'),
     newGame,

@@ -10,6 +10,7 @@ const GAME_META: Record<
   chess: { name: 'Chess', icon: '♔', glowVar: '--shadow-glow-chess', hubHref: '/chess', botHref: '/chess/bot' },
   checkers: { name: 'Checkers', icon: '🔴', glowVar: '--shadow-glow-checkers', hubHref: '/checkers', botHref: '/checkers/bot' },
   reversi: { name: 'Reversi', icon: '⚫', glowVar: '--shadow-glow-reversi', hubHref: '/reversi', botHref: '/reversi/bot' },
+  go: { name: 'Go', icon: '⬤', glowVar: '--shadow-glow-go', hubHref: '/go', botHref: '/go/bot' },
   liquidate: { name: 'Liquidate', icon: '🪐', glowVar: '--shadow-glow-liquidate', hubHref: '/liquidate', botHref: '/liquidate/bot' },
 };
 

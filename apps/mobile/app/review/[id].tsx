@@ -66,11 +66,16 @@ export default function PastGameReviewScreen() {
 
   const gameType: GameType = game?.game_type ?? 'chess';
 
+  // Types with a replayer + analysis adapter below. Everything else would fall
+  // through to the chess pair and replay foreign move objects as chess, so it is
+  // refused outright instead. Go is the current absentee (no v1 review).
+  const reviewSupported = gameType === 'chess' || gameType === 'checkers' || gameType === 'reversi';
+
   // Rebuild every position from the stored moves. `replay*Moves` stops at the
   // first move the engine rejects, so a row written by an older version reviews
   // as far as it is valid rather than failing outright.
   const timeline = useMemo(() => {
-    if (!game) return [];
+    if (!game || !reviewSupported) return [];
     // The column is typed for chess; `game_type` is what discriminates it.
     const moves = game.moves as unknown[];
     if (gameType === 'checkers') {
@@ -80,7 +85,7 @@ export default function PastGameReviewScreen() {
       return replayReversiMoves(moves as { position: string | null }[]);
     }
     return replayChessMoves(moves as { from: string; to: string; promotion?: never }[]);
-  }, [game, gameType]);
+  }, [game, gameType, reviewSupported]);
 
   const moves = useMemo(() => {
     if (timeline.length === 0) return [];
@@ -141,7 +146,10 @@ export default function PastGameReviewScreen() {
           <Text
             style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 15, textAlign: 'center' }}
           >
-            {loadError ?? 'That game has no moves to review.'}
+            {loadError ??
+              (!reviewSupported
+                ? 'Review is not available for this game yet.'
+                : 'That game has no moves to review.')}
           </Text>
         </View>
       </Screen>

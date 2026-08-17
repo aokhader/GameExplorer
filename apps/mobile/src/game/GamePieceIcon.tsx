@@ -1,6 +1,7 @@
 import {
   CheckersPiece,
   ChessPiece,
+  GoStone,
   LIQUIDATE_BOARD_COLORS,
   PlayerToken,
   ReversiDisc,
@@ -8,7 +9,7 @@ import {
 } from '@gameexplorer/ui';
 import { seatColor } from '@/liquidate/lqTheme';
 
-export type GameKey = 'chess' | 'checkers' | 'reversi' | 'liquidate';
+export type GameKey = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
 /**
  * A game's identity piece, drawn from the Game Pieces art ("Game Pieces" design
@@ -25,6 +26,10 @@ export function GamePieceIcon({ game, size }: { game: GameKey; size: number }) {
 
   if (game === 'chess') return <ChessPiece type="knight" color="white" size={size} />;
   if (game === 'checkers') return <CheckersPiece type="king" color="white" size={size} />;
+  // The white stone, so Go reads apart from reversi's black disc at icon size —
+  // the two games' pieces are both plain circles, and the shading is the only
+  // thing that separates them that small.
+  if (game === 'go') return <GoStone color="white" size={size} />;
   if (game === 'liquidate') {
     // The first seat's colour — the "you" hue every Liquidate screen follows.
     return (

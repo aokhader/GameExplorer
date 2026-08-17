@@ -3,16 +3,18 @@ import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader } from '@/components/ui';
-import { setLastPlayed, type GameKey } from '@/lib/lastPlayed';
+import { isGameKey, setLastPlayed } from '@/lib/lastPlayed';
 import { CheckersScreen } from '@/screens/CheckersScreen';
 import { ReversiScreen } from '@/screens/ReversiScreen';
 import { ChessScreen } from '@/screens/ChessScreen';
+import { GoScreen } from '@/screens/GoScreen';
 import { LiquidateScreen } from '@/screens/LiquidateScreen';
 
 const LABELS: Record<string, string> = {
   chess: 'Chess',
   checkers: 'Checkers',
   reversi: 'Reversi',
+  go: 'Go',
   liquidate: 'Liquidate',
 };
 
@@ -30,14 +32,13 @@ export default function GameScreen() {
 
   // Remember the game so the tab bar's Play button reopens it next time.
   useEffect(() => {
-    if (key === 'chess' || key === 'checkers' || key === 'reversi' || key === 'liquidate') {
-      setLastPlayed(key as GameKey);
-    }
+    if (isGameKey(key)) setLastPlayed(key);
   }, [key]);
 
   if (key === 'checkers') return <CheckersScreen />;
   if (key === 'reversi') return <ReversiScreen />;
   if (key === 'chess') return <ChessScreen />;
+  if (key === 'go') return <GoScreen />;
   if (key === 'liquidate') return <LiquidateScreen />;
 
   const label = LABELS[key] ?? 'Game';

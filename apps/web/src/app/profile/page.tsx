@@ -49,6 +49,10 @@ const GAME_META: Record<GameType, { label: string; icon: string; text: string; c
     label: 'Reversi', icon: '⚫', text: 'text-[var(--c-game-reversi-light)]',
     card: 'bg-[linear-gradient(180deg,var(--c-game-reversi-tint),var(--c-game-tint-tail))] border-[var(--c-game-reversi-tint-border)] [box-shadow:var(--c-game-reversi-card-glow)]',
   },
+  go: {
+    label: 'Go', icon: '⬤', text: 'text-[var(--c-game-go-light)]',
+    card: 'bg-[linear-gradient(180deg,var(--c-game-go-tint),var(--c-game-tint-tail))] border-[var(--c-game-go-tint-border)] [box-shadow:var(--c-game-go-card-glow)]',
+  },
 };
 
 function ratingDelta(game: GameListItem): number | null {
@@ -105,6 +109,7 @@ export default function ProfilePage() {
   const [chessRating, setChessRating] = useState<UserRating | null>(null);
   const [checkersRating, setCheckersRating] = useState<UserRating | null>(null);
   const [reversiRating, setReversiRating] = useState<UserRating | null>(null);
+  const [goRating, setGoRating] = useState<UserRating | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('all');
   const [loading, setLoading] = useState(true);
 
@@ -125,8 +130,8 @@ export default function ProfilePage() {
         const [profileData, gamesData, ratings] = await Promise.all([
           getPublicProfile(user.id),
           getGames(user.id),
-          // One query for all three game types instead of three round-trips.
-          getUserRatings(user.id, ['chess', 'checkers', 'reversi']),
+          // One query for every rated game type instead of a round-trip each.
+          getUserRatings(user.id, ['chess', 'checkers', 'reversi', 'go']),
         ]);
 
         setProfile(profileData);
@@ -134,6 +139,7 @@ export default function ProfilePage() {
         setChessRating(ratings.chess);
         setCheckersRating(ratings.checkers);
         setReversiRating(ratings.reversi);
+        setGoRating(ratings.go);
         setLoading(false);
     }
 
@@ -197,6 +203,7 @@ export default function ProfilePage() {
     { type: 'chess',    rating: chessRating },
     { type: 'checkers', rating: checkersRating },
     { type: 'reversi',  rating: reversiRating },
+    { type: 'go',       rating: goRating },
   ];
 
   const topRating = Math.max(0, ...ratings.map(r => r.rating?.peak_rating ?? 0));
@@ -210,12 +217,14 @@ export default function ProfilePage() {
   const chessGames    = games.filter(g => !g.game_type || g.game_type === 'chess');
   const checkersGames = games.filter(g => g.game_type === 'checkers');
   const reversiGames  = games.filter(g => g.game_type === 'reversi');
+  const goGames       = games.filter(g => g.game_type === 'go');
 
   const tabGames: Record<Tab, GameListItem[]> = {
     all:      games,
     chess:    chessGames,
     checkers: checkersGames,
     reversi:  reversiGames,
+    go:       goGames,
   };
 
   const visibleGames = tabGames[activeTab];
@@ -225,6 +234,7 @@ export default function ProfilePage() {
     { id: 'chess',    label: 'Chess' },
     { id: 'checkers', label: 'Checkers' },
     { id: 'reversi',  label: 'Reversi' },
+    { id: 'go',       label: 'Go' },
   ];
 
   return (
@@ -335,14 +345,17 @@ export default function ProfilePage() {
 
           {visibleGames.length === 0 ? (
             <div className="py-12 text-center">
+              {/* Driven off GAME_META and the tab's own id rather than a
+                  ternary chain: the chain silently fell through to chess for
+                  any game added after it was written. */}
               <div className="text-3xl mb-2 select-none">
-                {activeTab === 'checkers' ? '⛃' : activeTab === 'reversi' ? '⚫' : '♞'}
+                {activeTab === 'all' ? '♞' : GAME_META[activeTab].icon}
               </div>
               <p className="text-fg-muted text-sm">
                 {activeTab === 'all' ? 'No games played yet' : `No ${activeTab} games yet`}
               </p>
               <Link
-                href={activeTab === 'checkers' ? '/checkers/bot' : activeTab === 'reversi' ? '/reversi/bot' : '/chess/bot'}
+                href={activeTab === 'all' ? '/chess/bot' : `/${activeTab}/bot`}
                 className="mt-3 inline-block text-accent hover:underline text-sm"
               >
                 Play your first {activeTab === 'all' ? '' : activeTab + ' '}game

@@ -4,9 +4,12 @@ import {
   ChessPiece,
   CheckersPiece,
   ReversiDisc,
+  GoStone,
   BOARD_COLORS,
   CHECKERS_BOARD_COLORS,
   REVERSI_BOARD_COLORS,
+  GO_BOARD_COLORS,
+  GO_STAR_POINTS_9,
 } from '@gameexplorer/ui';
 
 /**
@@ -125,7 +128,138 @@ function pieceFor(diagram: TutorialDiagram, square: string) {
   return p ? <ReversiDisc color={p.color} size="100%" /> : null;
 }
 
+/**
+ * Go's diagrams take their own renderer rather than a branch inside the 8×8
+ * grid below. Nothing about that grid applies: a Go board has no cells to
+ * colour, no light/dark alternation, and the stones sit on the LINES' crossings
+ * — so the layout is one SVG of ruled lines with stones positioned over it.
+ * Static and hook-free like the rest of this file, so it server-renders.
+ */
+function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game: 'go' }> }) {
+  const { size } = diagram;
+  const cell = 100 / size;
+  const at = (index: number) => (index + 0.5) * cell;
+
+  const highlights = new Map<string, DiagramHighlight['kind'][]>();
+  for (const h of diagram.highlights ?? []) {
+    highlights.set(h.square, [...(highlights.get(h.square) ?? []), h.kind]);
+  }
+
+  const lines = [];
+  for (let i = 0; i < size; i++) {
+    const edge = i === 0 || i === size - 1;
+    const stroke = edge
+      ? `var(--gx-go-board-line-strong, ${GO_BOARD_COLORS.lineStrong})`
+      : `var(--gx-go-board-line, ${GO_BOARD_COLORS.line})`;
+    const p = at(i);
+    lines.push(
+      <line key={`h${i}`} x1={at(0)} y1={p} x2={at(size - 1)} y2={p} stroke={stroke} strokeWidth={edge ? 0.45 : 0.28} />,
+      <line key={`v${i}`} x1={p} y1={at(0)} x2={p} y2={at(size - 1)} stroke={stroke} strokeWidth={edge ? 0.45 : 0.28} />,
+    );
+  }
+
+  const marks = [];
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const pos = `${String.fromCharCode(97 + col)}${row + 1}`;
+      const stone = diagram.pieces.find(p => p.square === pos);
+      const kinds = highlights.get(pos) ?? [];
+      if (!stone && kinds.length === 0) continue;
+
+      const style: CSSProperties = {
+        position: 'absolute',
+        left: `${at(col)}%`,
+        top: `${at(size - 1 - row)}%`,
+        width: `${cell}%`,
+        height: `${cell}%`,
+        transform: 'translate(-50%, -50%)',
+      };
+
+      marks.push(
+        <div key={pos} style={style} className="flex items-center justify-center">
+          {stone && (
+            <div className="h-[94%] w-[94%]">
+              <GoStone color={stone.color} size="100%" />
+            </div>
+          )}
+          {!stone && kinds.includes('move') && (
+            <div
+              className="h-[30%] w-[30%] rounded-full"
+              style={{ backgroundColor: `var(--gx-go-board-ghost, ${GO_BOARD_COLORS.ghost})` }}
+            />
+          )}
+          {(kinds.includes('capture') || kinds.includes('target')) && (
+            <div
+              className="absolute inset-[6%] rounded-full border-2"
+              style={{ borderColor: `var(--gx-go-board-last-move, ${GO_BOARD_COLORS.lastMoveRing})` }}
+            />
+          )}
+        </div>,
+      );
+    }
+  }
+
+  const coordColor = `var(--gx-go-board-coordinate, ${GO_BOARD_COLORS.coordinate})`;
+
+  return (
+    <figure className="mx-auto my-6 w-full max-w-[340px]">
+      <div
+        role="img"
+        aria-label={diagram.caption}
+        className="relative overflow-hidden rounded-xl"
+        style={{
+          aspectRatio: '1 / 1',
+          background: `var(--gx-go-board-surface, ${GO_BOARD_COLORS.surface})`,
+          border: `2px solid var(--gx-go-board-border, ${GO_BOARD_COLORS.boardBorder})`,
+        }}
+      >
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
+          {lines}
+          {size === 9 &&
+            GO_STAR_POINTS_9.map(([row, col]) => (
+              <circle
+                key={`star-${row}-${col}`}
+                cx={at(col)}
+                cy={at(size - 1 - row)}
+                r={0.7}
+                fill={`var(--gx-go-board-hoshi, ${GO_BOARD_COLORS.hoshi})`}
+              />
+            ))}
+        </svg>
+
+        {diagram.coordinates &&
+          Array.from({ length: size }, (_, i) => (
+            <span key={`coord-${i}`}>
+              <span
+                className="absolute -translate-x-1/2 text-[9px] font-semibold leading-none select-none"
+                style={{ left: `${at(i)}%`, bottom: '1%', color: coordColor }}
+              >
+                {GO_FILE_LETTERS[i]}
+              </span>
+              <span
+                className="absolute -translate-y-1/2 text-[9px] font-semibold leading-none select-none"
+                style={{ top: `${at(size - 1 - i)}%`, left: '1%', color: coordColor }}
+              >
+                {i + 1}
+              </span>
+            </span>
+          ))}
+
+        {marks}
+      </div>
+      <figcaption className="mt-3 text-center text-sm text-fg-muted leading-relaxed">
+        {diagram.caption}
+      </figcaption>
+    </figure>
+  );
+}
+
+/** Go's display files skip I — see the notation module. */
+const GO_FILE_LETTERS = 'ABCDEFGHJKLMNOPQRST';
+
 export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
+  if (diagram.game === 'go') return <GoTutorialBoard diagram={diagram} />;
+
   const isReversi = diagram.game === 'reversi';
   const palette = diagram.game === 'chess' ? CHESS_PALETTE : CHECKERS_PALETTE;
   const highlightsBySquare = new Map<string, DiagramHighlight['kind'][]>();

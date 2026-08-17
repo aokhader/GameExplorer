@@ -174,7 +174,7 @@ export default function HomeScreen() {
               marginBottom: 22,
             }}
           >
-            Chess, checkers, reversi &amp; Liquidate with a pulse — sharp bots, pass-and-play,
+            Chess, checkers, reversi, Go &amp; Liquidate with a pulse — sharp bots, pass-and-play,
             instant rematches. No sign-up to start.
           </Text>
 

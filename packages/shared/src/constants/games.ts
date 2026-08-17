@@ -24,7 +24,7 @@
 
 import { DIFFICULTY_ELO, type OnboardingGame } from './onboarding';
 
-export type GameId = 'chess' | 'checkers' | 'reversi' | 'liquidate';
+export type GameId = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
 /** Play modes a game can offer. Not every game supports every mode. */
 export type GameModeId = 'bot' | 'training' | 'online' | 'local' | 'learn' | 'puzzles';
@@ -98,6 +98,24 @@ export const GAME_CATALOG: Record<GameId, GameCatalogEntry> = {
     available: true,
     rated: true,
   },
+  go: {
+    id: 'go',
+    name: 'Go',
+    slug: 'go',
+    blurb: 'Surround territory on a 9×9 board. The simplest rules in this catalog, and the deepest game.',
+    hook: 'Claim more of the board than they do.',
+    tagline: 'Ancient and deep',
+    accent: 'go',
+    minPlayers: 2,
+    maxPlayers: 2,
+    // No `online` (the socket protocol seats two known game types and Go is not
+    // one of them yet) and no `puzzles`: the puzzle gate proves a solution line
+    // forced by replaying it through the engine, and no Go engine here can settle
+    // that the way the chess and checkers analyzers do.
+    modes: ['bot', 'training', 'local', 'learn'],
+    available: true,
+    rated: true,
+  },
   liquidate: {
     id: 'liquidate',
     name: 'Liquidate',
@@ -119,6 +137,7 @@ export const GAME_LIST: readonly GameCatalogEntry[] = [
   GAME_CATALOG.chess,
   GAME_CATALOG.checkers,
   GAME_CATALOG.reversi,
+  GAME_CATALOG.go,
   GAME_CATALOG.liquidate,
 ];
 

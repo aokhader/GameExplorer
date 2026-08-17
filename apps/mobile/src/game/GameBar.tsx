@@ -28,6 +28,15 @@ export interface GameBarProps {
   onNewGame: () => void;
   /** Forfeit. Asks for a second tap first, so a stray touch can't throw a game. */
   onResign: () => void;
+  /**
+   * Go only — pass the turn. A first-class button rather than a menu row
+   * because in Go a pass is an ordinary move and two of them are how every game
+   * ends; burying it would hide the only way to finish. Omitted by the other
+   * three games, whose bars render exactly as before.
+   */
+  onPass?: () => void;
+  /** Not the player's live turn — there is no turn to pass. */
+  passDisabled?: boolean;
   /** Game already over — nothing left to concede or agree. */
   gameOver?: boolean;
   /**
@@ -73,6 +82,8 @@ export function GameBar({
   onAgreeDraw,
   onNewGame,
   onResign,
+  onPass,
+  passDisabled = false,
   gameOver = false,
   onHint,
   hintDisabled = false,
@@ -123,6 +134,15 @@ export function GameBar({
           disabled={gameOver}
           danger={confirming}
         />
+        {onPass && (
+          <BarButton
+            glyph="⇥"
+            label="Pass"
+            hint="Hand the turn over — two passes in a row end the game"
+            onPress={onPass}
+            disabled={gameOver || passDisabled}
+          />
+        )}
         {onHint ? (
           <BarButton
             glyph={hintPending ? '⏳' : '💡'}

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Polygon } from 'react-native-svg';
+import Svg, { Circle, Line, Polygon } from 'react-native-svg';
 import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@gameexplorer/shared';
-import { ChessPiece, CheckersPiece, ReversiDisc, BOARD_COLORS, CHECKERS_BOARD_COLORS, REVERSI_BOARD_COLORS, COLORS, useThemeName } from '@gameexplorer/ui';
+import { ChessPiece, CheckersPiece, ReversiDisc, GoStone, BOARD_COLORS, CHECKERS_BOARD_COLORS, REVERSI_BOARD_COLORS, GO_BOARD_COLORS, GO_STAR_POINTS_9, COLORS, useThemeName } from '@gameexplorer/ui';
 import { BoardFrame } from '@/board/BoardFrame';
 import { FONTS } from '@/theme/typography';
 
@@ -100,9 +100,181 @@ function pieceFor(diagram: TutorialDiagram, square: string, size: number) {
   return p ? <ReversiDisc color={p.color} size={size} /> : null;
 }
 
+/** Go's display files skip I — see the shared notation module. */
+const GO_FILE_LETTERS = 'ABCDEFGHJKLMNOPQRST';
+
+/**
+ * Go takes its own renderer rather than a branch in the 8×8 grid below: its
+ * board has no cells to colour and its stones sit on the lines' crossings, so
+ * none of the square conventions apply. Static like the rest of this file.
+ */
+function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game: 'go' }> }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
+  const { size } = diagram;
+  const highlights = new Map<string, DiagramHighlight['kind'][]>();
+  for (const h of diagram.highlights ?? []) {
+    highlights.set(h.square, [...(highlights.get(h.square) ?? []), h.kind]);
+  }
+
+  return (
+    <View style={{ marginTop: 16, marginBottom: 6 }}>
+      <BoardFrame maxPx={340} vhCap={60} accessibilityLabel={diagram.caption}>
+        {(px) => {
+          const cell = px / size;
+          const at = (index: number) => (index + 0.5) * cell;
+          const stoneSize = cell * 0.94;
+
+          const lines = [];
+          for (let i = 0; i < size; i++) {
+            const edge = i === 0 || i === size - 1;
+            const stroke = edge ? GO_BOARD_COLORS.lineStrong : GO_BOARD_COLORS.line;
+            const width = edge ? 1.6 : 1;
+            const p = at(i);
+            lines.push(
+              <Line key={`h${i}`} x1={at(0)} y1={p} x2={at(size - 1)} y2={p} stroke={stroke} strokeWidth={width} />,
+              <Line key={`v${i}`} x1={p} y1={at(0)} x2={p} y2={at(size - 1)} stroke={stroke} strokeWidth={width} />,
+            );
+          }
+
+          const marks = [];
+          for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+              const pos = `${String.fromCharCode(97 + col)}${row + 1}`;
+              const stone = diagram.pieces.find((p) => p.square === pos);
+              const kinds = highlights.get(pos) ?? [];
+              if (!stone && kinds.length === 0) continue;
+
+              const cx = at(col);
+              const cy = at(size - 1 - row);
+              marks.push(
+                <View
+                  key={pos}
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    left: cx - stoneSize / 2,
+                    top: cy - stoneSize / 2,
+                    width: stoneSize,
+                    height: stoneSize,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {stone && <GoStone color={stone.color} size={stoneSize} />}
+                  {!stone && kinds.includes('move') && (
+                    <View
+                      style={{
+                        width: stoneSize * 0.3,
+                        height: stoneSize * 0.3,
+                        borderRadius: stoneSize * 0.15,
+                        backgroundColor: GO_BOARD_COLORS.ghost,
+                      }}
+                    />
+                  )}
+                  {(kinds.includes('capture') || kinds.includes('target')) && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        width: stoneSize * 0.9,
+                        height: stoneSize * 0.9,
+                        borderRadius: stoneSize * 0.45,
+                        borderWidth: 2,
+                        borderColor: GO_BOARD_COLORS.lastMoveRing,
+                      }}
+                    />
+                  )}
+                </View>,
+              );
+            }
+          }
+
+          return (
+            <View
+              style={{
+                width: px,
+                height: px,
+                borderRadius: 10,
+                overflow: 'hidden',
+                borderWidth: 2,
+                borderColor: GO_BOARD_COLORS.boardBorder,
+                backgroundColor: GO_BOARD_COLORS.surface,
+              }}
+            >
+              <Svg width={px} height={px} style={StyleSheet.absoluteFill}>
+                {lines}
+                {size === 9 &&
+                  GO_STAR_POINTS_9.map(([row, col]) => (
+                    <Circle
+                      key={`star-${row}-${col}`}
+                      cx={at(col)}
+                      cy={at(size - 1 - row)}
+                      r={Math.max(2, cell * 0.08)}
+                      fill={GO_BOARD_COLORS.hoshi}
+                    />
+                  ))}
+              </Svg>
+
+              {diagram.coordinates &&
+                Array.from({ length: size }, (_, i) => (
+                  <View key={`coord-${i}`}>
+                    <Text
+                      style={{
+                        position: 'absolute',
+                        left: at(i) - cell / 2,
+                        top: px - 12,
+                        width: cell,
+                        textAlign: 'center',
+                        fontSize: 8,
+                        fontWeight: '700',
+                        color: GO_BOARD_COLORS.coordinate,
+                      }}
+                    >
+                      {GO_FILE_LETTERS[i]}
+                    </Text>
+                    <Text
+                      style={{
+                        position: 'absolute',
+                        top: at(size - 1 - i) - 5,
+                        left: 2,
+                        fontSize: 8,
+                        fontWeight: '700',
+                        color: GO_BOARD_COLORS.coordinate,
+                      }}
+                    >
+                      {i + 1}
+                    </Text>
+                  </View>
+                ))}
+
+              {marks}
+            </View>
+          );
+        }}
+      </BoardFrame>
+      <Text
+        style={{
+          fontFamily: FONTS.body,
+          fontSize: 13,
+          lineHeight: 19,
+          color: COLORS.fgMuted,
+          textAlign: 'center',
+          marginTop: 10,
+          paddingHorizontal: 8,
+        }}
+      >
+        {diagram.caption}
+      </Text>
+    </View>
+  );
+}
+
 export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
+
+  if (diagram.game === 'go') return <GoTutorialBoard diagram={diagram} />;
 
   const isReversi = diagram.game === 'reversi';
   const palette = diagram.game === 'chess' ? chessPalette() : checkersPalette();

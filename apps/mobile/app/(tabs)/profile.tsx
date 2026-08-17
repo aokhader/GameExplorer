@@ -25,7 +25,16 @@ const GAME_META: Record<GameType, { label: string }> = {
   chess: { label: 'Chess' },
   checkers: { label: 'Checkers' },
   reversi: { label: 'Reversi' },
+  go: { label: 'Go' },
 };
+
+/**
+ * Game types with an analysis adapter behind `/review/[id]`. Go is absent by
+ * design (v1 ships no Go review), and that screen falls back to the chess
+ * replayer for unknown types — so gate on this rather than letting a Go row
+ * through.
+ */
+const REVIEWABLE: ReadonlySet<GameType> = new Set<GameType>(['chess', 'checkers', 'reversi']);
 
 /** History filter — "all" plus one pill per game, mirroring web's profile. */
 type Tab = 'all' | GameType;
@@ -34,6 +43,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'chess', label: 'Chess' },
   { id: 'checkers', label: 'Checkers' },
   { id: 'reversi', label: 'Reversi' },
+  { id: 'go', label: 'Go' },
 ];
 
 function formatDate(iso: string) {
@@ -144,7 +154,7 @@ export default function YouScreen() {
       Promise.all([
         getPublicProfile(userId),
         getGames(userId),
-        getUserRatings(userId, ['chess', 'checkers', 'reversi']),
+        getUserRatings(userId, ['chess', 'checkers', 'reversi', 'go']),
       ])
         .then(([profileData, gamesData, ratingData]) => {
           if (!active) return;
@@ -250,6 +260,7 @@ export default function YouScreen() {
     { type: 'chess', rating: ratings.chess },
     { type: 'checkers', rating: ratings.checkers },
     { type: 'reversi', rating: ratings.reversi },
+    { type: 'go', rating: ratings.go },
   ];
   const topRating = Math.max(0, ...orderedRatings.map((r) => r.rating.peak_rating));
 
@@ -404,14 +415,24 @@ export default function YouScreen() {
             const label = isDraw ? 'Draw' : won ? 'Win' : 'Loss';
             const color = isDraw ? COLORS.fgMuted : won ? COLORS.successHover : COLORS.dangerHover;
             const delta = ratingDelta(game);
+            // Reviewable when an analysis adapter exists for the type: the stored
+            // moves replay into the same timeline the in-game review uses. Go has
+            // no adapter yet, so its rows stay inert rather than replaying Go
+            // moves through the chess replayer they'd otherwise fall through to.
+            const reviewable = REVIEWABLE.has(type);
             return (
               <Pressable
                 key={game.id}
-                // Every finished game is reviewable: the stored moves replay into
-                // the same timeline the in-game review uses.
-                onPress={() => router.push({ pathname: '/review/[id]', params: { id: game.id } } as never)}
-                accessibilityRole="button"
-                accessibilityLabel={`Review ${meta.label} game against ${game.opponent}`}
+                onPress={
+                  reviewable
+                    ? () => router.push({ pathname: '/review/[id]', params: { id: game.id } } as never)
+                    : undefined
+                }
+                disabled={!reviewable}
+                accessibilityRole={reviewable ? 'button' : undefined}
+                accessibilityLabel={
+                  reviewable ? `Review ${meta.label} game against ${game.opponent}` : undefined
+                }
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',

@@ -54,6 +54,8 @@ const PALETTE = {
   limeLight: '#bef264',
   violet:      '#8b5cf6', // liquidate — nebula violet
   violetLight: '#c4b5fd',
+  cyan:      '#22d3ee', // go — the one hue left between chess's blue and reversi's lime
+  cyanLight: '#67e8f9',
   // Status
   rose600:  '#f43f5e', // danger — arcade rose
   rose500:  '#fb7185',
@@ -84,6 +86,10 @@ const COZY_PALETTE = {
   bark700: '#3b2e21', // body text / reversi signature (slate-dark wood)
   bark500: '#5e5341', // secondary text
   bark400: '#857761', // tertiary / placeholder
+  // Deep teal (go signature) — cool enough to separate from walnut and forest,
+  // dark enough to carry small text on parchment.
+  pine:      '#2c6360',
+  pineLight: '#3d817d',
   // Walnut (chess signature + secondary/info chrome).
   walnut:      '#8b5a2b',
   walnutLight: '#a9743f',
@@ -256,7 +262,7 @@ export interface GameAccent {
   tintBorder: string;
 }
 
-const DARK_GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'liquidate', GameAccent> = {
+const DARK_GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate', GameAccent> = {
   // The tint ramp (bg/bgSoft/border) powers the Arcade Glow card treatment on
   // mobile home/hub screens; web mirrors as `--c-game-*-tint*` vars if adopted.
   chess: {
@@ -270,6 +276,10 @@ const DARK_GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'liquidate', 
   reversi: {
     base: PALETTE.lime, glow: 'rgba(163,230,53,0.42)', light: PALETTE.limeLight,
     tintBg: 'rgba(163,230,53,0.15)', tintBgSoft: 'rgba(163,230,53,0.03)', tintBorder: 'rgba(163,230,53,0.38)',
+  },
+  go: {
+    base: PALETTE.cyan, glow: 'rgba(34,211,238,0.42)', light: PALETTE.cyanLight,
+    tintBg: 'rgba(34,211,238,0.15)', tintBgSoft: 'rgba(34,211,238,0.03)', tintBorder: 'rgba(34,211,238,0.38)',
   },
   liquidate: {
     base: PALETTE.violet, glow: 'rgba(139,92,246,0.45)', light: PALETTE.violetLight,
@@ -296,6 +306,10 @@ export const COZY_GAME_ACCENTS: Record<keyof typeof DARK_GAME_ACCENTS, GameAccen
     base: COZY_PALETTE.bark700, glow: 'rgba(59,46,33,0.22)', light: COZY_PALETTE.bark500,
     tintBg: 'rgba(59,46,33,0.09)', tintBgSoft: 'rgba(59,46,33,0.02)', tintBorder: 'rgba(59,46,33,0.38)',
   },
+  go: {
+    base: COZY_PALETTE.pine, glow: 'rgba(44,99,96,0.24)', light: COZY_PALETTE.pineLight,
+    tintBg: 'rgba(44,99,96,0.10)', tintBgSoft: 'rgba(44,99,96,0.02)', tintBorder: 'rgba(44,99,96,0.42)',
+  },
   liquidate: {
     base: COZY_PALETTE.claySoft, glow: 'rgba(184,114,74,0.26)', light: COZY_PALETTE.clayLight,
     tintBg: 'rgba(184,114,74,0.11)', tintBgSoft: 'rgba(184,114,74,0.02)', tintBorder: 'rgba(184,114,74,0.42)',
@@ -303,7 +317,7 @@ export const COZY_GAME_ACCENTS: Record<keyof typeof DARK_GAME_ACCENTS, GameAccen
 } as const;
 
 /** Active per-game accents — live view (see `COLORS` above). */
-export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'liquidate', GameAccent> =
+export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate', GameAccent> =
   liveView({ dark: DARK_GAME_ACCENTS, cozy: COZY_GAME_ACCENTS });
 
 export type { ThemeName } from './themeRuntime';
@@ -359,6 +373,7 @@ export const SHADOWS = {
   glowChess:    '0 0 0 1px rgba(59,130,246,0.35), 0 0 40px -8px rgba(59,130,246,0.65)',
   glowCheckers: '0 0 0 1px rgba(236,72,153,0.35), 0 0 40px -8px rgba(236,72,153,0.65)',
   glowReversi:  '0 0 0 1px rgba(163,230,53,0.32), 0 0 40px -8px rgba(163,230,53,0.55)',
+  glowGo:       '0 0 0 1px rgba(34,211,238,0.32), 0 0 40px -8px rgba(34,211,238,0.55)',
   glowLiquidate:'0 0 0 1px rgba(139,92,246,0.35), 0 0 40px -8px rgba(139,92,246,0.65)',
 } as const;
 
@@ -409,6 +424,7 @@ const DARK_SHADOWS_NATIVE = {
   glowChess:    { shadowColor: PALETTE.blue, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
   glowCheckers: { shadowColor: PALETTE.pink, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
   glowReversi:  { shadowColor: PALETTE.lime, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 20, elevation: 12 },
+  glowGo:       { shadowColor: PALETTE.cyan, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 20, elevation: 12 },
   glowLiquidate:{ shadowColor: PALETTE.violet, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
 } as const satisfies Record<keyof typeof SHADOWS, NativeShadow>;
 
@@ -432,6 +448,7 @@ const COZY_SHADOWS_NATIVE = {
   glowChess:    { shadowColor: COZY_PALETTE.walnut,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 10 },
   glowCheckers: { shadowColor: COZY_PALETTE.forest,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 10 },
   glowReversi:  { shadowColor: COZY_PALETTE.bark700, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.30, shadowRadius: 14, elevation: 10 },
+  glowGo:       { shadowColor: COZY_PALETTE.pine,    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.30, shadowRadius: 14, elevation: 10 },
   glowLiquidate:{ shadowColor: COZY_PALETTE.claySoft,shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 10 },
 } as const satisfies Record<keyof typeof SHADOWS, NativeShadow>;
 
@@ -457,6 +474,7 @@ const DARK_GLOWS_NATIVE = {
   glowChess:    '0 0 40px -8px rgba(59,130,246,0.65)',
   glowCheckers: '0 0 40px -8px rgba(236,72,153,0.65)',
   glowReversi:  '0 0 40px -8px rgba(163,230,53,0.55)',
+  glowGo:       '0 0 40px -8px rgba(34,211,238,0.55)',
   glowLiquidate:'0 0 40px -8px rgba(139,92,246,0.65)',
 } as const;
 
@@ -467,6 +485,7 @@ const COZY_GLOWS_NATIVE = {
   glowChess:    '0 8px 22px -10px rgba(124,82,48,0.55)',
   glowCheckers: '0 8px 22px -10px rgba(47,110,78,0.55)',
   glowReversi:  '0 8px 22px -10px rgba(59,46,33,0.45)',
+  glowGo:       '0 8px 22px -10px rgba(44,99,96,0.45)',
   glowLiquidate:'0 8px 22px -10px rgba(184,114,74,0.55)',
 } as const;
 

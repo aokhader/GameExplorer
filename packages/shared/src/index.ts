@@ -14,6 +14,8 @@ export * from './utils/currency';
 // Checkers
 export * from './game-logic/checkers';
 export * from './game-logic/reversi';
+// Go — 9x9, area scoring, positional superko
+export * from './game-logic/go';
 // Liquidate — cosmic property-trading game (2–6 players)
 export * from './game-logic/liquidate';
 

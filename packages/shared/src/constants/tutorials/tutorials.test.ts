@@ -10,6 +10,13 @@ import {
 } from '../../game-logic/checkers/utils';
 import { createInitialBoard as createInitialReversiBoard } from '../../game-logic/reversi/utils';
 import { createInitialGameState as createInitialChessState } from '../../game-logic/chess/utils';
+import { GoEngine } from '../../game-logic/go/engine';
+import { getGroup, isSingleSpaceEye } from '../../game-logic/go/moves';
+import {
+  boardKey as goBoardKey,
+  positionToCoordinates as goPositionToCoordinates,
+} from '../../game-logic/go/utils';
+import type { GoColor, GoGameState } from '../../game-logic/go/types';
 import {
   DOUBLES_LIMIT,
   FULL_SYSTEM_RENT_MULTIPLIER,
@@ -136,6 +143,15 @@ describe('tutorial content integrity', () => {
     for (const tutorial of tutorials) {
       for (const diagram of allDiagrams(tutorial)) {
         for (const square of allSquares(diagram)) {
+          // Go is the one game here that is not 8×8: its diagrams declare their
+          // own size and its files run a–i, so it gets its own bound.
+          if (diagram.game === 'go') {
+            const last = String.fromCharCode('a'.charCodeAt(0) + diagram.size - 1);
+            expect(square, `go: bad point '${square}'`).toMatch(
+              new RegExp(`^[a-${last}][1-${diagram.size}]$`),
+            );
+            continue;
+          }
           expect(square, `${tutorial.game}: bad square '${square}'`).toMatch(/^[a-h][1-8]$/);
           expect(isValidCoordinates(positionToCoordinates(square))).toBe(true);
         }
@@ -199,6 +215,88 @@ describe('chess setup diagram', () => {
       const { row, col } = positionToCoordinates(p.square);
       expect(board[row][col], `expected a piece on ${p.square}`).toEqual({ type: p.piece, color: p.color });
     }
+  });
+});
+
+/**
+ * Every claim the Go tutorial makes about a diagram, checked against the real
+ * engine. This is the whole point of authoring tutorials as data: the prose says
+ * "the white stone has one liberty" and "white may not retake straight away",
+ * and here those are assertions rather than hopes.
+ */
+describe('go diagrams match the engine', () => {
+  /** Build a game state from a diagram's stones, with `turn` to move. */
+  function stateFromDiagram(sectionId: string, turn: GoColor): GoGameState {
+    const diagram = TUTORIALS.go.sections.find(s => s.id === sectionId)?.diagrams?.[0];
+    expect(diagram?.game, `section '${sectionId}' needs a go diagram`).toBe('go');
+    if (diagram?.game !== 'go') throw new Error('unreachable');
+
+    const state = GoEngine.newGame({ size: diagram.size });
+    for (const piece of diagram.pieces) {
+      const { row, col } = goPositionToCoordinates(piece.square);
+      state.board[row][col] = piece.color;
+    }
+    state.currentTurn = turn;
+    state.positionKeys = [goBoardKey(state.board)];
+    return state;
+  }
+
+  it('opens on the centre point of a 9x9 board', () => {
+    const state = stateFromDiagram('setup', 'white');
+    expect(state.size).toBe(9);
+    expect(state.board[4][4]).toBe('black'); // e5 is the centre
+  });
+
+  it('leaves the white stone exactly one liberty, where the diagram points', () => {
+    const state = stateFromDiagram('liberties', 'black');
+    expect(getGroup(state.board, 'e5', 9)!.liberties).toEqual(['e4']);
+    expect(GoEngine.validateMove(state, 'e4').valid).toBe(true);
+  });
+
+  it('captures both stones with the marked move', () => {
+    const state = stateFromDiagram('capture', 'black');
+    const next = GoEngine.executeMove(state, 'e7');
+    expect(next.captured.black).toBe(2);
+    expect(next.board[4][4]).toBeNull(); // e5
+    expect(next.board[5][4]).toBeNull(); // e6
+  });
+
+  it('really is a ko: the retake is illegal, and legal again after a move elsewhere', () => {
+    const state = stateFromDiagram('ko', 'black');
+    const afterBlack = GoEngine.executeMove(state, 'e5');
+    expect(afterBlack.captured.black).toBe(1);
+
+    const retake = GoEngine.validateMove(afterBlack, 'd5');
+    expect(retake.valid).toBe(false);
+    expect(retake.reason).toMatch(/ko/i);
+
+    let later = GoEngine.executeMove(afterBlack, 'a1');
+    later = GoEngine.executeMove(later, 'a9');
+    expect(GoEngine.validateMove(later, 'd5').valid).toBe(true);
+  });
+
+  it('shows a group with two real eyes', () => {
+    const state = stateFromDiagram('life', 'white');
+    expect(isSingleSpaceEye(state.board, 'a1', 'black', 9)).toBe(true);
+    expect(isSingleSpaceEye(state.board, 'a3', 'black', 9)).toBe(true);
+    // And white cannot start filling them — both are self-capture.
+    expect(GoEngine.validateMove(state, 'a1').valid).toBe(false);
+    expect(GoEngine.validateMove(state, 'a3').valid).toBe(false);
+  });
+
+  it('scores the counting diagram the way the caption says', () => {
+    const state = stateFromDiagram('scoring', 'black');
+    const score = GoEngine.score(state);
+    expect(score.black).toBe(36); // 9 stones + 27 points behind the wall
+    expect(score.white).toBe(36 + score.komi);
+    // The file between the walls touches both, so it counts for neither.
+    expect(score.black + (score.white - score.komi)).toBe(81 - 9);
+  });
+
+  it('quotes the komi the engine actually uses', () => {
+    const komi = GoEngine.newGame().komi;
+    const text = TUTORIALS.go.sections.flatMap(s => s.paragraphs).join(' ');
+    expect(text).toContain(String(komi));
   });
 });
 

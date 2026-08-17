@@ -22,6 +22,7 @@ const ACCENTS: Record<GameAccent | 'gold', string> = {
   chess: 'bg-[color-mix(in_srgb,var(--c-game-chess)_8%,transparent)] border-[color-mix(in_srgb,var(--c-game-chess)_30%,transparent)] [&>[data-title]]:text-[var(--c-game-chess-light)]',
   checkers: 'bg-[color-mix(in_srgb,var(--c-game-checkers)_8%,transparent)] border-[color-mix(in_srgb,var(--c-game-checkers)_30%,transparent)] [&>[data-title]]:text-[var(--c-game-checkers-light)]',
   reversi: 'bg-[color-mix(in_srgb,var(--c-game-reversi)_8%,transparent)] border-[color-mix(in_srgb,var(--c-game-reversi)_30%,transparent)] [&>[data-title]]:text-[var(--c-game-reversi-light)]',
+  go: 'bg-[color-mix(in_srgb,var(--c-game-go)_8%,transparent)] border-[color-mix(in_srgb,var(--c-game-go)_30%,transparent)] [&>[data-title]]:text-[var(--c-game-go-light)]',
   liquidate: 'bg-[color-mix(in_srgb,var(--c-game-liquidate)_8%,transparent)] border-[color-mix(in_srgb,var(--c-game-liquidate)_30%,transparent)] [&>[data-title]]:text-[var(--c-game-liquidate-light)]',
   gold: 'bg-accent-muted border-accent/35 [&>[data-title]]:text-accent',
 };

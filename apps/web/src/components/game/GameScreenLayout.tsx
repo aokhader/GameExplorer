@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'liquidate';
+export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
 export interface GameScreenLayoutProps {
   /** Per-game neon accent — paints the ambient page glow (chess blue, checkers pink, reversi lime). */

@@ -2,7 +2,7 @@
 import { supabase } from './client';
 import type { GameListItem, NewGame, SavedGame } from './types';
 import { LIMITS } from '@gameexplorer/shared';
-import type { ChessGameState, Color, CheckersGameState, CheckersColor, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
+import type { ChessGameState, Color, CheckersGameState, CheckersColor, ReversiGameState, ReversiColor, GoGameState, GoColor } from '@gameexplorer/shared';
 
 export interface SaveGameOptions {
   mode?: 'casual' | 'rated';
@@ -216,6 +216,58 @@ export async function saveReversiGame(
   }
 
   pruneOldGames(userId, 'reversi');
+  return data as SavedGame;
+}
+
+/**
+ * No-ops (returns null, no request) for signed-out guests — see `isSignedIn`.
+ *
+ * ⚠️ Needs `project-docs/sql-queries/supabase-add-go.sql`: the `games` table's
+ * `game_type` CHECK constraint lists the three older games, so a Go row is
+ * rejected until that migration runs. The failure is the graceful one — logged,
+ * non-fatal, surfaced to the player as a retryable save error — but no Go game
+ * is kept until it is applied.
+ */
+export async function saveGoGame(
+  gameState: GoGameState,
+  playerColor: GoColor,
+  result: NewGame['result'],
+  difficulty?: string,
+  userId?: string,
+  options?: SaveGameOptions,
+): Promise<SavedGame | null> {
+  if (!isSignedIn(userId)) return null;
+
+  const newGame: NewGame = {
+    game_type: 'go',
+    player_color: playerColor,
+    opponent: 'bot',
+    result,
+    difficulty,
+    user_id: userId,
+    mode: options?.mode ?? 'casual',
+    rating_before: options?.rating_before,
+    rating_after: options?.rating_after,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    moves: gameState.moveHistory.map(m => ({
+      position: m.position,
+      color:    m.color,
+      captures: m.captures,
+    })) as any,
+  };
+
+  const { data, error } = await supabase
+    .from('games')
+    .insert(newGame)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to save go game:', error);
+    return null;
+  }
+
+  pruneOldGames(userId, 'go');
   return data as SavedGame;
 }
 

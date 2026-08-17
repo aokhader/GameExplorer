@@ -9,6 +9,7 @@ const META = {
   chess: { name: 'Chess', glowKey: 'glowChess' },
   checkers: { name: 'Checkers', glowKey: 'glowCheckers' },
   reversi: { name: 'Reversi', glowKey: 'glowReversi' },
+  go: { name: 'Go', glowKey: 'glowGo' },
   liquidate: { name: 'Liquidate', glowKey: 'glowLiquidate' },
 } as const;
 

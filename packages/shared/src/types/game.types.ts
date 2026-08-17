@@ -1,4 +1,4 @@
-export type GameType = 'chess' | 'checkers' | 'reversi';
+export type GameType = 'chess' | 'checkers' | 'reversi' | 'go';
 
 export type GameMode = 'online' | 'bot' | 'local';
 

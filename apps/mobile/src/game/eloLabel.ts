@@ -31,7 +31,7 @@ const BOARD_LADDER: [max: number, label: string][] = [
 ];
 const BOARD_TOP = 'Master';
 
-export type EloLabelGame = 'chess' | 'checkers' | 'reversi';
+export type EloLabelGame = 'chess' | 'checkers' | 'reversi' | 'go';
 
 /** e.g. `eloLabel('chess', 1450)` → "Competitive". */
 export function eloLabel(game: EloLabelGame, elo: number): string {

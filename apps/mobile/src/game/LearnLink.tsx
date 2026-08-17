@@ -4,7 +4,7 @@ import { GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface LearnLinkProps {
-  game: 'chess' | 'checkers' | 'reversi';
+  game: 'chess' | 'checkers' | 'reversi' | 'go';
   /** Each game words its invitation slightly differently. */
   label: string;
 }
