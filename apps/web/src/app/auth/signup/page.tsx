@@ -148,6 +148,21 @@ export default function SignUpPage() {
             {loading ? 'Creating account...' : 'Create account'}
           </button>
 
+          {/* Assent notice. Sits directly under the submit button so it is
+              unmissable, and reads "creating an account" rather than naming one
+              button — the three OAuth options above create accounts too. */}
+          <p className="text-center text-xs text-fg-subtle">
+            By creating an account you agree to our{' '}
+            <Link href="/terms" className="text-fg-muted hover:text-accent underline">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="text-fg-muted hover:text-accent underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+
           <p className="text-center text-sm text-fg-muted">
             Already have an account?{' '}
             <Link href="/auth/signin" className="text-accent hover:underline">

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GameExplorer">
+  <!--
+    The web app's browser-tab identity.
+
+    Replaces the untouched create-next-app default, which was Vercel's logo and
+    had been the site's only icon since the first commit (legal backlog B-05).
+
+    Deliberately the *core* of the mobile app mark (apps/mobile/assets/icon.png)
+    and not a copy of it: that icon carries three coloured dots under the disc,
+    which at a 16px tab size collapse into a smudge. The gold disc and the dark
+    play triangle are the half that survives the shrink, so the two platforms
+    still read as one brand.
+
+    Colours are the packages/ui Arcade Glow tokens — PALETTE.ink900, .gold,
+    .goldDark and .goldInk. Keep them in sync by hand; an SVG in app/ cannot
+    import from the token module.
+  -->
+  <defs>
+    <linearGradient id="disc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dcb456"/>
+      <stop offset="1" stop-color="#b8923a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="#0b0e17"/>
+  <circle cx="32" cy="32" r="21" fill="url(#disc)"/>
+
+  <!-- Play triangle. Centroid sits at x=33 rather than 32: a right-pointing
+       triangle centred by its bounding box looks left-heavy, so it is nudged
+       right to land optically centred. Round joins match the mobile mark. -->
+  <path
+    d="M27 22 L45 32 L27 42 Z"
+    fill="#1a1206"
+    stroke="#1a1206"
+    stroke-width="4"
+    stroke-linejoin="round"
+  />
+</svg>

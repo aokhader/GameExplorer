@@ -46,10 +46,36 @@ const spectral = Spectral({
  */
 const THEME_BOOTSTRAP = `try{var s=JSON.parse(localStorage.getItem('gx:settings')||'{}');if(s.theme==='cozy')document.documentElement.dataset.theme='cozy';}catch(e){}`;
 
+/**
+ * Absolute base for OG/Twitter image URLs. Without it Next emits relative
+ * `og:image` paths, which every scraper rejects — the card silently doesn't
+ * render. Overridable so preview deploys advertise themselves rather than
+ * production.
+ */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://game-explorer-site.vercel.app';
+
+const DESCRIPTION =
+  'Play chess, checkers, reversi, Go and Liquidate — sharp bots, online matches, pass and play, puzzles and Elo ratings. Free, no ads.';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'GameExplorer - Classic Board Games',
-  description: 'Play chess, checkers, reversi and more classic board games online',
-  keywords: ['chess', 'board games', 'online games', 'multiplayer'],
+  description: DESCRIPTION,
+  keywords: ['chess', 'checkers', 'reversi', 'go', 'board games', 'online games', 'multiplayer'],
+  // `opengraph-image.tsx` supplies the image for both cards; declaring the rest
+  // here keeps titles/descriptions from falling back to the bare page title.
+  openGraph: {
+    type: 'website',
+    siteName: 'GameExplorer',
+    title: 'GameExplorer — Classic Board Games',
+    description: DESCRIPTION,
+    url: SITE_URL,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GameExplorer — Classic Board Games',
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

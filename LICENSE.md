@@ -25,7 +25,15 @@ SOFTWARE.
 - The MIT license above covers all first-party source code in this repository.
 - **Branding is excluded.** The "GameExplorer" name, logo, and brand assets are
   not covered by this license — forks must ship under their own name and
-  identity.
+  identity. This covers the app icon set (`apps/mobile/assets/icon.png` and its
+  adaptive/monochrome/splash variants) and the web icon
+  ([`apps/web/src/app/icon.svg`](apps/web/src/app/icon.svg)) with the Open Graph
+  card generated from it.
+  - The web icon is **first-party**, authored as committed SVG source from the
+    `packages/ui` color tokens (August 2026). It replaced the untouched
+    `create-next-app` default, which was **Vercel's** logo and had been the
+    site's only icon since the first commit — a third party's mark sitting
+    inside a carve-out that claimed it as GameExplorer branding.
 
 ## Third-party engines
 

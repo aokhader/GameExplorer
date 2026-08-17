@@ -131,8 +131,11 @@ export default function HomePage() {
 
         {/* Footer */}
         <footer className="mt-24 text-center text-fg-muted">
-          <p className="mb-4">Three games. One board. Endless rematches.</p>
-          <div className="mb-4 flex items-center justify-center gap-6 text-sm">
+          <p className="mb-4">Five games. One board. Endless rematches.</p>
+          <div className="mb-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+            <Link href="/terms" className="hover:text-fg transition-colors">
+              Terms
+            </Link>
             <Link href="/privacy" className="hover:text-fg transition-colors">
               Privacy
             </Link>

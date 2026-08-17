@@ -4,10 +4,18 @@ import Constants from 'expo-constants';
 /** Where bug reports and concerns go — also shown on the web /privacy page. */
 export const SUPPORT_EMAIL = 'gameexploreradmin@gmail.com';
 
-/** The deployed web app (hosts /privacy, /settings — the store-required URLs). */
+/** The deployed web app (hosts /privacy, /terms, /settings — the store-required URLs). */
 export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://game-explorer-site.vercel.app';
 
 export const PRIVACY_URL = `${WEB_URL}/privacy`;
+
+/**
+ * Terms of service. Both stores expect one for an app with accounts, online
+ * play and user-generated content; sign-up links here before the account is
+ * created. Web-hosted rather than a native screen so a single document covers
+ * both platforms and can be corrected without shipping a build.
+ */
+export const TERMS_URL = `${WEB_URL}/terms`;
 
 /**
  * The public source repo, linked from Settings → Open source. The binary is

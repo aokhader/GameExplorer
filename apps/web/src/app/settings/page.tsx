@@ -315,6 +315,20 @@ export default function SettingsPage() {
               </span>
             </a>
             <Link
+              href="/terms"
+              className="group flex items-center justify-between gap-4 py-4"
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-fg">Terms of service</p>
+                <p className="text-sm text-fg-muted">
+                  Fair play, community rules, and what to expect from the service.
+                </p>
+              </div>
+              <span className="text-fg-subtle group-hover:text-fg transition-colors" aria-hidden>
+                ›
+              </span>
+            </Link>
+            <Link
               href="/privacy"
               className="group flex items-center justify-between gap-4 py-4"
             >

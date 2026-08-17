@@ -1,10 +1,46 @@
 import { useRef, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { supabase } from '@gameexplorer/db';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
+import { PRIVACY_URL, TERMS_URL } from '@/config/support';
+
+/** Opens a legal document, falling back to the system browser. */
+function openLegal(url: string) {
+  WebBrowser.openBrowserAsync(url).catch(() => {
+    Linking.openURL(url).catch(() => {
+      /* No browser at all — the notice text still names what was agreed to. */
+    });
+  });
+}
+
+/**
+ * Assent notice, directly under the submit button so it is unmissable.
+ *
+ * Worded as "creating an account" rather than naming one button, because the
+ * OAuth options above create accounts too and the notice has to cover them.
+ */
+function LegalNotice() {
+  const link = { color: COLORS.fgMuted, fontSize: 12, textDecorationLine: 'underline' } as const;
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
+      <Text style={{ color: COLORS.fgSubtle, fontSize: 12 }}>
+        By creating an account you agree to our{' '}
+      </Text>
+      <Pressable onPress={() => openLegal(TERMS_URL)} accessibilityRole="link">
+        <Text style={link}>Terms of Service</Text>
+      </Pressable>
+      <Text style={{ color: COLORS.fgSubtle, fontSize: 12 }}> and </Text>
+      <Pressable onPress={() => openLegal(PRIVACY_URL)} accessibilityRole="link">
+        <Text style={link}>Privacy Policy</Text>
+      </Pressable>
+      <Text style={{ color: COLORS.fgSubtle, fontSize: 12 }}>.</Text>
+    </View>
+  );
+}
 
 /**
  * Email/password + OAuth sign-up. Mirrors the web `/auth/signup` page: create the
@@ -121,6 +157,8 @@ export default function SignUpScreen() {
           disabled={!email || !password || !username}
           glow
         />
+
+        <LegalNotice />
 
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 4 }}>
           <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>Already have an account?</Text>

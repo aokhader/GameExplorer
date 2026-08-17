@@ -6,7 +6,13 @@ import { Screen, BackHeader, Card, Toggle } from '@/components/ui';
 import { useSettings, type Settings } from '@/providers/SettingsProvider';
 import { playSfx } from '@/audio/sfxPlayer';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
-import { PRIVACY_URL, SOURCE_REPO_URL, SUPPORT_EMAIL, supportMailtoUrl } from '@/config/support';
+import {
+  PRIVACY_URL,
+  SOURCE_REPO_URL,
+  SUPPORT_EMAIL,
+  TERMS_URL,
+  supportMailtoUrl,
+} from '@/config/support';
 
 /** Settings a Toggle can drive — the boolean ones. */
 type BooleanSettingKey = {
@@ -363,6 +369,13 @@ export default function SettingsScreen() {
             Linking.openURL(supportMailtoUrl()).catch(() =>
               Alert.alert('Contact support', `Email us at ${SUPPORT_EMAIL}`),
             );
+          }}
+        />
+        <LinkRow
+          title="Terms of service"
+          description="Fair play, community rules, and what to expect from the service."
+          onPress={() => {
+            WebBrowser.openBrowserAsync(TERMS_URL).catch(() => Linking.openURL(TERMS_URL));
           }}
         />
         <LinkRow
