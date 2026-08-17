@@ -1,5 +1,4 @@
 import { ActivityIndicator, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 // Deep import, not the package barrel. The barrel re-exports `useSocket`, which
 // pulls in `@gameexplorer/db` — and that module builds a Supabase client at
 // import time from env that a puzzle never needs. Reaching straight for the hook
@@ -17,6 +16,7 @@ import { PuzzleBoard } from '@/puzzles/PuzzleBoard';
 import { PuzzleBar } from '@/puzzles/PuzzleBar';
 import { usePuzzleFeedback } from '@/puzzles/usePuzzleFeedback';
 import { Confetti } from '@/game/Confetti';
+import { BackToHomeButton } from '@/game/resultDismiss';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
 
@@ -313,8 +313,6 @@ function EmptyState({
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
-  const router = useRouter();
-
   return (
     <Screen scroll={false}>
       <BackHeader title="Puzzles" fallbackHref="/" />
@@ -342,7 +340,7 @@ function EmptyState({
         </Text>
         <View style={{ alignSelf: 'stretch', gap: 10, marginTop: 8 }}>
           {action}
-          <Button label="Back to Home" variant="secondary" onPress={() => router.replace('/' as never)} />
+          <BackToHomeButton />
         </View>
       </View>
     </Screen>
