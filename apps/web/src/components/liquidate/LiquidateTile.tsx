@@ -30,7 +30,7 @@ function subLabel(tile: Tile, stipend: number): string {
     case 'home-station':
       return `Stipend ₡${stipend}`;
     case 'impound':
-      return 'Just visiting';
+      return 'Passing through';
     case 'contraband-scan':
       return 'Cargo check';
     case 'drift':

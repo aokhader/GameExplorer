@@ -31,31 +31,64 @@ const MIN_BASE_RENT = 6;
 /** A bare planet earns double rent when its owner holds the whole system. */
 export const FULL_SYSTEM_RENT_MULTIPLIER = 2;
 
-/** Warp-gate rent by number of gates the owner holds (1–4). */
-export const LIQUIDATE_WARP_GATE_RENTS = [25, 50, 100, 200] as const;
-export const LIQUIDATE_WARP_GATE_PRICE = 200;
-
-/** Utility rent = dice total × this, depending on how many utilities are held. */
-export const LIQUIDATE_UTILITY_MULTIPLIER_ONE = 4;
-export const LIQUIDATE_UTILITY_MULTIPLIER_BOTH = 10;
-export const LIQUIDATE_UTILITY_PRICE = 150;
+/**
+ * Warp-gate rent by number of gates the owner holds (1–4).
+ *
+ * Derived, not tabulated — the same rule the property curve follows. Rent is
+ * the base times the nth *triangular* number (1, 3, 6, 10), so each further
+ * gate adds more than the one before it, and a player holding all four collects
+ * the gate's entire list price on every landing. That last identity is the
+ * design target: cornering the gates should read as obviously decisive.
+ */
+const WARP_GATE_BASE_RENT = 18;
+export const LIQUIDATE_WARP_GATE_RENTS = [
+  WARP_GATE_BASE_RENT * 1,
+  WARP_GATE_BASE_RENT * 3,
+  WARP_GATE_BASE_RENT * 6,
+  WARP_GATE_BASE_RENT * 10,
+] as const;
+export const LIQUIDATE_WARP_GATE_PRICE = WARP_GATE_BASE_RENT * 10;
 
 /**
- * Mortgage pays half the list price; clearing it costs interest on top.
- * The interest is an integer *percent* so the money math stays exact — the
- * float form (`× 1.1`) makes 100 → 110.00000000000001 and overcharges a credit.
+ * Utility rent = dice total × this, depending on how many utilities are held.
+ *
+ * Also derived: holding both *squares* the multiplier rather than stepping to
+ * an arbitrary second number, so the jump is a stated rule instead of a tuned
+ * pair.
  */
-export const MORTGAGE_RATE = 0.5;
-export const UNMORTGAGE_INTEREST_PERCENT = 10;
+const UTILITY_BASE_MULTIPLIER = 3;
+export const LIQUIDATE_UTILITY_MULTIPLIER_ONE = UTILITY_BASE_MULTIPLIER;
+export const LIQUIDATE_UTILITY_MULTIPLIER_BOTH = UTILITY_BASE_MULTIPLIER ** 2;
+export const LIQUIDATE_UTILITY_PRICE = 140;
+
+/**
+ * Mortgaging pays 60% of list; clearing it costs interest on top.
+ *
+ * The pair is deliberately sharper than a plain half-and-a-tenth: this game is
+ * named for the decision to liquidate, so borrowing gives real breathing room
+ * and buying back hurts enough that it stays a decision.
+ *
+ * The interest is an integer *percent* so the money math stays exact — the
+ * float form (`× 1.15`) reintroduces the rounding error that overcharges a
+ * credit.
+ */
+export const MORTGAGE_RATE = 0.6;
+export const UNMORTGAGE_INTEREST_PERCENT = 15;
 
 /** Fine to leave impound. */
 export const LIQUIDATE_IMPOUND_FINE = 100;
 
 /** Failed doubles attempts before the release fee is forced. */
-export const MAX_IMPOUND_TURNS = 3;
+export const MAX_IMPOUND_TURNS = 2;
 
-/** Consecutive doubles that send a player to impound. */
-export const DOUBLES_LIMIT = 3;
+/**
+ * Consecutive doubles that send a player to impound.
+ *
+ * Two, not three: at three the rule fires about once every 216 turn-sequences
+ * and is effectively flavour. At two it is a live risk every time a double is
+ * rolled, which makes the extra-turn reward genuinely double-edged.
+ */
+export const DOUBLES_LIMIT = 2;
 
 /**
  * Trade offers one seat may make per turn.

@@ -4,7 +4,7 @@
 //
 // Eight rows rank 8 first (so the string reads the way the board is drawn),
 // `/`-separated, then the side to move. `.` empty, `X` black, `O` white —
-// the same letters Othello literature uses.
+// the same letters the reversi literature uses.
 //
 // Whitespace between rows is ignored on the way in, so a position can be
 // authored as a multi-line template literal and still round-trip.

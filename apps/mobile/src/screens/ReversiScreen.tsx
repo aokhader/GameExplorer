@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
 import {
   ReversiEngine,
-  moveHistoryToOthello,
+  moveHistoryToReversi,
   type ReversiGameState,
   type ReversiColor,
 } from '@gameexplorer/shared';
@@ -144,10 +144,10 @@ export function ReversiScreen() {
     setReviewing(false);
   };
 
-  // Standard Othello notation — just the square each disc went on.
+  // Standard reversi notation — just the square each disc went on.
   // Above the setup-screen early return: hooks can't be called conditionally.
-  const othelloMoves = useMemo(
-    () => moveHistoryToOthello(game.timeline[game.timeline.length - 1].moveHistory),
+  const reversiMoves = useMemo(
+    () => moveHistoryToReversi(game.timeline[game.timeline.length - 1].moveHistory),
     [game.timeline],
   );
 
@@ -416,7 +416,7 @@ export function ReversiScreen() {
         accent="reversi"
         title="Review"
         adapter={reversiAnalysis}
-        moves={othelloMoves}
+        moves={reversiMoves}
         viewIndex={game.viewIndex}
         onSeek={game.setViewIndex}
         total={game.timeline.length}
@@ -506,7 +506,7 @@ export function ReversiScreen() {
             {/* Where the status banner used to sit — it repeated what the player
                 cards already say, so the space carries the move ribbon instead. */}
             <MoveBand
-              moves={othelloMoves}
+              moves={reversiMoves}
               viewIndex={game.viewIndex}
               onSeek={game.setViewIndex}
               accent="reversi"

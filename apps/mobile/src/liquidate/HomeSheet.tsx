@@ -270,7 +270,7 @@ export function HomeSheet({
                  half of the ladder row would otherwise sit empty. */
               unowned={ownable && state.tiles[focusTile]!.ownerId === null}
               /* Utilities charge a multiple of the roll, so their ladder has no
-                 credit range to summarise — "dice × 4–dice × 10" is not a span
+                 credit range to summarise — "dice × 3–dice × 9" is not a span
                  of money and reads as a typo. */
               range={ownable && tile.kind !== 'utility'}
               open={ladderOpen}

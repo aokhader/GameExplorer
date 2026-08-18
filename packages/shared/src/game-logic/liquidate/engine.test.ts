@@ -7,8 +7,11 @@ import {
   DEFAULT_DEBT_RULE,
   LIQUIDATE_CONFIGS,
   LIQUIDATE_IMPOUND_FINE,
+  LIQUIDATE_UTILITY_MULTIPLIER_BOTH,
+  LIQUIDATE_UTILITY_MULTIPLIER_ONE,
   LIQUIDATE_WARP_GATE_RENTS,
   MAX_IMPOUND_TURNS,
+  MORTGAGE_RATE,
   baseRentFor,
   colonyCostFor,
   mortgageValueFor,
@@ -206,12 +209,17 @@ describe('economy', () => {
     expect(colonyCostFor('aurum')).toBe(225);
   });
 
-  it('mortgages at half price and charges exact integer interest to clear', () => {
-    expect(mortgageValueFor(200)).toBe(100);
-    // Guards the float bug: 100 * 1.1 is 110.00000000000001, which used to
-    // ceil to 111 and overcharge a credit.
-    expect(unmortgageCostFor(200)).toBe(110);
-    expect(unmortgageCostFor(70)).toBe(39);
+  it('mortgages at the list-price rate and charges exact integer interest to clear', () => {
+    expect(mortgageValueFor(200)).toBe(Math.floor(200 * MORTGAGE_RATE));
+    expect(mortgageValueFor(200)).toBe(120);
+    // Interest is computed on integers, which makes the result exact by
+    // construction. The float form (`× 1.1`) once turned 100 into
+    // 110.00000000000001 and ceil'd to 111, overcharging a credit; the current
+    // 15% rate happens not to reproduce that, so this guards the *method*
+    // rather than one arithmetic accident.
+    expect(unmortgageCostFor(200)).toBe(138);
+    expect(unmortgageCostFor(70)).toBe(49);
+    expect(Number.isInteger(unmortgageCostFor(70))).toBe(true);
   });
 
   it('starts quick mode richer on a much shorter cap', () => {
@@ -780,9 +788,15 @@ describe('rent', () => {
     const utilities = getBoard('full').filter((t) => t.kind === 'utility');
     const state = game();
     state.tiles[utilities[0].id].ownerId = state.players[1].id;
-    expect(LiquidateEngine.rentFor(state, utilities[0].id, 9)).toBe(9 * 4);
+    expect(LiquidateEngine.rentFor(state, utilities[0].id, 9)).toBe(
+      9 * LIQUIDATE_UTILITY_MULTIPLIER_ONE,
+    );
     state.tiles[utilities[1].id].ownerId = state.players[1].id;
-    expect(LiquidateEngine.rentFor(state, utilities[0].id, 9)).toBe(9 * 10);
+    expect(LiquidateEngine.rentFor(state, utilities[0].id, 9)).toBe(
+      9 * LIQUIDATE_UTILITY_MULTIPLIER_BOTH,
+    );
+    // The jump is a stated rule (the multiplier squares), not a tuned pair.
+    expect(LIQUIDATE_UTILITY_MULTIPLIER_BOTH).toBe(LIQUIDATE_UTILITY_MULTIPLIER_ONE ** 2);
   });
 });
 

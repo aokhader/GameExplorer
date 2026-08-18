@@ -5,8 +5,17 @@ This module's wrapper code is forked from @loloof64/react-native-stockfish
 
 - Wrapper/bridge code: MIT (this repository's root LICENSE.md applies to
   first-party modifications; original wrapper Copyright (c) 2024 loloof64).
-- cpp/stream_fix.{h,cpp}: from flutter_stockfish_plugin via
-  @loloof64/react-native-stockfish (MIT).
+- cpp/line_queue.{h,cpp}: first-party, MIT. Written 2026-08-18 to replace
+  cpp/stream_fix.{h,cpp}, which carried no copyright line and no licence text —
+  only a comment reading "Taken from jusax23/flutter_stockfish_plugin". That
+  project is GPL-3.0; the intermediate fork this module was taken from
+  (@loloof64/react-native-stockfish) is MIT, which is where the earlier "MIT"
+  description here came from. Whether those files were GPL-3.0 code relicensed
+  upstream, or an independent MIT implementation, could not be determined from
+  the files themselves. They were replaced rather than relicensed so the
+  question does not arise; the replacement was written from scratch against the
+  interface this module uses and carries nothing over. The originals are
+  deleted.
 - cpp/arasan/: the Arasan chess engine, Copyright 1994-2026 by Jon Dart,
   distributed under its MIT-style license — see cpp/arasan/LICENSE.
   Vendored at the commit recorded in cpp/arasan/VENDORED.txt, with one patch:

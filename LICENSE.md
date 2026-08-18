@@ -46,12 +46,16 @@ SOFTWARE.
   Everything in the mobile binary is MIT — it replaced GPL Stockfish
   (July 2026) so the same engine can ship on Google Play **and** the Apple
   App Store. See [`apps/mobile/LICENSE.md`](apps/mobile/LICENSE.md).
-- **Web app — Stockfish WASM (GPL, mere use).** `apps/web` serves unmodified
-  [Stockfish](https://github.com/official-stockfish/Stockfish) builds
-  (GPL-3.0-or-later, full text at
+- **Web app — Stockfish.js WASM (GPL, mere use).** `apps/web` serves unmodified
+  builds of [Stockfish.js](https://github.com/nmrugg/stockfish.js) 18.0.8
+  (Copyright (c) 2026 Chess.com, LLC; GPL-3.0-or-later, full text at
   [`LICENSES/GPL-3.0-or-later.txt`](LICENSES/GPL-3.0-or-later.txt)) as
   separate Web Worker programs (mere use, not linking) — see
-  `apps/web/public/stockfish/README.md`.
+  `apps/web/public/stockfish/README.md`. Stockfish.js is an Emscripten port of
+  [Stockfish](https://github.com/official-stockfish/Stockfish) (Copyright (c)
+  T. Romstad, M. Costalba, J. Kiiski, G. Linscott and other contributors);
+  because the port is the work conveyed, the corresponding-source offer points
+  at Stockfish.js at that version, not at upstream Stockfish.
 
 ## Third-party assets
 

@@ -8,6 +8,8 @@ import { ClientConfig } from '@/components/ClientConfig';
 import { ToastProvider } from '@/components/ui';
 import { RouteAmbient, PageTransition } from '@/components/visual';
 import { SettingsProvider } from '@/components/providers/SettingsProvider';
+import { gameNameList } from '@gameexplorer/shared';
+import { SITE_URL } from '@/lib/site';
 
 /**
  * Type. Each theme names a body + display face, so all four are loaded as CSS
@@ -46,16 +48,14 @@ const spectral = Spectral({
  */
 const THEME_BOOTSTRAP = `try{var s=JSON.parse(localStorage.getItem('gx:settings')||'{}');if(s.theme==='cozy')document.documentElement.dataset.theme='cozy';}catch(e){}`;
 
-/**
- * Absolute base for OG/Twitter image URLs. Without it Next emits relative
- * `og:image` paths, which every scraper rejects — the card silently doesn't
- * render. Overridable so preview deploys advertise themselves rather than
- * production.
- */
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://game-explorer-site.vercel.app';
+// SITE_URL is the absolute base for OG/Twitter image URLs. Without it Next
+// emits relative `og:image` paths, which every scraper rejects — the card
+// silently doesn't render. It now lives in `@/lib/site` because robots.ts and
+// sitemap.ts need the identical value.
 
-const DESCRIPTION =
-  'Play chess, checkers, reversi, Go and Liquidate — sharp bots, online matches, pass and play, puzzles and Elo ratings. Free, no ads.';
+// Reads from the catalog: this sentence is the site's search description, and
+// a hand-typed game list here goes stale the moment a game ships.
+const DESCRIPTION = `Play ${gameNameList()} — sharp bots, online matches, pass and play, puzzles and Elo ratings. Free, no ads.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

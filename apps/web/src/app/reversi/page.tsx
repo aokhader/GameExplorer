@@ -103,7 +103,8 @@ export default function ReversiLandingPage() {
             <GradientText>Play Reversi</GradientText>
           </Reveal>
           <Reveal as="p" delay={160} className="text-xl text-fg-muted max-w-2xl mx-auto">
-            Classic Othello — outflank your opponent and fill the board with your colour
+            The classic disc-flipping strategy game — outflank your opponent and fill the board with
+            your colour
           </Reveal>
         </div>
 

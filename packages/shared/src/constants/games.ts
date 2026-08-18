@@ -188,3 +188,18 @@ export function gameNameList(games: readonly GameCatalogEntry[] = GAME_LIST): st
   if (names.length <= 1) return names[0] ?? '';
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
+/**
+ * The catalog's size, spelled out and capitalised for prose — "Five games. One
+ * board. Endless rematches."
+ *
+ * Same reason as {@link gameNameList}: that tagline shipped reading "Three
+ * games" and was still saying it after Go and Liquidate launched. A hand-typed
+ * count is the shortest-lived string in the product.
+ *
+ * Falls back to digits past ten, where spelling it out stops reading well
+ * anyway.
+ */
+export function gameCountWord(games: readonly GameCatalogEntry[] = GAME_LIST): string {
+  const words = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+  return words[games.length] ?? String(games.length);
+}

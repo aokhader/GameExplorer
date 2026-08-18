@@ -6,15 +6,15 @@
 // (src/input.cpp), so C++-level stream swaps can't intercept it. Instead we
 // give the engine the real thing: OS pipes dup2()'d onto fd 0/1/2 before the
 // engine starts. The engine believes it's talking to a terminal; reader
-// threads drain the out/err pipes into thread-safe line queues (FakeStream,
-// reused from the Stockfish wrapper purely as a queue) that the Kotlin layer
+// threads drain the out/err pipes into thread-safe line queues (LineQueue,
+// first-party — see line_queue.h) that the Kotlin layer
 // pops via blocking JNI calls.
 //
 // stdout/stderr of the whole app process are redirected by the dup2 — on
 // Android neither goes anywhere useful by default (app logging uses liblog),
 // so nothing of value is lost.
 #include "react-native-arasan.h"
-#include "stream_fix.h"
+#include "line_queue.h"
 
 #include <cstring>
 #include <mutex>
@@ -42,8 +42,8 @@ namespace
     });
   }
 
-  FakeStream outQueue;
-  FakeStream errQueue;
+  reactnativearasan::LineQueue outQueue;
+  reactnativearasan::LineQueue errQueue;
 
   std::string out_line;
   std::string err_line;
@@ -51,7 +51,7 @@ namespace
   char err_buffer[BUFFER_SIZE + 1];
 
   // Reads a pipe fd forever, splitting into lines pushed onto `queue`.
-  void drainPipe(int fd, FakeStream &queue)
+  void drainPipe(int fd, reactnativearasan::LineQueue &queue)
   {
     std::string pending;
     char chunk[BUFFER_SIZE];
@@ -70,15 +70,15 @@ namespace
         std::string line = pending.substr(0, pos);
         if (!line.empty() && line.back() == '\r')
           line.pop_back();
-        queue << line;
+        queue.push(std::move(line));
         pending.erase(0, pos + 1);
       }
     }
   }
 
-  char *popLine(FakeStream &queue, std::string &line, char *buffer)
+  char *popLine(reactnativearasan::LineQueue &queue, std::string &line, char *buffer)
   {
-    if (std::getline(queue, line))
+    if (queue.pop(line))
     {
       size_t len = line.length();
       if (len > BUFFER_SIZE)

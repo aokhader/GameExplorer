@@ -3,7 +3,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   checkersAnalysis,
-  moveHistoryToOthello,
+  moveHistoryToReversi,
   moveHistoryToPdn,
   replayCheckersMoves,
   replayChessMoves,
@@ -95,7 +95,7 @@ export default function PastGameReviewScreen() {
     }
     if (gameType === 'reversi') {
       const last = timeline[timeline.length - 1] as ReversiGameState;
-      return moveHistoryToOthello(last.moveHistory);
+      return moveHistoryToReversi(last.moveHistory);
     }
     return timelineToSan(timeline as ChessGameState[]);
   }, [timeline, gameType]);

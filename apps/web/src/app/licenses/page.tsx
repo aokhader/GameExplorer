@@ -24,8 +24,14 @@ function Link({ href, children }: { href: string; children: React.ReactNode }) {
 
 /**
  * Public attribution page for both platforms. This is not decoration: the web
- * app serves unmodified Stockfish WASM builds to every visitor's browser, and
- * the GPL requires recipients be told the license and pointed at the source.
+ * app serves unmodified Stockfish.js WASM builds to every visitor's browser,
+ * and the GPL requires recipients be told the license and offered the
+ * corresponding source.
+ *
+ * The conveyed work is Stockfish.js (Chess.com, LLC) — an Emscripten port of
+ * Stockfish, not Stockfish itself — so under GPLv3 §6 the offer below must
+ * name the port at the served version. Upstream Stockfish is credited for
+ * attribution but is NOT where the corresponding source lives.
  * Keep in sync with LICENSE.md and apps/mobile/LICENSE.md.
  */
 export default function LicensesPage() {
@@ -36,7 +42,7 @@ export default function LicensesPage() {
         <h1 className="text-3xl font-bold mb-2">
           <GradientText>Open Source &amp; Licenses</GradientText>
         </h1>
-        <p className="text-fg-muted text-sm mb-10">Last updated: July 21, 2026</p>
+        <p className="text-fg-muted text-sm mb-10">Last updated: August 18, 2026</p>
 
         <div className="space-y-8 text-fg-muted leading-relaxed">
           <section>
@@ -53,16 +59,20 @@ export default function LicensesPage() {
             <h2 className="text-lg font-semibold text-fg mb-2">Chess engines</h2>
             <ul className="list-disc pl-5 space-y-3">
               <li>
-                <span className="text-fg">Stockfish (this website) — GPL-3.0-or-later.</span> Chess
-                bots rated 1400 and above, and the analysis board, run unmodified{' '}
-                <Link href="https://github.com/official-stockfish/Stockfish">Stockfish</Link> builds
-                compiled to WebAssembly, downloaded to your browser and run as separate Web Worker
-                programs. Stockfish is free software under the{' '}
+                <span className="text-fg">Stockfish.js (this website) — GPL-3.0-or-later.</span>{' '}
+                Chess bots rated 1400 and above, and the analysis board, run unmodified{' '}
+                <Link href="https://github.com/nmrugg/stockfish.js">Stockfish.js</Link> 18.0.8
+                builds (Copyright © 2026 Chess.com, LLC) compiled to WebAssembly, downloaded to your
+                browser and run as separate Web Worker programs. Stockfish.js is free software under
+                the{' '}
                 <Link href="https://www.gnu.org/licenses/gpl-3.0.txt">
                   GNU General Public License v3
                 </Link>
-                ; its complete corresponding source is available from the upstream project linked
-                above.
+                ; its complete corresponding source, for the version served here, is available from
+                the Stockfish.js project linked above. Stockfish.js is an Emscripten port of{' '}
+                <Link href="https://github.com/official-stockfish/Stockfish">Stockfish</Link>{' '}
+                (Copyright © T. Romstad, M. Costalba, J. Kiiski, G. Linscott and other
+                contributors); the bundled neural network is by Linmiao Xu.
               </li>
               <li>
                 <span className="text-fg">Arasan (mobile app) — MIT.</span> The iOS and Android app

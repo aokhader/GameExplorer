@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toOthelloMove, moveHistoryToOthello, PASS_NOTATION } from './notation';
+import { toReversiMove, moveHistoryToReversi, PASS_NOTATION } from './notation';
 import { ReversiEngine } from './engine';
 import { getDiscAt } from './utils';
 import type { ReversiMove } from './types';
@@ -10,15 +10,15 @@ const placed = (position: string | null): ReversiMove => ({
   color: 'black',
 });
 
-describe('toOthelloMove', () => {
+describe('toReversiMove', () => {
   it('is just the square the disc went on', () => {
-    expect(toOthelloMove(placed('f5'))).toBe('f5');
-    expect(toOthelloMove(placed('a1'))).toBe('a1');
-    expect(toOthelloMove(placed('h8'))).toBe('h8');
+    expect(toReversiMove(placed('f5'))).toBe('f5');
+    expect(toReversiMove(placed('a1'))).toBe('a1');
+    expect(toReversiMove(placed('h8'))).toBe('h8');
   });
 
   it('marks a skipped turn', () => {
-    expect(toOthelloMove(placed(null))).toBe(PASS_NOTATION);
+    expect(toReversiMove(placed(null))).toBe(PASS_NOTATION);
   });
 });
 
@@ -41,11 +41,11 @@ describe('the engine agrees with the book', () => {
     const result = ReversiEngine.validateMove(state, 'f5');
     expect(result.valid).toBe(true);
     expect(getDiscAt(result.resultingState!.board, 'e5')?.color).toBe('black');
-    expect(moveHistoryToOthello(result.resultingState!.moveHistory)).toEqual(['f5']);
+    expect(moveHistoryToReversi(result.resultingState!.moveHistory)).toEqual(['f5']);
   });
 });
 
-describe('moveHistoryToOthello', () => {
+describe('moveHistoryToReversi', () => {
   it('renders a played opening in order', () => {
     let state = ReversiEngine.newGame();
     for (const square of ['f5', 'd6', 'c3']) {
@@ -53,6 +53,6 @@ describe('moveHistoryToOthello', () => {
       expect(result.valid, `${square} should be legal`).toBe(true);
       state = result.resultingState!;
     }
-    expect(moveHistoryToOthello(state.moveHistory)).toEqual(['f5', 'd6', 'c3']);
+    expect(moveHistoryToReversi(state.moveHistory)).toEqual(['f5', 'd6', 'c3']);
   });
 });

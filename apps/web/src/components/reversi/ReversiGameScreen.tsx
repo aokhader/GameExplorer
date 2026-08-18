@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import Link from 'next/link';
-import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToOthello } from '@gameexplorer/shared';
+import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToReversi } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
@@ -130,8 +130,8 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
     viewIndex,
     enabled: reviewing,
   });
-  const othelloMoves = useMemo(
-    () => (reviewing ? moveHistoryToOthello(timeline[timeline.length - 1].moveHistory) : []),
+  const reversiMoves = useMemo(
+    () => (reviewing ? moveHistoryToReversi(timeline[timeline.length - 1].moveHistory) : []),
     [reviewing, timeline],
   );
   const isAtLive     = viewIndex === timeline.length - 1;
@@ -636,7 +636,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
       {reviewing && (
         <ReviewPanel
           adapter={reversiAnalysis}
-          moves={othelloMoves}
+          moves={reversiMoves}
           board={
             <ReversiBoard
               gameState={displayState}

@@ -1,4 +1,4 @@
-# Game Explorer
+# GameExplorer
 
 A fun archive of board games, constantly growing.
 

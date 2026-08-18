@@ -9,7 +9,7 @@ import { FONTS } from '@/theme/typography';
 export interface MoveBandProps {
   /**
    * The moves played, already in the game's own notation — SAN for chess, PDN
-   * for checkers, Othello squares for reversi. The band is deliberately
+   * for checkers, board squares for reversi. The band is deliberately
    * notation-agnostic; each screen formats its own.
    */
   moves: string[];

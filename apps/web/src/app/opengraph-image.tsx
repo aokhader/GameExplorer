@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { GAME_LIST, gameCountWord } from '@gameexplorer/shared';
 
 /**
  * The card people see when a GameExplorer link is pasted into a chat.
@@ -83,11 +84,11 @@ export default function Image() {
         </div>
 
         <div style={{ display: 'flex', marginTop: 18, fontSize: 32, color: SLATE_400 }}>
-          Five games. One board. Endless rematches.
+          {gameCountWord()} games. One board. Endless rematches.
         </div>
 
         <div style={{ display: 'flex', marginTop: 34, fontSize: 26, color: GOLD }}>
-          Chess · Checkers · Reversi · Go · Liquidate
+          {GAME_LIST.map((g) => g.name).join(' · ')}
         </div>
       </div>
     ),

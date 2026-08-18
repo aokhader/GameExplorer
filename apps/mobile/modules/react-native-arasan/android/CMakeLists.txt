@@ -40,7 +40,7 @@ set_source_files_properties(${FATHOM_SRC} PROPERTIES LANGUAGE CXX)
 
 add_library(react-native-arasan            SHARED
             ../cpp/react-native-arasan.cpp
-            ../cpp/stream_fix.cpp
+            ../cpp/line_queue.cpp
             cpp-adapter.cpp
             ${arasanCppPaths}
             ${FATHOM_SRC}

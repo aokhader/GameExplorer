@@ -32,7 +32,7 @@ export const LIQUIDATE_TUTORIAL: GameTutorial = {
       heading: 'Taking a turn',
       paragraphs: [
         'Roll two dice and move that many tiles around the ring. What happens next depends on where you stop.',
-        'Roll a double and you take another turn immediately. Roll three doubles in a row, though, and your ship is flagged as suspicious and sent straight to Impound.',
+        'Roll a double and you take another turn immediately. Roll two doubles in a row, though, and your ship is flagged as suspicious and sent straight to Impound.',
         'Every time you pass Home Station you collect a stipend. You do not have to stop there to be paid — passing it is enough.',
       ],
     },
@@ -50,7 +50,7 @@ export const LIQUIDATE_TUTORIAL: GameTutorial = {
       paragraphs: [
         'Land on a tile someone else holds and you owe them rent. You pay automatically — there is no choice to make.',
         'Planets belong to colour-coded star systems. Hold every planet in a system and the bare rent on each of them doubles, even before you build anything. Cornering a system is the single strongest move in the game.',
-        'Warp gates work differently: rent depends on how many gates the owner holds, rising steeply from one to all four. Utilities charge a multiple of the dice roll that landed you there, and that multiple more than doubles if the owner holds both.',
+        'Warp gates work differently: rent depends on how many gates the owner holds, rising steeply from one to all four. Utilities charge a multiple of the dice roll that landed you there, and that multiple triples if the owner holds both.',
       ],
     },
     {
@@ -66,7 +66,7 @@ export const LIQUIDATE_TUTORIAL: GameTutorial = {
       id: 'money',
       heading: 'Raising cash',
       paragraphs: [
-        'Short of Credits? You can mortgage any tile you hold for half its list price. A mortgaged tile collects no rent until you clear the loan, and clearing it costs the amount you borrowed plus interest.',
+        'Short of Credits? You can mortgage any tile you hold for 60% of its list price. A mortgaged tile collects no rent until you clear the loan, and clearing it costs the amount you borrowed plus interest.',
         'A planet has to be stripped of its colonies before it can be mortgaged — buildings sell back at half what you paid for them.',
         'You can also trade with any other player: planets, gates, utilities and Credits in any combination, as long as both sides agree. Developed planets must be sold down to bare land before they change hands.',
       ],
@@ -75,8 +75,8 @@ export const LIQUIDATE_TUTORIAL: GameTutorial = {
       id: 'impound',
       heading: 'Impound',
       paragraphs: [
-        'A Contraband Scan, an unlucky card, or three doubles in a row will land your ship in Impound. While held there you do not move, but you also cannot be charged rent — which late in the game is often the safest place on the board.',
-        'There are three ways out: pay the release fee, roll doubles, or spend a Clearance Pass if you are holding one. Fail to roll doubles three turns running and you must pay the fee anyway.',
+        'A Contraband Scan, an unlucky card, or two doubles in a row will land your ship in Impound. While held there you do not move, but you also cannot be charged rent — which late in the game is often the safest place on the board.',
+        'There are three ways out: pay the release fee, roll doubles, or spend a Clearance Pass if you are holding one. Fail to roll doubles two turns running and you must pay the fee anyway.',
       ],
     },
     {

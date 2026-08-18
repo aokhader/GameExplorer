@@ -68,7 +68,7 @@ export interface TileMetrics {
   /** Hide the price line below this cell size — the name has to survive first. */
   showPrice: boolean;
   /**
-   * Show the corner/tariff note ("Just visiting", "Pay ₡200").
+   * Show the corner/tariff note ("Passing through", "Pay ₡200").
    *
    * Needs MORE room than the price: those tiles carry the longest names on the
    * board ("Contraband Scan", "Deep-Space Drift"), so the note and a two-line

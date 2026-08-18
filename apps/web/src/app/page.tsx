@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY } from '@/lib/onboarding';
 import { SUPPORT_EMAIL } from '@/lib/support';
-import { GAME_LIST, type GameCatalogEntry, type GameId } from '@gameexplorer/shared';
+import { GAME_LIST, gameCountWord, type GameCatalogEntry, type GameId } from '@gameexplorer/shared';
 import { GameIcon } from '@/components/game/GameIcon';
 
 const GAME_CARD_GLOW: Record<GameId, string> = {
@@ -120,7 +120,7 @@ export default function HomePage() {
 
         {/* Footer */}
         <footer className="mt-24 text-center text-fg-muted">
-          <p className="mb-4">Five games. One board. Endless rematches.</p>
+          <p className="mb-4">{gameCountWord()} games. One board. Endless rematches.</p>
           <div className="mb-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
             <Link href="/terms" className="hover:text-fg transition-colors">
               Terms

@@ -28,6 +28,14 @@ import {
   unmortgageCostFor,
 } from '../../game-logic/liquidate/economy';
 
+/**
+ * Small-number words, so the rule assertions below can be generated from the
+ * engine constants instead of restating them. The tutorials spell these out in
+ * prose ("two doubles in a row"), and a rules retune that leaves the copy
+ * behind is exactly the drift these tests exist to catch.
+ */
+const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'] as const;
+
 function allDiagrams(tutorial: GameTutorial): TutorialDiagram[] {
   return tutorial.sections.flatMap(s => s.diagrams ?? []);
 }
@@ -89,13 +97,15 @@ describe('tutorial content integrity', () => {
     });
 
     it('describes the doubles rule the engine enforces', () => {
-      expect(DOUBLES_LIMIT).toBe(3);
-      expect(text).toMatch(/three doubles in a row/);
+      // Derived from the constant, not restated: a retune that forgets the
+      // tutorial copy has to fail here rather than ship a rulebook that
+      // disagrees with the engine.
+      expect(text).toMatch(new RegExp(`${NUMBER_WORDS[DOUBLES_LIMIT]} doubles in a row`));
     });
 
     it('describes the real mortgage terms', () => {
-      expect(mortgageValueFor(200)).toBe(200 * MORTGAGE_RATE);
-      expect(text).toMatch(/half its list price/);
+      expect(mortgageValueFor(200)).toBe(Math.floor(200 * MORTGAGE_RATE));
+      expect(text).toMatch(new RegExp(`${MORTGAGE_RATE * 100}% of its list price`));
       expect(unmortgageCostFor(200)).toBeGreaterThan(mortgageValueFor(200));
       expect(text).toMatch(/plus interest/);
     });
@@ -106,7 +116,7 @@ describe('tutorial content integrity', () => {
     });
 
     it('describes the impound escape routes the engine offers', () => {
-      expect(MAX_IMPOUND_TURNS).toBe(3);
+      expect(text).toMatch(new RegExp(`${NUMBER_WORDS[MAX_IMPOUND_TURNS]} turns running`));
       expect(text).toMatch(/pay the release fee/);
       expect(text).toMatch(/roll doubles/);
       expect(text).toMatch(/clearance pass/);
