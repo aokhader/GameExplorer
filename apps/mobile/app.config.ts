@@ -26,13 +26,13 @@ const config: ExpoConfig = {
   // not the personal login — pin it so builds resolve the right owner.
   owner: 'gameexplorermobile',
   scheme: 'gameexplorer',
-  version: '1.1.0',
+  version: '2.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'dark',
   // EAS Update (expo-updates). `eas update:configure` can't write this dynamic
   // TS config, so the URL + runtimeVersion are set by hand. The URL is the EAS
   // project's update endpoint (projectId below). `appVersion` policy ties each
-  // OTA payload to `version` (1.0.0) so JS-only fixes ship to TestFlight without
+  // OTA payload to `version` (2.0.0) so JS-only fixes ship to TestFlight without
   // a rebuild, while a native/version bump forces a fresh binary.
   runtimeVersion: { policy: 'appVersion' },
   updates: {
