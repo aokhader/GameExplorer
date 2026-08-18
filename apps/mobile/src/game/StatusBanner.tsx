@@ -1,6 +1,7 @@
 import { Text, View, type ViewStyle } from 'react-native';
 import { COLORS, useThemeName, type ThemeName } from '@gameexplorer/ui';
 import type { GameAccent } from '@/game/GameScreenLayout';
+import { FONTS } from '@/theme/typography';
 
 export type { GameAccent };
 
@@ -34,7 +35,7 @@ const ACCENTS: Record<
     checkers: { bg: 'rgba(236,72,153,0.08)', border: 'rgba(236,72,153,0.3)', title: '#ff8fc4' },
     reversi: { bg: 'rgba(163,230,53,0.08)', border: 'rgba(163,230,53,0.3)', title: '#bef264' },
     go: { bg: 'rgba(34,211,238,0.08)', border: 'rgba(34,211,238,0.3)', title: '#67e8f9' },
-    liquidate: { bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.3)', title: '#b39bf5' },
+    liquidate: { bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.3)', title: '#c4b5fd' },
     gold: { bg: 'rgba(205,164,63,0.15)', border: 'rgba(205,164,63,0.35)', title: '#cda43f' },
   },
   cozy: {
@@ -76,7 +77,7 @@ export function StatusBanner({ accent, title, description, style }: StatusBanner
         style,
       ]}
     >
-      <Text style={{ color: c.title, fontSize: 14, fontWeight: '700' }}>{title}</Text>
+      <Text style={{ color: c.title, fontSize: 14, fontFamily: FONTS.bodyBold }}>{title}</Text>
       {description && (
         <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 4 }}>{description}</Text>
       )}

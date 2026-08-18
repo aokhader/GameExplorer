@@ -108,6 +108,8 @@ const DARK_LIQUIDATE_PANEL_COLORS = {
   hintLine: 'rgba(231,182,78,0.32)',
   hintInk: '#f2cf82',
   /** Non-system ownables, which have no star system to take a hue from. */
+  /** Debt, forced sales, and anything the player is about to lose. */
+  danger: '#ef5f6b',
   gate: '#8b93a8',
   utility: '#6fc4b0',
 } as const;
@@ -127,6 +129,9 @@ const COZY_LIQUIDATE_PANEL_COLORS = {
   hint: 'rgba(181,98,58,0.12)',
   hintLine: 'rgba(181,98,58,0.30)',
   hintInk: '#9a4d2c',
+  // Printed-ink red, not the Arcade neon: on parchment that reads as a glow
+  // rather than a warning, and it has to stay distinct from the clay accent.
+  danger: '#a63a33',
   gate: '#8a7a63',
   utility: '#7f9c6a',
 } as const;
@@ -164,3 +169,50 @@ export const LIQUIDATE_DECK_STYLE = {
   anomaly: { base: '#9b7be6', glyph: '✦' },
   federation: { base: '#59c1f0', glyph: '❖' },
 } as const;
+
+/**
+ * The Liquidate identity mark — a ringed planet.
+ *
+ * This is the game's ICON, not a board piece: it stands in for Liquidate on
+ * home tiles, hub heroes, tutorial headers and profile rows, the same job
+ * `GoStone` does for Go. It exists because Liquidate was the one game with no
+ * shared art, so each platform improvised — web drew the `🪐` emoji and mobile
+ * reused `PlayerToken`, the on-board pawn. Neither is an identity mark.
+ *
+ * The ring is load-bearing, not decoration. This icon sits in a set beside
+ * `GoStone` (a white circle) and `ReversiDisc` (a black one); without the ring
+ * it would be a third circle and the row would read as three of the same game.
+ *
+ * Sphere takes the liquidate accent (violet on Arcade, clay on Tabletop) so it
+ * matches the `--c-game-liquidate` card it usually sits on; the ring takes the
+ * `aurum` system hue, which is the one colour in the Liquidate ramp that reads
+ * against both a violet and a clay body.
+ */
+const DARK_LIQUIDATE_PLANET_STYLE = {
+  body: [
+    { offset: 0, color: '#c4b5fd' },
+    { offset: 0.55, color: '#8b5cf6' },
+    { offset: 1, color: '#4c2a9e' },
+  ],
+  border: 'rgba(255,255,255,0.18)',
+  sheen: 'rgba(255,255,255,0.85)',
+  /** The half of the ring passing in front of the sphere. */
+  ring: '#e6b24d',
+  /** The half passing behind — dimmer, so the crossing reads as depth. */
+  ringBack: 'rgba(230,178,77,0.5)',
+} as const;
+
+const COZY_LIQUIDATE_PLANET_STYLE = {
+  body: [
+    { offset: 0, color: '#e3a98d' },
+    { offset: 0.55, color: '#b8724a' },
+    { offset: 1, color: '#7c3d20' },
+  ],
+  border: 'rgba(90,55,30,0.38)',
+  sheen: 'rgba(255,255,255,0.78)',
+  ring: '#d69a3c',
+  ringBack: 'rgba(214,154,60,0.55)',
+} as const;
+
+export const LIQUIDATE_PLANET_STYLE =
+  liveView({ dark: DARK_LIQUIDATE_PLANET_STYLE, cozy: COZY_LIQUIDATE_PLANET_STYLE });

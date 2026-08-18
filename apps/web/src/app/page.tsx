@@ -1,32 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GoStone } from '@gameexplorer/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY } from '@/lib/onboarding';
 import { SUPPORT_EMAIL } from '@/lib/support';
 import { GAME_LIST, type GameCatalogEntry, type GameId } from '@gameexplorer/shared';
+import { GameIcon } from '@/components/game/GameIcon';
 
-/**
- * Card glyphs stay here rather than in the catalog: mobile draws the Game Pieces
- * vector art for the same games, because these Unicode symbols get emoji-font
- * substitution on Android. That is a real platform difference, not drift.
- *
- * Go is the exception that draws its real vector art here too: the only glyph
- * for a Go stone is ⬤, which is *black*, and a black circle is both the wrong
- * colour for the piece we show everywhere else and indistinguishable from
- * reversi's ⚫ at tile size. `size="1em"` makes the SVG scale off whatever
- * `text-*` class the surrounding container already sets.
- */
-const GAME_ICON: Record<GameId, ReactNode> = {
-  chess: '♔',
-  checkers: '⚫',
-  reversi: '⚪',
-  go: <GoStone color="white" size="1em" />,
-  liquidate: '🪐',
+const GAME_CARD_GLOW: Record<GameId, string> = {
+  chess: 'group-hover:[box-shadow:var(--shadow-glow-chess)]',
+  checkers: 'group-hover:[box-shadow:var(--shadow-glow-checkers)]',
+  reversi: 'group-hover:[box-shadow:var(--shadow-glow-reversi)]',
+  go: 'group-hover:[box-shadow:var(--shadow-glow-go)]',
+  liquidate: 'group-hover:[box-shadow:var(--shadow-glow-liquidate)]',
 };
 
 export default function HomePage() {
@@ -171,11 +160,12 @@ function GameCard({
   // stays dark in every theme (the label on it is static white), so it deepens
   // toward the theme's own shade — mixing warm walnut into a cold navy muddies it.
   const gradient = `linear-gradient(135deg, var(--c-game-${game.accent}) 0%, color-mix(in srgb, var(--c-game-${game.accent}) 50%, var(--c-game-card-shade, #0b1120)) 100%)`;
-  const glowClass =
-    game.accent === 'chess' ? 'group-hover:[box-shadow:var(--shadow-glow-chess)]'
-    : game.accent === 'checkers' ? 'group-hover:[box-shadow:var(--shadow-glow-checkers)]'
-    : game.accent === 'liquidate' ? 'group-hover:[box-shadow:var(--shadow-glow-liquidate)]'
-    : 'group-hover:[box-shadow:var(--shadow-glow-reversi)]';
+  // Keyed off the accent rather than chained, because the chain this replaced
+  // ended in an `else` that meant "reversi" — so Go, added later, hovered lime.
+  // A Record makes the next game a compile error instead of a silent wrong glow.
+  // Written out in full rather than interpolated: Tailwind only emits classes it
+  // can see as complete literals in the source.
+  const glowClass = GAME_CARD_GLOW[game.accent];
 
   return (
     <div
@@ -196,7 +186,7 @@ function GameCard({
           className="text-8xl text-center mb-4 flex items-center justify-center transition-transform duration-300 drop-shadow-lg"
           style={{ transform: isHovered ? 'scale(1.12) rotate(5deg)' : 'scale(1)' }}
         >
-          {GAME_ICON[game.id]}
+          <GameIcon game={game.id} />
         </div>
 
         {/* Text — static light on the saturated per-game card. */}

@@ -36,6 +36,7 @@ import {
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
+import { FONTS } from '@/theme/typography';
 
 interface CheckersBoardProps {
   gameState: CheckersGameState;
@@ -614,7 +615,7 @@ function CheckersBoardInner({
                       top: 2,
                       left: 3,
                       fontSize: 9,
-                      fontWeight: '700',
+                      fontFamily: FONTS.bodyBold,
                       color: labelColor,
                       opacity: 0.75,
                     }}
@@ -629,7 +630,7 @@ function CheckersBoardInner({
                       bottom: 2,
                       right: 3,
                       fontSize: 9,
-                      fontWeight: '700',
+                      fontFamily: FONTS.bodyBold,
                       color: labelColor,
                       opacity: 0.75,
                     }}

@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { GAME_LIST } from '@gameexplorer/shared';
 import { AmbientBackground, type AmbientHue } from './AmbientBackground';
 
 /**
@@ -16,11 +17,15 @@ export function RouteAmbient() {
   const pathname = usePathname() || '/';
   const seg = pathname.split('/')[1] ?? '';
 
-  const hue: AmbientHue =
-    seg === 'chess' || seg === 'checkers' || seg === 'reversi' ? seg : 'brand';
+  // Matched against the catalog by SLUG, since that is what a route segment
+  // actually is, and read back as `accent`. The hand-written list this replaced
+  // named only the first three games, so `/go` and `/liquidate` were still
+  // getting the brand gold on their own hubs long after both shipped — and, via
+  // isHeroRoute below, a flat backdrop where the other three got the aurora.
+  const entry = GAME_LIST.find((g) => g.slug === seg) ?? null;
+  const hue: AmbientHue = entry?.accent ?? 'brand';
 
-  const isHeroRoute =
-    pathname === '/' || pathname === '/chess' || pathname === '/checkers' || pathname === '/reversi';
+  const isHeroRoute = pathname === '/' || (entry !== null && pathname === `/${entry.slug}`);
   const isDeepGame =
     /\/(play|bot|training|analysis)(\/|$)/.test(pathname) || pathname.startsWith('/spectate/');
 

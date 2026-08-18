@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DIFFICULTY_ELO, TOUR_GAMES, type OnboardingGame } from '@gameexplorer/shared';
+import { DIFFICULTY_ELO, TOUR_GAMES, gameNameList, type OnboardingGame } from '@gameexplorer/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { ONBOARDED_KEY, SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
+import { GameIcon } from '@/components/game/GameIcon';
 
 // The tour's games are the rated ones (see TOUR_GAMES) — the last step picks a
 // bot difficulty on a game's own ELO ladder, which only means something for a
@@ -14,14 +16,6 @@ import { ONBOARDED_KEY, SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
 type GameId = OnboardingGame;
 type Opponent = 'bot' | 'friend' | 'online';
 type Difficulty = 'relaxed' | 'balanced' | 'sharp';
-
-// Glyphs stay local — mobile's tour draws the Game Pieces vector art for the
-// same three rows, because these symbols get emoji-font substitution on Android.
-const GAME_ICON: Record<GameId, string> = {
-  chess: '♞',
-  checkers: '⛃',
-  reversi: '⚫',
-};
 
 const OPPONENTS: { id: Opponent; name: string; icon: string; tagline: string; taglineSelected?: string }[] = [
   { id: 'bot',    name: 'Practice vs the bot', icon: '🤖', tagline: 'Recommended for your first game' },
@@ -136,7 +130,7 @@ export default function WelcomePage() {
                 className="h-[5px] rounded-full transition-all duration-300"
                 style={{
                   width: i === step ? 22 : 8,
-                  background: i === step ? 'var(--c-accent)' : 'rgba(255,255,255,.15)',
+                  background: i === step ? 'var(--c-accent)' : 'var(--c-border-strong)',
                 }}
               />
             ))}
@@ -150,7 +144,7 @@ export default function WelcomePage() {
                   Welcome to <span className="text-accent">GameExplorer</span>
                 </h1>
                 <p className="text-[15px] text-fg-muted leading-relaxed mb-7">
-                  Chess, checkers &amp; reversi — the classics you know, ready in seconds.
+                  {gameNameList()} — ready in seconds.
                   No download, no sign-up to start.
                 </p>
               </div>
@@ -179,7 +173,7 @@ export default function WelcomePage() {
                 {TOUR_GAMES.map(g => (
                   <OptionRow
                     key={g.id}
-                    icon={GAME_ICON[g.id]}
+                    icon={<GameIcon game={g.id} />}
                     iconSize={30}
                     name={g.name}
                     tagline={g.tagline}
@@ -262,7 +256,7 @@ function OptionRow({
   accent,
   onSelect,
 }: {
-  icon: string;
+  icon: ReactNode;
   iconSize: number;
   name: string;
   tagline: string;
@@ -278,13 +272,13 @@ function OptionRow({
       style={
         selected
           ? {
-              background: `linear-gradient(180deg, color-mix(in srgb, ${accent.color} 16%, transparent), rgba(255,255,255,.02))`,
+              background: `linear-gradient(180deg, color-mix(in srgb, ${accent.color} 16%, transparent), var(--c-game-tint-tail))`,
               borderColor: accent.color,
               boxShadow: `0 0 24px -8px ${accent.glow}`,
             }
           : {
-              background: 'rgba(255,255,255,.04)',
-              borderColor: 'rgba(255,255,255,.1)',
+              background: 'var(--c-surface-alt)',
+              borderColor: 'var(--c-border)',
             }
       }
     >

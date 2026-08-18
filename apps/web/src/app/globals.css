@@ -341,7 +341,7 @@
   --c-accent-glow:    rgba(169, 116, 63, 0.20);
   --c-info-glow:      rgba(47, 110, 78, 0.12);
 
-  /* Per-game hues: walnut chess, forest checkers, dark-wood reversi, clay
+  /* Per-game hues: walnut chess, forest checkers, dark-wood reversi, pine go, clay
      liquidate (pair: COZY_GAME_ACCENTS in tokens.ts). */
   --c-game-chess:          #8b5a2b;
   --c-game-chess-glow:     rgba(169, 116, 63, 0.30);
@@ -349,6 +349,8 @@
   --c-game-checkers-glow:  rgba(47, 110, 78, 0.24);
   --c-game-reversi:        #3b2e21;
   --c-game-reversi-glow:   rgba(59, 46, 33, 0.22);
+  --c-game-go:             #2c6360;
+  --c-game-go-glow:        rgba(44, 99, 96, 0.24);
   --c-game-liquidate:      #b8724a;
   --c-game-liquidate-glow: rgba(184, 114, 74, 0.26);
   /* Shade the home page's game cards deepen toward — dark walnut, not the
@@ -371,6 +373,10 @@
   --c-game-reversi-tint:         rgba(59, 46, 33, 0.09);
   --c-game-reversi-tint-border:  rgba(59, 46, 33, 0.38);
   --c-game-reversi-card-glow:    0 8px 20px -14px rgba(59, 46, 33, 0.45);
+  --c-game-go-light:             #22504e;
+  --c-game-go-tint:              rgba(44, 99, 96, 0.10);
+  --c-game-go-tint-border:       rgba(44, 99, 96, 0.42);
+  --c-game-go-card-glow:         0 8px 20px -14px rgba(44, 99, 96, 0.5);
   --c-game-liquidate-light:       #8a4526;
   --c-game-liquidate-tint:        rgba(184, 114, 74, 0.11);
   --c-game-liquidate-tint-border: rgba(184, 114, 74, 0.42);
@@ -514,6 +520,22 @@
   --gx-go-board-last-move:     rgba(162, 72, 46, 0.95);
   --gx-go-board-ghost:         rgba(45, 30, 15, 0.28);
   --gx-go-board-hint:          rgba(138, 102, 29, 0.95);
+
+  /* Go stones — slate and clamshell under warm tabletop light. Chess, checkers
+     and reversi all carry a cozy piece block; Go shipped after this theme and
+     never got one, so its stones kept the Arcade values on a kaya board. */
+  --gx-go-stone-black-1:      #544639;
+  --gx-go-stone-black-2:      #241a12;
+  --gx-go-stone-black-3:      #120c07;
+  --gx-go-stone-black-border: rgba(255, 255, 255, 0.12);
+  --gx-go-stone-black-sheen:  rgba(226, 205, 168, 0.45);
+  --gx-go-stone-black-shade:  rgba(0, 0, 0, 0.50);
+  --gx-go-stone-white-1:      #fffdf7;
+  --gx-go-stone-white-2:      #f2e8d2;
+  --gx-go-stone-white-3:      #d3c4a4;
+  --gx-go-stone-white-border: rgba(90, 65, 35, 0.38);
+  --gx-go-stone-white-sheen:  rgba(255, 255, 255, 0.95);
+  --gx-go-stone-white-shade:  rgba(80, 55, 25, 0.30);
 
   /* Chess pieces — cream vs near-black walnut. Both sides gain an outline: the
      board's light square is itself cream, so an unstroked pale piece vanishes. */

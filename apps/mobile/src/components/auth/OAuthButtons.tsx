@@ -4,6 +4,7 @@ import Svg, { Path } from 'react-native-svg';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { signInWithAppleNative, signInWithOAuthNative } from '@/lib/oauth';
+import { FONTS } from '@/theme/typography';
 
 function GoogleIcon() {
   return (
@@ -108,7 +109,7 @@ export function OAuthButtons({
             }}
           >
             {busy === 'google' ? <ActivityIndicator size="small" color={COLORS.fg} /> : <GoogleIcon />}
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '600' }}>
+            <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodySemi }}>
               Continue with Google
             </Text>
           </View>
@@ -131,7 +132,7 @@ export function OAuthButtons({
             }}
           >
             {busy === 'facebook' ? <ActivityIndicator size="small" color="#fff" /> : <FacebookIcon />}
-            <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
+            <Text style={{ color: '#ffffff', fontSize: 15, fontFamily: FONTS.bodySemi }}>
               Continue with Facebook
             </Text>
           </View>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { GradientText, Reveal } from '@/components/visual';
+import { GameIcon } from '@/components/game/GameIcon';
 
 type GameMode = {
   id: string;
@@ -77,7 +78,7 @@ export default function LiquidateLandingPage() {
       <div className="container mx-auto px-4 py-12 md:py-20">
         <div className="mb-16 text-center">
           <Reveal className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full border border-border bg-surface-alt motion-safe:animate-float [box-shadow:var(--shadow-glow-liquidate)]">
-            <span className="text-4xl">🪐</span>
+            <span className="text-4xl inline-flex items-center"><GameIcon game="liquidate" /></span>
           </Reveal>
           <Reveal as="h1" delay={80} className="mb-4 text-5xl font-bold tracking-tight md:text-6xl">
             <GradientText>Liquidate</GradientText>

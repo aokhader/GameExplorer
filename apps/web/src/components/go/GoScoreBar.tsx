@@ -1,5 +1,6 @@
 import React from 'react';
 import type { GoScore } from '@gameexplorer/shared';
+import { GoStone } from '@gameexplorer/ui';
 
 export interface GoScoreBarProps {
   score: GoScore;
@@ -25,11 +26,9 @@ export function GoScoreBar({ score, captured }: GoScoreBarProps) {
   return (
     <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
       <span className="flex items-center gap-1.5 text-[15px] font-bold text-fg">
-        <span
-          className="h-4 w-4 rounded-full border border-white/10"
-          style={{ background: 'radial-gradient(circle at 38% 30%, #4a5468, #080b12 78%)' }}
-          aria-hidden="true"
-        />
+        <span className="inline-flex" aria-hidden="true">
+          <GoStone color="black" size={16} />
+        </span>
         {score.black}
         <span className="sr-only">points for black</span>
         {captured.black > 0 && (
@@ -37,12 +36,12 @@ export function GoScoreBar({ score, captured }: GoScoreBarProps) {
         )}
       </span>
 
-      <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-[#0b1220]">
+      <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-[var(--gx-go-board-border,#0b1220)]">
         <div
           className="transition-all duration-300"
-          style={{ width: `${blackShare}%`, background: 'linear-gradient(90deg,#2b3448,#5c6a85)' }}
+          style={{ width: `${blackShare}%`, background: 'linear-gradient(90deg, var(--gx-go-stone-black-2,#2b3448), var(--gx-go-stone-black-1,#5c6a85))' }}
         />
-        <div className="flex-1 bg-[#e8e2d6]" />
+        <div className="flex-1 bg-[var(--gx-go-stone-white-2,#e8e2d6)]" />
       </div>
 
       <span className="flex items-center gap-1.5 text-[15px] font-bold text-fg">
@@ -52,13 +51,12 @@ export function GoScoreBar({ score, captured }: GoScoreBarProps) {
         {score.white}
         <span className="sr-only">points for white, komi included</span>
         <span
-          className="h-4 w-4 rounded-full"
-          style={{
-            background: 'radial-gradient(circle at 38% 30%, #fff, #c3bbab 78%)',
-            boxShadow: '0 0 8px rgba(34,211,238,0.5)',
-          }}
+          className="inline-flex rounded-full"
+          style={{ boxShadow: '0 0 8px var(--c-game-go-glow)' }}
           aria-hidden="true"
-        />
+        >
+          <GoStone color="white" size={16} />
+        </span>
       </span>
     </div>
   );

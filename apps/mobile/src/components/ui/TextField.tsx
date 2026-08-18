@@ -1,6 +1,7 @@
 import { useState, type Ref } from 'react';
 import { Text, TextInput, View, type TextInputProps } from 'react-native';
 import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { FONTS } from '@/theme/typography';
 
 interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   label?: string;
@@ -30,7 +31,7 @@ export function TextField({ label, invalid = false, ref, ...props }: TextFieldPr
   return (
     <View style={{ gap: 6 }}>
       {label && (
-        <Text style={{ color: COLORS.fgMuted, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+        <Text style={{ color: COLORS.fgMuted, fontSize: 13, fontFamily: FONTS.bodySemi }}>{label}</Text>
       )}
       <TextInput
         ref={ref}

@@ -3,6 +3,7 @@ import { Keyboard, Platform, Pressable, ScrollView, Text, View } from 'react-nat
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { FONTS } from '@/theme/typography';
 
 interface ScreenProps {
   children: ReactNode;
@@ -109,7 +110,7 @@ export function BackHeader({ title, fallbackHref }: { title?: string; fallbackHr
         <Text style={{ color: COLORS.fgMuted, fontSize: 24, lineHeight: 24 }}>‹</Text>
       </Pressable>
       {title && (
-        <Text style={{ color: COLORS.fg, fontSize: 18, fontWeight: '700' }}>{title}</Text>
+        <Text style={{ color: COLORS.fg, fontSize: 18, fontFamily: FONTS.display }}>{title}</Text>
       )}
     </View>
   );

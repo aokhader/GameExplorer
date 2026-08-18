@@ -5,6 +5,7 @@ import { useAuth, apiFetch } from '@gameexplorer/client';
 import { supabase } from '@gameexplorer/db';
 import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { Card, Button, TextField } from '@/components/ui';
+import { FONTS } from '@/theme/typography';
 
 const CONFIRM_WORD = 'DELETE';
 
@@ -48,7 +49,7 @@ export function DeleteAccountCard() {
         style={{
           color: COLORS.dangerHover,
           fontSize: 12,
-          fontWeight: '700',
+          fontFamily: FONTS.bodyBold,
           textTransform: 'uppercase',
           letterSpacing: 0.5,
           marginBottom: 12,
@@ -60,7 +61,7 @@ export function DeleteAccountCard() {
       {!expanded ? (
         <View style={{ gap: 12 }}>
           <View>
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }}>Delete account</Text>
+            <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold }}>Delete account</Text>
             <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2 }}>
               Permanently remove your account and all associated data.
             </Text>
@@ -69,7 +70,7 @@ export function DeleteAccountCard() {
         </View>
       ) : (
         <View style={{ gap: 12 }}>
-          <Text style={{ color: COLORS.fg, fontSize: 14, fontWeight: '700' }}>
+          <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
             This permanently deletes your account. It cannot be undone.
           </Text>
           <Text style={{ color: COLORS.fgMuted, fontSize: 13, lineHeight: 20 }}>
@@ -77,7 +78,7 @@ export function DeleteAccountCard() {
             friends, blocks, and reports.
           </Text>
           <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>
-            Type <Text style={{ color: COLORS.fg, fontWeight: '700' }}>{CONFIRM_WORD}</Text> to confirm.
+            Type <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodyBold }}>{CONFIRM_WORD}</Text> to confirm.
           </Text>
 
           <TextField

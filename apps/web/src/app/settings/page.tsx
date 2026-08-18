@@ -99,7 +99,7 @@ const THEME_OPTIONS: ThemeOption[] = [
     surfaceAlt: '#faf4e8',
     border: '#cdbb98',
     fg: '#2c2117',
-    fgMuted: '#6f6350',
+    fgMuted: '#5e5341',
     accent: '#2f6e4e',
     onAccent: '#f4ecd9',
     boardLight: '#e7c9a0',

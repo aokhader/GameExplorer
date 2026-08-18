@@ -12,7 +12,7 @@ import {
   type LiquidateGameState,
   type PrimaryAction,
 } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_DECK_STYLE, LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { tileAccent } from './lqTheme';
 import type { LqView } from './views/types';
@@ -302,7 +302,7 @@ export function HomeSheet({
               paddingHorizontal: 14,
               height: CTA_HEIGHT,
               borderRadius: 15,
-              backgroundColor: cta.tone === 'danger' ? COLORS_DANGER : P.accent,
+              backgroundColor: cta.tone === 'danger' ? P.danger : P.accent,
               boxShadow: cta.tone === 'danger' ? undefined : '0 8px 22px rgba(231,182,78,0.32)',
             }}
           >
@@ -419,7 +419,6 @@ export function HomeSheet({
 }
 
 /** Danger red for the Fold CTA — the one place the sheet leaves the gold accent. */
-const COLORS_DANGER = '#ef5f6b';
 
 /** What the hint row says about a tile nobody has claimed. */
 const UNOWNED_HINT = 'Unowned and ready for purchase';
@@ -692,7 +691,7 @@ function RentStrip({ rows }: { rows: { label: string; value: string; active: boo
 function CardBanner({ text, deck }: { text: string; deck: 'anomaly' | 'federation' }) {
   useThemeName();
   const P = LIQUIDATE_PANEL_COLORS;
-  const style = deck === 'anomaly' ? { base: '#9b7be6', glyph: '✦' } : { base: '#59c1f0', glyph: '❖' };
+  const style = LIQUIDATE_DECK_STYLE[deck];
 
   return (
     <View

@@ -13,6 +13,7 @@ import {
   TERMS_URL,
   supportMailtoUrl,
 } from '@/config/support';
+import { FONTS } from '@/theme/typography';
 
 /** Settings a Toggle can drive — the boolean ones. */
 type BooleanSettingKey = {
@@ -46,7 +47,7 @@ function SettingRow({
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }}>{title}</Text>
+        <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold }}>{title}</Text>
         <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2 }}>{description}</Text>
       </View>
       <Toggle
@@ -93,7 +94,7 @@ function LinkRow({
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }}>{title}</Text>
+        <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold }}>{title}</Text>
         <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2 }}>{description}</Text>
       </View>
       <Text style={{ color: COLORS.fgSubtle, fontSize: 20, fontWeight: '700' }}>›</Text>
@@ -220,7 +221,7 @@ function ThemeCard({ option, selected, onSelect }: {
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 14, fontWeight: '700', flexShrink: 1 }}>
+        <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold, flexShrink: 1 }}>
           {option.name}
         </Text>
         {selected && (
@@ -229,7 +230,7 @@ function ThemeCard({ option, selected, onSelect }: {
               color: COLORS.onAccent,
               backgroundColor: COLORS.accent,
               fontSize: 10,
-              fontWeight: '800',
+              fontFamily: FONTS.bodyBold,
               paddingHorizontal: 6,
               paddingVertical: 1,
               borderRadius: 999,
@@ -274,7 +275,7 @@ function SectionLabel({ children }: { children: string }) {
       style={{
         color: COLORS.fgMuted,
         fontSize: 12,
-        fontWeight: '700',
+        fontFamily: FONTS.bodyBold,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
         marginBottom: 8,
@@ -298,7 +299,7 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <BackHeader fallbackHref="/" />
-      <Text style={{ color: COLORS.fg, fontSize: 28, fontWeight: '800' }}>Settings</Text>
+      <Text style={{ color: COLORS.fg, fontSize: 28, fontFamily: FONTS.display }}>Settings</Text>
       <Text style={{ color: COLORS.fgMuted, fontSize: 14, marginTop: 4, marginBottom: 20 }}>
         Preferences are saved on this device.
       </Text>

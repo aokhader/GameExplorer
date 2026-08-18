@@ -56,7 +56,7 @@ export function DebtView({ state, youId, deviceIds, dispatch, onBack }: DebtView
           }}
         >
           <Text
-            style={{ fontFamily: FONTS.bodyBold, fontSize: 9, letterSpacing: 0.9, color: '#ef5f6b' }}
+            style={{ fontFamily: FONTS.bodyBold, fontSize: 9, letterSpacing: 0.9, color: LIQUIDATE_PANEL_COLORS.danger }}
           >
             PAYMENT DUE
           </Text>

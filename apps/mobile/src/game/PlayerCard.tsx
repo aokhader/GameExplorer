@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { COLORS } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
+import { FONTS } from '@/theme/typography';
 
 export interface PlayerCardProps {
   /** Display name, e.g. "Bot" or "You". */
@@ -75,7 +76,7 @@ export function PlayerCard({
         paddingVertical: 10,
         borderWidth: 1,
         backgroundColor: isYou ? COLORS.accentMuted : COLORS.surfaceAlt,
-        borderColor: isYou ? 'rgba(205,164,63,0.35)' : COLORS.border,
+        borderColor: isYou ? COLORS.accent : COLORS.border,
       }}
     >
       <View
@@ -97,12 +98,12 @@ export function PlayerCard({
               backgroundColor: isYou ? COLORS.accent : COLORS.info,
             }}
           >
-            <Text style={{ color: isYou ? COLORS.onAccent : '#fff', fontSize: 16, fontWeight: '800' }}>
+            <Text style={{ color: isYou ? COLORS.onAccent : '#fff', fontSize: 16, fontFamily: FONTS.bodyBold }}>
               {initial}
             </Text>
           </View>
           <View style={{ flexShrink: 1 }}>
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
+            <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold }} numberOfLines={1}>
               {name}
             </Text>
             {subline && (

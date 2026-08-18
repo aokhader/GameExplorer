@@ -98,8 +98,7 @@ export default function DeleteAccountPage() {
                 email address and any linked Google, Facebook or Apple sign-in
               </li>
               <li>
-                <span className="text-fg">Your games</span> — every saved game and its moves, for
-                chess, checkers and reversi
+                <span className="text-fg">Your games</span> — every saved game and its moves
               </li>
               <li>
                 <span className="text-fg">Your ratings</span> — Elo and stats for all games

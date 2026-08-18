@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 import { COLORS, ChessPiece, useThemeName } from '@gameexplorer/ui';
 import type { PieceType } from '@gameexplorer/shared';
+import { FONTS } from '@/theme/typography';
 
 export interface CapturedTrayProps {
   /** Pieces this player has captured, cheapest first (see summarizeMaterial). */
@@ -54,7 +55,7 @@ export function CapturedTray({ pieces, color, advantage, ownerLabel }: CapturedT
         ))}
       </View>
       {advantage > 0 && (
-        <Text style={{ color: COLORS.fgMuted, fontSize: 12, fontWeight: '700' }}>
+        <Text style={{ color: COLORS.fgMuted, fontSize: 12, fontFamily: FONTS.bodyBold }}>
           +{advantage}
         </Text>
       )}

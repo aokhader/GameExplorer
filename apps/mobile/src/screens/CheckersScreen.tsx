@@ -221,7 +221,7 @@ export function CheckersScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
                       {level.label}
                     </Text>
                     <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
@@ -272,7 +272,7 @@ export function CheckersScreen() {
                         borderColor: color === 'white' ? '#8a6a1f' : '#1e40af',
                       }}
                     />
-                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: 15, fontWeight: '700', textTransform: 'capitalize' }}>
+                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold, textTransform: 'capitalize' }}>
                       {color}
                     </Text>
                     <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
@@ -632,7 +632,7 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
   return (
     <View style={{ flexDirection: 'row', gap: 6, width: '50%', paddingVertical: 2 }}>
       <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}:</Text>
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontWeight: '700', textTransform: capitalize ? 'capitalize' : 'none' }}>
+      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold, textTransform: capitalize ? 'capitalize' : 'none' }}>
         {value}
       </Text>
     </View>
@@ -646,7 +646,7 @@ function PieceCount({ color, border, count }: { color: string; border: string; c
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
       <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: color, borderWidth: 2, borderColor: border }} />
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontWeight: '700' }}>{count}</Text>
+      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>{count}</Text>
     </View>
   );
 }

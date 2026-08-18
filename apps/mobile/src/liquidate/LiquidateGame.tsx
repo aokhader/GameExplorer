@@ -354,7 +354,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
                   style={{
                     fontFamily: FONTS.display,
                     fontSize: 16,
-                    color: (you?.credits ?? 0) < 0 ? '#ef5f6b' : P.ink,
+                    color: (you?.credits ?? 0) < 0 ? P.danger : P.ink,
                   }}
                 >
                   {formatCredits(you?.credits ?? 0)}

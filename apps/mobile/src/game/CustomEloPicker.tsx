@@ -206,7 +206,7 @@ export function CustomEloPicker({
                 opacity: disabled ? 0.35 : 1,
               }}
             >
-              <Text style={{ color: COLORS.fg, fontSize: 13, fontWeight: '700' }}>
+              <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>
                 {step > 0 ? `+${step}` : step}
               </Text>
             </Pressable>

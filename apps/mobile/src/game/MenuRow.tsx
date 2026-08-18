@@ -86,7 +86,7 @@ export function MenuRow({
               style={{
                 color: accent,
                 fontSize: 11,
-                fontWeight: '800',
+                fontFamily: FONTS.bodyBold,
                 letterSpacing: 0.5,
                 borderWidth: 1,
                 borderColor: accent,

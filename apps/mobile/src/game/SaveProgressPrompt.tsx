@@ -5,6 +5,7 @@ import { useAuth } from '@gameexplorer/client';
 import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { OAuthButtons } from '@/components/auth/OAuthButtons';
 import { consumeSaveProgressPending, isSaveProgressPending } from '@/lib/onboarding';
+import { FONTS } from '@/theme/typography';
 
 /**
  * The onboarding flow's soft sign-up ask — the native twin of web's
@@ -76,7 +77,7 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
         }}
         style={{ alignItems: 'center', paddingVertical: 10 }}
       >
-        <Text style={{ color: COLORS.fg, fontSize: 14, fontWeight: '700' }}>Sign up with email</Text>
+        <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>Sign up with email</Text>
       </Pressable>
 
       {error && (
@@ -85,7 +86,7 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
 
       <Pressable accessibilityRole="button" onPress={dismiss} style={{ alignItems: 'center', paddingVertical: 6 }}>
         <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>
-          Maybe later — <Text style={{ fontWeight: '700' }}>keep playing as guest</Text>
+          Maybe later — <Text style={{ fontFamily: FONTS.bodyBold }}>keep playing as guest</Text>
         </Text>
       </Pressable>
     </View>

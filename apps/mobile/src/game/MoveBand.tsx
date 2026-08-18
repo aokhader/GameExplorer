@@ -4,6 +4,7 @@ import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import type { GameAccent } from '@/game/GameScreenLayout';
 import { GRADE_META } from '@/analysis/grades';
 import type { MoveGrade } from '@/analysis/types';
+import { FONTS } from '@/theme/typography';
 
 export interface MoveBandProps {
   /**
@@ -143,13 +144,13 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades }: Move
                     style={{
                       color: isActive ? accentColor : marked ? meta!.color() : COLORS.fg,
                       fontSize: 14,
-                      fontWeight: isActive ? '800' : '600',
+                      fontFamily: isActive ? FONTS.bodyBold : FONTS.bodySemi,
                     }}
                   >
                     {text}
                   </Text>
                   {marked && (
-                    <Text style={{ color: meta!.color(), fontSize: 12, fontWeight: '800' }}>
+                    <Text style={{ color: meta!.color(), fontSize: 12, fontFamily: FONTS.bodyBold }}>
                       {meta!.glyph}
                     </Text>
                   )}

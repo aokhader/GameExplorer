@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { FONTS } from '@/theme/typography';
 
 export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
@@ -83,7 +84,7 @@ export function GameScreenLayout({
           style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
         >
           <Text style={{ color: COLORS.fgMuted, fontSize: 22, lineHeight: 22 }}>‹</Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 15, fontWeight: '600' }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: 15, fontFamily: FONTS.bodySemi }}>
             {title ?? 'Back'}
           </Text>
         </Pressable>

@@ -227,7 +227,7 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
                         width: cell,
                         textAlign: 'center',
                         fontSize: 8,
-                        fontWeight: '700',
+                        fontFamily: FONTS.bodyBold,
                         color: GO_BOARD_COLORS.coordinate,
                       }}
                     >
@@ -239,7 +239,7 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
                         top: at(size - 1 - i) - 5,
                         left: 2,
                         fontSize: 8,
-                        fontWeight: '700',
+                        fontFamily: FONTS.bodyBold,
                         color: GO_BOARD_COLORS.coordinate,
                       }}
                     >

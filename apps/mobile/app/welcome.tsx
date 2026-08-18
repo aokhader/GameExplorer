@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
-import { DIFFICULTY_ELO, TOUR_GAMES, type OnboardingGame } from '@gameexplorer/shared';
+import { DIFFICULTY_ELO, TOUR_GAMES, gameNameList, type OnboardingGame } from '@gameexplorer/shared';
 import { useAuth } from '@gameexplorer/client';
 import { Screen, Button } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { markOnboarded, markSaveProgressPending } from '@/lib/onboarding';
+import { FONTS } from '@/theme/typography';
 
 // The tour's games are the rated ones (see TOUR_GAMES) — the last step picks a
 // bot difficulty on a game's own ELO ladder, which only means something for a
@@ -80,7 +81,7 @@ function OptionRow({
     >
       {typeof icon === 'string' ? <Text style={{ fontSize: 26 }}>{icon}</Text> : icon}
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 16, fontWeight: '700' }}>{name}</Text>
+        <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.bodyBold }}>{name}</Text>
         <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{tagline}</Text>
       </View>
       {selected && (
@@ -204,11 +205,11 @@ export default function WelcomeScreen() {
       {step === 0 && (
         <View style={{ alignItems: 'center', paddingTop: 24, gap: 14 }}>
           <Text style={{ fontSize: 56 }}>♟️</Text>
-          <Text style={{ color: COLORS.fg, fontSize: 26, fontWeight: '800', textAlign: 'center' }}>
+          <Text style={{ color: COLORS.fg, fontSize: 26, fontFamily: FONTS.display, textAlign: 'center' }}>
             Welcome to <Text style={{ color: COLORS.accent }}>GameExplorer</Text>
           </Text>
           <Text style={{ color: COLORS.fgMuted, fontSize: 15, textAlign: 'center', lineHeight: 22, maxWidth: 300 }}>
-            Chess, checkers &amp; reversi — the classics you know, ready in seconds.
+            {gameNameList()} — ready in seconds.
           </Text>
           <View style={{ width: '100%', gap: 12, marginTop: 16 }}>
             <Button label="Let's play →" onPress={advance} glow />
@@ -217,7 +218,7 @@ export default function WelcomeScreen() {
               style={{ alignItems: 'center', paddingVertical: 8 }}
             >
               <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>
-                Already have an account? <Text style={{ color: COLORS.infoHover, fontWeight: '700' }}>Sign in</Text>
+                Already have an account? <Text style={{ color: COLORS.infoHover, fontFamily: FONTS.bodyBold }}>Sign in</Text>
               </Text>
             </Pressable>
           </View>
@@ -226,7 +227,7 @@ export default function WelcomeScreen() {
 
       {step === 1 && (
         <>
-          <Text style={{ color: COLORS.fg, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+          <Text style={{ color: COLORS.fg, fontSize: 22, fontFamily: FONTS.display, textAlign: 'center' }}>
             What do you feel like playing?
           </Text>
           <Text style={{ color: COLORS.fgMuted, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
@@ -251,7 +252,7 @@ export default function WelcomeScreen() {
 
       {step === 2 && (
         <>
-          <Text style={{ color: COLORS.fg, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+          <Text style={{ color: COLORS.fg, fontSize: 22, fontFamily: FONTS.display, textAlign: 'center' }}>
             Who&apos;s your first opponent?
           </Text>
           <Text style={{ color: COLORS.fgMuted, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
@@ -283,7 +284,7 @@ export default function WelcomeScreen() {
 
       {step === 3 && (
         <>
-          <Text style={{ color: COLORS.fg, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+          <Text style={{ color: COLORS.fg, fontSize: 22, fontFamily: FONTS.display, textAlign: 'center' }}>
             How tough should the bot be?
           </Text>
           <Text style={{ color: COLORS.fgMuted, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>

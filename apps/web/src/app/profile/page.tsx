@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { GoStone } from '@gameexplorer/ui';
+import { GameIcon } from '@/components/game/GameIcon';
 import { END_REASON_LABELS } from '@gameexplorer/shared';
 import { getPublicProfile, getGames, getUserRatings, supabase } from '@gameexplorer/db';
 import type { AuthUser, Profile, GameListItem, UserRating, GameType } from '@gameexplorer/db';
@@ -37,23 +37,21 @@ function relativeTime(iso: string) {
 // color for the big rating numeral. Every value reads the theme's tint ramp
 // (`--c-game-*-tint*` in globals.css) rather than a literal, so the cards follow
 // the active theme — they were the last neon left on this page under Cozy.
-const GAME_META: Record<GameType, { label: string; icon: ReactNode; text: string; card: string }> = {
+const GAME_META: Record<GameType, { label: string; text: string; card: string }> = {
   chess: {
-    label: 'Chess', icon: '♞', text: 'text-[var(--c-game-chess-light)]',
+    label: 'Chess', text: 'text-[var(--c-game-chess-light)]',
     card: 'bg-[linear-gradient(180deg,var(--c-game-chess-tint),var(--c-game-tint-tail))] border-[var(--c-game-chess-tint-border)] [box-shadow:var(--c-game-chess-card-glow)]',
   },
   checkers: {
-    label: 'Checkers', icon: '⛃', text: 'text-[var(--c-game-checkers-light)]',
+    label: 'Checkers', text: 'text-[var(--c-game-checkers-light)]',
     card: 'bg-[linear-gradient(180deg,var(--c-game-checkers-tint),var(--c-game-tint-tail))] border-[var(--c-game-checkers-tint-border)] [box-shadow:var(--c-game-checkers-card-glow)]',
   },
   reversi: {
-    label: 'Reversi', icon: '⚫', text: 'text-[var(--c-game-reversi-light)]',
+    label: 'Reversi', text: 'text-[var(--c-game-reversi-light)]',
     card: 'bg-[linear-gradient(180deg,var(--c-game-reversi-tint),var(--c-game-tint-tail))] border-[var(--c-game-reversi-tint-border)] [box-shadow:var(--c-game-reversi-card-glow)]',
   },
   go: {
-    // The real stone, not ⬤ — that glyph is black, which is both the wrong
-    // colour for the piece shown everywhere else and a twin of reversi's ⚫.
-    label: 'Go', icon: <GoStone color="white" size="1em" />, text: 'text-[var(--c-game-go-light)]',
+    label: 'Go', text: 'text-[var(--c-game-go-light)]',
     card: 'bg-[linear-gradient(180deg,var(--c-game-go-tint),var(--c-game-tint-tail))] border-[var(--c-game-go-tint-border)] [box-shadow:var(--c-game-go-card-glow)]',
   },
 };
@@ -285,7 +283,7 @@ export default function ProfilePage() {
             return (
               <div key={type} className={`rounded-2xl border p-5 ${meta.card}`}>
                 <div className="flex items-center gap-2.5 mb-3">
-                  <span className="text-2xl select-none inline-flex items-center">{meta.icon}</span>
+                  <span className="text-2xl select-none inline-flex items-center"><GameIcon game={type} /></span>
                   <span className="font-display font-bold text-fg">{meta.label}</span>
                 </div>
                 {rated ? (
@@ -353,7 +351,7 @@ export default function ProfilePage() {
                   ternary chain: the chain silently fell through to chess for
                   any game added after it was written. */}
               <div className="text-3xl mb-2 select-none flex items-center justify-center">
-                {activeTab === 'all' ? '♞' : GAME_META[activeTab].icon}
+                <GameIcon game={activeTab === 'all' ? 'chess' : activeTab} />
               </div>
               <p className="text-fg-muted text-sm">
                 {activeTab === 'all' ? 'No games played yet' : `No ${activeTab} games yet`}
@@ -383,7 +381,7 @@ export default function ProfilePage() {
                 const inner = (
                   <>
                     <ResultBadge game={game} />
-                    <span className="text-xl w-7 text-center shrink-0 select-none">{meta.icon}</span>
+                    <span className="text-xl w-7 shrink-0 select-none inline-flex justify-center"><GameIcon game={gameType} /></span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-fg capitalize truncate">
                         vs {game.opponent}

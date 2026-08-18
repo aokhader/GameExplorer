@@ -14,6 +14,7 @@ import { HINT_PENALTY } from '@/engine/trainingRules';
 import { Confetti } from './Confetti';
 import { ResultDismissContext, type DismissThen } from './resultDismiss';
 import { SaveProgressPrompt } from './SaveProgressPrompt';
+import { FONTS } from '@/theme/typography';
 
 export type GameResult = 'win' | 'loss' | 'draw' | 'aborted';
 
@@ -221,7 +222,7 @@ export function GameResultScreen({
             {copy.emoji}
           </Animated.Text>
 
-          <Text style={{ color: copy.accentHeading ? COLORS.accentHover : COLORS.fg, fontSize: 28, fontWeight: '800', marginBottom: 2 }}>
+          <Text style={{ color: copy.accentHeading ? COLORS.accentHover : COLORS.fg, fontSize: 28, fontFamily: FONTS.display, marginBottom: 2 }}>
             {title ?? copy.heading}
           </Text>
           {subtitle && (
@@ -245,11 +246,11 @@ export function GameResultScreen({
             >
               <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginBottom: 2 }}>Rating</Text>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-                <Text style={{ color: COLORS.fg, fontSize: 24, fontWeight: '800' }}>{ratingValue}</Text>
+                <Text style={{ color: COLORS.fg, fontSize: 24, fontFamily: FONTS.display }}>{ratingValue}</Text>
                 <Text
                   style={{
                     fontSize: 17,
-                    fontWeight: '800',
+                    fontFamily: FONTS.display,
                     color: rating.delta >= 0 ? COLORS.successHover : COLORS.dangerHover,
                   }}
                 >
@@ -299,7 +300,7 @@ export function GameResultScreen({
                     backgroundColor: COLORS.danger,
                   }}
                 >
-                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Retry</Text>
+                  <Text style={{ color: '#fff', fontSize: 13, fontFamily: FONTS.bodyBold }}>Retry</Text>
                 </Pressable>
               )}
             </View>
@@ -331,7 +332,7 @@ export function GameResultScreen({
                       }}
                     >
                       <Text style={{ fontSize: 16 }}>📈</Text>
-                      <Text style={{ color: COLORS.fg, fontSize: 16, fontWeight: '700' }}>
+                      <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.bodyBold }}>
                         Review Game
                       </Text>
                     </View>

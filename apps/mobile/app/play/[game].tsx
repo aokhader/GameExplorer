@@ -9,6 +9,7 @@ import { ReversiScreen } from '@/screens/ReversiScreen';
 import { ChessScreen } from '@/screens/ChessScreen';
 import { GoScreen } from '@/screens/GoScreen';
 import { LiquidateScreen } from '@/screens/LiquidateScreen';
+import { FONTS } from '@/theme/typography';
 
 const LABELS: Record<string, string> = {
   chess: 'Chess',
@@ -62,7 +63,7 @@ export default function GameScreen() {
         >
           <Text style={{ fontSize: 34 }}>{key === 'reversi' ? '⚫' : '♞'}</Text>
         </View>
-        <Text style={{ color: COLORS.fg, fontSize: 20, fontWeight: '700' }}>
+        <Text style={{ color: COLORS.fg, fontSize: 20, fontFamily: FONTS.display }}>
           {label} is on the way
         </Text>
         <Text

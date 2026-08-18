@@ -53,7 +53,7 @@ function ClockBadge({ color, clocks, clockSyncedAt, running }: {
   }, [countdown, baseMs, clockSyncedAt]);
 
   return (
-    <span className={`px-3 py-1 rounded font-mono text-lg ${active ? 'bg-white text-fg-subtle' : 'bg-surface-muted text-fg-muted'}`}>
+    <span className={`px-3 py-1 rounded font-mono text-lg ${active ? 'bg-fg text-surface' : 'bg-surface-muted text-fg-muted'}`}>
       {formatMs(ms)}
     </span>
   );
@@ -111,7 +111,7 @@ export default function SpectatePage() {
       <div className="w-full max-w-2xl">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold">👁 Spectating</h1>
-          <Link href="/spectate" className="text-fg-muted hover:text-white text-sm">← Leave</Link>
+          <Link href="/spectate" className="text-fg-muted hover:text-fg text-sm">← Leave</Link>
         </div>
 
         {!state ? (

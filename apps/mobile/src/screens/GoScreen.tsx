@@ -42,7 +42,7 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
         style={{
           color: COLORS.fg,
           fontSize: 12,
-          fontWeight: '700',
+          fontFamily: FONTS.bodyBold,
           textTransform: capitalize ? 'capitalize' : 'none',
         }}
       >
@@ -178,7 +178,7 @@ export function GoScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? GAME_ACCENTS.go.base : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                    <Text style={{ color: selected ? GAME_ACCENTS.go.base : COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
                       {level.label}
                     </Text>
                     <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
@@ -232,7 +232,7 @@ export function GoScreen() {
                       style={{
                         color: selected ? GAME_ACCENTS.go.base : COLORS.fg,
                         fontSize: 15,
-                        fontWeight: '700',
+                        fontFamily: FONTS.bodyBold,
                         textTransform: 'capitalize',
                       }}
                     >
@@ -446,11 +446,11 @@ export function GoScreen() {
                   borderTopColor: COLORS.border,
                 }}
               >
-                <Text style={{ color: COLORS.fg, fontSize: 13, fontWeight: '700' }}>
+                <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>
                   Black {score.black}
                 </Text>
                 <Text style={{ color: COLORS.fgMuted, fontSize: 12 }}>vs</Text>
-                <Text style={{ color: COLORS.fg, fontSize: 13, fontWeight: '700' }}>
+                <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>
                   White {score.white}
                 </Text>
               </View>

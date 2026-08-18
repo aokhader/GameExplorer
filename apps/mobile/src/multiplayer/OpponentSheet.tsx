@@ -176,7 +176,7 @@ export function OpponentSheet({
 
           <View>
             <Text
-              style={{ color: COLORS.fgMuted, fontSize: 13, fontWeight: '600', marginBottom: 8 }}
+              style={{ color: COLORS.fgMuted, fontSize: 13, fontFamily: FONTS.bodySemi, marginBottom: 8 }}
             >
               Reason
             </Text>

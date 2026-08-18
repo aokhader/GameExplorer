@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/apiFetch';
 import { Skeleton } from '@/components/ui';
+import { GameIcon } from '@/components/game/GameIcon';
 
 interface LiveGame {
   gameId:      string;
@@ -14,10 +15,6 @@ interface LiveGame {
   black:       { username: string; rating: number };
   moveCount:   number;
 }
-
-const GAME_ICON: Record<LiveGame['gameType'], string> = {
-  chess: '♟', checkers: '⛀', reversi: '◑',
-};
 
 export default function SpectateLobby() {
   const router = useRouter();
@@ -49,14 +46,14 @@ export default function SpectateLobby() {
       <div className="w-full max-w-2xl">
         <div className="flex items-center justify-between mb-6 mt-6">
           <h1 className="text-2xl font-bold">👁 Watch Live Games</h1>
-          <Link href="/" className="text-fg-muted hover:text-white text-sm">← Home</Link>
+          <Link href="/" className="text-fg-muted hover:text-fg text-sm">← Home</Link>
         </div>
 
         {/* Live games list */}
         <div className="bg-surface-alt rounded-2xl p-6 shadow-2xl mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">Live now {games.length > 0 && <span className="text-fg-muted">({games.length})</span>}</h2>
-            <button onClick={loadGames} className="text-sm text-fg-muted hover:text-white">↻ Refresh</button>
+            <button onClick={loadGames} className="text-sm text-fg-muted hover:text-fg">↻ Refresh</button>
           </div>
 
           {loading ? (
@@ -85,7 +82,7 @@ export default function SpectateLobby() {
                 <Link key={g.gameId} href={`/spectate/${g.gameId}`}
                   className="w-full flex items-center justify-between bg-surface-muted hover:bg-surface-hover rounded-lg px-4 py-3 text-left transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-2xl">{GAME_ICON[g.gameType]}</span>
+                    <span className="text-2xl inline-flex items-center"><GameIcon game={g.gameType} /></span>
                     <div className="min-w-0">
                       <div className="font-medium truncate">
                         {g.white.username} ({g.white.rating}) <span className="text-fg-muted">vs</span> {g.black.username} ({g.black.rating})

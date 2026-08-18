@@ -169,3 +169,22 @@ export const TOUR_GAMES: readonly TourGameEntry[] = GAME_LIST.filter(
 export function isMultiSeat(id: GameId): boolean {
   return GAME_CATALOG[id].maxPlayers > 2;
 }
+
+
+/**
+ * The catalog's game names as an English list — "Chess, Checkers, Reversi, Go
+ * and Liquidate".
+ *
+ * Exists because the first-run tour on both platforms opened with a hand-typed
+ * "Chess, checkers & reversi", and that sentence was still there two games
+ * later. Prose that enumerates the catalog has to read from the catalog, or it
+ * becomes the next stale copy the moment a game ships.
+ *
+ * Deliberately not `Intl.ListFormat`: Hermes does not carry it on every React
+ * Native release, and this is one comma rule.
+ */
+export function gameNameList(games: readonly GameCatalogEntry[] = GAME_LIST): string {
+  const names = games.map((g) => g.name);
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}

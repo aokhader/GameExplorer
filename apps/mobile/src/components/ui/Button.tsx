@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { FONTS } from '@/theme/typography';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -56,7 +57,7 @@ export function Button({
                 ? COLORS.dangerHover
                 : COLORS.fg,
           fontSize: 16,
-          fontWeight: '700',
+          fontFamily: FONTS.bodyBold,
         }}
       >
         {label}

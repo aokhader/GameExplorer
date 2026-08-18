@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GAME_CATALOG, GAME_LIST, TOUR_GAMES, isMultiSeat, type GameId } from './games';
+import { GAME_CATALOG, GAME_LIST, TOUR_GAMES, gameNameList, isMultiSeat, type GameId } from './games';
 import { DIFFICULTY_ELO } from './onboarding';
 
 /**
@@ -86,5 +86,29 @@ describe('TOUR_GAMES', () => {
       TOUR_GAMES.some((t) => t.id === id),
     );
     expect(TOUR_GAMES.map((g) => g.id as GameId)).toEqual(catalogOrder);
+  });
+});
+
+
+/**
+ * The tours' opening sentence is built from this, after a hand-typed
+ * "Chess, checkers & reversi" survived two new games on both platforms.
+ */
+describe('gameNameList', () => {
+  it('names every game in the catalog', () => {
+    const list = gameNameList();
+    for (const g of GAME_LIST) expect(list).toContain(g.name);
+  });
+
+  it('reads as an English list in catalog order', () => {
+    expect(gameNameList()).toBe('Chess, Checkers, Reversi, Go and Liquidate');
+  });
+
+  it('handles the degenerate lengths a growing catalog passes through', () => {
+    const pick = (n: number) => GAME_LIST.slice(0, n);
+    expect(gameNameList([])).toBe('');
+    expect(gameNameList(pick(1))).toBe('Chess');
+    expect(gameNameList(pick(2))).toBe('Chess and Checkers');
+    expect(gameNameList(pick(3))).toBe('Chess, Checkers and Reversi');
   });
 });

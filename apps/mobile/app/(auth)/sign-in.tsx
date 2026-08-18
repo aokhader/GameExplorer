@@ -5,6 +5,7 @@ import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { signInWithIdentifier } from '@gameexplorer/client';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
+import { FONTS } from '@/theme/typography';
 
 /**
  * Email/password + OAuth sign-in. Mirrors the web `/auth/signin` page. On success
@@ -45,7 +46,7 @@ export default function SignInScreen() {
   return (
     <Screen>
       <BackHeader fallbackHref="/" />
-      <Text style={{ color: COLORS.fg, fontSize: 28, fontWeight: '800', marginBottom: 24 }}>
+      <Text style={{ color: COLORS.fg, fontSize: 28, fontFamily: FONTS.display, marginBottom: 24 }}>
         Sign in
       </Text>
 
@@ -90,7 +91,7 @@ export default function SignInScreen() {
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 4 }}>
           <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>No account?</Text>
           <Pressable onPress={() => router.replace('/(auth)/sign-up' as never)}>
-            <Text style={{ color: COLORS.accent, fontSize: 14, fontWeight: '600' }}>Sign up</Text>
+            <Text style={{ color: COLORS.accent, fontSize: 14, fontFamily: FONTS.bodySemi }}>Sign up</Text>
           </Pressable>
         </View>
       </View>

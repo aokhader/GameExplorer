@@ -1,6 +1,12 @@
+import type { GameId } from '@gameexplorer/shared';
 import { cn } from '@/lib/utils';
 
-export type AmbientHue = 'brand' | 'chess' | 'checkers' | 'reversi';
+/**
+ * Every game plus the gold brand default. Derived from `GameId` rather than
+ * hand-listed: this union used to name only the first three games, so `/go` and
+ * `/liquidate` silently fell back to the brand gold long after both shipped.
+ */
+export type AmbientHue = 'brand' | GameId;
 
 /** The per-page glow color for the third (signature) bloom. */
 const HUE_GLOW: Record<AmbientHue, string> = {
@@ -8,6 +14,8 @@ const HUE_GLOW: Record<AmbientHue, string> = {
   chess: 'var(--c-game-chess-glow)',
   checkers: 'var(--c-game-checkers-glow)',
   reversi: 'var(--c-game-reversi-glow)',
+  go: 'var(--c-game-go-glow)',
+  liquidate: 'var(--c-game-liquidate-glow)',
 };
 
 export interface AmbientBackgroundProps {

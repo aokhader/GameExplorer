@@ -212,7 +212,7 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
             style={{
               fontFamily: FONTS.bodySemi,
               fontSize: 11.5,
-              color: '#ef5f6b',
+              color: LIQUIDATE_PANEL_COLORS.danger,
               textAlign: 'center',
             }}
           >

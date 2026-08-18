@@ -141,7 +141,7 @@ function Disc({
           borderColor: border,
         }}
       />
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontWeight: '700' }}>{count}</Text>
+      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>{count}</Text>
     </View>
   );
 }

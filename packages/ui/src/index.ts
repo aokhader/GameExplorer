@@ -40,9 +40,12 @@ export {
   LIQUIDATE_BOARD_COLORS,
   LIQUIDATE_DECK_STYLE,
   LIQUIDATE_PANEL_COLORS,
+  LIQUIDATE_PLANET_STYLE,
   LIQUIDATE_SEAT_COLORS,
   LIQUIDATE_SYSTEM_COLORS,
 } from './liquidate/tokens';
 export type { LiquidateSystemKey } from './liquidate/tokens';
+export { PlanetToken } from './liquidate/PlanetToken';
+export type { PlanetTokenProps } from './liquidate/PlanetToken';
 export { PlayerToken } from './liquidate/PlayerToken';
 export type { PlayerTokenProps } from './liquidate/PlayerToken';

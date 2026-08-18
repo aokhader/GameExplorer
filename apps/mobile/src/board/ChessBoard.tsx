@@ -27,6 +27,7 @@ import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE, useThemeName } from '
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
+import { FONTS } from '@/theme/typography';
 
 interface ChessBoardProps {
   gameState: ChessGameState;
@@ -289,7 +290,7 @@ function PromotionPicker({
           alignItems: 'center',
         }}
       >
-        <Text style={{ color: COLORS.fg, fontSize: 14, fontWeight: '700', marginBottom: 10 }}>
+        <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold, marginBottom: 10 }}>
           Promote pawn to:
         </Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -721,12 +722,12 @@ function ChessBoardInner({
                 }}
               >
                 {showRank && (
-                  <Text style={{ position: 'absolute', top: 2, left: 3, fontSize: 9, fontWeight: '700', color: labelColor, opacity: 0.75 }}>
+                  <Text style={{ position: 'absolute', top: 2, left: 3, fontSize: 9, fontFamily: FONTS.bodyBold, color: labelColor, opacity: 0.75 }}>
                     {boardRow + 1}
                   </Text>
                 )}
                 {showFile && (
-                  <Text style={{ position: 'absolute', bottom: 2, right: 3, fontSize: 9, fontWeight: '700', color: labelColor, opacity: 0.75 }}>
+                  <Text style={{ position: 'absolute', bottom: 2, right: 3, fontSize: 9, fontFamily: FONTS.bodyBold, color: labelColor, opacity: 0.75 }}>
                     {String.fromCharCode(97 + boardCol)}
                   </Text>
                 )}

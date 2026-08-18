@@ -90,7 +90,7 @@ export function ChatSheet({
                 key={i}
                 style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 14, lineHeight: 20 }}
               >
-                <Text style={{ color: mine ? COLORS.accentHover : COLORS.fg, fontWeight: '700' }}>
+                <Text style={{ color: mine ? COLORS.accentHover : COLORS.fg, fontFamily: FONTS.bodyBold }}>
                   {m.username}:{' '}
                 </Text>
                 {m.text}
@@ -134,7 +134,7 @@ export function ChatSheet({
                 opacity: !canSend || !text.trim() ? 0.4 : pressed ? 0.8 : 1,
               }}
             >
-              <Text style={{ color: COLORS.onAccent, fontSize: 15, fontWeight: '700' }}>Send</Text>
+              <Text style={{ color: COLORS.onAccent, fontSize: 15, fontFamily: FONTS.bodyBold }}>Send</Text>
             </View>
           )}
         </Pressable>

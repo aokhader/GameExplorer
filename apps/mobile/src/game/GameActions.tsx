@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View, type ViewStyle } from 'react-native';
 import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { FONTS } from '@/theme/typography';
 
 export interface GameActionsProps {
   /** Agree a draw (vs bot). Omit for games without draws (reversi). */
@@ -87,7 +88,7 @@ export function GameActions({
             { backgroundColor: COLORS.surfaceMuted, borderColor: COLORS.border },
           ]}
         >
-          <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontWeight: '700' }}>{drawLabel}</Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.bodyBold }}>{drawLabel}</Text>
         </Pressable>
       )}
       {onResign && (
@@ -109,7 +110,7 @@ export function GameActions({
             style={{
               color: confirming ? '#fff' : COLORS.dangerHover,
               fontSize: 14,
-              fontWeight: '700',
+              fontFamily: FONTS.bodyBold,
             }}
           >
             {confirming ? `${resignLabel}?` : resignLabel}

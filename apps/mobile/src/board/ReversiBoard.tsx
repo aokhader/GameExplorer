@@ -14,6 +14,7 @@ import { ReversiDisc, REVERSI_BOARD_COLORS, SHADOWS_NATIVE } from '@gameexplorer
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
+import { FONTS } from '@/theme/typography';
 
 interface ReversiBoardProps {
   gameState: ReversiGameState;
@@ -282,7 +283,7 @@ function ReversiBoardInner({
                       top: 2,
                       left: 3,
                       fontSize: 9,
-                      fontWeight: '700',
+                      fontFamily: FONTS.bodyBold,
                       color: 'rgba(255,255,255,0.7)',
                     }}
                   >
@@ -296,7 +297,7 @@ function ReversiBoardInner({
                       bottom: 2,
                       right: 3,
                       fontSize: 9,
-                      fontWeight: '700',
+                      fontFamily: FONTS.bodyBold,
                       color: 'rgba(255,255,255,0.7)',
                     }}
                   >

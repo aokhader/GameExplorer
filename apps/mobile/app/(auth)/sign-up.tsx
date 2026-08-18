@@ -7,6 +7,7 @@ import { supabase } from '@gameexplorer/db';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
 import { PRIVACY_URL, TERMS_URL } from '@/config/support';
+import { FONTS } from '@/theme/typography';
 
 /** Opens a legal document, falling back to the system browser. */
 function openLegal(url: string) {
@@ -97,7 +98,7 @@ export default function SignUpScreen() {
   return (
     <Screen>
       <BackHeader fallbackHref="/" />
-      <Text style={{ color: COLORS.fg, fontSize: 28, fontWeight: '800', marginBottom: 24 }}>
+      <Text style={{ color: COLORS.fg, fontSize: 28, fontFamily: FONTS.display, marginBottom: 24 }}>
         Create account
       </Text>
 
@@ -163,7 +164,7 @@ export default function SignUpScreen() {
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 4 }}>
           <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>Already have an account?</Text>
           <Pressable onPress={() => router.replace('/(auth)/sign-in' as never)}>
-            <Text style={{ color: COLORS.accent, fontSize: 14, fontWeight: '600' }}>Sign in</Text>
+            <Text style={{ color: COLORS.accent, fontSize: 14, fontFamily: FONTS.bodySemi }}>Sign in</Text>
           </Pressable>
         </View>
       </View>

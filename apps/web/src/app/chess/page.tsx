@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
+import { GameIcon } from '@/components/game/GameIcon';
 
 type GameMode = {
   id: string;
@@ -116,7 +117,7 @@ export default function ChessLandingPage() {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <Reveal className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-surface-alt border border-border mb-6 motion-safe:animate-float [box-shadow:var(--shadow-glow-chess)]">
-            <span className="text-5xl">♔</span>
+            <span className="text-5xl inline-flex items-center"><GameIcon game="chess" /></span>
           </Reveal>
           <Reveal as="h1" delay={80} className="text-5xl md:text-6xl font-bold tracking-tight mb-4">
             <GradientText>Play Chess</GradientText>

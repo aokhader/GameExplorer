@@ -180,7 +180,7 @@ export function GhostButton({
 }) {
   useThemeName();
   const P = LIQUIDATE_PANEL_COLORS;
-  const tint = danger ? '#ef5f6b' : P.dim;
+  const tint = danger ? P.danger : P.dim;
 
   return (
     <Pressable

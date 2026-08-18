@@ -173,7 +173,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
                 paddingHorizontal: 8,
                 paddingVertical: 2,
                 fontSize: 11,
-                fontWeight: '800',
+                fontFamily: FONTS.bodyBold,
                 textTransform: 'capitalize',
               }}
             >
@@ -234,7 +234,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
                 style={{
                   color: COLORS.fgMuted,
                   fontSize: 11,
-                  fontWeight: '800',
+                  fontFamily: FONTS.bodyBold,
                   letterSpacing: 0.6,
                 }}
               >

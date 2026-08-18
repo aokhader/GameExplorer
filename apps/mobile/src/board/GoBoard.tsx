@@ -8,6 +8,7 @@ import { GO_BOARD_COLORS, GO_STAR_POINTS_9, GoStone } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
+import { FONTS } from '@/theme/typography';
 
 interface GoBoardProps {
   gameState: GoGameState;
@@ -304,7 +305,7 @@ function GoBoardInner({
                         width: cell,
                         textAlign: 'center',
                         fontSize: 9,
-                        fontWeight: '700',
+                        fontFamily: FONTS.bodyBold,
                         color: GO_BOARD_COLORS.coordinate,
                       }}
                     >
@@ -316,7 +317,7 @@ function GoBoardInner({
                         top: at(size - 1 - i) - 6,
                         left: 2,
                         fontSize: 9,
-                        fontWeight: '700',
+                        fontFamily: FONTS.bodyBold,
                         color: GO_BOARD_COLORS.coordinate,
                       }}
                     >

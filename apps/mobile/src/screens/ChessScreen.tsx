@@ -278,7 +278,7 @@ export function ChessScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                    <Text style={{ color: selected ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
                       {level.label} · {level.elo}
                     </Text>
                     <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
@@ -305,7 +305,7 @@ export function ChessScreen() {
                 }}
               >
                 <Text style={{ fontSize: 20, marginBottom: 4 }}>🎚️</Text>
-                <Text style={{ color: isCustomTier ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: 14, fontWeight: '800' }}>
+                <Text style={{ color: isCustomTier ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
                   Custom{isCustomTier ? ` · ${targetElo}` : ''}
                 </Text>
                 <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
@@ -367,7 +367,7 @@ export function ChessScreen() {
                       style={{
                         color: selected ? GAME_ACCENTS.chess.base : COLORS.fg,
                         fontSize: 15,
-                        fontWeight: '700',
+                        fontFamily: FONTS.bodyBold,
                         textTransform: 'capitalize',
                       }}
                     >
@@ -779,7 +779,7 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
   return (
     <View style={{ flexDirection: 'row', gap: 6, width: '50%', paddingVertical: 2 }}>
       <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}:</Text>
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontWeight: '700', textTransform: capitalize ? 'capitalize' : 'none' }}>
+      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold, textTransform: capitalize ? 'capitalize' : 'none' }}>
         {value}
       </Text>
     </View>

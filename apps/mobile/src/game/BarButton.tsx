@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { FONTS } from '@/theme/typography';
 
 export interface BarButtonProps {
   glyph: string;
@@ -80,7 +81,7 @@ export function BarButton({
                 right: 6,
                 color: COLORS.warningHover,
                 fontSize: 10,
-                fontWeight: '800',
+                fontFamily: FONTS.bodyBold,
               }}
             >
               {badge}
