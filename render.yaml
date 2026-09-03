@@ -1,4 +1,4 @@
-# Render Blueprint — deploys the GameExplorer multiplayer API as a single FREE
+# Render Blueprint — deploys the Finesse multiplayer API as a single FREE
 # Docker web service, with Redis colocated inside the container (see
 # apps/api/Dockerfile + apps/api/docker-entrypoint.sh). No separate Redis service.
 #
@@ -10,8 +10,15 @@
 # binds process.env.PORT (apps/api/src/index.ts).
 services:
   - type: web
-    name: gameexplorer-api
+    # NOTE: renaming this service makes the next Blueprint sync create a NEW
+    # service — Render matches by name — leaving `gameexplorer-api` behind for
+    # manual deletion. Every dashboard-set var below (CORS_ORIGIN, Supabase
+    # keys) must be re-entered on the new service, and the web + mobile clients
+    # repointed at its URL. Revert to `gameexplorer-api` to skip that migration.
+    name: finesse-api
     runtime: docker
+    # Still GameExplorer: this must match the real remote, so change it only
+    # when the GitHub repository itself is renamed.
     repo: https://github.com/aokhader/GameExplorer
     branch: main
     dockerfilePath: ./apps/api/Dockerfile
@@ -27,7 +34,7 @@ services:
       - key: REDIS_URL
         value: redis://127.0.0.1:6379
       # ── Set these in the dashboard (Environment tab) ──
-      # Your Vercel web app origin, e.g. https://gameexplorer.vercel.app
+      # Your Vercel web app origin, e.g. https://finesse.vercel.app
       - key: CORS_ORIGIN
         sync: false
       # Supabase project URL, e.g. https://anygsfoltjxhklnpxpiu.supabase.co

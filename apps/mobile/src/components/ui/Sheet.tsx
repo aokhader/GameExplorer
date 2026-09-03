@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Modal, Pressable, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@finesse/ui';
 
 export interface SheetProps {
   open: boolean;

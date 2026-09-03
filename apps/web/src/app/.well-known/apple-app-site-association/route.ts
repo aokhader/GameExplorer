@@ -15,12 +15,23 @@
  *    expressed here — `/chess/play` and friends are claimed whole, and the app
  *    reads the query itself (see `app/+native-intent.tsx` on mobile).
  */
+import { GAME_LIST } from '@finesse/shared';
+
 export const dynamic = 'force-static';
 
-const BUNDLE_ID = 'com.gameexplorer.app';
+const BUNDLE_ID = 'com.finesse.app';
 
-/** Every route an invite or spectate link can point at. */
-const PATHS = ['/chess/play', '/checkers/play', '/reversi/play', '/spectate/*'];
+/**
+ * Every route an invite or spectate link can point at, derived from the catalog
+ * rather than typed out: only games offering `online` can produce an invite
+ * link, so a hand-written list here goes stale the moment a game gains or loses
+ * that mode. Android's equivalent is `intentFilters` in
+ * `apps/mobile/app.config.ts`, and the two must agree.
+ */
+const PATHS = [
+  ...GAME_LIST.filter((g) => g.modes.includes('online')).map((g) => `/${g.slug}/play`),
+  '/spectate/*',
+];
 
 export function GET(): Response {
   const teamId = process.env.APPLE_TEAM_ID?.trim();

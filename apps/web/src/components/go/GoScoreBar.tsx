@@ -1,6 +1,6 @@
 import React from 'react';
-import type { GoScore } from '@gameexplorer/shared';
-import { GoStone } from '@gameexplorer/ui';
+import type { GoScore } from '@finesse/shared';
+import { GoStone } from '@finesse/ui';
 
 export interface GoScoreBarProps {
   score: GoScore;

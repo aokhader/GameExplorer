@@ -3,8 +3,8 @@
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@gameexplorer/db';
-import { signInWithIdentifier } from '@gameexplorer/client';
+import { supabase } from '@finesse/db';
+import { signInWithIdentifier } from '@finesse/client';
 import { GradientText } from '@/components/visual';
 
 // useSearchParams() requires a Suspense boundary in Next.js App Router.

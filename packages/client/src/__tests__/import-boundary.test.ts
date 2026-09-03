@@ -1,7 +1,7 @@
 /**
  * Import-boundary smoke test for the shared client layer.
  *
- * `@gameexplorer/client` is consumed by apps/web (Next.js) today and apps/mobile
+ * `@finesse/client` is consumed by apps/web (Next.js) today and apps/mobile
  * (React Native) later. For the mobile clone to reuse this layer verbatim, the
  * source must stay free of web-only dependencies: no `next/*`, no DOM globals
  * (window/document/navigator/localStorage/sessionStorage), and no `process.env`
@@ -74,6 +74,6 @@ describe('packages/client import boundary', () => {
       }
     }
 
-    expect(violations, `Web-only dependency leaked into @gameexplorer/client:\n${violations.join('\n')}`).toEqual([]);
+    expect(violations, `Web-only dependency leaked into @finesse/client:\n${violations.join('\n')}`).toEqual([]);
   });
 });

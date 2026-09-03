@@ -1,5 +1,5 @@
 # Express API container — build from the REPO ROOT (workspace deps live there):
-#   docker build -f apps/api/Dockerfile -t gameexplorer-api .
+#   docker build -f apps/api/Dockerfile -t finesse-api .
 # Runtime env: PORT, CORS_ORIGIN, SUPABASE_URL, SUPABASE_SECRET_KEY,
 #              DATABASE_URL, REDIS_URL (see apps/api/.env.example)
 
@@ -23,15 +23,15 @@ COPY packages/ui/package.json packages/ui/
 COPY apps/api/prisma.config.ts apps/api/
 COPY apps/api/prisma apps/api/prisma
 
-# api + its workspace dependencies (@gameexplorer/shared). The postinstall
+# api + its workspace dependencies (@finesse/shared). The postinstall
 # generates the Prisma client (no DB connection is made, so no DATABASE_URL).
-RUN pnpm install --frozen-lockfile --filter @gameexplorer/api...
+RUN pnpm install --frozen-lockfile --filter @finesse/api...
 
 COPY packages/shared packages/shared
 COPY apps/api apps/api
 
-RUN pnpm --filter @gameexplorer/shared build \
- && pnpm --filter @gameexplorer/api build
+RUN pnpm --filter @finesse/shared build \
+ && pnpm --filter @finesse/api build
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 # Copies the built workspace as-is (incl. dev deps) — reliable with pnpm's

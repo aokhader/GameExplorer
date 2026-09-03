@@ -1,5 +1,5 @@
 import React from 'react';
-import { ReversiDisc } from '@gameexplorer/ui';
+import { ReversiDisc } from '@finesse/ui';
 
 export interface DiscCountBarProps {
   black: number;

@@ -4,10 +4,10 @@ import { useCallback, useEffect } from 'react';
 import { redirect }  from 'next/navigation';
 import { ReversiBoard }   from '@/components/reversi/ReversiBoard';
 import { DiscCountBar }   from '@/components/reversi/DiscCountBar';
-import { useGameSession } from '@gameexplorer/client';
+import { useGameSession } from '@finesse/client';
 import { GameLayout }     from '@/components/game/GameLayout';
-import { formatClockShort } from '@gameexplorer/shared';
-import type { ReversiGameState, TimeControl } from '@gameexplorer/shared';
+import { formatClockShort } from '@finesse/shared';
+import type { ReversiGameState, TimeControl } from '@finesse/shared';
 
 const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
   { id: 'movetime', label: 'Normal', desc: '30s per move' },

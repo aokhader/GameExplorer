@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import type { DockSlot, LiquidateAction, LiquidateGameState } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import type { DockSlot, LiquidateAction, LiquidateGameState } from '@finesse/shared';
+import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 import { ViewHeader, GhostButton } from './ViewChrome';
 import type { LqView } from './types';

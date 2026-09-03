@@ -4,11 +4,11 @@ import { useCallback, useEffect } from 'react';
 import { redirect }  from 'next/navigation';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
-import { useGameSession } from '@gameexplorer/client';
+import { useGameSession } from '@finesse/client';
 import { GameLayout } from '@/components/game/GameLayout';
 import { GameSkeleton } from '@/components/game/GameSkeleton';
-import { formatClockLong } from '@gameexplorer/shared';
-import type { ChessGameState, TimeControl, Position, PieceType } from '@gameexplorer/shared';
+import { formatClockLong } from '@finesse/shared';
+import type { ChessGameState, TimeControl, Position, PieceType } from '@finesse/shared';
 
 const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
   { id: 'bullet',    label: 'Bullet',    desc: '1 min'      },

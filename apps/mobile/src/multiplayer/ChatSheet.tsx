@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { Sheet } from '@/components/ui/Sheet';
 import { TextField } from '@/components/ui';
 import { FONTS } from '@/theme/typography';

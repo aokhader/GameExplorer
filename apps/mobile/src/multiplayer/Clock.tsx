@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface ClockProps {

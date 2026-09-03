@@ -7,7 +7,7 @@ import {
   formatCredits,
   type LiquidateGameState,
   type LiquidatePlayer,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { Dice } from './Dice';
 import { TileInspector } from './TileInspector';
 import { LQ, seatColor, tileAccent } from './theme';

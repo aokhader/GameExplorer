@@ -1,7 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { supabase } from '@gameexplorer/db';
+import { supabase } from '@finesse/db';
 import { ensureProfile } from './profile';
 
 /**
@@ -13,7 +13,7 @@ import { ensureProfile } from './profile';
  *
  *   1. Ask Supabase for the provider consent URL (`skipBrowserRedirect` — we open
  *      it ourselves, not via a full-page navigation).
- *   2. Open it in an auth session tab and wait for the `gameexplorer://auth/callback`
+ *   2. Open it in an auth session tab and wait for the `finesse://auth/callback`
  *      deep link to come back.
  *   3. The mobile client uses the PKCE flow (see client.native.ts), so the return
  *      URL carries an authorization `?code=` as a query param — which Android
@@ -30,9 +30,9 @@ export async function signInWithOAuthNative(
   provider: 'google' | 'facebook',
 ): Promise<{ error: string | null; cancelled: boolean }> {
   // NOTE: no leading slash on the path — `createURL('auth/callback')` yields
-  // `gameexplorer://auth/callback` (host `auth`), a valid deep link Supabase
+  // `finesse://auth/callback` (host `auth`), a valid deep link Supabase
   // accepts in its Redirect URLs allowlist. A leading slash produces the
-  // empty-host `gameexplorer:///auth/callback`, which Supabase rejects.
+  // empty-host `finesse:///auth/callback`, which Supabase rejects.
   const redirectTo = Linking.createURL('auth/callback');
 
   const { data, error } = await supabase.auth.signInWithOAuth({

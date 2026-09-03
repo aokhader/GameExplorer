@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Socket } from 'socket.io-client';
-import { EMOTES, type Emote } from '@gameexplorer/shared';
+import { EMOTES, type Emote } from '@finesse/shared';
 
 interface FloatingReaction {
   id:       number;

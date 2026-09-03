@@ -1,6 +1,6 @@
 import { Pressable, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface LearnLinkProps {

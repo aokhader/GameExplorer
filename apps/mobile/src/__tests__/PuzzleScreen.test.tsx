@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { MOBILE_PUZZLE_PROGRESS_KEY, staticPuzzleSource } from '@gameexplorer/shared';
+import { MOBILE_PUZZLE_PROGRESS_KEY, staticPuzzleSource } from '@finesse/shared';
 import { PuzzleScreen } from '@/screens/PuzzleScreen';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 

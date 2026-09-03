@@ -5,7 +5,7 @@ import type {
   PuzzleGame,
   PuzzleMove,
   ReversiGameState,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { ChessBoard } from '@/board/ChessBoard';
 import { CheckersBoard } from '@/board/CheckersBoard';
 import { ReversiBoard } from '@/board/ReversiBoard';

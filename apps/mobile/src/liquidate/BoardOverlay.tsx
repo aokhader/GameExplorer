@@ -7,7 +7,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@finesse/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import type { RingGeometry } from './boardGeom';
 

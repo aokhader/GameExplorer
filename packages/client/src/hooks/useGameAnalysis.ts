@@ -5,7 +5,7 @@ import {
   type Color,
   type MoveGrade,
   type PositionEval,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 
 export interface UseGameAnalysisOptions<S> {
   adapter: AnalysisAdapter<S>;

@@ -2,7 +2,7 @@ import type { ExpoConfig } from 'expo/config';
 
 /**
  * Expo app config. `scheme` powers deep links used for the OAuth callback
- * (`gameexplorer://auth/callback`) and multiplayer invite links.
+ * (`finesse://auth/callback`) and multiplayer invite links.
  * New Architecture is always-on in SDK 57 / RN 0.86 — reanimated (v4 +
  * worklets) + gesture-handler + svg all support it.
  */
@@ -16,16 +16,19 @@ import type { ExpoConfig } from 'expo/config';
  * `apps/web/src/app/.well-known/`. Until those are configured the links still
  * work, they just land on the web app.
  */
-const WEB_HOST = (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://game-explorer-site.vercel.app')
+const WEB_HOST = (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://finesse.games')
   .replace(/^https?:\/\//, '')
   .replace(/\/$/, '');
 const config: ExpoConfig = {
-  name: 'GameExplorer',
-  slug: 'gameexplorer',
-  // The EAS project lives under the `gameexplorermobile` account (an org),
-  // not the personal login — pin it so builds resolve the right owner.
+  name: 'Finesse',
+  slug: 'finesse',
+  // STALE AFTER REBRAND: `owner`, `updates.url` and `extra.eas.projectId` all
+  // still name the pre-rename EAS project, and none can be hand-edited to a
+  // working value. Run `eas init` against the renamed project, then paste the
+  // new owner / projectId / update URL in. EAS builds and OTA updates fail
+  // until that is done; nothing else in this config depends on it.
   owner: 'gameexplorermobile',
-  scheme: 'gameexplorer',
+  scheme: 'finesse',
   version: '2.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'dark',
@@ -46,7 +49,7 @@ const config: ExpoConfig = {
   icon: './assets/icon.png',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.gameexplorer.app',
+    bundleIdentifier: 'com.finesse.app',
     // Sign in with Apple (App Store Guideline 4.8 — required alongside the
     // Google/Facebook logins). The expo-apple-authentication plugin adds the
     // matching entitlement.
@@ -61,11 +64,20 @@ const config: ExpoConfig = {
     },
   },
   android: {
-    package: 'com.gameexplorer.app',
+    package: 'com.finesse.app',
     // App Links for invite + spectate links. `autoVerify` is what lets Android
     // open them without a chooser dialog; it needs `/.well-known/assetlinks.json`
     // on WEB_HOST. Until that is served, verification simply fails and the link
     // opens the web app — a chooser on every tap would be the worse default.
+    //
+    // The play paths are exactly the games whose catalog entry offers `online`
+    // (chess, checkers, reversi) — only those can produce an invite link. Go and
+    // Liquidate are absent on purpose, not by oversight. This list is typed out
+    // rather than derived from `@finesse/shared` because that package resolves
+    // through `dist/`, and making the Expo config depend on a prior build turns
+    // a missing build into an unreadable config error. Its iOS counterpart in
+    // `apps/web/src/app/.well-known/apple-app-site-association/route.ts` DOES
+    // derive from the catalog — when a game gains `online`, add it here too.
     intentFilters: [
       {
         action: 'VIEW',
@@ -95,7 +107,7 @@ const config: ExpoConfig = {
     'expo-image',
     'expo-status-bar',
     // OAuth sign-in opens the provider consent page in an in-app browser tab and
-    // catches the `gameexplorer://auth/callback` deep link on return (M1 auth).
+    // catches the `finesse://auth/callback` deep link on return (M1 auth).
     'expo-web-browser',
     // Sign in with Apple (iOS) — adds the entitlement + native module.
     'expo-apple-authentication',

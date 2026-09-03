@@ -4,7 +4,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { encryptEmail, hashEmail } from '@gameexplorer/db';
+import { encryptEmail, hashEmail } from '@finesse/db';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);

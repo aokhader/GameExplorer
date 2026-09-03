@@ -4,8 +4,8 @@ import {
   MOBILE_PUZZLE_PROGRESS_KEY,
   parseProgress,
   serializeProgress,
-} from '@gameexplorer/shared';
-import type { PuzzleProgress, PuzzleProgressStore } from '@gameexplorer/shared';
+} from '@finesse/shared';
+import type { PuzzleProgress, PuzzleProgressStore } from '@finesse/shared';
 
 /**
  * Puzzle progress in AsyncStorage, under `gx:puzzles` alongside `gx:lastGame`

@@ -6,7 +6,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { isImmersiveGameRoute } from '@/lib/routes';
 import { cn } from '@/lib/utils';
-import { GAME_LIST } from '@gameexplorer/shared';
+import { GAME_LIST } from '@finesse/shared';
 
 // The games come from the catalog so a new one appears in the nav by existing,
 // not by someone remembering this file. Home and Watch are not games.
@@ -42,7 +42,7 @@ export function Navigation() {
     setDropdownOpen(false);
     // Loaded on demand — keeps @supabase/* out of the nav's (i.e. every
     // page's) initial bundle; by sign-out time it's warm from useAuth anyway.
-    const { supabase } = await import('@gameexplorer/db');
+    const { supabase } = await import('@finesse/db');
     await supabase.auth.signOut();
     router.push('/');
   };
@@ -65,8 +65,8 @@ export function Navigation() {
         <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group justify-self-start">
-            <span className="font-display text-2xl font-bold text-fg transition-colors">
-              Game<span className="text-accent group-hover:text-accent-hover transition-colors">Explorer</span>
+            <span className="font-display text-2xl font-bold text-accent group-hover:text-accent-hover transition-colors">
+              Finesse
             </span>
           </Link>
 

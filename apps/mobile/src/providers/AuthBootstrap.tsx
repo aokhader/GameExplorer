@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useAuth } from '@gameexplorer/client';
+import { useAuth } from '@finesse/client';
 
 /**
  * Mounts the shared `useAuth` hook once at the app root so the auth store is

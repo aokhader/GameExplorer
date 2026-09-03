@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY } from '@/lib/onboarding';
 import { SUPPORT_EMAIL } from '@/lib/support';
-import { GAME_LIST, gameCountWord, type GameCatalogEntry, type GameId } from '@gameexplorer/shared';
+import { GAME_LIST, gameCountWord, type GameCatalogEntry, type GameId } from '@finesse/shared';
 import { GameIcon } from '@/components/game/GameIcon';
 
 const GAME_CARD_GLOW: Record<GameId, string> = {
@@ -45,8 +45,7 @@ export default function HomePage() {
         {/* Header */}
         <div className="text-center mb-16">
           <Reveal as="h1" className="text-4xl sm:text-6xl md:text-8xl font-bold tracking-tight mb-4 break-words">
-            <span className="text-fg">Game</span>
-            <span className="text-gradient-brand text-info">Explorer</span>
+            <span className="text-gradient-brand text-info">Finesse</span>
           </Reveal>
           <Reveal as="p" delay={120} className="text-xl md:text-2xl text-fg-muted mb-8">
             Classic board games, reimagined for the modern web
@@ -140,7 +139,7 @@ export default function HomePage() {
               Contact
             </a>
           </div>
-          <p className="text-sm">© 2026 GameExplorer</p>
+          <p className="text-sm">© 2026 Finesse</p>
         </footer>
       </div>
     </div>

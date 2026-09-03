@@ -301,7 +301,7 @@ export default function SettingsPage() {
           </h2>
           <div className="divide-y divide-border">
             <a
-              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('GameExplorer — Bug report / feedback')}`}
+              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Finesse — Bug report / feedback')}`}
               className="group flex items-center justify-between gap-4 py-4"
             >
               <div className="min-w-0">
@@ -347,7 +347,7 @@ export default function SettingsPage() {
               <div className="min-w-0">
                 <p className="font-semibold text-fg">Open source &amp; licenses</p>
                 <p className="text-sm text-fg-muted">
-                  The engines and open-source software GameExplorer is built on.
+                  The engines and open-source software Finesse is built on.
                 </p>
               </div>
               <span className="text-fg-subtle group-hover:text-fg transition-colors" aria-hidden>

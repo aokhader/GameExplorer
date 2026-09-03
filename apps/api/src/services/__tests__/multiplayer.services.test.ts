@@ -11,7 +11,7 @@ import { redis } from '../../config/redis';
 import { matchmakingService, type QueueEntry } from '../matchmaking.service';
 import { clockService } from '../clock.service';
 import { inviteService } from '../invite.service';
-import type { TimeControlConfig } from '@gameexplorer/shared';
+import type { TimeControlConfig } from '@finesse/shared';
 
 beforeEach(async () => { await (redis as any).flushall(); });
 

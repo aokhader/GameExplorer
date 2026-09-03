@@ -3,7 +3,7 @@
 // no next/*) so web and React Native share it.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useCallback } from 'react';
-import { supabase } from '@gameexplorer/db';
+import { supabase } from '@finesse/db';
 import { useAuthStore }   from '../stores/authStore';
 import { useSocketStore } from '../stores/socketStore';
 import { useGameStore }   from '../stores/gameStore';

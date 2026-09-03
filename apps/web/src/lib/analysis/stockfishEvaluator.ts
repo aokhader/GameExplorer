@@ -1,5 +1,5 @@
-import type { PieceType } from '@gameexplorer/shared';
-import type { RawChessEval } from '@gameexplorer/shared';
+import type { PieceType } from '@finesse/shared';
+import type { RawChessEval } from '@finesse/shared';
 import { getStockfishEnginePath, getStockfishThreads, isMultiThreadSupported } from '../stockfishEngine';
 
 const UCI_PROMOTION_MAP: Record<string, PieceType> = {

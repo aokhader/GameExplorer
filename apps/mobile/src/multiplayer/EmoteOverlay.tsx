@@ -5,7 +5,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
 import type { FloatingReaction } from './useEmotes';

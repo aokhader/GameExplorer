@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
-import { EMOTES, type Emote } from '@gameexplorer/shared';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
+import { EMOTES, type Emote } from '@finesse/shared';
 import { Sheet } from '@/components/ui/Sheet';
 import { BarButton, useTwoTapConfirm } from '@/game/BarButton';
 import { MenuRow } from '@/game/MenuRow';

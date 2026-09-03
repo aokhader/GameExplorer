@@ -3,14 +3,14 @@ import {
   calculateNewRating,
   type EngineMove,
   type GameOutcome,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import {
   getUserRating,
   upsertUserRating,
   type GameType,
   type SaveGameOptions,
   type UserRating,
-} from '@gameexplorer/db';
+} from '@finesse/db';
 import { HINT_PENALTY, HINT_VISIBLE_MS } from './trainingRules';
 
 export type LocalGameMode = 'bot' | 'pass-and-play' | 'training';

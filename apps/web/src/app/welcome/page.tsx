@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DIFFICULTY_ELO, TOUR_GAMES, gameNameList, type OnboardingGame } from '@gameexplorer/shared';
+import { DIFFICULTY_ELO, TOUR_GAMES, gameNameList, type OnboardingGame } from '@finesse/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { ONBOARDED_KEY, SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
 import { GameIcon } from '@/components/game/GameIcon';
@@ -29,7 +29,7 @@ const DIFFICULTIES: { id: Difficulty; name: string; icon: string; tagline: strin
   { id: 'sharp',    name: 'Sharp',    icon: '🔥', tagline: 'Bring your A-game' },
 ];
 
-// DIFFICULTY_ELO now lives in @gameexplorer/shared — mobile's tour reads the
+// DIFFICULTY_ELO now lives in @finesse/shared — mobile's tour reads the
 // same ladder (it used to ignore the choice entirely).
 
 // Selection accent per option, as CSS color / glow pairs. Games glow in their
@@ -141,7 +141,7 @@ export default function WelcomePage() {
               <div className="text-center">
                 <div className="text-[52px] leading-none mb-3.5">♟️</div>
                 <h1 className="text-[27px] font-bold mb-2.5">
-                  Welcome to <span className="text-accent">GameExplorer</span>
+                  Welcome to <span className="text-accent">Finesse</span>
                 </h1>
                 <p className="text-[15px] text-fg-muted leading-relaxed mb-7">
                   {gameNameList()} — ready in seconds.

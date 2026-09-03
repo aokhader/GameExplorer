@@ -3,15 +3,15 @@
 import React from 'react';
 import Link from 'next/link';
 // Deep import, not the package barrel — the same reason mobile does it. The
-// barrel re-exports `useSocket`, which pulls `@gameexplorer/db` (a Supabase
+// barrel re-exports `useSocket`, which pulls `@finesse/db` (a Supabase
 // client built at import time) and socket.io onto this route's chunk, neither
 // of which a puzzle touches.
-import { usePuzzle } from '@gameexplorer/client/hooks/usePuzzle';
-import type { PuzzleGame } from '@gameexplorer/shared';
+import { usePuzzle } from '@finesse/client/hooks/usePuzzle';
+import type { PuzzleGame } from '@finesse/shared';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { StatusBanner } from '@/components/game/StatusBanner';
 import { GameSkeleton } from '@/components/game/GameSkeleton';
-import { staticPuzzleSource } from '@gameexplorer/shared';
+import { staticPuzzleSource } from '@finesse/shared';
 import { webPuzzleProgressStore } from '@/lib/puzzleProgress';
 import { PuzzleBoard } from './PuzzleBoard';
 import { usePuzzleFeedback } from './usePuzzleFeedback';

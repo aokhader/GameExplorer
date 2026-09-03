@@ -5,14 +5,14 @@ import {
   type LiquidateSaveStore,
   type PlacedToken,
   type SavedLiquidateGame,
-} from '@gameexplorer/client/liquidate/useLiquidateGame';
-import type { LiquidateBotLevel } from '@gameexplorer/shared';
+} from '@finesse/client/liquidate/useLiquidateGame';
+import type { LiquidateBotLevel } from '@finesse/shared';
 import { useSettings } from '@/providers/SettingsProvider';
 
 /**
  * Native's Liquidate game hook: the shared loop plus AsyncStorage.
  *
- * The state machine, bot loop and walk clock live in `@gameexplorer/client`,
+ * The state machine, bot loop and walk clock live in `@finesse/client`,
  * identical to web's. What is genuinely native is below — an async store, this
  * app's key prefix, and trimming the log to something SQLite will accept.
  */

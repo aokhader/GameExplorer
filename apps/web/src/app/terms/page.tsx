@@ -4,8 +4,8 @@ import { GradientText } from '@/components/visual';
 import { SUPPORT_EMAIL } from '@/lib/support';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — GameExplorer',
-  description: 'The rules for using GameExplorer on the web and in the mobile app.',
+  title: 'Terms of Service — Finesse',
+  description: 'The rules for using Finesse on the web and in the mobile app.',
 };
 
 /**
@@ -34,22 +34,22 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-fg mb-2">What this covers</h2>
             <p>
-              These terms apply to GameExplorer on the web and the GameExplorer app for iOS and
+              These terms apply to Finesse on the web and the Finesse app for iOS and
               Android. Both are the same service: play chess, checkers, reversi, Go and Liquidate
               against bots, against someone on the same device, or against people online. By using
-              GameExplorer — with or without an account — you agree to these terms. If you
+              Finesse — with or without an account — you agree to these terms. If you
               don&apos;t agree with them, please don&apos;t use the service.
             </p>
             <p className="mt-3">
-              GameExplorer is a free hobby project run by one person. There are no purchases, no
+              Finesse is a free hobby project run by one person. There are no purchases, no
               subscriptions and no advertising.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-fg mb-2">Who can use GameExplorer</h2>
+            <h2 className="text-lg font-semibold text-fg mb-2">Who can use Finesse</h2>
             <p>
-              You need to be at least 13 years old. GameExplorer isn&apos;t directed at children
+              You need to be at least 13 years old. Finesse isn&apos;t directed at children
               under 13, and accounts belonging to them will be removed along with their data.
             </p>
           </section>
@@ -57,7 +57,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-fg mb-2">Your account</h2>
             <p>
-              You can play most of GameExplorer as a guest. An account is what makes ratings, game
+              You can play most of Finesse as a guest. An account is what makes ratings, game
               history and online play work. When you create one:
             </p>
             <ul className="list-disc pl-5 space-y-2 mt-3">
@@ -95,7 +95,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-5 space-y-2 mt-3">
               <li>
                 Don&apos;t use a chess engine, a solver, another person, or any other outside help
-                to choose your moves. GameExplorer&apos;s own analysis, training hints and puzzles
+                to choose your moves. Finesse&apos;s own analysis, training hints and puzzles
                 are there to learn from between games — training hints already cost you rating
                 points, which is the trade they&apos;re meant to be.
               </li>
@@ -129,7 +129,7 @@ export default function TermsPage() {
               </li>
               <li>Post sexual content, or anything sexualising a minor.</li>
               <li>Spam, advertise, or link to malware or scams.</li>
-              <li>Impersonate another player, or claim to speak for GameExplorer.</li>
+              <li>Impersonate another player, or claim to speak for Finesse.</li>
               <li>Share someone else&apos;s personal information.</li>
             </ul>
             <p className="mt-3">
@@ -144,7 +144,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-fg mb-2">What you post</h2>
             <p>
-              Your username and chat messages stay yours. By sending them you give GameExplorer
+              Your username and chat messages stay yours. By sending them you give Finesse
               permission to display them to the people you&apos;re playing with and to store them
               as needed to run the service. Content that breaks the rules above can be removed, and
               usernames can be reset.
@@ -154,7 +154,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-fg mb-2">The service itself</h2>
             <p>
-              GameExplorer&apos;s code, artwork and written content belong to its author, except for
+              Finesse&apos;s code, artwork and written content belong to its author, except for
               the open-source components listed on the{' '}
               <Link href="/licenses" className="text-info hover:text-info-hover underline">
                 licenses page
@@ -175,7 +175,7 @@ export default function TermsPage() {
               This is a hobby project on free hosting. Games, features and ratings can change, and
               the service can be slow, unavailable, or discontinued — sometimes without warning. The
               game server sleeps when idle, so the first connection after a quiet period can take
-              around half a minute. Please don&apos;t rely on GameExplorer for anything that
+              around half a minute. Please don&apos;t rely on Finesse for anything that
               matters, and don&apos;t treat your game history here as permanent storage.
             </p>
           </section>
@@ -192,7 +192,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-fg mb-2">No warranty, and limits on liability</h2>
             <p>
-              GameExplorer is provided &ldquo;as is&rdquo;, without warranties of any kind. To the
+              Finesse is provided &ldquo;as is&rdquo;, without warranties of any kind. To the
               extent the law allows, its author isn&apos;t liable for lost games, lost ratings, lost
               data, or any indirect or consequential damages arising from your use of the service.
               Nothing here limits liability that can&apos;t be limited by law, and some jurisdictions
@@ -205,7 +205,7 @@ export default function TermsPage() {
             <h2 className="text-lg font-semibold text-fg mb-2">Changes to these terms</h2>
             <p>
               These terms may change as the app does. The date at the top of this page is when they
-              last changed, and continuing to use GameExplorer after that means the new version
+              last changed, and continuing to use Finesse after that means the new version
               applies. Changes that meaningfully affect signed-in players will be announced in the
               app.
             </p>

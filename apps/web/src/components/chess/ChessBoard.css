@@ -36,7 +36,7 @@
 
 /* Board palette comes from the --gx-board-* variables, declared once per theme in
    globals.css: `:root` holds "Arcade Glow" (the dark blue-slate board, pairing
-   with BOARD_COLORS in @gameexplorer/ui — chess/tokens.ts, which mobile reads),
+   with BOARD_COLORS in @finesse/ui — chess/tokens.ts, which mobile reads),
    `[data-theme="cozy"]` holds the walnut table. Declaring them there rather than
    inline on the wrapper is what lets a theme override them.
    The hex literals below are only fallbacks if the vars are ever absent. */

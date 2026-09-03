@@ -7,7 +7,7 @@ import {
   engineMoveTimeMs,
   type ChessGameState,
   type UciBestMove,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 
 /**
  * Singleton service around the native Arasan TurboModule (react-native-arasan,

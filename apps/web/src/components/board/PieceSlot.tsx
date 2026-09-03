@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useLayoutEffect, useState } from 'react';
-import { BOARD_ANIM_MS } from '@gameexplorer/shared';
-import type { PieceOffset } from '@gameexplorer/client/hooks/useBoardMotion';
+import { BOARD_ANIM_MS } from '@finesse/shared';
+import type { PieceOffset } from '@finesse/client/hooks/useBoardMotion';
 
 /**
  * One piece, positioned over a square board and animated between squares.

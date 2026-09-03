@@ -1,7 +1,7 @@
-import { GRADE_INFO, type MoveGrade } from '@gameexplorer/shared';
-import { COLORS } from '@gameexplorer/ui';
+import { GRADE_INFO, type MoveGrade } from '@finesse/shared';
+import { COLORS } from '@finesse/ui';
 
-export { SUMMARY_ORDER } from '@gameexplorer/shared';
+export { SUMMARY_ORDER } from '@finesse/shared';
 
 /** Native colour for each grade, kept out of shared for two separate reasons. */
 const GRADE_COLOR: Record<MoveGrade, () => string> = {

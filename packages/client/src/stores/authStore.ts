@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { AuthUser } from '@gameexplorer/db';
+import type { AuthUser } from '@finesse/db';
 
 interface AuthState {
   user: AuthUser | null;

@@ -1,5 +1,5 @@
 /**
- * Shared motion language for GameExplorer (web).
+ * Shared motion language for Finesse (web).
  *
  * Single source for Framer Motion springs + variants so motion reads as one
  * choreographed system, not ad-hoc per-component tweaks. Keep durations short

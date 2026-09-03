@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface CustomEloPickerProps {

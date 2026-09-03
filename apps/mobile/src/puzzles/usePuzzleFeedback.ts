@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import type { PuzzlePhase } from '@gameexplorer/shared';
-import { usePuzzleFeedback as usePuzzleFeedbackCore } from '@gameexplorer/client/hooks/usePuzzleFeedback';
+import type { PuzzlePhase } from '@finesse/shared';
+import { usePuzzleFeedback as usePuzzleFeedbackCore } from '@finesse/client/hooks/usePuzzleFeedback';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 
 /**
@@ -8,7 +8,7 @@ import { useGameSfx } from '@/audio/useGameSfx.native';
  * player and its haptics.
  *
  * The *timing* — once per attempt, once per puzzle — lives in
- * `@gameexplorer/client`, shared with web, because both of the bugs this hook
+ * `@finesse/client`, shared with web, because both of the bugs this hook
  * has had were about when it fired rather than what it played.
  *
  * This used to be haptics-only, with a comment explaining that native had no

@@ -10,7 +10,7 @@
  *
  * Exported as a single frozen object rather than as loose constants: this
  * folder's barrel is re-exported with `export *` from the package root, so names
- * like `STEP_MS` and `WALK_MAX` would become top-level `@gameexplorer/shared`
+ * like `STEP_MS` and `WALK_MAX` would become top-level `@finesse/shared`
  * exports — far too generic to own at that scope.
  */
 

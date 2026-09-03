@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import { setActiveTheme } from '@gameexplorer/ui';
+import { setActiveTheme } from '@finesse/ui';
 import { StatusBanner } from '@/game/StatusBanner';
 
 afterEach(() => setActiveTheme('dark'));

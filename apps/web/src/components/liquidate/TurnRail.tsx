@@ -7,7 +7,7 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
   type LiquidatePlayer,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { ActionBar } from './ActionBar';
 import { AuctionPanel } from './AuctionPanel';
 import { BuyDecisionPanel } from './BuyDecisionPanel';

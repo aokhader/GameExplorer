@@ -22,7 +22,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'Ra8 is mate. The king has no way out along the back rank, and the three pawns it ' +
       'never moved are the reason — f7, g7 and h7 cover every escape square themselves. ' +
       'This is why a "luft" square matters in the endgame.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-002',
@@ -47,7 +47,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'Rb8+ offers a rook to remove that defender, and Black has no choice — every king move ' +
       'runs into the rook and there is nothing to interpose. After Rxb8, the second rook ' +
       'recaptures and mates. Doubling the rooks first is what makes the sacrifice work.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-003',
@@ -65,7 +65,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'she needs her own king standing opposite, which is exactly what Kg6 is doing: it takes ' +
       'f7, g7 and h7 away, and the queen only has to cover the back rank. Every other check ' +
       'here lets the king step out.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-004',
@@ -82,7 +82,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'The two-rook "ladder". One rook already owns the seventh rank, so the king cannot come ' +
       'down; the other takes the eighth and there is nowhere left. Note which rook moves — ' +
       'checking with the a7 rook instead gives the king h7 and the ladder has to start again.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-005',
@@ -100,7 +100,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'and h7 are his own pawns, and no piece can take a knight on f7. A knight is the only ' +
       'piece that can mate a king boxed in by its own men, because it is the only one that ' +
       'jumps over them.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-006',
@@ -117,7 +117,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'The Arabian mate — the oldest pattern in the game, and a rook and knight are all it ' +
       'takes. Rh7 would normally just be taken, but the knight on f6 defends it, and the same ' +
       'knight covers g8. Rd8 instead is only a check: the king walks to g7.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-007',
@@ -134,7 +134,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'The queen is the only thing guarding the back rank, and she is standing on it — so ' +
       'taking her is mate in the same move. Count what a defender is actually doing before ' +
       'trading it: this one was holding the whole eighth rank on her own.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-008',
@@ -184,7 +184,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'Kb6 takes a7 and b7 away and leaves Black exactly one move, which walks the king into ' +
       'the corner in front of the rook. This is the opposition — in king-and-rook endings the ' +
       'king does the work and the rook only finishes.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-010',
@@ -224,7 +224,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'A family fork. Ne7 hits the king and the queen at the same time, and because one of ' +
       'the two is a check, Black has to answer the check and abandon the other. Look for ' +
       'squares where a knight touches both — they are almost always worth a piece.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-012',
@@ -245,7 +245,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'is check, so the rook on a8 has to recapture instead of doing its job, and the second ' +
       'rook comes down behind it. Doubling on the file is what turns one defender too many ' +
       'into one defender too few.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-013',
@@ -267,7 +267,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'cannot refuse — declining lets the pawn through anyway. Once the rook steps off b8 to ' +
       'take, the pawn promotes with check to boot. Offering a trade is often the cheapest way ' +
       'to remove a blockader.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-014',
@@ -286,7 +286,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'it forks the king on a7 and the queen on e7 at once. Underpromotion is almost always ' +
       'about the knight, because a knight is the one piece that moves in a way a queen cannot ' +
       'imitate.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-015',
@@ -353,7 +353,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'The queen goes right next to the king — legal only because the knight on g5 defends ' +
       'h7. From there she covers g8 and g7 herself. A queen delivering mate on an adjacent ' +
       'square always needs a defender behind her; find the defender first, then the square.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-018',
@@ -374,7 +374,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'A pawn attacks two squares, so a pawn can fork. d5 hits the knight and the bishop at ' +
       'once, and a pawn is worth so much less than either that neither can afford to stay. ' +
       'The cheapest attacker wins the exchange of threats every time.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-019',
@@ -395,7 +395,7 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'One long diagonal touches the king on g8 and the rook on a8, and the queen only has to ' +
       'find the square where it does both — d5. The check comes first, so the rook has no ' +
       'time to move. Diagonals through a castled king are where a queen fork usually hides.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'chess-020',
@@ -417,6 +417,6 @@ export const CHESS_PUZZLES: Puzzle[] = [
       'king. So the knight can move anywhere and the check happens by itself — which means it ' +
       'can move somewhere useful. Nc4 attacks the queen while the bishop gives check, and ' +
       'Black only has time for one of the two problems.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
 ];

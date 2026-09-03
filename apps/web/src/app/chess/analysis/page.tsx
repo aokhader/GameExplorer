@@ -5,9 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import {
   ChessEngine, ChessGameState, Position, PieceType,
   stateToFen, fenToState,
-} from '@gameexplorer/shared';
-import type { Piece, Color } from '@gameexplorer/shared';
-import { ChessPiece } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import type { Piece, Color } from '@finesse/shared';
+import { ChessPiece } from '@finesse/ui';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import type { BoardArrow } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';

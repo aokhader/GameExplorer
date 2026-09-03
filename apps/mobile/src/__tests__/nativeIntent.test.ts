@@ -8,13 +8,13 @@ import { redirectSystemPath } from '../../app/+native-intent';
  *
  * The cases below are the URL *forms Expo Router actually delivers*, not bare
  * paths. An earlier version of this file tested `/chess/play?invite=…` and
- * passed while the real thing — `gameexplorer://chess/play?invite=…` — fell
+ * passed while the real thing — `finesse://chess/play?invite=…` — fell
  * through untouched, because `redirectSystemPath` is handed the whole URL and a
  * custom scheme's "host" is really its first path segment.
  */
 const intent = (path: string) => redirectSystemPath({ path, initial: true });
 
-const WEB = 'https://game-explorer-site.vercel.app';
+const WEB = 'https://finesse.games';
 
 describe('redirectSystemPath — invite links, in every form they arrive', () => {
   it('rewrites an https App Link (what the server actually sends)', () => {
@@ -22,7 +22,7 @@ describe('redirectSystemPath — invite links, in every form they arrive', () =>
   });
 
   it('rewrites a custom-scheme link, whose "host" is a path segment', () => {
-    expect(intent('gameexplorer://chess/play?invite=abc123')).toBe(
+    expect(intent('finesse://chess/play?invite=abc123')).toBe(
       '/play/chess?invite=abc123&online=1',
     );
   });
@@ -62,8 +62,8 @@ describe('redirectSystemPath — everything else passes through untouched', () =
   it('leaves routes the app already has alone', () => {
     for (const path of [
       `${WEB}/spectate/game-1`,
-      'gameexplorer://auth/callback#access_token=x',
-      'gameexplorer://spectate/game-1',
+      'finesse://auth/callback#access_token=x',
+      'finesse://spectate/game-1',
       `${WEB}/learn/chess`,
       '/play/chess',
       '/',
@@ -79,7 +79,7 @@ describe('redirectSystemPath — everything else passes through untouched', () =
    */
   it('does not claim /play under a game the app does not ship', () => {
     expect(intent(`${WEB}/liquidate/play`)).toBe(`${WEB}/liquidate/play`);
-    expect(intent('gameexplorer://go/play?invite=abc')).toBe('gameexplorer://go/play?invite=abc');
+    expect(intent('finesse://go/play?invite=abc')).toBe('finesse://go/play?invite=abc');
   });
 
   it('ignores a deeper path that merely contains "play"', () => {

@@ -4,12 +4,12 @@ import { GradientText } from '@/components/visual';
 import { SUPPORT_EMAIL } from '@/lib/support';
 
 export const metadata: Metadata = {
-  title: 'Delete Your Account — GameExplorer',
+  title: 'Delete Your Account — Finesse',
   description:
-    'How to delete your GameExplorer account and the data attached to it, in the app or by request.',
+    'How to delete your Finesse account and the data attached to it, in the app or by request.',
 };
 
-const REQUEST_SUBJECT = 'GameExplorer — Account deletion request';
+const REQUEST_SUBJECT = 'Finesse — Account deletion request';
 
 /**
  * The account-deletion URL Google Play requires from any app that lets users
@@ -34,8 +34,8 @@ export default function DeleteAccountPage() {
         <div className="space-y-8 text-fg-muted leading-relaxed">
           <section>
             <p>
-              This page explains how to delete your GameExplorer account — the one you use on the
-              website and in the GameExplorer app for iOS and Android — and exactly what happens to
+              This page explains how to delete your Finesse account — the one you use on the
+              website and in the Finesse app for iOS and Android — and exactly what happens to
               your data when you do. Deleting is permanent and takes effect immediately.
             </p>
             <p className="mt-3">
@@ -133,7 +133,7 @@ export default function DeleteAccountPage() {
             </ul>
             <p className="mt-3">
               We do not keep a copy of your account for marketing, analytics or resale — there are
-              no ad networks or advertising trackers in GameExplorer on any platform.
+              no ad networks or advertising trackers in Finesse on any platform.
             </p>
           </section>
 

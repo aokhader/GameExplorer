@@ -18,7 +18,7 @@
  */
 export const dynamic = 'force-static';
 
-const ANDROID_PACKAGE = 'com.gameexplorer.app';
+const ANDROID_PACKAGE = 'com.finesse.app';
 
 export function GET(): Response {
   const fingerprints = (process.env.ANDROID_SHA256_FINGERPRINTS ?? '')

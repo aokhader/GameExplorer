@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import type { SfxEvent } from '@gameexplorer/shared';
+import type { SfxEvent } from '@finesse/shared';
 import { useSettings } from '@/providers/SettingsProvider';
 import { playSfx } from './sfxPlayer';
 
 /**
- * Game feedback events. The union now comes from `@gameexplorer/shared` along
+ * Game feedback events. The union now comes from `@finesse/shared` along
  * with the sound recipes themselves, so web and native cannot drift on which
  * events exist.
  */

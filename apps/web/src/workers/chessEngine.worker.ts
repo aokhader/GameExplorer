@@ -1,6 +1,6 @@
-import { ChessEngine } from '@gameexplorer/shared';
-import { getBestMoveElo } from '@gameexplorer/shared';
-import type { ChessGameState, Position, PieceType } from '@gameexplorer/shared';
+import { ChessEngine } from '@finesse/shared';
+import { getBestMoveElo } from '@finesse/shared';
+import type { ChessGameState, Position, PieceType } from '@finesse/shared';
 
 // The worker owns the single source of truth for game state.
 let state: ChessGameState = ChessEngine.newGame();

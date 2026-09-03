@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ReversiEngine } from '@gameexplorer/shared';
-import type { ReversiGameState, ReversiColor } from '@gameexplorer/shared';
-import { ReversiDisc, REVERSI_BOARD_COLORS } from '@gameexplorer/ui';
+import { ReversiEngine } from '@finesse/shared';
+import type { ReversiGameState, ReversiColor } from '@finesse/shared';
+import { ReversiDisc, REVERSI_BOARD_COLORS } from '@finesse/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 
 export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';

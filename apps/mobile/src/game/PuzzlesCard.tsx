@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { solvedCount, staticPuzzleSource } from '@gameexplorer/shared';
-import type { PuzzleGame } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { solvedCount, staticPuzzleSource } from '@finesse/shared';
+import type { PuzzleGame } from '@finesse/shared';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { mobilePuzzleProgressStore } from '@/lib/puzzleProgress';
 import { FONTS } from '@/theme/typography';
 

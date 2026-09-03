@@ -1,5 +1,5 @@
 {
-  "name": "@gameexplorer/api",
+  "name": "@finesse/api",
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
@@ -16,7 +16,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@gameexplorer/shared": "workspace:*",
+    "@finesse/shared": "workspace:*",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@supabase/supabase-js": "^2.103.0",

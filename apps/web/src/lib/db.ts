@@ -1,7 +1,7 @@
 /**
- * Lazy facade over `@gameexplorer/db` for page components.
+ * Lazy facade over `@finesse/db` for page components.
  *
- * Importing `@gameexplorer/db` statically puts the whole Supabase client
+ * Importing `@finesse/db` statically puts the whole Supabase client
  * (~40 KB gz prod, >1 MB of modules in dev) into a route's initial JS even
  * though these calls only happen after mount (rating fetch) or at game end
  * (save). Each wrapper dynamically imports the package on first call, so
@@ -9,11 +9,11 @@
  * ones via `typeof`, so this stays in sync with the package.
  *
  * Pages that need Supabase immediately (auth, profile) still import
- * `@gameexplorer/db` directly — deferring would gain nothing there.
+ * `@finesse/db` directly — deferring would gain nothing there.
  */
-import type * as DB from '@gameexplorer/db';
+import type * as DB from '@finesse/db';
 
-const db = () => import('@gameexplorer/db');
+const db = () => import('@finesse/db');
 
 export const saveGame: typeof DB.saveGame = async (...args) =>
   (await db()).saveGame(...args);
@@ -45,4 +45,4 @@ export type {
   GameType,
   GameResult,
   SaveGameOptions,
-} from '@gameexplorer/db';
+} from '@finesse/db';

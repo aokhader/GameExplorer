@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import Link from 'next/link';
-import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome, checkersAnalysis, moveHistoryToPdn } from '@gameexplorer/shared';
-import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
+import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome, checkersAnalysis, moveHistoryToPdn } from '@finesse/shared';
+import { useGameAnalysis } from '@finesse/client/hooks/useGameAnalysis';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
 import { saveCheckersGame, getUserRating, upsertUserRating } from '@/lib/db';

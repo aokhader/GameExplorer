@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
  *
  * Web used to carry five separate glyph maps that disagreed with each other —
  * chess was ♔, ♞ or ♟ depending on the page — plus inline literals on every hub
- * hero. They all now route through `GameIcon` over the same `@gameexplorer/ui`
+ * hero. They all now route through `GameIcon` over the same `@finesse/ui`
  * art mobile draws. Nothing else would notice if one surface drifted back to a
  * glyph, so these assert on the rendered art itself.
  */

@@ -1,4 +1,4 @@
-package com.gameexplorer.arasan
+package com.finesse.arasan
 
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext

@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { PuzzlePhase } from '@gameexplorer/shared';
-import { usePuzzleFeedback as usePuzzleFeedbackCore } from '@gameexplorer/client/hooks/usePuzzleFeedback';
+import type { PuzzlePhase } from '@finesse/shared';
+import { usePuzzleFeedback as usePuzzleFeedbackCore } from '@finesse/client/hooks/usePuzzleFeedback';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
@@ -11,7 +11,7 @@ import { useSettings } from '@/components/providers/SettingsProvider';
  * a solve.
  *
  * The *timing* — once per attempt, once per puzzle — lives in
- * `@gameexplorer/client`, shared with native, because that is where both of the
+ * `@finesse/client`, shared with native, because that is where both of the
  * bugs this hook has had actually were. What stays here is what web's
  * celebration is made of.
  */

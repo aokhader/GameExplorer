@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { apiFetch } from '@gameexplorer/client';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { apiFetch } from '@finesse/client';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button, TextField } from '@/components/ui';
 import { MenuRow } from '@/game/MenuRow';

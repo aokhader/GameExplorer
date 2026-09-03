@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Emote } from '@gameexplorer/shared';
+import type { Emote } from '@finesse/shared';
 import type { GameSession } from './session';
 
 export interface FloatingReaction {

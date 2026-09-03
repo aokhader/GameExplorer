@@ -6,8 +6,8 @@ import {
   isOwnable,
   type LiquidateAction,
   type LiquidateGameState,
-} from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 import { seatColor } from '../lqTheme';
 import { ViewHeader, ViewSection } from './ViewChrome';

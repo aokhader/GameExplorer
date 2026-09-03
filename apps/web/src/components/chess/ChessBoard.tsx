@@ -13,9 +13,9 @@ import {
   isChessPremoveLegal,
   isChessPremovePromotion,
   type ChessPremove,
-} from '@gameexplorer/shared';
-import { motionKey, useBoardMotion } from '@gameexplorer/client/hooks/useBoardMotion';
-import { ChessPiece } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { motionKey, useBoardMotion } from '@finesse/client/hooks/useBoardMotion';
+import { ChessPiece } from '@finesse/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { PieceSlot } from '@/components/board/PieceSlot';
 import { useGameSfx } from '@/hooks/useGameSfx';
@@ -23,7 +23,7 @@ import { useSettings } from '@/components/providers/SettingsProvider';
 
 // The board palette lives in the `--gx-board-*` vars that ChessBoard.css reads.
 // They are declared per-theme in globals.css (Arcade Glow in `:root`, pairing
-// with BOARD_COLORS in @gameexplorer/ui, which mobile reads directly) rather than
+// with BOARD_COLORS in @finesse/ui, which mobile reads directly) rather than
 // set inline here — an inline var would outrank the active theme's block.
 
 export interface BoardArrow {
@@ -494,7 +494,7 @@ export const ChessBoard = React.memo(function ChessBoard({
     let moves: Position[];
     if (premoveMode) {
       // Not legal moves — candidate squares for a position that doesn't exist
-      // yet. See the premove module in @gameexplorer/shared.
+      // yet. See the premove module in @finesse/shared.
       moves = getChessPremoveDestinations(effectiveState, position);
     } else if (legalMovesMap && !allowSelectAnyColor) {
       // O(1) — precomputed by parent, no engine call here

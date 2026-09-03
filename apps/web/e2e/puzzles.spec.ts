@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
-import { staticPuzzleSource, WEB_PUZZLE_PROGRESS_KEY } from '@gameexplorer/shared';
-import type { PuzzleGame } from '@gameexplorer/shared';
+import { staticPuzzleSource, WEB_PUZZLE_PROGRESS_KEY } from '@finesse/shared';
+import type { PuzzleGame } from '@finesse/shared';
 
 /**
  * Puzzles, end to end, signed out.

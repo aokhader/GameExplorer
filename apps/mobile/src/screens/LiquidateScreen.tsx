@@ -11,8 +11,8 @@ import {
   type DebtRule,
   type LiquidateBotLevel,
   type LiquidateSeat,
-} from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader, Button, GlowBackdrop } from '@/components/ui';
 import { SetupHero } from '@/game/SetupHero';
 import { useLiquidateGame } from '@/liquidate/useLiquidateGame';

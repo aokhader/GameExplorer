@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Share, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { ABORT_MOVE_LIMIT } from '@finesse/shared';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { Button, Screen, BackHeader, GlowBackdrop } from '@/components/ui';
 import { GameScreenLayout, type GameAccent } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';

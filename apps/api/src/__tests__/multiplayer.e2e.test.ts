@@ -38,7 +38,7 @@ import { initializeWebSocket, shutdownWebSocket } from '../websocket';
 import { gameSessionService } from '../services/gameSession.service';
 import { redis } from '../config/redis';
 import * as supabaseModule from '../config/supabase';
-import type { GameType } from '@gameexplorer/shared';
+import type { GameType } from '@finesse/shared';
 
 const supa = supabaseModule as unknown as {
   __tables: { user_ratings: Record<string, unknown>[]; games: Record<string, unknown>[] };

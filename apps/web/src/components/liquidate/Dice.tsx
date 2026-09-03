@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_TIMING } from '@gameexplorer/shared';
+import { LIQUIDATE_TIMING } from '@finesse/shared';
 import { useSettings } from '@/components/providers/SettingsProvider';
 import { cn } from '@/lib/utils';
 import { LQ } from './theme';

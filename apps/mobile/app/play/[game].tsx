@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader } from '@/components/ui';
 import { isGameKey, setLastPlayed } from '@/lib/lastPlayed';
 import { CheckersScreen } from '@/screens/CheckersScreen';

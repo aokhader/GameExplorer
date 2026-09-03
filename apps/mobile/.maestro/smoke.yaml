@@ -1,8 +1,8 @@
-# GameExplorer smoke flow — launch → home renders → open chess → start a bot
+# Finesse smoke flow — launch → home renders → open chess → start a bot
 # game → board shell visible. Run with a dev/preview build installed:
 #   maestro test .maestro/smoke.yaml
 # (Maestro CLI: https://maestro.mobile.dev — not wired into CI yet.)
-appId: com.gameexplorer.app
+appId: com.finesse.app
 ---
 - launchApp:
     clearState: true

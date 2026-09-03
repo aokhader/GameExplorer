@@ -14,25 +14,25 @@ import {
   CheckersEngine,
   getCheckersPremoveDestinations,
   isCheckersPremoveLegal,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import type {
   CheckersGameState,
   CheckersPiece as CheckersPieceModel,
   CheckersPremove,
-} from '@gameexplorer/shared';
-// Deep import: the `@gameexplorer/client` barrel builds a Supabase client at
+} from '@finesse/shared';
+// Deep import: the `@finesse/client` barrel builds a Supabase client at
 // import time, which a board has no business needing.
 import {
   type PieceOffset,
   motionKey,
   useBoardMotion,
-} from '@gameexplorer/client/hooks/useBoardMotion';
+} from '@finesse/client/hooks/useBoardMotion';
 import {
   CheckersPiece,
   CHECKERS_BOARD_COLORS,
   COLORS,
   SHADOWS_NATIVE,
-} from '@gameexplorer/ui';
+} from '@finesse/ui';
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -363,7 +363,7 @@ function CheckersBoardInner({
   /**
    * Show where the piece on `pos` may go. Out of turn those are premove
    * candidates for a position that doesn't exist yet, not legal moves — see the
-   * premove module in @gameexplorer/shared.
+   * premove module in @finesse/shared.
    */
   const selectSquare = (pos: string) =>
     setSelection(

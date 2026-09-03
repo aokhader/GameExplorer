@@ -12,7 +12,7 @@ import {
   type DebtRule,
   type LiquidateBotLevel,
   type LiquidateSeat,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { Button, Card } from '@/components/ui';
 import { useGameSfx } from '@/hooks/useGameSfx';

@@ -2,8 +2,8 @@ import {
   CheckersEngine,
   getBestCheckersMove,
   type CheckersGameState,
-} from '@gameexplorer/shared';
-import { saveCheckersGame } from '@gameexplorer/db';
+} from '@finesse/shared';
+import { saveCheckersGame } from '@finesse/db';
 import type { LocalGameAdapter } from './useLocalGame';
 
 /** Bot pacing by strength — mirrors web's checkers `thinkTimeForElo`. */

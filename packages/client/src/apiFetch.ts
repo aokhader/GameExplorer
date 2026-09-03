@@ -14,7 +14,7 @@ import { getApiUrl } from './config';
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   // Dynamic import keeps @supabase/* out of the initial bundle of screens that
   // only *might* call the API; the module is cached after the first call.
-  const { supabase } = await import('@gameexplorer/db');
+  const { supabase } = await import('@finesse/db');
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
 

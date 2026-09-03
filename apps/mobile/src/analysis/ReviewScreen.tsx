@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { Button } from '@/components/ui';
 import { GameScreenLayout, type GameAccent } from '@/game/GameScreenLayout';
 import { MoveBand } from '@/game/MoveBand';

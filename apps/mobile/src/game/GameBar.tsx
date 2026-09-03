@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { Sheet } from '@/components/ui/Sheet';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { BarButton, useTwoTapConfirm } from '@/game/BarButton';

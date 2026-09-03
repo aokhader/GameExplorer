@@ -3,8 +3,8 @@ import {
   getBestMoveElo,
   type ChessGameState,
   type PieceType,
-} from '@gameexplorer/shared';
-import { saveGame } from '@gameexplorer/db';
+} from '@finesse/shared';
+import { saveGame } from '@finesse/db';
 import type { LocalGameAdapter } from './useLocalGame';
 import {
   getEngineBestMove,

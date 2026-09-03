@@ -18,7 +18,7 @@ import type { ReversiGameState } from '../game-logic/reversi/types';
  * that is real, which is strictly better than throwing away a whole game because
  * its tail is malformed — and rows written by older versions of the app do exist.
  *
- * The move shapes are structural rather than imported from `@gameexplorer/db`:
+ * The move shapes are structural rather than imported from `@finesse/db`:
  * shared cannot depend on db, and both the stored rows and the in-memory
  * histories satisfy these.
  */

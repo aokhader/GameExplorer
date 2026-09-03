@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useGameSession } from '@gameexplorer/client';
-import { formatClockShort } from '@gameexplorer/shared';
-import type { CheckersGameState, TimeControl } from '@gameexplorer/shared';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { useGameSession } from '@finesse/client';
+import { formatClockShort } from '@finesse/shared';
+import type { CheckersGameState, TimeControl } from '@finesse/shared';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { CheckersBoard } from '@/board/CheckersBoard';
 import { FONTS } from '@/theme/typography';
 import { OnlineGameLayout } from './OnlineGameLayout';

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { LIMITS } from '@gameexplorer/shared';
+import { LIMITS } from '@finesse/shared';
 import type { Response } from 'express';
 import type { AuthRequest } from '../../middleware/auth';
 

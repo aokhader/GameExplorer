@@ -17,7 +17,7 @@ import {
   SHADOWS_NATIVE,
   getActiveTheme,
   setActiveTheme,
-} from '@gameexplorer/ui';
+} from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 
 afterEach(() => setActiveTheme('dark'));

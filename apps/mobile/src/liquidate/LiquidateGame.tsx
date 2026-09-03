@@ -18,12 +18,12 @@ import {
   formatCredits,
   primaryAction,
   type LiquidateGameState,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import {
   LIQUIDATE_BOARD_COLORS,
   LIQUIDATE_PANEL_COLORS,
   useThemeName,
-} from '@gameexplorer/ui';
+} from '@finesse/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { GameResultScreen } from '@/game/GameResultScreen';

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@finesse/ui';
 import {
   MAX_COLONY_LEVEL,
   type LiquidateTile as Tile,
   type TileOwnership,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { seatColor, tileAccent, tileGlyph } from './lqTheme';
 
 export interface LiquidateTileCellProps {

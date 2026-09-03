@@ -1,5 +1,5 @@
 {
-  "name": "@gameexplorer/db",
+  "name": "@finesse/db",
   "version": "1.0.0",
   "license": "MIT",
   "main": "./dist/index.js",
@@ -10,7 +10,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@gameexplorer/shared": "workspace:*",
+    "@finesse/shared": "workspace:*",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.0.0"
   },

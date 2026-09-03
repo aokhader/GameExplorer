@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ChessGameState, Position, PieceType } from '@gameexplorer/shared';
-import { ChessEngine } from '@gameexplorer/shared'; // only for ChessEngine.newGame()
+import type { ChessGameState, Position, PieceType } from '@finesse/shared';
+import { ChessEngine } from '@finesse/shared'; // only for ChessEngine.newGame()
 
 export type LegalMovesMap = Map<Position, Position[]>;
 
@@ -33,7 +33,7 @@ export function useChessEngine(initialState?: ChessGameState): UseChessEngineRet
 
   useEffect(() => {
     // Next.js / webpack 5: new URL(..., import.meta.url) bundles the worker
-    // automatically with all its imports from @gameexplorer/shared.
+    // automatically with all its imports from @finesse/shared.
     const worker = new Worker(
       new URL('../workers/chessEngine.worker.ts', import.meta.url),
     );

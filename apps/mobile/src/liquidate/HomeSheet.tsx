@@ -11,8 +11,8 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
   type PrimaryAction,
-} from '@gameexplorer/shared';
-import { LIQUIDATE_DECK_STYLE, LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { LIQUIDATE_DECK_STYLE, LIQUIDATE_PANEL_COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 import { tileAccent } from './lqTheme';
 import type { LqView } from './views/types';

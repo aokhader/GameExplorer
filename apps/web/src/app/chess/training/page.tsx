@@ -10,9 +10,9 @@ import {
   calculateNewRating,
   GameOutcome,
   summarizeMaterial,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { ChessBoard, BoardArrow } from '@/components/chess/ChessBoard';
-import { ChessPiece } from '@gameexplorer/ui';
+import { ChessPiece } from '@finesse/ui';
 import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useChessEngine } from '@/hooks/useChessEngine';

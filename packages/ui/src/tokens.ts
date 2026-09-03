@@ -1,7 +1,7 @@
 /**
  * Semantic app-level design tokens shared by web and mobile.
  *
- * This is the CANONICAL source of GameExplorer's visual identity — the "Arcade
+ * This is the CANONICAL source of Finesse's visual identity — the "Arcade
  * Glow" system: a near-black arcade base with gold as the shared action color,
  * neon per-game accents (chess blue, checkers pink, reversi lime), and strong
  * glow/motion cues. Both platforms read these values:

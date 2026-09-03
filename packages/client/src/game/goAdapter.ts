@@ -3,8 +3,8 @@ import {
   analyzeGoPosition,
   getBestGoMove,
   type GoGameState,
-} from '@gameexplorer/shared';
-import { saveGoGame } from '@gameexplorer/db';
+} from '@finesse/shared';
+import { saveGoGame } from '@finesse/db';
 import type { LocalGameAdapter } from '../hooks/useLocalGame';
 
 /**

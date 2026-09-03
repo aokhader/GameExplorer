@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
-import { COLORS, ChessPiece, useThemeName } from '@gameexplorer/ui';
-import type { PieceType } from '@gameexplorer/shared';
+import { COLORS, ChessPiece, useThemeName } from '@finesse/ui';
+import type { PieceType } from '@finesse/shared';
 import { FONTS } from '@/theme/typography';
 
 export interface CapturedTrayProps {

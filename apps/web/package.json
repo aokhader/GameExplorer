@@ -1,5 +1,5 @@
 {
-  "name": "@gameexplorer/web",
+  "name": "@finesse/web",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -12,10 +12,10 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@gameexplorer/client": "workspace:*",
-    "@gameexplorer/db": "workspace:*",
-    "@gameexplorer/shared": "workspace:*",
-    "@gameexplorer/ui": "workspace:*",
+    "@finesse/client": "workspace:*",
+    "@finesse/db": "workspace:*",
+    "@finesse/shared": "workspace:*",
+    "@finesse/ui": "workspace:*",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
     "@vercel/analytics": "^2.0.1",

@@ -1,5 +1,5 @@
 import { redis } from '../config/redis';
-import type { ClockSnapshot, PlayerColor, TimeControlConfig } from '@gameexplorer/shared';
+import type { ClockSnapshot, PlayerColor, TimeControlConfig } from '@finesse/shared';
 
 function clockKey(gameId: string) { return `clock:${gameId}`; }
 

@@ -3,7 +3,7 @@
  *
  * Metro resolves `client.native.ts` before `client.ts`, so the mobile app picks
  * this up automatically when anything in the monorepo imports `./client` from
- * `@gameexplorer/db`. It exports the SAME names (`getSupabaseClient`, `supabase`)
+ * `@finesse/db`. It exports the SAME names (`getSupabaseClient`, `supabase`)
  * as the web `client.ts`, so every consumer (packages/client's `useAuth`/`useSocket`,
  * auth.ts, games.ts, …) is agnostic to how the client is built.
  *
@@ -55,7 +55,7 @@ export function getSupabaseClient(): SupabaseClient {
         // PKCE (not the supabase-js default 'implicit') for native OAuth. Implicit
         // returns the session in the URL *fragment* (`#access_token=…`), which
         // Android frequently DROPS when delivering a custom-scheme redirect
-        // (`gameexplorer://auth/callback`) — so the app would get a token-less URL
+        // (`finesse://auth/callback`) — so the app would get a token-less URL
         // and never establish a session. PKCE returns `?code=…` as a query param
         // (reliably delivered); `oauth.ts`'s finishOAuth exchanges it via
         // `exchangeCodeForSession`. This also matches the web client's flow.
@@ -69,7 +69,7 @@ export function getSupabaseClient(): SupabaseClient {
 /**
  * Lazy singleton. Preserves the eager `supabase` export web/consumers rely on,
  * but the real client is built on FIRST PROPERTY ACCESS rather than at import
- * time. Importing `@gameexplorer/db` (e.g. the db barrel, pulled in transitively
+ * time. Importing `@finesse/db` (e.g. the db barrel, pulled in transitively
  * by `bootstrapConfig`'s `setOAuthRedirect` import) therefore never constructs a
  * client and never throws — the guest-browsable home hub, which never touches
  * `supabase`, boots even when env vars are absent.

@@ -11,7 +11,7 @@
  * Only the *model* lives here. Storage, hydration and the theme side-effect are
  * per-platform and stay in the app (localStorage + `[data-theme]` on web,
  * AsyncStorage + the token runtime on native), driven by the shared hook in
- * `@gameexplorer/client`.
+ * `@finesse/client`.
  */
 
 /**
@@ -19,7 +19,7 @@
  * Tabletop.
  *
  * This union is deliberately re-declared rather than imported from
- * `@gameexplorer/ui`'s `ThemeName`: `packages/shared` has no dependencies at
+ * `@finesse/ui`'s `ThemeName`: `packages/shared` has no dependencies at
  * all, and taking one on the UI package to borrow a two-member union would
  * invert the dependency direction of the whole workspace. Each app asserts the
  * two agree at compile time where it imports both.

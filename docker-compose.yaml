@@ -1,4 +1,4 @@
-# Docker Compose Configuration for GameExplorer
+# Docker Compose Configuration for Finesse
 # This file defines all the infrastructure services needed for local development
 
 services:
@@ -18,10 +18,10 @@ services:
     # alpine = lightweight Linux distribution (smaller image size)
     # Alternative: postgres:17 (uses Debian, larger but more compatible)
     
-    container_name: gameexplorer_postgres
+    container_name: finesse_postgres
     # Optional: gives the container a specific name
-    # Without this, Docker generates a name like "gameexplorer_postgres_1"
-    # Makes it easier to reference: docker exec -it gameexplorer_postgres psql
+    # Without this, Docker generates a name like "finesse_postgres_1"
+    # Makes it easier to reference: docker exec -it finesse_postgres psql
     
     restart: always
     # Restart policy
@@ -35,7 +35,7 @@ services:
       # Environment variables passed to the container
       # PostgreSQL reads these to configure itself
       
-      POSTGRES_USER: gameexplorer
+      POSTGRES_USER: finesse
       # The superuser username for PostgreSQL
       # This is what you'll use to connect
       
@@ -44,7 +44,7 @@ services:
       # 📝 CHANGE THIS for security (even in dev)
       # In production, use strong random passwords
       
-      POSTGRES_DB: gameexplorer_db
+      POSTGRES_DB: finesse_db
       # The default database to create on startup
       # This is where your tables/data will live
       
@@ -68,7 +68,7 @@ services:
       
     healthcheck:
       # Optional: Check if PostgreSQL is actually ready
-      test: ["CMD-SHELL", "pg_isready -U gameexplorer"]
+      test: ["CMD-SHELL", "pg_isready -U finesse"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -83,7 +83,7 @@ services:
     # Redis version 7 (latest stable)
     # alpine = small size
     
-    container_name: gameexplorer_redis
+    container_name: finesse_redis
     # 📝 Changed to match your project name
     
     restart: always
@@ -120,12 +120,12 @@ services:
     image: dpage/pgadmin4
     # Official PgAdmin 4 image
     
-    container_name: gameexplorer_pgadmin
+    container_name: finesse_pgadmin
     
     restart: always
     
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@gameexplorer.com
+      PGADMIN_DEFAULT_EMAIL: admin@finesse.com
       # Login email for PgAdmin web interface
       # 📝 CHANGE THIS to your email
       
@@ -157,7 +157,7 @@ services:
   #
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: gameexplorer_redis_commander
+    container_name: finesse_redis_commander
     restart: always
     environment:
       - REDIS_HOSTS=local:redis:6379
@@ -175,7 +175,7 @@ volumes:
   
   postgres_data:
     # Stores all PostgreSQL data (tables, indexes, etc.)
-    # Located at: /var/lib/docker/volumes/gameexplorer_postgres_data
+    # Located at: /var/lib/docker/volumes/finesse_postgres_data
     driver: local
     # 'local' = stored on your computer's disk
     # Alternative: network storage, cloud storage, etc.
@@ -192,7 +192,7 @@ volumes:
 # Networks (Optional - for advanced use)
 # ============================================
 # networks:
-#   gameexplorer_network:
+#   finesse_network:
 #     driver: bridge
 #     # Creates isolated network for all services
 #     # Useful when you have many services and want to control communication

@@ -1,4 +1,4 @@
-package com.gameexplorer.arasan
+package com.finesse.arasan
 
 import com.facebook.react.BaseReactPackage
 import com.facebook.react.bridge.NativeModule

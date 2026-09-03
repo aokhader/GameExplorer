@@ -1,5 +1,5 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
-import type { SfxEvent } from '@gameexplorer/shared';
+import type { SfxEvent } from '@finesse/shared';
 
 /**
  * Native SFX playback.

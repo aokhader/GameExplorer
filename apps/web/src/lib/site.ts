@@ -8,4 +8,4 @@
  * Overridable so preview deploys advertise themselves rather than production.
  */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://game-explorer-site.vercel.app';
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://finesse.games';

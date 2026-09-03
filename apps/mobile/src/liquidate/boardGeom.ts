@@ -1,4 +1,4 @@
-import { gridPos, sideLength } from '@gameexplorer/shared';
+import { gridPos, sideLength } from '@finesse/shared';
 
 export interface RingGeometry {
   /** Tiles per side. */

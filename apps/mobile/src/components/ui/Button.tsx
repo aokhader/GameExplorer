@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';

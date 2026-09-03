@@ -8,8 +8,8 @@ import {
   type Color,
   type MoveGrade,
   type PositionEval,
-} from '@gameexplorer/shared';
-import type { GradedMove, ScanProgress } from '@gameexplorer/client/hooks/useGameAnalysis';
+} from '@finesse/shared';
+import type { GradedMove, ScanProgress } from '@finesse/client/hooks/useGameAnalysis';
 
 /**
  * Grade colour for web. Mobile resolves the same grades through live-view token

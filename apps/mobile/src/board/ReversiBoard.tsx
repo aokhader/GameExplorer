@@ -8,9 +8,9 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { BOARD_ANIM_MS, ReversiEngine } from '@gameexplorer/shared';
-import type { ReversiGameState, ReversiColor } from '@gameexplorer/shared';
-import { ReversiDisc, REVERSI_BOARD_COLORS, SHADOWS_NATIVE } from '@gameexplorer/ui';
+import { BOARD_ANIM_MS, ReversiEngine } from '@finesse/shared';
+import type { ReversiGameState, ReversiColor } from '@finesse/shared';
+import { ReversiDisc, REVERSI_BOARD_COLORS, SHADOWS_NATIVE } from '@finesse/ui';
 import { BoardFrame } from './BoardFrame';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';

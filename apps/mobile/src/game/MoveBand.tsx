@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import type { GameAccent } from '@/game/GameScreenLayout';
 import { GRADE_META } from '@/analysis/grades';
 import type { MoveGrade } from '@/analysis/types';

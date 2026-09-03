@@ -1,6 +1,6 @@
 import { redis } from '../config/redis';
 import { publicWebUrl } from '../config/cors';
-import type { GameType, TimeControl } from '@gameexplorer/shared';
+import type { GameType, TimeControl } from '@finesse/shared';
 
 const INVITE_TTL = 600; // 10 minutes
 

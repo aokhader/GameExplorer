@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LiquidateEngine, type LiquidateGameState } from '@gameexplorer/shared';
+import { LiquidateEngine, type LiquidateGameState } from '@finesse/shared';
 import { useLiquidateGame } from '@/liquidate/useLiquidateGame';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 import { createElement, type ReactNode } from 'react';

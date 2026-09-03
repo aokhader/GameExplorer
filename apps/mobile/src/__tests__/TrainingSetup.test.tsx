@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react-native';
-import type { UserRating } from '@gameexplorer/db';
+import type { UserRating } from '@finesse/db';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { eloLabel } from '@/game/eloLabel';
 

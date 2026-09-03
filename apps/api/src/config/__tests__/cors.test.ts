@@ -15,8 +15,8 @@ async function loadWith(env: Record<string, string | undefined>) {
   return import('../cors');
 }
 
-const PROD = 'https://game-explorer-site.vercel.app';
-const PREVIEW = 'https://game-explorer-site-muvj7gaed-abdulazizs-projects-5d72a3ac.vercel.app';
+const PROD = 'https://finesse-games.vercel.app';
+const PREVIEW = 'https://finesse-games-muvj7gaed-abdulazizs-projects-5d72a3ac.vercel.app';
 
 describe('isAllowedOrigin', () => {
   const saved = { ...process.env };
@@ -43,7 +43,7 @@ describe('isAllowedOrigin', () => {
     const { isAllowedOrigin } = await loadWith({ CORS_ORIGIN: PROD });
     expect(isAllowedOrigin('https://someone-elses-app.vercel.app')).toBe(false);
     // Even one that merely starts differently before the dash.
-    expect(isAllowedOrigin('https://game-explorer-evil.vercel.app')).toBe(false);
+    expect(isAllowedOrigin('https://finesse-evil.vercel.app')).toBe(false);
   });
 
   it('rejects an unrelated origin', async () => {

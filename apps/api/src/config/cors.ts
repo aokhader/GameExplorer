@@ -3,9 +3,9 @@
 // one can't reach the other.
 //
 // The problem this solves: CORS_ORIGIN is a single production alias
-// (https://game-explorer-site.vercel.app), but every Vercel *preview*
+// (https://finesse-games.vercel.app), but every Vercel *preview*
 // deployment gets its own hostname
-// (https://game-explorer-site-<hash>-<team>.vercel.app). A single exact origin
+// (https://finesse-games-<hash>-<team>.vercel.app). A single exact origin
 // therefore rejects every preview — which is where App Store review testing and
 // pre-release checks happen. So we allow exact matches from CORS_ORIGIN AND, for
 // any *.vercel.app origin named there, that project's preview deployments.
@@ -15,6 +15,13 @@
 // not gate token theft here — a hostile page can't read another origin's
 // localStorage regardless. Restricting to *this project's* preview subdomains
 // (not all of vercel.app) keeps the surface tight without blocking previews.
+//
+// NOTE — custom domains: the derivation below only fires for a *.vercel.app
+// origin. The canonical host is now a custom domain (https://finesse.games), so
+// CORS_ORIGIN must ALSO list the Vercel project alias
+// (https://finesse-games.vercel.app) or every preview deployment is rejected.
+// Order matters: the custom domain goes FIRST, because publicWebUrl() returns
+// the first entry and that is what invite links are built from.
 import { logger } from '../utils/logger';
 
 type OriginCallback = (err: Error | null, allow?: boolean) => void;
@@ -41,8 +48,8 @@ function buildPolicy() {
   const patterns: RegExp[] = [];
 
   for (const origin of exact) {
-    // Production alias like https://game-explorer-site.vercel.app → allow
-    // https://game-explorer-site-<anything>.vercel.app (preview builds).
+    // Production alias like https://finesse-games.vercel.app → allow
+    // https://finesse-games-<anything>.vercel.app (preview builds).
     const match = /^https:\/\/([a-z0-9-]+)\.vercel\.app$/i.exec(origin);
     if (match) {
       patterns.push(new RegExp(`^https://${escapeRegExp(match[1])}-[a-z0-9-]+\\.vercel\\.app$`, 'i'));

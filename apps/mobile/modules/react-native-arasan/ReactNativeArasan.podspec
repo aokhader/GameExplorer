@@ -8,7 +8,7 @@ Pod::Spec.new do |s|
   s.summary      = package["description"]
   s.homepage     = "https://github.com/aokhader/GameExplorer"
   s.license      = package["license"]
-  s.authors      = "GameExplorer"
+  s.authors      = "Finesse"
 
   s.platforms = { :ios => min_ios_version_supported }
 

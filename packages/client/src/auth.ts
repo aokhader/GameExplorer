@@ -25,7 +25,7 @@ export async function signInWithIdentifier(
   identifier: string,
   password: string
 ): Promise<SignInResult> {
-  const { supabase } = await import('@gameexplorer/db');
+  const { supabase } = await import('@finesse/db');
   const trimmed = identifier.trim();
 
   if (looksLikeEmail(trimmed)) {

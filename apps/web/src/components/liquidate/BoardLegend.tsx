@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_DECK_STYLE } from '@gameexplorer/ui';
+import { LIQUIDATE_DECK_STYLE } from '@finesse/ui';
 import { LQ, systemColor } from './theme';
 
 interface LegendEntry {

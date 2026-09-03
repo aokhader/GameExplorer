@@ -1,4 +1,4 @@
-import { supabase } from '@gameexplorer/db';
+import { supabase } from '@finesse/db';
 
 /**
  * Ensure the signed-in user has a profile row, creating a minimal one if not.

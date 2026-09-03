@@ -8,12 +8,12 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { LIQUIDATE_BOARD_COLORS, PlayerToken, useThemeName } from '@gameexplorer/ui';
-import { LIQUIDATE_TIMING, type LiquidatePlayer } from '@gameexplorer/shared';
+import { LIQUIDATE_BOARD_COLORS, PlayerToken, useThemeName } from '@finesse/ui';
+import { LIQUIDATE_TIMING, type LiquidatePlayer } from '@finesse/shared';
 import { useSettings } from '@/providers/SettingsProvider';
 import { seatColor } from './lqTheme';
 import type { RingGeometry } from './boardGeom';
-import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
+import type { PlacedToken } from '@finesse/client/liquidate/useLiquidateWalk';
 
 export interface TokenLayerProps {
   players: LiquidatePlayer[];

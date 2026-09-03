@@ -3,7 +3,7 @@
 # Jest coverage by convention (see jest.config.js).
 #   maestro test .maestro/liquidate.yaml
 # (Maestro CLI: https://maestro.mobile.dev — not wired into CI yet.)
-appId: com.gameexplorer.app
+appId: com.finesse.app
 ---
 - launchApp:
     clearState: true

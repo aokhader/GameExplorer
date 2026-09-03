@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader } from '@/components/ui';
 import { PuzzleScreen } from '@/screens/PuzzleScreen';
 

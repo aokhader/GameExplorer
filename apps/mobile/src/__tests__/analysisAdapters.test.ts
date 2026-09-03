@@ -1,4 +1,4 @@
-import { ChessEngine, CheckersEngine, ReversiEngine } from '@gameexplorer/shared';
+import { ChessEngine, CheckersEngine, ReversiEngine } from '@finesse/shared';
 import {
   chessAnalysis,
   chessPositionAnalysis,

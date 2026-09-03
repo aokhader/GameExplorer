@@ -3,7 +3,7 @@
  *
  * Same public API and geometry as PlayerToken.tsx, drawn with react-native-svg.
  * Metro resolves *.native.tsx before *.tsx, so React Native apps pick this up
- * automatically when they import { PlayerToken } from '@gameexplorer/ui'.
+ * automatically when they import { PlayerToken } from '@finesse/ui'.
  */
 
 import React from 'react';

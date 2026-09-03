@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_SEAT_COLORS, LIQUIDATE_SYSTEM_COLORS } from '@gameexplorer/ui';
+import { LIQUIDATE_SEAT_COLORS, LIQUIDATE_SYSTEM_COLORS } from '@finesse/ui';
 import {
   LiquidateEngine,
   formatCredits,
@@ -10,7 +10,7 @@ import {
   type LiquidateGameState,
   type OwnableTile,
   type TradeOffer,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { Button, Modal } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { AmountInput } from './AmountInput';

@@ -1,5 +1,5 @@
 /**
- * Token/theme invariants for `@gameexplorer/ui`.
+ * Token/theme invariants for `@finesse/ui`.
  *
  * Why this file exists: `packages/ui` had no test runner at all, so turbo skipped
  * it and nothing in CI touched the token layer. The two guards that do exist

@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
-import { formatCredits, groupLabel, type LiquidateTile } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { formatCredits, groupLabel, type LiquidateTile } from '@finesse/shared';
+import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 import { tileAccent } from '../lqTheme';
 

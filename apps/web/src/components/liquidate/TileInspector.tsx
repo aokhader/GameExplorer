@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { formatCredits, type InspectorData } from '@gameexplorer/shared';
+import { formatCredits, type InspectorData } from '@finesse/shared';
 import { LQ } from './theme';
 
 export interface TileInspectorProps {

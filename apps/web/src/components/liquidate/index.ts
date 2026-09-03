@@ -20,4 +20,4 @@ export { TokenLayer } from './TokenLayer';
 export { LiquidateGameScreen } from './LiquidateGameScreen';
 export { LQ, seatColor, systemColor, tileAccent } from './theme';
 // `buildInspector`, the geometry helpers and `tileMetrics` now live in
-// `@gameexplorer/shared`; import them from there.
+// `@finesse/shared`; import them from there.

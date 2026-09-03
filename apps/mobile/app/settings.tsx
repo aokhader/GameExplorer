@@ -1,7 +1,7 @@
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
-import { COLORS, RADIUS, type ThemeName, useThemeName } from '@gameexplorer/ui';
+import { COLORS, RADIUS, type ThemeName, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader, Card, Toggle } from '@/components/ui';
 import { useSettings, type Settings } from '@/providers/SettingsProvider';
 import { playSfx } from '@/audio/sfxPlayer';

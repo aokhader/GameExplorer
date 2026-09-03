@@ -9,7 +9,7 @@
 // when they join the queue and kept in sync on block/unblock. The set holds
 // every userId in a block relationship in EITHER direction, so a single
 // membership check excludes both "I blocked them" and "they blocked me".
-import { LIMITS } from '@gameexplorer/shared';
+import { LIMITS } from '@finesse/shared';
 import { redis } from '../config/redis';
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';

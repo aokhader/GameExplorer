@@ -6,12 +6,12 @@ import {
   CheckersEngine,
   getCheckersPremoveDestinations,
   isCheckersPremoveLegal,
-} from '@gameexplorer/shared';
-import type { CheckersGameState, CheckersPremove } from '@gameexplorer/shared';
-// Deep import: the `@gameexplorer/client` barrel builds a Supabase client at
+} from '@finesse/shared';
+import type { CheckersGameState, CheckersPremove } from '@finesse/shared';
+// Deep import: the `@finesse/client` barrel builds a Supabase client at
 // import time, which a board has no business needing.
-import { motionKey, useBoardMotion } from '@gameexplorer/client/hooks/useBoardMotion';
-import { CheckersPiece, CHECKERS_BOARD_COLORS } from '@gameexplorer/ui';
+import { motionKey, useBoardMotion } from '@finesse/client/hooks/useBoardMotion';
+import { CheckersPiece, CHECKERS_BOARD_COLORS } from '@finesse/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { PieceSlot } from '@/components/board/PieceSlot';
 import { useBoardDrag } from '@/hooks/useBoardDrag';
@@ -233,7 +233,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   /**
    * Where a piece on `pos` may be aimed. In premove mode these are candidates
    * for a position that doesn't exist yet, not legal moves — see the premove
-   * module in @gameexplorer/shared.
+   * module in @finesse/shared.
    */
   const destinationsFor = (pos: string): string[] =>
     premoveMode

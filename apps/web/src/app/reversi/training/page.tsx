@@ -10,7 +10,7 @@ import {
   getBestReversiMove,
   calculateNewRating,
   GameOutcome,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
 import { useAuth } from '@/hooks/useAuth';

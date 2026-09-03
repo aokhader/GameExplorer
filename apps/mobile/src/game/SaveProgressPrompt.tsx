@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@gameexplorer/client';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { useAuth } from '@finesse/client';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { OAuthButtons } from '@/components/auth/OAuthButtons';
 import { consumeSaveProgressPending, isSaveProgressPending } from '@/lib/onboarding';
 import { FONTS } from '@/theme/typography';

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { GAME_LIST } from '@gameexplorer/shared';
+import { GAME_LIST } from '@finesse/shared';
 import { SITE_URL } from '@/lib/site';
 
 /**

@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useAuth } from '@gameexplorer/client';
-import { GoEngine, moveHistoryToGo, toGoPoint, type GoColor, type GoGameState } from '@gameexplorer/shared';
+import { useAuth } from '@finesse/client';
+import { GoEngine, moveHistoryToGo, toGoPoint, type GoColor, type GoGameState } from '@finesse/shared';
 import {
   GO_DIFFICULTY_LEVELS,
   GO_PASS,
   GO_TRAINING_ELO_BOUNDS,
   goAdapter,
   goEloLabel,
-} from '@gameexplorer/client/game/goAdapter';
-import { COLORS, GAME_ACCENTS, GO_STONE_STYLE, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/client/game/goAdapter';
+import { COLORS, GAME_ACCENTS, GO_STONE_STYLE, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { GoBoard } from '@/board/GoBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';

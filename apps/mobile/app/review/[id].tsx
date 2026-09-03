@@ -15,9 +15,9 @@ import {
   type ChessGameState,
   type Color,
   type ReversiGameState,
-} from '@gameexplorer/shared';
-import { getGameById, type GameType, type SavedGame } from '@gameexplorer/db';
-import { COLORS } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { getGameById, type GameType, type SavedGame } from '@finesse/db';
+import { COLORS } from '@finesse/ui';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
 import { chessAnalysis } from '@/analysis/adapters';

@@ -7,8 +7,8 @@ import {
   type ChessGameState,
   type Color,
   type PieceType,
-} from '@gameexplorer/shared';
-import { COLORS, ChessPiece, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { COLORS, ChessPiece, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { EvalBar } from '@/analysis/EvalBar';
 import { chessPositionAnalysis } from '@/analysis/adapters';

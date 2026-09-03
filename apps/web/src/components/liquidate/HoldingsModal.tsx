@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_SYSTEM_COLORS } from '@gameexplorer/ui';
+import { LIQUIDATE_SYSTEM_COLORS } from '@finesse/ui';
 import {
   LiquidateEngine,
   MAX_COLONY_LEVEL,
@@ -12,7 +12,7 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
   type OwnableTile,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { Button, Modal } from '@/components/ui';
 
 export interface HoldingsModalProps {

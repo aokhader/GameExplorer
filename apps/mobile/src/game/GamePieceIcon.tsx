@@ -5,7 +5,7 @@ import {
   PlanetToken,
   ReversiDisc,
   useThemeName,
-} from '@gameexplorer/ui';
+} from '@finesse/ui';
 
 export type GameKey = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
@@ -19,7 +19,7 @@ export type GameKey = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
  * reversi uses the black disc, whose lime halo is its own accent.
  *
  * Web mirrors this switch in `apps/web/src/components/game/GameIcon.tsx` over the
- * same `@gameexplorer/ui` art, so both clients draw the same icon for a game. The
+ * same `@finesse/ui` art, so both clients draw the same icon for a game. The
  * two resolvers stay separate rather than shared because `packages/ui` is a leaf
  * that cannot import the game catalog, and a shared component would have to pick
  * a renderer.

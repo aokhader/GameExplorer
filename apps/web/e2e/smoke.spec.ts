@@ -5,7 +5,7 @@ test('home page renders and links to all three games', async ({ page }) => {
   // as already onboarded so we land on the home page itself.
   await page.addInitScript(() => localStorage.setItem('ge:onboarded', '1'));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'GameExplorer' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Finesse' })).toBeVisible();
   for (const game of ['chess', 'checkers', 'reversi']) {
     await expect(page.locator(`a[href="/${game}"]`).first()).toBeVisible();
   }

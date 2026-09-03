@@ -1,8 +1,8 @@
-# GameExplorer Mobile (Expo · iOS + Android)
+# Finesse Mobile (Expo · iOS + Android)
 
-React Native app for GameExplorer. Consumes the shared monorepo packages
-(`@gameexplorer/shared`, `@gameexplorer/client`, `@gameexplorer/ui`,
-`@gameexplorer/db`) — game logic, bots, stores, session hooks, design tokens, and
+React Native app for Finesse. Consumes the shared monorepo packages
+(`@finesse/shared`, `@finesse/client`, `@finesse/ui`,
+`@finesse/db`) — game logic, bots, stores, session hooks, design tokens, and
 the Supabase client are **not** re-implemented here.
 
 ## Status: M0 scaffold (upgrading SDK 52 → 57)
@@ -46,7 +46,7 @@ loop is: **boot emulator → start Metro → point emulator at Metro → open th
 
 ```bash
 # First run only — build + install the dev client on the emulator/simulator
-pnpm --filter @gameexplorer/mobile android    # or: ios
+pnpm --filter @finesse/mobile android    # or: ios
 ```
 
 ### Run on the Android emulator (day-to-day)
@@ -70,10 +70,10 @@ pnpm --filter @gameexplorer/mobile android    # or: ios
    adb reverse tcp:8081 tcp:8081                       # Metro
    adb reverse tcp:4000 tcp:4000                       # only if using a local API on :4000
    ```
-4. **Open the app** — tap the **GameExplorer** icon, or launch it via its dev-client URL:
+4. **Open the app** — tap the **Finesse** icon, or launch it via its dev-client URL:
    ```bash
    adb shell am start -a android.intent.action.VIEW \
-     -d "exp+gameexplorer://expo-development-client/?url=http://localhost:8081"
+     -d "exp+finesse://expo-development-client/?url=http://localhost:8081"
    ```
 
 ### Reload after code changes (Windows cache gotcha)
@@ -85,7 +85,7 @@ force-stop the app so it refetches a fresh bundle:
 
 ```bash
 npx expo start --dev-client --port 8081 --clear     # rebuilds cache from current files
-adb shell am force-stop com.gameexplorer.app        # then reopen (step 4)
+adb shell am force-stop com.finesse.app        # then reopen (step 4)
 ```
 
 If Metro won't start with `EADDRINUSE`/`8081 in use`, kill the stale instance first
@@ -154,7 +154,7 @@ stale junctions otherwise shadow the hoisted copies:
 ```bash
 # from the repo root, delete every node_modules, then:
 pnpm install
-pnpm --filter @gameexplorer/api exec prisma generate
+pnpm --filter @finesse/api exec prisma generate
 ```
 
 `pnpm config get node-linker` must print `hoisted`. A `CMake`/MAX_PATH error during a
@@ -164,9 +164,9 @@ native build means hoisting isn't in effect.
 
 - `metro.config.js` watches the workspace root and points resolution at both the
   app's and the root's `node_modules` (pnpm hoists shared deps to the root).
-- Shared packages are consumed from **source**. `@gameexplorer/client` and
-  `@gameexplorer/ui` point `main` straight at `src/index.ts`; `@gameexplorer/db`
-  and `@gameexplorer/shared` keep `main: dist/index.js` (for web/API) but add a
+- Shared packages are consumed from **source**. `@finesse/client` and
+  `@finesse/ui` point `main` straight at `src/index.ts`; `@finesse/db`
+  and `@finesse/shared` keep `main: dist/index.js` (for web/API) but add a
   `"react-native": "./src/index.ts"` field so Metro reads source on native
   (`db`'s also selects `client.native.ts` for the AsyncStorage session).
   **Rule:** any workspace package consumed by mobile whose `main` points at

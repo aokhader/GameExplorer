@@ -6,7 +6,7 @@ import {
   serializeSettings,
   type Settings,
   type ThemeChoice,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 
 /**
  * The narrow slice of a key-value store this hook needs.

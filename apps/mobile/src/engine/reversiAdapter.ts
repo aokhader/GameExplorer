@@ -2,8 +2,8 @@ import {
   ReversiEngine,
   getBestReversiMove,
   type ReversiGameState,
-} from '@gameexplorer/shared';
-import { saveReversiGame } from '@gameexplorer/db';
+} from '@finesse/shared';
+import { saveReversiGame } from '@finesse/db';
 import type { LocalGameAdapter } from './useLocalGame';
 
 /** Bot pacing by strength — mirrors web's reversi `thinkTimeForElo`. */

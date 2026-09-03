@@ -8,7 +8,7 @@ import { ClientConfig } from '@/components/ClientConfig';
 import { ToastProvider } from '@/components/ui';
 import { RouteAmbient, PageTransition } from '@/components/visual';
 import { SettingsProvider } from '@/components/providers/SettingsProvider';
-import { gameNameList } from '@gameexplorer/shared';
+import { GAME_LIST, gameNameList } from '@finesse/shared';
 import { SITE_URL } from '@/lib/site';
 
 /**
@@ -57,23 +57,28 @@ const THEME_BOOTSTRAP = `try{var s=JSON.parse(localStorage.getItem('gx:settings'
 // a hand-typed game list here goes stale the moment a game ships.
 const DESCRIPTION = `Play ${gameNameList()} — sharp bots, online matches, pass and play, puzzles and Elo ratings. Free, no ads.`;
 
+// Same reason as DESCRIPTION, with one more: the brand name no longer contains
+// the word "games", so the title has to carry the category itself — and the
+// catalog is what knows which games those are.
+const TITLE = `Finesse — Play ${gameNameList()}`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'GameExplorer - Classic Board Games',
+  title: TITLE,
   description: DESCRIPTION,
-  keywords: ['chess', 'checkers', 'reversi', 'go', 'board games', 'online games', 'multiplayer'],
+  keywords: [...GAME_LIST.map((g) => g.name.toLowerCase()), 'board games', 'online games', 'multiplayer'],
   // `opengraph-image.tsx` supplies the image for both cards; declaring the rest
   // here keeps titles/descriptions from falling back to the bare page title.
   openGraph: {
     type: 'website',
-    siteName: 'GameExplorer',
-    title: 'GameExplorer — Classic Board Games',
+    siteName: 'Finesse',
+    title: TITLE,
     description: DESCRIPTION,
     url: SITE_URL,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GameExplorer — Classic Board Games',
+    title: TITLE,
     description: DESCRIPTION,
   },
 };

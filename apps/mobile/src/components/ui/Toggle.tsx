@@ -1,5 +1,5 @@
 import { Pressable, View } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@finesse/ui';
 
 interface ToggleProps {
   value: boolean;

@@ -7,7 +7,7 @@ import {
   isOwnable,
   type LiquidateAction,
   type LiquidateGameState,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { AmountInput } from './AmountInput';
 import { DockButton } from './DockButton';
 import { LQ, seatColor, tileAccent } from './theme';

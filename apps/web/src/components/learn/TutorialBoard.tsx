@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@gameexplorer/shared';
+import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@finesse/shared';
 import {
   ChessPiece,
   CheckersPiece,
@@ -10,7 +10,7 @@ import {
   REVERSI_BOARD_COLORS,
   GO_BOARD_COLORS,
   GO_STAR_POINTS_9,
-} from '@gameexplorer/ui';
+} from '@finesse/ui';
 
 /**
  * Static, server-renderable board diagram for the "How to play" pages.

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Polygon } from 'react-native-svg';
-import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@gameexplorer/shared';
-import { ChessPiece, CheckersPiece, ReversiDisc, GoStone, BOARD_COLORS, CHECKERS_BOARD_COLORS, REVERSI_BOARD_COLORS, GO_BOARD_COLORS, GO_STAR_POINTS_9, COLORS, useThemeName } from '@gameexplorer/ui';
+import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@finesse/shared';
+import { ChessPiece, CheckersPiece, ReversiDisc, GoStone, BOARD_COLORS, CHECKERS_BOARD_COLORS, REVERSI_BOARD_COLORS, GO_BOARD_COLORS, GO_STAR_POINTS_9, COLORS, useThemeName } from '@finesse/ui';
 import { BoardFrame } from '@/board/BoardFrame';
 import { FONTS } from '@/theme/typography';
 

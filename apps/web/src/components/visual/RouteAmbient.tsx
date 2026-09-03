@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { GAME_LIST } from '@gameexplorer/shared';
+import { GAME_LIST } from '@finesse/shared';
 import { AmbientBackground, type AmbientHue } from './AmbientBackground';
 
 /**

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
-import { DIFFICULTY_ELO, TOUR_GAMES, gameNameList, type OnboardingGame } from '@gameexplorer/shared';
-import { useAuth } from '@gameexplorer/client';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
+import { DIFFICULTY_ELO, TOUR_GAMES, gameNameList, type OnboardingGame } from '@finesse/shared';
+import { useAuth } from '@finesse/client';
 import { Screen, Button } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { markOnboarded, markSaveProgressPending } from '@/lib/onboarding';
@@ -206,7 +206,7 @@ export default function WelcomeScreen() {
         <View style={{ alignItems: 'center', paddingTop: 24, gap: 14 }}>
           <Text style={{ fontSize: 56 }}>♟️</Text>
           <Text style={{ color: COLORS.fg, fontSize: 26, fontFamily: FONTS.display, textAlign: 'center' }}>
-            Welcome to <Text style={{ color: COLORS.accent }}>GameExplorer</Text>
+            Welcome to <Text style={{ color: COLORS.accent }}>Finesse</Text>
           </Text>
           <Text style={{ color: COLORS.fgMuted, fontSize: 15, textAlign: 'center', lineHeight: 22, maxWidth: 300 }}>
             {gameNameList()} — ready in seconds.

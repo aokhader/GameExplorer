@@ -63,13 +63,13 @@ jest.mock('expo-network', () => ({
 
 // Signed out: no rating reads, no saves — the guest path, which is also the one
 // pass-and-play always takes.
-jest.mock('@gameexplorer/client', () => ({ useAuth: () => ({ user: null, loading: false }) }));
+jest.mock('@finesse/client', () => ({ useAuth: () => ({ user: null, loading: false }) }));
 
 // The adapter imports the db writers at module load, and the db barrel builds a
 // Supabase client on import. No test here signs in or reaches a rated save, so
 // stub them rather than dragging Supabase config into Jest — the same call
 // `useLocalGame.test.ts` makes.
-jest.mock('@gameexplorer/db', () => ({
+jest.mock('@finesse/db', () => ({
   saveGoGame: jest.fn(async () => null),
   getUserRating: jest.fn(async () => null),
   upsertUserRating: jest.fn(async () => null),

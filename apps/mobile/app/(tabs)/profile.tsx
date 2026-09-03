@@ -10,10 +10,10 @@ import {
   type GameListItem,
   type UserRating,
   type GameType,
-} from '@gameexplorer/db';
-import { endReasonLabel } from '@gameexplorer/shared';
-import { useAuth } from '@gameexplorer/client';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/db';
+import { endReasonLabel } from '@finesse/shared';
+import { useAuth } from '@finesse/client';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { Screen, Card, Button } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { BlockedPlayers } from '@/multiplayer/BlockedPlayers';

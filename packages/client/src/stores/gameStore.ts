@@ -2,10 +2,10 @@ import { create } from 'zustand';
 import type {
   ClockSnapshot, GameResult, EndReason, UserSummary,
   TimeControlConfig, MultiplayerStatus, RatingInfo,
-} from '@gameexplorer/shared';
-import type { ChessGameState }    from '@gameexplorer/shared';
-import type { CheckersGameState } from '@gameexplorer/shared';
-import type { ReversiGameState }  from '@gameexplorer/shared';
+} from '@finesse/shared';
+import type { ChessGameState }    from '@finesse/shared';
+import type { CheckersGameState } from '@finesse/shared';
+import type { ReversiGameState }  from '@finesse/shared';
 
 export type AnyGameState = ChessGameState | CheckersGameState | ReversiGameState;
 

@@ -35,7 +35,7 @@ export function DeleteAccountCard() {
       await apiFetch('/users/me', { method: 'DELETE' });
       // Clear the local session, then hard-navigate home so every client store
       // (auth/game/socket) is dropped with the destroyed page.
-      const { supabase } = await import('@gameexplorer/db');
+      const { supabase } = await import('@finesse/db');
       await supabase.auth.signOut();
       window.location.assign('/');
     } catch (err) {

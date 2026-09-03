@@ -1,21 +1,21 @@
 'use client';
 
 import React from 'react';
-// Subpath import, not the barrel: `@gameexplorer/client`'s index pulls in
-// `useSocket` → `@gameexplorer/db` → the Supabase client, which constructs
+// Subpath import, not the barrel: `@finesse/client`'s index pulls in
+// `useSocket` → `@finesse/db` → the Supabase client, which constructs
 // itself at import time and needs env that a settings provider has no business
 // requiring. Reaching straight for the hook keeps that whole tree out.
 import {
   useSettingsStore,
   type SettingsStorage,
-} from '@gameexplorer/client/hooks/useSettingsStore';
-import type { Settings, ThemeChoice } from '@gameexplorer/shared';
+} from '@finesse/client/hooks/useSettingsStore';
+import type { Settings, ThemeChoice } from '@finesse/shared';
 
 /**
  * App-wide user preferences (client-only, persisted to localStorage).
  *
- * The model, hydration and persistence now live in `@gameexplorer/shared` and
- * `@gameexplorer/client` — this file is the web half that genuinely cannot be
+ * The model, hydration and persistence now live in `@finesse/shared` and
+ * `@finesse/client` — this file is the web half that genuinely cannot be
  * shared: localStorage, the `prefers-reduced-motion` media query, and mirroring
  * the theme onto `<html data-theme>` for the `[data-theme]` blocks in
  * globals.css.

@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_TIMING, gridPos, type LiquidatePlayer } from '@gameexplorer/shared';
-import { PlayerToken } from '@gameexplorer/ui';
-import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
+import { LIQUIDATE_TIMING, gridPos, type LiquidatePlayer } from '@finesse/shared';
+import { PlayerToken } from '@finesse/ui';
+import type { PlacedToken } from '@finesse/client/liquidate/useLiquidateWalk';
 import { useSettings } from '@/components/providers/SettingsProvider';
 import { LQ, seatColor } from './theme';
 

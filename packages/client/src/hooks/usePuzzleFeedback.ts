@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { PuzzlePhase } from '@gameexplorer/shared';
+import type { PuzzlePhase } from '@finesse/shared';
 
 export interface UsePuzzleFeedbackOptions {
   phase: PuzzlePhase | null;

@@ -15,7 +15,7 @@
  * so `FONTS.body` returns the active theme's face and call sites never change.
  * Every family is loaded up front, so a switch has nothing to wait for.
  */
-import { liveView } from '@gameexplorer/ui';
+import { liveView } from '@finesse/ui';
 
 const ARCADE_FONTS = {
   /** Space Grotesk 700 — headlines, wordmark, big numbers. */

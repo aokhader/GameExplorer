@@ -25,7 +25,7 @@ export interface PlayerTokenProps {
  *
  * Takes resolved colours rather than a seat index so this package stays a leaf —
  * `packages/ui` holds tokens and art and deliberately does not depend on
- * `@gameexplorer/shared`, and each platform resolves the seat ramp its own way
+ * `@finesse/shared`, and each platform resolves the seat ramp its own way
  * (web through CSS variables, native through `getActiveTheme`).
  */
 export const PlayerToken = React.memo(function PlayerToken({

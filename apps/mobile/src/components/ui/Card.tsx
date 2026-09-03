@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
-import { COLORS, SHADOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { COLORS, SHADOWS_NATIVE, useThemeName } from '@finesse/ui';
 
 interface CardProps {
   children: ReactNode;

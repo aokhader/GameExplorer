@@ -9,7 +9,7 @@ import { clockService }             from '../services/clock.service';
 import { matchmakingService }       from '../services/matchmaking.service';
 import { scanKeys }                 from '../config/redis';
 import { corsOrigin }               from '../config/cors';
-import type { ClientToServerEvents, ServerToClientEvents, GameResult } from '@gameexplorer/shared';
+import type { ClientToServerEvents, ServerToClientEvents, GameResult } from '@finesse/shared';
 
 let io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>;
 let matchmakingTimer: NodeJS.Timeout | undefined;
@@ -162,7 +162,7 @@ function startMatchmakingLoop() {
         );
         const tcConfig = TIME_CONTROL_CONFIGS[a.timeControl];
         const clocks   = await clockService.getSnapshot(gameId);
-        const { ChessEngine, CheckersEngine, ReversiEngine } = await import('@gameexplorer/shared');
+        const { ChessEngine, CheckersEngine, ReversiEngine } = await import('@finesse/shared');
         const initial =
           a.gameType === 'chess'    ? ChessEngine.newGame()    :
           a.gameType === 'checkers' ? CheckersEngine.newGame() :
@@ -208,7 +208,7 @@ function startClockLoop() {
           const session = await gameSessionService.getGameSession(gameId);
           if (!session || session.status !== 'active') continue;
 
-          const result: import('@gameexplorer/shared').GameResult =
+          const result: import('@finesse/shared').GameResult =
             clocks.active_color === 'white' ? 'black_wins' : 'white_wins';
           const ratings = await gameSessionService.endGame(gameId, result, 'flag');
           if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'flag', ...ratings });

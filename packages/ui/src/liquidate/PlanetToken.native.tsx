@@ -4,7 +4,7 @@
  * LIQUIDATE_PLANET_STYLE tokens.
  *
  * Metro resolves *.native.tsx before *.tsx, so React Native apps pick this file
- * up automatically when they import { PlanetToken } from '@gameexplorer/ui'.
+ * up automatically when they import { PlanetToken } from '@finesse/ui'.
  */
 
 import React from 'react';

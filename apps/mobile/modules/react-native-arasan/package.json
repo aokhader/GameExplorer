@@ -24,7 +24,7 @@
     "type": "modules",
     "jsSrcsDir": "src",
     "android": {
-      "javaPackageName": "com.gameexplorer.arasan"
+      "javaPackageName": "com.finesse.arasan"
     }
   }
 }

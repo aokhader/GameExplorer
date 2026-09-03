@@ -3,14 +3,14 @@
  *
  * Sound on mobile was a documented no-op for a long time — the hook honoured the
  * setting and then did nothing, because the web synth is WebAudio and has no
- * files. The recipes now live in `@gameexplorer/shared` and are pre-rendered to
+ * files. The recipes now live in `@finesse/shared` and are pre-rendered to
  * WAV by `scripts/render-sfx.mjs`; this covers the playback layer over them.
  *
  * `expo-audio` is mocked globally in jest.setup.js (it touches a native module
  * at import), and the mock deliberately leaves `currentTime` at the end of the
  * clip after `play()` so the rewind path is exercised for real.
  */
-import { SFX_EVENTS } from '@gameexplorer/shared';
+import { SFX_EVENTS } from '@finesse/shared';
 import { playSfx, releaseSfx } from '../audio/sfxPlayer';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports

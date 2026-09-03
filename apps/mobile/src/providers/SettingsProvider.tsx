@@ -1,22 +1,22 @@
 import React from 'react';
 import { AccessibilityInfo } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// Subpath import, not the barrel: `@gameexplorer/client`'s index pulls in
-// `useSocket` → `@gameexplorer/db` → the Supabase client, which constructs
+// Subpath import, not the barrel: `@finesse/client`'s index pulls in
+// `useSocket` → `@finesse/db` → the Supabase client, which constructs
 // itself at import time and needs env that a settings provider has no business
 // requiring. Reaching straight for the hook keeps that whole tree out.
 import {
   useSettingsStore,
   type SettingsStorage,
-} from '@gameexplorer/client/hooks/useSettingsStore';
-import type { Settings, ThemeChoice } from '@gameexplorer/shared';
-import { setActiveTheme, type ThemeName } from '@gameexplorer/ui';
+} from '@finesse/client/hooks/useSettingsStore';
+import type { Settings, ThemeChoice } from '@finesse/shared';
+import { setActiveTheme, type ThemeName } from '@finesse/ui';
 
 /**
  * App-wide user preferences (device-local, persisted to AsyncStorage).
  *
- * The model, hydration and persistence live in `@gameexplorer/shared` and
- * `@gameexplorer/client`, shared verbatim with web. What stays here is the part
+ * The model, hydration and persistence live in `@finesse/shared` and
+ * `@finesse/client`, shared verbatim with web. What stays here is the part
  * that genuinely differs: AsyncStorage, OS reduced-motion from
  * `AccessibilityInfo` rather than a media query, and applying the theme by
  * pushing it into the shared token runtime rather than setting a DOM attribute.

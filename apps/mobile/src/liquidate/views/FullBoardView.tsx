@@ -12,12 +12,12 @@ import {
   systemMembers,
   type LiquidateAction,
   type LiquidateGameState,
-} from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 import { LiquidateBoard, BoardWellCaption } from '../LiquidateBoard';
 import { seatColor, systemColor } from '../lqTheme';
-import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
+import type { PlacedToken } from '@finesse/client/liquidate/useLiquidateWalk';
 import { ViewHeader, ViewSection } from './ViewChrome';
 
 const MAX_ZOOM = 2.5;

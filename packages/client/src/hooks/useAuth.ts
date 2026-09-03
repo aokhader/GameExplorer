@@ -26,7 +26,7 @@ export function useAuth() {
       setLoading(false);
     };
 
-    import('@gameexplorer/db').then(({ supabase }) => {
+    import('@finesse/db').then(({ supabase }) => {
       if (cancelled) return;
 
       // getSession() resolves from local storage — no network. getUser() here

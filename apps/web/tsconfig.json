@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@gameexplorer/shared": ["../../packages/shared/src"]
+      "@finesse/shared": ["../../packages/shared/src"]
     }
   },
   "include": [

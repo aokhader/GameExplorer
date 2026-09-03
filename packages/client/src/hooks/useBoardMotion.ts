@@ -9,8 +9,8 @@
 // Deliberately free of both DOM and React Native — it returns numbers.
 
 import { useRef } from 'react';
-import { type BoardFade, type BoardTransition, diffBoards } from '@gameexplorer/shared';
-import type { DiffOptions } from '@gameexplorer/shared';
+import { type BoardFade, type BoardTransition, diffBoards } from '@finesse/shared';
+import type { DiffOptions } from '@finesse/shared';
 
 /** Where a piece should START, relative to where it now sits, in squares. */
 export interface PieceOffset {

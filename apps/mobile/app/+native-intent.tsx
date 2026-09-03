@@ -22,8 +22,8 @@ const GAMES = ['chess', 'checkers', 'reversi'] as const;
  * (`link/linking.js` passes the `Linking` event's `url` straight through), and
  * the three forms it arrives in do not agree on where the path starts:
  *
- *   https://gameexplorer.app/chess/play?invite=1   → authority is a host
- *   gameexplorer://chess/play?invite=1             → "chess" is a path segment
+ *   https://finesse.games/chess/play?invite=1 → authority is a host
+ *   finesse://chess/play?invite=1             → "chess" is a path segment
  *   exp://192.168.1.5:8081/--/chess/play?invite=1  → path follows the `--`
  *
  * A custom scheme has no authority, so the part a URL parser calls the host is

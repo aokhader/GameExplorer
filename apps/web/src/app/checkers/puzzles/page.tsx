@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { PuzzleScreen } from '@/components/puzzles/PuzzleScreen';
 
 export const metadata: Metadata = {
-  title: 'Checkers Puzzles — GameExplorer',
+  title: 'Checkers Puzzles — Finesse',
   description:
     'Solve checkers tactics one position at a time — shots, multi-jumps and crowning combinations. No clock, no account needed.',
 };

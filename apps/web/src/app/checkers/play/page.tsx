@@ -3,10 +3,10 @@
 import { useCallback, useEffect } from 'react';
 import { redirect }  from 'next/navigation';
 import { CheckersBoard }  from '@/components/checkers/CheckersBoard';
-import { useGameSession } from '@gameexplorer/client';
+import { useGameSession } from '@finesse/client';
 import { GameLayout }     from '@/components/game/GameLayout';
-import { formatClockShort } from '@gameexplorer/shared';
-import type { CheckersGameState, TimeControl } from '@gameexplorer/shared';
+import { formatClockShort } from '@finesse/shared';
+import type { CheckersGameState, TimeControl } from '@finesse/shared';
 
 const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
   { id: 'movetime', label: 'Normal', desc: '30s per move' },

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { PieceType } from '@gameexplorer/shared';
+import type { PieceType } from '@finesse/shared';
 import {
   getStockfishEnginePath,
   getStockfishThreads,

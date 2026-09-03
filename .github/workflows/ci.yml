@@ -35,7 +35,7 @@ jobs:
       # DATABASE_URL is not used by `prisma generate` itself (no db connection
       # is made), but prisma.config.ts imports it so we provide a dummy value.
       - name: Generate Prisma client
-        run: pnpm --filter @gameexplorer/api exec prisma generate
+        run: pnpm --filter @finesse/api exec prisma generate
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
@@ -87,7 +87,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browser
-        run: pnpm --filter @gameexplorer/web exec playwright install --with-deps chromium
+        run: pnpm --filter @finesse/web exec playwright install --with-deps chromium
 
       # Turbo builds the workspace deps (shared/db/ui) first via ^build, then
       # playwright.config.ts builds + starts the Next.js app itself (CI mode).

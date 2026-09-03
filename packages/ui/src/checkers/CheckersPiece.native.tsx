@@ -4,7 +4,7 @@
  * react-native-svg from the same CHECKERS_PIECE_STYLE tokens.
  *
  * Metro resolves *.native.tsx before *.tsx, so React Native apps automatically
- * pick up this file when they import { CheckersPiece } from '@gameexplorer/ui'.
+ * pick up this file when they import { CheckersPiece } from '@finesse/ui'.
  */
 
 import React from 'react';

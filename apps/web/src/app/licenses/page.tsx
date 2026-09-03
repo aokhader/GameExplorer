@@ -2,11 +2,13 @@ import type { Metadata } from 'next';
 import { GradientText } from '@/components/visual';
 
 export const metadata: Metadata = {
-  title: 'Open Source & Licenses — GameExplorer',
+  title: 'Open Source & Licenses — Finesse',
   description:
-    'The open-source software GameExplorer is built on, and the licenses it is distributed under.',
+    'The open-source software Finesse is built on, and the licenses it is distributed under.',
 };
 
+// Still the GameExplorer repo: this is the MIT source offer, so it has to be a
+// URL that actually resolves. Update it when the GitHub repository is renamed.
 const SOURCE_REPO_URL = 'https://github.com/aokhader/GameExplorer';
 
 function Link({ href, children }: { href: string; children: React.ReactNode }) {
@@ -46,12 +48,12 @@ export default function LicensesPage() {
 
         <div className="space-y-8 text-fg-muted leading-relaxed">
           <section>
-            <h2 className="text-lg font-semibold text-fg mb-2">GameExplorer itself</h2>
+            <h2 className="text-lg font-semibold text-fg mb-2">Finesse itself</h2>
             <p>
-              GameExplorer&apos;s own source code — the website, the iOS/Android app, and the game
+              Finesse&apos;s own source code — the website, the iOS/Android app, and the game
               server — is released under the <span className="text-fg">MIT License</span> and is
               available at <Link href={SOURCE_REPO_URL}>github.com/aokhader/GameExplorer</Link>. The
-              GameExplorer name and logo are excluded; forks need their own identity.
+              Finesse name and logo are excluded; forks need their own identity.
             </p>
           </section>
 
@@ -91,7 +93,7 @@ export default function LicensesPage() {
               The chess piece shapes are derived from the &ldquo;Merida&rdquo; set published in the{' '}
               <Link href="https://sashite.dev/assets/chess/">Sashité chess assets</Link>, released
               into the public domain under CC0 1.0 Universal. No attribution is required — this note
-              is a courtesy. The metallic coloring applied to them is GameExplorer&apos;s own.
+              is a courtesy. The metallic coloring applied to them is Finesse&apos;s own.
             </p>
           </section>
 

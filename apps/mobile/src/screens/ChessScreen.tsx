@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@gameexplorer/client';
+import { useAuth } from '@finesse/client';
 import {
   ENGINE_MIN_ELO,
   summarizeMaterial,
   timelineToSan,
   type ChessGameState,
-} from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, ChessPiece, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { COLORS, GAME_ACCENTS, ChessPiece, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';

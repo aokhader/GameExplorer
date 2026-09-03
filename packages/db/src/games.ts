@@ -1,8 +1,8 @@
 // Game Queries
 import { supabase } from './client';
 import type { GameListItem, NewGame, SavedGame } from './types';
-import { LIMITS } from '@gameexplorer/shared';
-import type { ChessGameState, Color, CheckersGameState, CheckersColor, ReversiGameState, ReversiColor, GoGameState, GoColor } from '@gameexplorer/shared';
+import { LIMITS } from '@finesse/shared';
+import type { ChessGameState, Color, CheckersGameState, CheckersColor, ReversiGameState, ReversiColor, GoGameState, GoColor } from '@finesse/shared';
 
 export interface SaveGameOptions {
   mode?: 'casual' | 'rated';

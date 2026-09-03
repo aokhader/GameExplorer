@@ -1,6 +1,6 @@
 import { useState, type Ref } from 'react';
 import { Text, TextInput, View, type TextInputProps } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 
 interface TextFieldProps extends Omit<TextInputProps, 'style'> {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSocketStore } from '../stores/socketStore';
-import type { GameType, TimeControl } from '@gameexplorer/shared';
+import type { GameType, TimeControl } from '@finesse/shared';
 
 /**
  * Encapsulates the "challenge a friend" invite-link flow over the socket:

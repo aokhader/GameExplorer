@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GameIcon } from '@/components/game/GameIcon';
-import { END_REASON_LABELS } from '@gameexplorer/shared';
-import { getPublicProfile, getGames, getUserRatings, supabase } from '@gameexplorer/db';
-import type { AuthUser, Profile, GameListItem, UserRating, GameType } from '@gameexplorer/db';
+import { END_REASON_LABELS } from '@finesse/shared';
+import { getPublicProfile, getGames, getUserRatings, supabase } from '@finesse/db';
+import type { AuthUser, Profile, GameListItem, UserRating, GameType } from '@finesse/db';
 import { useRouter } from 'next/navigation';
 import { BlockedPlayers } from '@/components/multiplayer/BlockedPlayers';
 import { Skeleton } from '@/components/ui';
@@ -30,7 +30,7 @@ function relativeTime(iso: string) {
   return formatDate(iso);
 }
 
-// END_REASON_LABELS now lives in @gameexplorer/shared — mobile's history list
+// END_REASON_LABELS now lives in @finesse/shared — mobile's history list
 // reads the same table (it used to show no end reason at all).
 
 // Per-game accents: a tinted rating card with a matching bloom, and an accent

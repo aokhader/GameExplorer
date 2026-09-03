@@ -31,7 +31,7 @@ import {
   seekPuzzle,
   solvedCount,
   startPuzzle,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import type {
   Puzzle,
   PuzzleGame,
@@ -42,7 +42,7 @@ import type {
   PuzzleRefutation,
   PuzzleRun,
   PuzzleSource,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 
 /**
  * Beat before the opponent's scripted reply.

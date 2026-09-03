@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import type { UserRating } from '@gameexplorer/db';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import type { UserRating } from '@finesse/db';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { Button } from '@/components/ui';
 import { eloLabel, type EloLabelGame } from '@/game/eloLabel';
 import { HINT_PENALTY } from '@/engine/trainingRules';

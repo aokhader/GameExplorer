@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
-import { useSocketStore } from '@gameexplorer/client';
+import { useSocketStore } from '@finesse/client';
 
 /**
  * Bring the multiplayer socket back when the app returns to the foreground.

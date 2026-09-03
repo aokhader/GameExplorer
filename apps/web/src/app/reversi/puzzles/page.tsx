@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { PuzzleScreen } from '@/components/puzzles/PuzzleScreen';
 
 export const metadata: Metadata = {
-  title: 'Reversi Puzzles — GameExplorer',
+  title: 'Reversi Puzzles — Finesse',
   description:
     'Solve reversi positions one move at a time — corners, parity and forced passes. No clock, no account needed.',
 };

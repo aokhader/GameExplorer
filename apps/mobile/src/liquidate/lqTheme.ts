@@ -6,8 +6,8 @@ import {
   LIQUIDATE_SYSTEM_COLORS,
   getActiveTheme,
   type LiquidateSystemKey,
-} from '@gameexplorer/ui';
-import type { LiquidateTile } from '@gameexplorer/shared';
+} from '@finesse/ui';
+import type { LiquidateTile } from '@finesse/shared';
 
 /**
  * Liquidate's palette derivations for native.
@@ -19,7 +19,7 @@ import type { LiquidateTile } from '@gameexplorer/shared';
  * import and freeze the board to whichever theme happened to be active — which
  * is exactly what `src/__tests__/noFrozenTokens.test.ts` fails the build on.
  *
- * Components import the token objects straight from `@gameexplorer/ui` and read
+ * Components import the token objects straight from `@finesse/ui` and read
  * them inline in JSX, the same way `ReversiBoard` reads `REVERSI_BOARD_COLORS`.
  */
 

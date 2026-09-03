@@ -1,12 +1,12 @@
 /**
- * Framework-agnostic SFX synth for GameExplorer.
+ * Framework-agnostic SFX synth for Finesse.
  *
  * Generates short, friendly UI/game sounds with the WebAudio API — no audio
  * asset files to bundle or fetch. A single lazily-created AudioContext is shared
  * across the app; it is only constructed on the first `play()` (which must
  * follow a user gesture, per browser autoplay policy).
  *
- * The recipes themselves live in `@gameexplorer/shared` so the native app can
+ * The recipes themselves live in `@finesse/shared` so the native app can
  * pre-render the identical sounds to WAV assets (React Native has no WebAudio).
  * This module is now just the browser renderer for them.
  *
@@ -15,10 +15,10 @@
  * failure path.
  */
 
-import { SFX_RECIPES, SFX_ATTACK_S, type SfxTone } from '@gameexplorer/shared';
+import { SFX_RECIPES, SFX_ATTACK_S, type SfxTone } from '@finesse/shared';
 
-export type { SfxEvent } from '@gameexplorer/shared';
-import type { SfxEvent } from '@gameexplorer/shared';
+export type { SfxEvent } from '@finesse/shared';
+import type { SfxEvent } from '@finesse/shared';
 
 let ctx: AudioContext | null = null;
 

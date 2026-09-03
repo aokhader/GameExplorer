@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import type { ChessGameState } from '@gameexplorer/shared';
+import type { ChessGameState } from '@finesse/shared';
 
 export function getMoveText(stateBefore: ChessGameState, stateAfter: ChessGameState): string {
   const history = stateAfter.moveHistory;

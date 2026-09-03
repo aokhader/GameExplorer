@@ -1,5 +1,5 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
-import { ChessEngine, CheckersEngine, ReversiEngine } from '@gameexplorer/shared';
+import { ChessEngine, CheckersEngine, ReversiEngine } from '@finesse/shared';
 import { gameSessionService, TIME_CONTROL_CONFIGS } from '../../services/gameSession.service';
 import { clockService }       from '../../services/clock.service';
 import { persistenceService } from '../../services/persistence.service';
@@ -55,7 +55,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
   });
 
   // ── Move ──────────────────────────────────────────────────────────────────
-  socket.on('make_move', async ({ gameId, move }: { gameId: string; move: import('@gameexplorer/shared').MovePayload }) => {
+  socket.on('make_move', async ({ gameId, move }: { gameId: string; move: import('@finesse/shared').MovePayload }) => {
     // Rate limiting: 1 move per 200ms per socket
     try {
       const rl = await RedisService.checkRateLimit(`move:${socket.id}`, 1, 200);
@@ -77,11 +77,11 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
       if (!session) return;
 
       const finalResult = flagged
-        ? (clocks.active_color === 'white' ? 'black_wins' : 'white_wins') as import('@gameexplorer/shared').GameResult
+        ? (clocks.active_color === 'white' ? 'black_wins' : 'white_wins') as import('@finesse/shared').GameResult
         : result.result!;
       const finalReason = flagged ? 'flag' : result.endReason!;
 
-      const ratings = await gameSessionService.endGame(gameId, finalResult, finalReason as import('@gameexplorer/shared').EndReason);
+      const ratings = await gameSessionService.endGame(gameId, finalResult, finalReason as import('@finesse/shared').EndReason);
       if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result: finalResult, reason: finalReason, ...ratings });
     }
   });
@@ -92,7 +92,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     if (!session || session.status !== 'active') return;
     if (session.whiteId !== userId && session.blackId !== userId) return;
 
-    const result: import('@gameexplorer/shared').GameResult = session.whiteId === userId ? 'black_wins' : 'white_wins';
+    const result: import('@finesse/shared').GameResult = session.whiteId === userId ? 'black_wins' : 'white_wins';
     const ratings = await gameSessionService.endGame(gameId, result, 'resign');
     if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'resign', ...ratings });
   });
@@ -103,7 +103,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     if (!session || session.status !== 'active') return;
     if (session.whiteId !== userId && session.blackId !== userId) return;
 
-    const { ABORT_MOVE_LIMIT } = await import('@gameexplorer/shared');
+    const { ABORT_MOVE_LIMIT } = await import('@finesse/shared');
     if (gameSessionService.getMoveCount(session) >= ABORT_MOVE_LIMIT) {
       socket.emit('error', { code: 'ABORT_NOT_ALLOWED', message: `Cannot abort after ${ABORT_MOVE_LIMIT} moves` });
       return;
@@ -158,14 +158,14 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
   });
 
   // ── Emotes / reactions ─────────────────────────────────────────────────────
-  socket.on('send_emote', async ({ gameId, emote }: { gameId: string; emote: import('@gameexplorer/shared').Emote }) => {
+  socket.on('send_emote', async ({ gameId, emote }: { gameId: string; emote: import('@finesse/shared').Emote }) => {
     // Throttle: 1 emote per second per socket (spam guard).
     try {
       const rl = await RedisService.checkRateLimit(`emote:${socket.id}`, 1, 1000);
       if (!rl.allowed) return;
     } catch { /* non-fatal */ }
 
-    const { EMOTES } = await import('@gameexplorer/shared');
+    const { EMOTES } = await import('@finesse/shared');
     if (!EMOTES.includes(emote)) return; // reject anything outside the allowed set
 
     const session = await gameSessionService.getGameSession(gameId);
@@ -202,7 +202,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
   });
 
   // ── Invites ───────────────────────────────────────────────────────────────
-  socket.on('create_invite_link', async ({ gameType, timeControl, username }: { gameType: import('@gameexplorer/shared').GameType; timeControl: import('@gameexplorer/shared').TimeControl; username: string; rating?: number }) => {
+  socket.on('create_invite_link', async ({ gameType, timeControl, username }: { gameType: import('@finesse/shared').GameType; timeControl: import('@finesse/shared').TimeControl; username: string; rating?: number }) => {
     // Rating AND username are server-authoritative — fetched from Supabase, not
     // trusted from the client.
     const rating       = await persistenceService.getRating(userId, gameType);
@@ -259,7 +259,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
   });
 }
 
-function newGameStateFor(gameType: import('@gameexplorer/shared').GameType) {
+function newGameStateFor(gameType: import('@finesse/shared').GameType) {
   return gameType === 'chess'    ? ChessEngine.newGame()
        : gameType === 'checkers' ? CheckersEngine.newGame()
        :                           ReversiEngine.newGame();

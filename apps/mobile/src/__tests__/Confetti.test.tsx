@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react-native';
-import { setActiveTheme } from '@gameexplorer/ui';
+import { setActiveTheme } from '@finesse/ui';
 import { Confetti } from '@/game/Confetti';
 
 // Confetti only animates something into place — no gestures — so the flattened

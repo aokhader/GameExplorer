@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ChessGameState, UciBestMove } from '@gameexplorer/shared';
+import type { ChessGameState, UciBestMove } from '@finesse/shared';
 import {
   // The shared helpers are engine-neutral (mobile drives Arasan through them);
   // this hook is web's real Stockfish, so alias them back to Stockfish names.
@@ -8,7 +8,7 @@ import {
   clampStockfishElo,
   parseUciBestMove,
   engineMoveTimeMs as stockfishMoveTimeMs,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import {
   getStockfishEnginePath,
   getStockfishThreads,

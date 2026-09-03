@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { LIMITS } from '@gameexplorer/shared';
+import { LIMITS } from '@finesse/shared';
 import type { GameSession } from '../gameSession.service';
 
 // Same in-memory fakes as the other service tests, mocked at the module

@@ -6,7 +6,7 @@
  * Real vector paths (no Unicode font glyph) so the piece renders pixel-identical
  * to web with no font substitution. Metro resolves *.native.tsx before *.tsx, so
  * React Native apps automatically pick up this file when they import from
- * '@gameexplorer/ui'.
+ * '@finesse/ui'.
  */
 
 import React from 'react';

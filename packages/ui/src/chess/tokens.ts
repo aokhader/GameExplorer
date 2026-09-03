@@ -2,7 +2,7 @@
  * Shared design tokens for the chess board and pieces.
  * Import these in both web and mobile so colors stay identical everywhere.
  *
- * Board palette is GameExplorer's "Arcade Glow" identity — a dark blue-slate
+ * Board palette is Finesse's "Arcade Glow" identity — a dark blue-slate
  * board that lets the chess neon-blue accent glow around it. Deliberately
  * distinct from Lichess (brown #f0d9b5/#b58863 + green) and chess.com (green
  * #769656/#eeeed2). Do not reintroduce those competitor values.

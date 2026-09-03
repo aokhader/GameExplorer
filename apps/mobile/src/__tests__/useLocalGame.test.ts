@@ -3,7 +3,7 @@ import { useLocalGame, type LocalGameAdapter } from '@/engine/useLocalGame';
 
 // The loop imports the db writers at module load; no test here reaches a game
 // end, so stub them out rather than dragging Supabase config into Jest.
-jest.mock('@gameexplorer/db', () => ({
+jest.mock('@finesse/db', () => ({
   getUserRating: jest.fn(async () => null),
   upsertUserRating: jest.fn(async () => null),
 }));

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import type { ChessGameState, Position, PieceType } from '@gameexplorer/shared';
+import type { ChessGameState, Position, PieceType } from '@finesse/shared';
 
 export type ReplayableMove = { from: Position; to: Position; promotion?: PieceType };
 
@@ -26,7 +26,7 @@ export function useChessCompute() {
 
   useEffect(() => {
     // Next.js / webpack 5: new URL(..., import.meta.url) bundles the worker
-    // automatically with all its imports from @gameexplorer/shared.
+    // automatically with all its imports from @finesse/shared.
     const worker = new Worker(
       new URL('../workers/chessEngine.worker.ts', import.meta.url),
     );

@@ -10,8 +10,8 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
   type OwnableTile,
-} from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 import { tileAccent } from '../lqTheme';
 import { ViewHeader, ViewSection, GhostButton } from './ViewChrome';

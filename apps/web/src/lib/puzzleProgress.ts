@@ -3,8 +3,8 @@ import {
   WEB_PUZZLE_PROGRESS_KEY,
   parseProgress,
   serializeProgress,
-} from '@gameexplorer/shared';
-import type { PuzzleProgress, PuzzleProgressStore } from '@gameexplorer/shared';
+} from '@finesse/shared';
+import type { PuzzleProgress, PuzzleProgressStore } from '@finesse/shared';
 
 /**
  * Puzzle progress in `localStorage`, under `ge:puzzles` alongside the

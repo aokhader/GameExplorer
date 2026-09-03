@@ -3,16 +3,16 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { GoEngine, moveHistoryToGo, type GoColor, type GoGameState } from '@gameexplorer/shared';
-import { useLocalGame, type LocalGameMode } from '@gameexplorer/client/hooks/useLocalGame';
+import { GoEngine, moveHistoryToGo, type GoColor, type GoGameState } from '@finesse/shared';
+import { useLocalGame, type LocalGameMode } from '@finesse/client/hooks/useLocalGame';
 import {
   GO_DIFFICULTY_LEVELS,
   GO_PASS,
   GO_TRAINING_ELO_BOUNDS,
   goAdapter,
   goEloLabel,
-} from '@gameexplorer/client/game/goAdapter';
-import { HINT_PENALTY } from '@gameexplorer/client/trainingRules';
+} from '@finesse/client/game/goAdapter';
+import { HINT_PENALTY } from '@finesse/client/trainingRules';
 import { useAuth } from '@/hooks/useAuth';
 import { GoBoard } from '@/components/go/GoBoard';
 import { GoScoreBar } from '@/components/go/GoScoreBar';

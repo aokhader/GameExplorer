@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
-import type { ClientToServerEvents, ServerToClientEvents } from '@gameexplorer/shared';
+import type { ClientToServerEvents, ServerToClientEvents } from '@finesse/shared';
 import { getApiUrl } from '../config';
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;

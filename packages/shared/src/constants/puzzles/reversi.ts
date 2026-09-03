@@ -51,7 +51,7 @@ export const REVERSI_PUZZLES: Puzzle[] = [
       'the squares run out takes the rest. h1 first, and after White answers a8, h8 leaves ' +
       'White with nothing to play — the pass hands the move straight back, and a1 finishes ' +
       'the board with Black ahead. Starting with a1 instead reverses the whole sequence.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'reversi-003',

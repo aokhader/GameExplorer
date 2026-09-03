@@ -80,7 +80,7 @@ export async function signIn(
 
 /**
  * Post-OAuth redirect target, injected per platform. Web sets its origin-based
- * callback; React Native sets a deep link (e.g. `gameexplorer://auth/callback`).
+ * callback; React Native sets a deep link (e.g. `finesse://auth/callback`).
  * Kept here (instead of reading `window`) so this module runs on any runtime.
  */
 let _oauthRedirect: string | null = null;

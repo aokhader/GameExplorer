@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // The chess capture tray (mobile had one, web did not). The material maths is
-// `summarizeMaterial` in @gameexplorer/shared and is covered by its own unit
+// `summarizeMaterial` in @finesse/shared and is covered by its own unit
 // tests; what this pins is the page-level contract that unit tests cannot see —
 // the tray stays out of the way until there is something to show.
 //

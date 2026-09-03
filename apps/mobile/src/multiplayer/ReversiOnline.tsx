@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { Text, View } from 'react-native';
-import { useGameSession } from '@gameexplorer/client';
-import { ReversiEngine, formatClockShort } from '@gameexplorer/shared';
-import type { ReversiGameState, TimeControl } from '@gameexplorer/shared';
-import { COLORS, REVERSI_DISC_COLORS, useThemeName } from '@gameexplorer/ui';
+import { useGameSession } from '@finesse/client';
+import { ReversiEngine, formatClockShort } from '@finesse/shared';
+import type { ReversiGameState, TimeControl } from '@finesse/shared';
+import { COLORS, REVERSI_DISC_COLORS, useThemeName } from '@finesse/ui';
 import { ReversiBoard } from '@/board/ReversiBoard';
 import { FONTS } from '@/theme/typography';
 import { OnlineGameLayout } from './OnlineGameLayout';

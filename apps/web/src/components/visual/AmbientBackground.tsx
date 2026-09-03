@@ -1,4 +1,4 @@
-import type { GameId } from '@gameexplorer/shared';
+import type { GameId } from '@finesse/shared';
 import { cn } from '@/lib/utils';
 
 /**

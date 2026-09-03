@@ -6,8 +6,8 @@
 // invite id is read from).
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { interpolateClocks, resultForColor } from '@gameexplorer/shared';
-import type { GameType, TimeControl, MovePayload, PlayerColor } from '@gameexplorer/shared';
+import { interpolateClocks, resultForColor } from '@finesse/shared';
+import type { GameType, TimeControl, MovePayload, PlayerColor } from '@finesse/shared';
 import { useAuth } from './useAuth';
 import { useSocket } from './useSocket';
 import { useInvite } from './useInvite';

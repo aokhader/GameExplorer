@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { ChessGameState, UciBestMove } from '@gameexplorer/shared';
+import type { ChessGameState, UciBestMove } from '@finesse/shared';
 import {
   ensureEngineStarted,
   getEngineBestMove,

@@ -4,7 +4,7 @@
  * from the same REVERSI_DISC_STYLE tokens.
  *
  * Metro resolves *.native.tsx before *.tsx, so React Native apps automatically
- * pick up this file when they import { ReversiDisc } from '@gameexplorer/ui'.
+ * pick up this file when they import { ReversiDisc } from '@finesse/ui'.
  */
 
 import React from 'react';

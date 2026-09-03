@@ -3,7 +3,7 @@
  * drawn with react-native-svg from the same GO_STONE_STYLE tokens.
  *
  * Metro resolves *.native.tsx before *.tsx, so React Native apps pick this file
- * up automatically when they import { GoStone } from '@gameexplorer/ui'.
+ * up automatically when they import { GoStone } from '@finesse/ui'.
  */
 
 import React from 'react';

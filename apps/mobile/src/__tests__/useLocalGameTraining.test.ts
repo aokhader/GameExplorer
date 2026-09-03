@@ -1,12 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import type { UserRating } from '@gameexplorer/db';
+import type { UserRating } from '@finesse/db';
 import { HINT_PENALTY, HINT_VISIBLE_MS } from '@/engine/trainingRules';
 import { useLocalGame, type LocalGameAdapter, type LocalGameMode } from '@/engine/useLocalGame';
 
 const mockGetUserRating = jest.fn<Promise<UserRating>, [string, string]>();
 const mockUpsertUserRating = jest.fn<Promise<UserRating | null>, unknown[]>();
 
-jest.mock('@gameexplorer/db', () => ({
+jest.mock('@finesse/db', () => ({
   getUserRating: (...args: [string, string]) => mockGetUserRating(...args),
   upsertUserRating: (...args: unknown[]) => mockUpsertUserRating(...args),
 }));

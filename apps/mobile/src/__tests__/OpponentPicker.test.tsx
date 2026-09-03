@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { GAME_ACCENTS } from '@gameexplorer/ui';
+import { GAME_ACCENTS } from '@finesse/ui';
 import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 

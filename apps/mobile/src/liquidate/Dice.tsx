@@ -7,8 +7,8 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
-import { LIQUIDATE_TIMING } from '@gameexplorer/shared';
+import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@finesse/ui';
+import { LIQUIDATE_TIMING } from '@finesse/shared';
 import { useSettings } from '@/providers/SettingsProvider';
 
 /** Pip layout per face, on a 3×3 grid (indices 0–8). */

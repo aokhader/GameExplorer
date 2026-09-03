@@ -1,4 +1,4 @@
-import type { Move, Color, EndReason } from '@gameexplorer/shared';
+import type { Move, Color, EndReason } from '@finesse/shared';
 
 // What we store per chess move
 export interface StoredMove {
@@ -40,7 +40,7 @@ export interface GoStoredMove {
 export type GameResult = 'white' | 'black' | 'draw';
 /**
  * NOTE: deliberately wider than the multiplayer `GameType` in
- * `@gameexplorer/shared/types/socket.types` — Go is saved and rated locally but
+ * `@finesse/shared/types/socket.types` — Go is saved and rated locally but
  * has no online mode, so the socket protocol must not accept it.
  */
 export type GameType = 'chess' | 'checkers' | 'reversi' | 'go';

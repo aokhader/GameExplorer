@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 test('brand-new visitor is redirected from home to the tour', async ({ page }) => {
   await page.goto('/');
   await page.waitForURL('**/welcome');
-  await expect(page.getByRole('heading', { name: /Welcome to GameExplorer/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Welcome to Finesse/ })).toBeVisible();
 });
 
 test('tour flows into a reversi bot game at the picked difficulty', async ({ page }) => {
@@ -39,11 +39,11 @@ test('skipping the tour goes home and does not redirect again', async ({ page })
   await page.goto('/welcome');
   await page.getByRole('link', { name: /Skip the tour/ }).click();
   await page.waitForURL(/\/$/);
-  await expect(page.getByRole('heading', { name: 'GameExplorer' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Finesse' })).toBeVisible();
 
   // Reload — the onboarded flag now suppresses the first-visit redirect.
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'GameExplorer' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Finesse' })).toBeVisible();
   await page.waitForTimeout(500);
   expect(new URL(page.url()).pathname).toBe('/');
 });

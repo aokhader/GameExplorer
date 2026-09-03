@@ -33,7 +33,7 @@ def reactNativeArchitectures() {
 }
 
 android {
-  namespace "com.gameexplorer.arasan"
+  namespace "com.finesse.arasan"
 
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 

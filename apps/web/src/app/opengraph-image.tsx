@@ -1,8 +1,8 @@
 import { ImageResponse } from 'next/og';
-import { GAME_LIST, gameCountWord } from '@gameexplorer/shared';
+import { GAME_LIST, gameCountWord } from '@finesse/shared';
 
 /**
- * The card people see when a GameExplorer link is pasted into a chat.
+ * The card people see when a Finesse link is pasted into a chat.
  *
  * The site had no OG image at all (legal backlog B-04), so every shared link
  * rendered as bare text — which matters more than usual for a project whose
@@ -13,7 +13,7 @@ import { GAME_LIST, gameCountWord } from '@gameexplorer/shared';
  * a commit. Statically optimized by Next at build time — no per-request cost.
  */
 
-export const alt = 'GameExplorer — five board games with sharp bots, online play and ratings';
+export const alt = 'Finesse — five board games with sharp bots, online play and ratings';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -80,7 +80,7 @@ export default function Image() {
             letterSpacing: -1.5,
           }}
         >
-          GameExplorer
+          Finesse
         </div>
 
         <div style={{ display: 'flex', marginTop: 18, fontSize: 32, color: SLATE_400 }}>

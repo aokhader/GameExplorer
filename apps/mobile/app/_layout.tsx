@@ -29,7 +29,7 @@ import {
 } from '@expo-google-fonts/nunito-sans';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { COLORS, getActiveTheme, useThemeName } from '@gameexplorer/ui';
+import { COLORS, getActiveTheme, useThemeName } from '@finesse/ui';
 
 import { bootstrapConfig } from '@/config/env';
 import { SettingsProvider } from '@/providers/SettingsProvider';

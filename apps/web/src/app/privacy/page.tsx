@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { GradientText } from '@/components/visual';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — GameExplorer',
-  description: 'How GameExplorer handles your data on the web and in the mobile app.',
+  title: 'Privacy Policy — Finesse',
+  description: 'How Finesse handles your data on the web and in the mobile app.',
 };
 
 /**
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-fg mb-2">What this covers</h2>
             <p>
-              This policy covers GameExplorer on the web and the GameExplorer app for iOS and
+              This policy covers Finesse on the web and the Finesse app for iOS and
               Android. Both are the same service: play chess, checkers, reversi, Go and Liquidate
               against bots, against someone on the same device, or against people online. The rules
               for using it are in the{' '}
@@ -163,7 +163,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-fg mb-2">Children</h2>
             <p>
-              GameExplorer is not directed at children under 13, and we do not knowingly collect
+              Finesse is not directed at children under 13, and we do not knowingly collect
               personal information from them.
             </p>
           </section>
@@ -173,10 +173,10 @@ export default function PrivacyPage() {
             <p>
               Questions or requests about your data:{' '}
               <a
-                href="mailto:gameexploreradmin@gmail.com"
+                href="mailto:finesseadmin@gmail.com"
                 className="text-info hover:text-info-hover underline"
               >
-                gameexploreradmin@gmail.com
+                finesseadmin@gmail.com
               </a>
               .
             </p>

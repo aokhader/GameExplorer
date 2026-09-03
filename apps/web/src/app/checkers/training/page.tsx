@@ -9,7 +9,7 @@ import {
   getBestCheckersMove,
   calculateNewRating,
   GameOutcome,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { CheckersBoard, BoardArrow } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
 import { saveCheckersGame, getUserRating, upsertUserRating } from '@/lib/db';

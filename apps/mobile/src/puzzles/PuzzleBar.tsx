@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import type { GameAccent } from '@/game/GameScreenLayout';
 

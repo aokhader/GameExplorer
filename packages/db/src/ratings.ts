@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { GameOutcome } from '@gameexplorer/shared';
+import type { GameOutcome } from '@finesse/shared';
 import type { GameType } from './types';
 
 export interface UserRating {

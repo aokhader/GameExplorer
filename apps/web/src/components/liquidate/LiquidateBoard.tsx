@@ -7,8 +7,8 @@ import {
   sideLength,
   tileMetrics,
   type LiquidateGameState,
-} from '@gameexplorer/shared';
-import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
+} from '@finesse/shared';
+import type { PlacedToken } from '@finesse/client/liquidate/useLiquidateWalk';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { LiquidateTileCell } from './LiquidateTile';
 import { TokenLayer } from './TokenLayer';

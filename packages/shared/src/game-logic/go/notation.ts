@@ -18,7 +18,7 @@ import { positionToCoordinates } from './utils';
 /**
  * Shown for a passed turn; the engine stores those as a null position.
  *
- * Named with the game prefix because `@gameexplorer/shared` is one flat barrel
+ * Named with the game prefix because `@finesse/shared` is one flat barrel
  * and reversi already exports a `PASS_NOTATION` of its own — a duplicate star
  * export is dropped silently rather than reported.
  */

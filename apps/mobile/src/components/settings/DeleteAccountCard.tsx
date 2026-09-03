@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth, apiFetch } from '@gameexplorer/client';
-import { supabase } from '@gameexplorer/db';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { useAuth, apiFetch } from '@finesse/client';
+import { supabase } from '@finesse/db';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { Card, Button, TextField } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@gameexplorer/db';
+import { supabase } from '@finesse/db';
 import { GradientText } from '@/components/visual';
 
 

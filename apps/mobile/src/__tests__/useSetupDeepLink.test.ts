@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react-native';
-import { DIFFICULTY_ELO } from '@gameexplorer/shared';
+import { DIFFICULTY_ELO } from '@finesse/shared';
 import { useSetupDeepLink } from '@/game/useSetupDeepLink';
 
 let mockParams: Record<string, string | undefined> = {};

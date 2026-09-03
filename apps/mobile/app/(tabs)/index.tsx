@@ -10,14 +10,14 @@ import Svg, {
   Text as SvgText,
   TSpan,
 } from 'react-native-svg';
-import { useAuth } from '@gameexplorer/client';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { useAuth } from '@finesse/client';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@finesse/ui';
 
 import { GlowBackdrop } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { getLastPlayed } from '@/lib/lastPlayed';
 import { hasOnboarded } from '@/lib/onboarding';
-import { GAME_LIST } from '@gameexplorer/shared';
+import { GAME_LIST } from '@finesse/shared';
 import { FONTS } from '@/theme/typography';
 
 // The catalog is pure data, so reading it at module scope is safe — unlike a
@@ -85,9 +85,8 @@ export default function HomeScreen() {
           borderBottomColor: COLORS.border,
         }}
       >
-        <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: COLORS.fg }}>
-          Game
-          <Text style={{ color: COLORS.accent }}>Explorer</Text>
+        <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: COLORS.accent }}>
+          Finesse
         </Text>
 
         {loading ? null : user ? (

@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
-import { signInWithIdentifier } from '@gameexplorer/client';
+import { COLORS, useThemeName } from '@finesse/ui';
+import { signInWithIdentifier } from '@finesse/client';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
 import { FONTS } from '@/theme/typography';

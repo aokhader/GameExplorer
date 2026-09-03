@@ -11,7 +11,7 @@ import { useSocket }     from '@/hooks/useSocket';
 import { useAuth }       from '@/hooks/useAuth';
 import { useGameStore }  from '@/stores/gameStore';
 import { useSocketStore } from '@/stores/socketStore';
-import type { ChessGameState, CheckersGameState, ReversiGameState, ReversiColor, ClockSnapshot } from '@gameexplorer/shared';
+import type { ChessGameState, CheckersGameState, ReversiGameState, ReversiColor, ClockSnapshot } from '@finesse/shared';
 
 function formatMs(ms: number) {
   const total = Math.max(0, Math.ceil(ms / 1000));

@@ -4,8 +4,8 @@ import {
   GoStone,
   PlanetToken,
   ReversiDisc,
-} from '@gameexplorer/ui';
-import type { GameId } from '@gameexplorer/shared';
+} from '@finesse/ui';
+import type { GameId } from '@finesse/shared';
 
 /**
  * A game's identity icon — the single source for "what does this game look like"
@@ -15,7 +15,7 @@ import type { GameId } from '@gameexplorer/shared';
  * tutorial header, spectate lobby) plus inline literals on each hub hero, and
  * they disagreed: chess was ♔, ♞ or ♟ depending on the page, checkers was ⚫,
  * 🔴, ⛃ or ⛀, and reversi was ⚪ on the home tile but ⚫ everywhere else. This
- * replaces all of them with the same `@gameexplorer/ui` vector art mobile already
+ * replaces all of them with the same `@finesse/ui` vector art mobile already
  * draws (`apps/mobile/src/game/GamePieceIcon.tsx`), so a game looks the same on
  * every surface and on both platforms.
  *

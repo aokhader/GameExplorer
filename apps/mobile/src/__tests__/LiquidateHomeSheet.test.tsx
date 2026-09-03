@@ -6,7 +6,7 @@ import {
   systemMembers,
   type LiquidateGameState,
   type PlanetTile,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { HomeSheet } from '@/liquidate/HomeSheet';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 

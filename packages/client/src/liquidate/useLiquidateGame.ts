@@ -7,7 +7,7 @@ import {
   type LiquidateGameState,
   type LiquidatePlayer,
   type NewGameOptions,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { useLiquidateWalk, type PlacedToken } from './useLiquidateWalk';
 
 /**

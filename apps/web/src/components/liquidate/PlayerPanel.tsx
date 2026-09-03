@@ -6,7 +6,7 @@ import {
   formatCredits,
   isOwnable,
   type LiquidateGameState,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { LQ, seatColor } from './theme';
 
 export interface PlayerPanelProps {

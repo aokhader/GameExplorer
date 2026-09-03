@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { TUTORIALS } from '@gameexplorer/shared';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { TUTORIALS } from '@finesse/shared';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader } from '@/components/ui';
 import { TutorialScreen } from '@/components/learn/TutorialScreen';
 

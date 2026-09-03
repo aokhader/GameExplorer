@@ -26,7 +26,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'c2–e4–g6, taking two pieces and stopping there. The e2 man instead runs g4–e6–c8: ' +
       'three pieces, and it finishes on the back row and crowns. Follow every jump chain to ' +
       'its end before choosing between them.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-002',
@@ -51,7 +51,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'capture drags the black man from e4 onto c2 — straight into the line of the b1 man, ' +
       'which jumps it and carries on over c4 to b5. Two pieces back for one, and Black has ' +
       'nothing left on the board.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-003',
@@ -78,7 +78,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'Take the f5 man: the survivor on d5 jumps back to b3 and then has nowhere to go but ' +
       'c2, where the b1 man is waiting. Ending a chain in the wrong corner is how a won ' +
       'checkers endgame gets drawn.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-004',
@@ -105,7 +105,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'of the man on d1. The recapture is a double jump, f3 and then d5, and White comes out ' +
       'a man up with the last black piece cut off. Offering a man to force where the enemy ' +
       'lands is the whole art of the shot.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-005',
@@ -131,7 +131,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'both c4 and e4 — the only two squares the black man on d5 can reach — while the man on ' +
       'h5 already covers g6, the only square open to h7. Black is left with three legal moves ' +
       'and all three walk into a jump. Count the enemy’s squares, not his men.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-006',
@@ -153,7 +153,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'away from the man on h7, which is the only square that man has. Black is reduced to ' +
       'shuffling the c4 man, and d3 runs straight into the jump from c2. Moving a man ' +
       'forward to take away a square is worth more here than any attack.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-007',
@@ -179,7 +179,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'c6 could use — b5 and d5 — so whichever it picks, it is jumped. Meanwhile f5 covers ' +
       'g6, the only move the h7 man has. Every legal black move loses a piece, and that is a ' +
       'fork without a single capture on the board.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-008',
@@ -201,7 +201,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       '— so that man is lost as soon as it has to move. e4–f5 handles the other one by taking ' +
       'g6 away from h7. Black is in what checkers players call a squeeze: every move is a ' +
       'losing move, and no capture was needed to arrange it.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-009',
@@ -223,7 +223,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'happens to be the only square the black man buried in the a8 corner can move to. The ' +
       'other black man runs into the e4 man, and then the corner man has to step out and be ' +
       'taken. A king is worth the tempo it costs almost every time.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-010',
@@ -245,7 +245,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'The king steps back to f3, and now g2 is covered by the man on f1 and g4 is covered by ' +
       'the king itself. Neither black man can move without being jumped, and there is nothing ' +
       'else on the board to move instead. The edge of the board does most of the work.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-011',
@@ -267,7 +267,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'white king is sitting on b1. That man will never move again, which means Black is ' +
       'effectively playing two against three. Pick off the other two and the game ends with ' +
       'pieces still on the board, because a player with no legal move has lost.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
   {
     id: 'checkers-012',
@@ -289,6 +289,6 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
       'square open to a8; h5 already covers g6, the only square open to h7. Black has to ' +
       'unstack one of them, and whichever goes first is jumped — the second follows, and the ' +
       'jump that takes it lands on a8 and crowns.',
-    source: 'Composed for GameExplorer',
+    source: 'Composed for Finesse',
   },
 ];

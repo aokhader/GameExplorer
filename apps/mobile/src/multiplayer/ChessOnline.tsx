@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useGameSession } from '@gameexplorer/client';
-import { formatClockLong, replayChessMoves, timelineToSan } from '@gameexplorer/shared';
-import type { ChessGameState, PieceType, TimeControl } from '@gameexplorer/shared';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { useGameSession } from '@finesse/client';
+import { formatClockLong, replayChessMoves, timelineToSan } from '@finesse/shared';
+import type { ChessGameState, PieceType, TimeControl } from '@finesse/shared';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { FONTS } from '@/theme/typography';
 import { OnlineGameLayout } from './OnlineGameLayout';

@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAuth, useGameStore, useSocket } from '@gameexplorer/client';
-import { formatClockLong, formatClockShort } from '@gameexplorer/shared';
+import { useAuth, useGameStore, useSocket } from '@finesse/client';
+import { formatClockLong, formatClockShort } from '@finesse/shared';
 import type {
   ChessGameState,
   CheckersGameState,
   ReversiGameState,
-} from '@gameexplorer/shared';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { COLORS, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader, Button } from '@/components/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { CheckersBoard } from '@/board/CheckersBoard';

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LIQUIDATE_DECK_STYLE } from '@gameexplorer/ui';
+import { LIQUIDATE_DECK_STYLE } from '@finesse/ui';
 import {
   MAX_COLONY_LEVEL,
   hasColorBar,
@@ -9,7 +9,7 @@ import {
   tileMetrics,
   type LiquidateTile as Tile,
   type TileOwnership,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { cn } from '@/lib/utils';
 import { LQ, seatColor, tileAccent } from './theme';
 

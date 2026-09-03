@@ -1,14 +1,14 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 // Deep import, not the package barrel. The barrel re-exports `useSocket`, which
-// pulls in `@gameexplorer/db` — and that module builds a Supabase client at
+// pulls in `@finesse/db` — and that module builds a Supabase client at
 // import time from env that a puzzle never needs. Reaching straight for the hook
 // keeps supabase and socket.io out of this screen's graph entirely, which is
 // also what lets it be tested without standing up either.
-import { usePuzzle } from '@gameexplorer/client/hooks/usePuzzle';
+import { usePuzzle } from '@finesse/client/hooks/usePuzzle';
 import { mobilePuzzleProgressStore } from '@/lib/puzzleProgress';
-import { staticPuzzleSource } from '@gameexplorer/shared';
-import type { PuzzleGame, PuzzlePhase } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { staticPuzzleSource } from '@finesse/shared';
+import type { PuzzleGame, PuzzlePhase } from '@finesse/shared';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader, Button } from '@/components/ui';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { StatusBanner } from '@/game/StatusBanner';

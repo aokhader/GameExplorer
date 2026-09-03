@@ -4,8 +4,8 @@ import {
   LIQUIDATE_SEAT_COLORS,
   LIQUIDATE_SYSTEM_COLORS,
   type LiquidateSystemKey,
-} from '@gameexplorer/ui';
-import type { LiquidateTile } from '@gameexplorer/shared';
+} from '@finesse/ui';
+import type { LiquidateTile } from '@finesse/shared';
 
 /**
  * Liquidate's palette, read from the `--gx-liquidate-*` / `--c-liquidate-*`
@@ -13,7 +13,7 @@ import type { LiquidateTile } from '@gameexplorer/shared';
  * fallback so the board is still correct on its own.
  *
  * This is the same contract the other boards use (see `CheckersBoard`), and it
- * exists for the same reason: the live-view tokens in `@gameexplorer/ui` are
+ * exists for the same reason: the live-view tokens in `@finesse/ui` are
  * pinned to `dark` on web, because web never calls `setActiveTheme` — it themes
  * through the cascade. Read at module scope is fine here precisely BECAUSE the
  * value is a CSS variable reference rather than a resolved colour.
@@ -88,4 +88,4 @@ export function tileAccent(tile: LiquidateTile): string {
 }
 
 // `groupLabel`, `hasColorBar`, `tileMetrics` and `TileMetrics` moved to
-// `@gameexplorer/shared` — they are pure and the native board needs them too.
+// `@finesse/shared` — they are pure and the native board needs them too.

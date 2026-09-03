@@ -5,14 +5,14 @@ import {
   useLiquidateGame as useLiquidateGameCore,
   type LiquidateSaveStore,
   type SavedLiquidateGame,
-} from '@gameexplorer/client/liquidate/useLiquidateGame';
-import type { LiquidateBotLevel } from '@gameexplorer/shared';
+} from '@finesse/client/liquidate/useLiquidateGame';
+import type { LiquidateBotLevel } from '@finesse/shared';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
 /**
  * Web's Liquidate game hook: the shared loop plus localStorage.
  *
- * The state machine, bot loop and walk clock live in `@gameexplorer/client`,
+ * The state machine, bot loop and walk clock live in `@finesse/client`,
  * identical to native's. What is genuinely web is below — a synchronous store
  * behind the shared async interface, and this app's key prefix.
  */

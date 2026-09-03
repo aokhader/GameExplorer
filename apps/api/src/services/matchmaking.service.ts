@@ -1,5 +1,5 @@
 import { redis, scanKeys } from '../config/redis';
-import type { GameType, TimeControl, UserSummary } from '@gameexplorer/shared';
+import type { GameType, TimeControl, UserSummary } from '@finesse/shared';
 
 const GRACE_EXPAND_EVERY_MS  = 15_000; // expand ELO window every 15s
 const GRACE_EXPAND_STEP      = 50;     // expand by ±50 each step

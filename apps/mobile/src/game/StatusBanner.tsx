@@ -1,5 +1,5 @@
 import { Text, View, type ViewStyle } from 'react-native';
-import { COLORS, useThemeName, type ThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, type ThemeName } from '@finesse/ui';
 import type { GameAccent } from '@/game/GameScreenLayout';
 import { FONTS } from '@/theme/typography';
 

@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 // Frontend E2E tests. The dev server needs apps/web/.env.local (Supabase
 // public env) to boot; the API server is NOT required — these tests cover
 // unauthenticated flows (navigation, bot play, auth guards) only.
-// Run with: pnpm --filter @gameexplorer/web test:e2e
+// Run with: pnpm --filter @finesse/web test:e2e
 export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,

@@ -1,5 +1,5 @@
 {
-  "name": "@gameexplorer/client",
+  "name": "@finesse/client",
   "version": "1.0.0",
   "license": "MIT",
   "main": "./src/index.ts",
@@ -29,8 +29,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gameexplorer/db": "workspace:*",
-    "@gameexplorer/shared": "workspace:*",
+    "@finesse/db": "workspace:*",
+    "@finesse/shared": "workspace:*",
     "socket.io-client": "^4.8.3",
     "zustand": "^5.0.12"
   },

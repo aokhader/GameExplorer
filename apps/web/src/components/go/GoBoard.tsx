@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { GoEngine } from '@gameexplorer/shared';
-import type { GoColor, GoGameState } from '@gameexplorer/shared';
-import { GO_BOARD_COLORS, GO_STAR_POINTS_9, GoStone } from '@gameexplorer/ui';
+import { GoEngine } from '@finesse/shared';
+import type { GoColor, GoGameState } from '@finesse/shared';
+import { GO_BOARD_COLORS, GO_STAR_POINTS_9, GoStone } from '@finesse/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';

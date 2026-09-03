@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { LiquidateGameState } from '@gameexplorer/shared';
+import type { LiquidateGameState } from '@finesse/shared';
 import { LQ, seatColor } from './theme';
 
 export interface ActionLogProps {

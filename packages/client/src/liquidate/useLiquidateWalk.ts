@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LIQUIDATE_TIMING, type LiquidatePlayer } from '@gameexplorer/shared';
+import { LIQUIDATE_TIMING, type LiquidatePlayer } from '@finesse/shared';
 
 const {
   diceRollMs: DICE_ROLL_MS,

@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   // For monorepo setup - transpile shared packages
-  transpilePackages: ['@gameexplorer/client', '@gameexplorer/shared', '@gameexplorer/ui'],
+  transpilePackages: ['@finesse/client', '@finesse/shared', '@finesse/ui'],
 
   experimental: {
     // framer-motion has a large barrel export; pull in only the pieces the

@@ -14,7 +14,7 @@
         "NEXT_PUBLIC_WS_URL"
       ]
     },
-    "@gameexplorer/ui#build": {
+    "@finesse/ui#build": {
       "dependsOn": ["^build"],
       "outputs": []
     },

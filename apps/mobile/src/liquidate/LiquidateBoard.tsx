@@ -1,13 +1,13 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { LiquidateEngine, type LiquidateGameState } from '@gameexplorer/shared';
-import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LiquidateEngine, type LiquidateGameState } from '@finesse/shared';
+import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@finesse/ui';
 import { FONTS } from '@/theme/typography';
 import { LiquidateTileCell } from './LiquidateTile';
 import { BoardOverlay } from './BoardOverlay';
 import { TokenLayer } from './TokenLayer';
 import { ringGeometry } from './boardGeom';
-import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
+import type { PlacedToken } from '@finesse/client/liquidate/useLiquidateWalk';
 
 export interface LiquidateBoardProps {
   state: LiquidateGameState;

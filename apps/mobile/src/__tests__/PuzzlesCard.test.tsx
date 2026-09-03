@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { render, screen } from '@testing-library/react-native';
-import { MOBILE_PUZZLE_PROGRESS_KEY, staticPuzzleSource } from '@gameexplorer/shared';
+import { MOBILE_PUZZLE_PROGRESS_KEY, staticPuzzleSource } from '@finesse/shared';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 
 /**

@@ -3,7 +3,7 @@ import { matchmakingService } from '../../services/matchmaking.service';
 import { persistenceService } from '../../services/persistence.service';
 import { gameSessionService } from '../../services/gameSession.service';
 import { blockService }       from '../../services/block.service';
-import type { GameType, TimeControl } from '@gameexplorer/shared';
+import type { GameType, TimeControl } from '@finesse/shared';
 
 export function registerMatchmakingHandlers(io: SocketIOServer, socket: Socket) {
   const userId = socket.data.userId as string;

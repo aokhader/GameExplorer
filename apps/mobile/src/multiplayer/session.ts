@@ -1,4 +1,4 @@
-import type { useGameSession } from '@gameexplorer/client';
+import type { useGameSession } from '@finesse/client';
 
 /**
  * The online session view-model, exactly as `packages/client` hands it over.

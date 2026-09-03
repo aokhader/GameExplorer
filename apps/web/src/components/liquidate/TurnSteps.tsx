@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { TurnStep } from '@gameexplorer/shared';
+import type { TurnStep } from '@finesse/shared';
 import { LQ } from './theme';
 
 export function TurnSteps({ steps }: { steps: TurnStep[] }) {

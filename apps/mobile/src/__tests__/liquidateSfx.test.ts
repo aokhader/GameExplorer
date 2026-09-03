@@ -1,4 +1,4 @@
-import { LiquidateEngine } from '@gameexplorer/shared';
+import { LiquidateEngine } from '@finesse/shared';
 import { sfxForLogLine } from '@/liquidate/liquidateSfx';
 
 /**

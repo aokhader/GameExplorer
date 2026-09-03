@@ -6,7 +6,7 @@ import {
   stateToFen,
   type AnalysisAdapter,
   type ChessGameState,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { createChessEvaluator, type ChessEvaluator } from '@/lib/analysis/stockfishEvaluator';
 
 /**

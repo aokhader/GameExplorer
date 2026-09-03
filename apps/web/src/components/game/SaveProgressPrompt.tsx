@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { supabase } from '@gameexplorer/db';
+import { supabase } from '@finesse/db';
 import { useAuth } from '@/hooks/useAuth';
 import { SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
 

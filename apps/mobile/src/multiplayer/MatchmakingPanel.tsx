@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, Share, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
-import type { TimeControl } from '@gameexplorer/shared';
+import { COLORS, GAME_ACCENTS, useThemeName } from '@finesse/ui';
+import type { TimeControl } from '@finesse/shared';
 import { Button, Toggle } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 import type { GameAccent } from '@/game/GameScreenLayout';

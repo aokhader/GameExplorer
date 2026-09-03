@@ -23,7 +23,7 @@ SOFTWARE.
 ## Scope
 
 - The MIT license above covers all first-party source code in this repository.
-- **Branding is excluded.** The "GameExplorer" name, logo, and brand assets are
+- **Branding is excluded.** The "Finesse" name, logo, and brand assets are
   not covered by this license — forks must ship under their own name and
   identity. This covers the app icon set (`apps/mobile/assets/icon.png` and its
   adaptive/monochrome/splash variants) and the web icon
@@ -33,7 +33,7 @@ SOFTWARE.
     `packages/ui` color tokens (August 2026). It replaced the untouched
     `create-next-app` default, which was **Vercel's** logo and had been the
     site's only icon since the first commit — a third party's mark sitting
-    inside a carve-out that claimed it as GameExplorer branding.
+    inside a carve-out that claimed it as Finesse branding.
 
 ## Third-party engines
 
@@ -63,7 +63,7 @@ SOFTWARE.
   paths in [`packages/ui/src/chess/piecePaths.ts`](packages/ui/src/chess/piecePaths.ts)
   are derived from the [Sashité chess assets](https://sashite.dev/assets/chess/),
   released into the public domain under CC0 1.0 Universal (no attribution required;
-  recorded here as a courtesy). They carry GameExplorer's own metallic-gradient
+  recorded here as a courtesy). They carry Finesse's own metallic-gradient
   coloring at render time. CC0 is compatible with this repository's MIT license.
 
 ## Contributions

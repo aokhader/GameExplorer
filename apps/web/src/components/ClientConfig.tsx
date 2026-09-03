@@ -2,7 +2,7 @@
 
 // Subpath import (not the barrel): this component lives in the root layout, and
 // the barrel would statically drag socket.io-client + supabase into every page.
-import { setApiUrl } from '@gameexplorer/client/config';
+import { setApiUrl } from '@finesse/client/config';
 
 // Configure the shared client layer with the web API URL. Runs once when this
 // module loads (client bundle), before any socket connects. The React Native

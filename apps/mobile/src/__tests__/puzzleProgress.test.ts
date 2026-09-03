@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { EMPTY_PROGRESS, MOBILE_PUZZLE_PROGRESS_KEY, recordSolved } from '@gameexplorer/shared';
+import { EMPTY_PROGRESS, MOBILE_PUZZLE_PROGRESS_KEY, recordSolved } from '@finesse/shared';
 import { mobilePuzzleProgressStore } from '@/lib/puzzleProgress';
 
 describe('mobilePuzzleProgressStore', () => {

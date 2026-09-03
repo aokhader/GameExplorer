@@ -7,7 +7,7 @@
 @custom-variant dark (&);
 
 /* ────────────────────────────────────────────────────────────────────────────
- * Design tokens — GameExplorer "Arcade Glow" identity (neon on near-black + gold).
+ * Design tokens — Finesse "Arcade Glow" identity (neon on near-black + gold).
  *
  * These mirror `packages/ui/src/tokens.ts` (the canonical source mobile reads).
  * A `--color-*` entry here and its `Theme` key there are a PAIR — change both.

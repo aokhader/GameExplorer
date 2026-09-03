@@ -3,4 +3,4 @@
  * landing footer, and /privacy; the mobile app mirrors this in
  * apps/mobile/src/config/support.ts.
  */
-export const SUPPORT_EMAIL = 'gameexploreradmin@gmail.com';
+export const SUPPORT_EMAIL = 'finesseadmin@gmail.com';

@@ -9,7 +9,7 @@ export {
   isSingleSpaceEye,
 } from './moves';
 export type { GoGroup } from './moves';
-// `@gameexplorer/shared` is one flat barrel, so anything whose plain name is
+// `@finesse/shared` is one flat barrel, so anything whose plain name is
 // already taken (chess owns positionToCoordinates / coordinatesToPosition /
 // isValidPosition) or is too generic to sit at the top level is exported under
 // a Go-prefixed alias. The module keeps the short names internally.

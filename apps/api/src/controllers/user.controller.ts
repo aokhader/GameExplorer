@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { LIMITS }          from '@gameexplorer/shared';
+import { LIMITS }          from '@finesse/shared';
 import { prisma }         from '../config/database';
 import { getIO }          from '../websocket';
 import { blockService }   from '../services/block.service';

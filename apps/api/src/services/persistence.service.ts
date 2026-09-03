@@ -6,8 +6,8 @@
 // still open when the game ends.
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
-import { LIMITS } from '@gameexplorer/shared';
-import type { GameType, GameResult, GameOutcome, EndReason } from '@gameexplorer/shared';
+import { LIMITS } from '@finesse/shared';
+import type { GameType, GameResult, GameOutcome, EndReason } from '@finesse/shared';
 import type { GameSession } from './gameSession.service';
 
 const DEFAULT_RATING  = 1200;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ClockSnapshot } from '@gameexplorer/shared';
+import type { ClockSnapshot } from '@finesse/shared';
 import { Clock } from './Clock';
 
 export interface SpectateClockProps {

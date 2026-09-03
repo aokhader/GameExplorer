@@ -10,7 +10,7 @@ module.exports = {
   setupFiles: ['./jest.setup.js'],
   transformIgnorePatterns: [
     // jest-expo's default allowlist, plus our workspace packages (TS source).
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|@sentry/react-native|native-base|react-native-svg|@gameexplorer/.*))',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|@sentry/react-native|native-base|react-native-svg|@finesse/.*))',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

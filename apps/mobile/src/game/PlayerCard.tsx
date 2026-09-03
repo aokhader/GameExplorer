@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS } from '@finesse/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
 

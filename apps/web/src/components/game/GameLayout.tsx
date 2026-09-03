@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useGameSession } from '@gameexplorer/client';
-import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
-import type { TimeControl } from '@gameexplorer/shared';
+import { useGameSession } from '@finesse/client';
+import { ABORT_MOVE_LIMIT } from '@finesse/shared';
+import type { TimeControl } from '@finesse/shared';
 import { Button, Card, Input, useToast } from '@/components/ui';
 import { GradientText } from '@/components/visual';
 import { cn } from '@/lib/utils';

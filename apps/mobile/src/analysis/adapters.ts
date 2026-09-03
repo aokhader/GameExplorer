@@ -1,4 +1,4 @@
-import { createChessAnalysis, stateToFen } from '@gameexplorer/shared';
+import { createChessAnalysis, stateToFen } from '@finesse/shared';
 import { getEngineEvaluation, isEngineAvailable } from '@/engine/chessEngineNative';
 
 /**
@@ -6,7 +6,7 @@ import { getEngineEvaluation, isEngineAvailable } from '@/engine/chessEngineNati
  * `packages/shared`, so their adapters are platform-neutral and live there —
  * web and mobile run byte-identical review for those two games.
  */
-export { checkersAnalysis, reversiAnalysis } from '@gameexplorer/shared';
+export { checkersAnalysis, reversiAnalysis } from '@finesse/shared';
 
 /**
  * Chess is the one game whose engine differs per platform: native Arasan here,

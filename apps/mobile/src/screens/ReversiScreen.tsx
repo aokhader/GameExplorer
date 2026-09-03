@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@gameexplorer/client';
+import { useAuth } from '@finesse/client';
 import {
   ReversiEngine,
   moveHistoryToReversi,
   type ReversiGameState,
   type ReversiColor,
-} from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, REVERSI_DISC_COLORS, useThemeName } from '@gameexplorer/ui';
+} from '@finesse/shared';
+import { COLORS, GAME_ACCENTS, REVERSI_DISC_COLORS, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
 import { ReversiBoard } from '@/board/ReversiBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';

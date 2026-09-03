@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChessPiece } from '@gameexplorer/ui';
-import type { PieceType } from '@gameexplorer/shared';
+import { ChessPiece } from '@finesse/ui';
+import type { PieceType } from '@finesse/shared';
 
 export interface CapturedTrayProps {
   /** Pieces this player has captured, cheapest first (see summarizeMaterial). */
@@ -25,7 +25,7 @@ const OVERLAP = -5;
  * with the real board icons, plus a "+N" badge when they're ahead on material.
  *
  * The web twin of `apps/mobile/src/game/CapturedTray.tsx`; both read
- * `summarizeMaterial` from `@gameexplorer/shared`, so the trays and the badge
+ * `summarizeMaterial` from `@finesse/shared`, so the trays and the badge
  * agree across platforms.
  *
  * It renders *inside* the player card rather than as a row beneath it, on

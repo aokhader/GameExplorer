@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ONBOARDING_KEYS } from '@gameexplorer/shared';
+import { ONBOARDING_KEYS } from '@finesse/shared';
 
 /**
  * First-run onboarding flags, device-local in AsyncStorage (native has no
  * localStorage).
  *
- * The keys and what each one means live in `@gameexplorer/shared` next to the
+ * The keys and what each one means live in `@finesse/shared` next to the
  * tour's difficulty ladder, so the two platforms cannot document them
  * differently — including *why* the prefixes differ, which is the part that
  * looks like a bug and must not be "fixed".

@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import Link from 'next/link';
-import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial, timelineToSan } from '@gameexplorer/shared';
-import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
+import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial, timelineToSan } from '@finesse/shared';
+import { useGameAnalysis } from '@finesse/client/hooks/useGameAnalysis';
 import { useChessReviewAdapter } from '@/hooks/useChessReviewAdapter';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
-import { ChessPiece } from '@gameexplorer/ui';
+import { ChessPiece } from '@finesse/ui';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useChessEngine } from '@/hooks/useChessEngine';
 import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';

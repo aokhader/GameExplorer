@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import type { GameTutorial } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import type { GameTutorial } from '@finesse/shared';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, useThemeName } from '@finesse/ui';
 import { Screen, BackHeader, Button, Card, GlowBackdrop } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';

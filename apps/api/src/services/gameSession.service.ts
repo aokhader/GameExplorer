@@ -1,10 +1,10 @@
 import { redis, scanKeys } from '../config/redis';
-import { ChessEngine, CheckersEngine, ReversiEngine } from '@gameexplorer/shared';
+import { ChessEngine, CheckersEngine, ReversiEngine } from '@finesse/shared';
 import type {
   GameType, TimeControl, TimeControlConfig, MovePayload,
   GameResult, EndReason, PlayerColor, ClockSnapshot,
-} from '@gameexplorer/shared';
-import { calculateNewRating } from '@gameexplorer/shared';
+} from '@finesse/shared';
+import { calculateNewRating } from '@finesse/shared';
 import { clockService } from './clock.service';
 import { persistenceService } from './persistence.service';
 import { logger } from '../utils/logger';
@@ -224,10 +224,10 @@ export const gameSessionService = {
     let endReason: EndReason | undefined;
 
     if (move.type === 'chess') {
-      const r = ChessEngine.validateMove(state, move.from, move.to, false, move.promotion as import('@gameexplorer/shared').PieceType | undefined);
+      const r = ChessEngine.validateMove(state, move.from, move.to, false, move.promotion as import('@finesse/shared').PieceType | undefined);
       if (!r.valid) return { valid: false, reason: r.reason };
       newState = r.resultingState!;
-      const s = newState as import('@gameexplorer/shared').ChessGameState;
+      const s = newState as import('@finesse/shared').ChessGameState;
       if (s.isCheckmate) { gameOver = true; result = color === 'white' ? 'white_wins' : 'black_wins'; endReason = 'checkmate'; }
       else if (s.isStalemate || s.isDraw)  { gameOver = true; result = 'draw'; endReason = s.isStalemate ? 'stalemate' : 'fifty_move'; }
 
@@ -235,7 +235,7 @@ export const gameSessionService = {
       const r = CheckersEngine.validateMove(state, move.from, move.to);
       if (!r.valid) return { valid: false, reason: r.reason };
       newState = r.resultingState!;
-      const s = newState as import('@gameexplorer/shared').CheckersGameState;
+      const s = newState as import('@finesse/shared').CheckersGameState;
       if (s.isGameOver) {
         gameOver = true;
         result   = s.winner === 'white' ? 'white_wins' : s.winner === 'black' ? 'black_wins' : 'draw';

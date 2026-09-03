@@ -7,8 +7,8 @@ import type {
   PuzzleGame,
   PuzzleMove,
   ReversiGameState,
-} from '@gameexplorer/shared';
-import type { PieceType, Position } from '@gameexplorer/shared';
+} from '@finesse/shared';
+import type { PieceType, Position } from '@finesse/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';

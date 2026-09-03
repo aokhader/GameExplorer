@@ -4,7 +4,7 @@ import {
   formatCredits,
   type LiquidateGameState,
   type PlanetTile,
-} from '@gameexplorer/shared';
+} from '@finesse/shared';
 import { AuctionView } from '@/liquidate/views/AuctionView';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 

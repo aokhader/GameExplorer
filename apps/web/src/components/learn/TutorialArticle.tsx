@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { GameTutorial, TutorialGame } from '@gameexplorer/shared';
+import type { GameTutorial, TutorialGame } from '@finesse/shared';
 import { GradientText, Reveal } from '@/components/visual';
 import { TutorialBoard } from './TutorialBoard';
 import { GameIcon } from '@/components/game/GameIcon';
