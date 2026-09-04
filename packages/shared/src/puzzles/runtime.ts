@@ -119,6 +119,13 @@ export const REFUTATION_DEPTH: Record<string, number> = {
   chess: 4,
   checkers: 6,
   reversi: 6,
+  /**
+   * Go's analyzer is not a depth-limited search at all — it settles the
+   * life-and-death question exhaustively inside the puzzle's own boundary — so
+   * this number is passed and ignored. It is here because the table is keyed by
+   * game and a missing entry would read as an oversight rather than a decision.
+   */
+  go: 0,
 };
 
 /**
@@ -331,7 +338,7 @@ export function applyRefutation<S>(
   const after = settle(played.resultingState, rules);
   // White-positive everywhere, so one flip puts every game in the player's terms.
   const sign = run.puzzle.playerColor === 'white' ? 1 : -1;
-  const { score, bestMove } = rules.analyze(after, depth);
+  const { score, bestMove } = rules.analyze(after, depth, run.puzzle);
   const playerScore = sign * score;
   const refuted = playerScore <= REFUTED_SCORE;
 

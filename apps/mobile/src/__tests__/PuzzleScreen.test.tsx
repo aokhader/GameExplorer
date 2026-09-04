@@ -1,13 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { MOBILE_PUZZLE_PROGRESS_KEY, staticPuzzleSource } from '@gameexplorer/shared';
+import type { PuzzleGame } from '@gameexplorer/shared';
 import { PuzzleScreen } from '@/screens/PuzzleScreen';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 
 /**
  * The solve loop on a phone, driven end to end: the real `usePuzzle`, the real
  * shared reducer, the real authored puzzles, and real AsyncStorage (the official
- * in-memory mock). Only the three boards are doubled.
+ * in-memory mock). Only the four boards are doubled.
  *
  * They have to be. Every board is a `GestureDetector` over reanimated worklets
  * that hit-test a touch against a measured layout — there is no layout under
@@ -19,7 +20,7 @@ import { SettingsProvider } from '@/providers/SettingsProvider';
  */
 
 // The screen celebrates a solve with `Confetti`, which imports reanimated
-// directly. Safe to flatten here precisely because the three boards below are
+// directly. Safe to flatten here precisely because the four boards below are
 // doubled — nothing left in this tree is a `GestureDetector` reaching into
 // reanimated's real internals, which is what the opt-in rule exists to protect.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -62,6 +63,10 @@ jest.mock('@/board/ReversiBoard', () => ({
   // away, and the reason this double can't be shared verbatim with the others.
   ReversiBoard: mockBoardModule('reversi board', () => [mockBoard.move[0]]),
 }));
+jest.mock('@/board/GoBoard', () => ({
+  // Go reports one point, like reversi: a placement has no origin.
+  GoBoard: mockBoardModule('go board', () => [mockBoard.move[0]]),
+}));
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => false }),
@@ -77,7 +82,7 @@ async function play(label: string, ...move: string[]) {
  * The bar reads the haptics setting through `useGameSfx`, so the screen needs
  * the settings provider — `app/_layout.tsx` wraps the whole app in one.
  */
-function renderScreen(game: 'chess' | 'checkers' | 'reversi') {
+function renderScreen(game: PuzzleGame) {
   render(
     <SettingsProvider>
       <PuzzleScreen game={game} />
@@ -85,7 +90,7 @@ function renderScreen(game: 'chess' | 'checkers' | 'reversi') {
   );
 }
 
-async function openPuzzles(game: 'chess' | 'checkers' | 'reversi') {
+async function openPuzzles(game: PuzzleGame) {
   renderScreen(game);
   await waitFor(() => expect(screen.getByTestId('puzzle-prompt')).toBeOnTheScreen());
 }
@@ -104,7 +109,7 @@ async function storedProgress() {
  * gets added — and a test that assumes "chess-001 is first" quietly starts
  * testing a different position the day it isn't.
  */
-async function seedUpTo(game: 'chess' | 'checkers' | 'reversi', id?: string) {
+async function seedUpTo(game: PuzzleGame, id?: string) {
   const ordered = await staticPuzzleSource.listPuzzles({ game });
   const index = id ? ordered.findIndex((p) => p.id === id) : 0;
   expect(index).toBeGreaterThanOrEqual(0);
@@ -323,5 +328,46 @@ describe('PuzzleScreen', () => {
     fireEvent.press(screen.getByLabelText('Start over'));
     await waitFor(() => expect(screen.getByTestId('puzzle-prompt')).toBeOnTheScreen());
     expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(progressText(0, all.length));
+  });
+});
+
+describe('PuzzleScreen — go', () => {
+  /**
+   * Go's puzzles are the ones that could not exist until the engine could prove
+   * something, so the thing worth checking on the screen is that a proved line
+   * plays like every other: the board takes one point, the prompt names the
+   * goal, and a wrong move is refused rather than quietly accepted.
+   */
+  it('solves a life-and-death puzzle and banks it', async () => {
+    const { ordered } = await seedUpTo('go');
+    const first = ordered[0];
+    await openPuzzles('go');
+
+    expect(screen.getByTestId('puzzle-prompt')).toHaveTextContent(/Black|White/);
+
+    for (const step of first.steps) {
+      await play('go board', step.move);
+      if (step.reply !== undefined) {
+        await waitFor(() => expect(screen.getByText('interactive:true')).toBeOnTheScreen());
+      }
+    }
+
+    await waitFor(() => expect(screen.getByTestId('puzzle-explanation')).toBeOnTheScreen());
+    await waitFor(async () => {
+      const progress = await storedProgress();
+      expect(progress.solved).toContain(first.id);
+    });
+  });
+
+  it('refuses a point that is not the vital one', async () => {
+    const { ordered } = await seedUpTo('go');
+    const first = ordered[0];
+    const wrong = (first.region as string[]).find((p) => p !== first.steps[0].move)!;
+    await openPuzzles('go');
+
+    await play('go board', wrong);
+    await waitFor(() => expect(screen.getByText(/Not quite|does not/i)).toBeOnTheScreen());
+    // Wrong, not solved: the explanation is the reward for getting it right.
+    expect(screen.queryByTestId('puzzle-explanation')).toBeNull();
   });
 });

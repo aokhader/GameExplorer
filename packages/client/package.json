@@ -11,6 +11,7 @@
     "./hooks/useAuth": "./src/hooks/useAuth.ts",
     "./hooks/useBoardMotion": "./src/hooks/useBoardMotion.ts",
     "./game/goAdapter": "./src/game/goAdapter.ts",
+    "./game/goSetup": "./src/game/goSetup.ts",
     "./hooks/useLocalGame": "./src/hooks/useLocalGame.ts",
     "./hooks/usePuzzle": "./src/hooks/usePuzzle.ts",
     "./trainingRules": "./src/hooks/trainingRules.ts",

@@ -20,13 +20,15 @@ import type { Puzzle, PuzzleGame } from '../../puzzles/types';
 import { CHESS_PUZZLES } from './chess';
 import { CHECKERS_PUZZLES } from './checkers';
 import { REVERSI_PUZZLES } from './reversi';
+import { GO_PUZZLES } from './go';
 
-export { CHESS_PUZZLES, CHECKERS_PUZZLES, REVERSI_PUZZLES };
+export { CHESS_PUZZLES, CHECKERS_PUZZLES, REVERSI_PUZZLES, GO_PUZZLES };
 
 export const PUZZLES: Record<PuzzleGame, Puzzle[]> = {
   chess: CHESS_PUZZLES,
   checkers: CHECKERS_PUZZLES,
   reversi: REVERSI_PUZZLES,
+  go: GO_PUZZLES,
 };
 
-export const ALL_PUZZLES: Puzzle[] = [...CHESS_PUZZLES, ...CHECKERS_PUZZLES, ...REVERSI_PUZZLES];
+export const ALL_PUZZLES: Puzzle[] = Object.values(PUZZLES).flat();

@@ -18,13 +18,18 @@ import { parseUciMoveString, uciMoveString } from '../game-logic/chess/uci';
 import { CheckersEngine } from '../game-logic/checkers/engine';
 import { analyzeCheckersPosition } from '../game-logic/checkers/weakEngine';
 import { checkersFenToState, stateToCheckersFen } from '../game-logic/checkers/fen';
+import { GoEngine } from '../game-logic/go/engine';
+import { goBoardStringToState, stateToGoBoardString } from '../game-logic/go/boardString';
+import { TSUMEGO_PASS, tryTsumego } from '../game-logic/go/tsumego';
+import { getOpponentColor, getStoneAt } from '../game-logic/go/utils';
 import { ReversiEngine } from '../game-logic/reversi/engine';
 import { analyzeReversiPosition } from '../game-logic/reversi/weakEngine';
 import { boardStringToState, stateToBoardString } from '../game-logic/reversi/boardString';
 import type { ChessGameState } from '../types/chess.types';
 import type { CheckersGameState } from '../game-logic/checkers/types';
 import type { ReversiGameState } from '../game-logic/reversi/types';
-import type { PuzzleGame, PuzzleRules } from './types';
+import type { GoColor, GoGameState } from '../game-logic/go/types';
+import type { Puzzle, PuzzleGame, PuzzleRules } from './types';
 
 // ---------------------------------------------------------------------------
 // Chess
@@ -167,12 +172,120 @@ export const reversiPuzzleRules: PuzzleRules<ReversiGameState> = {
 };
 
 // ---------------------------------------------------------------------------
+// Go
+// ---------------------------------------------------------------------------
+
+/**
+ * How decisive a settled life-and-death answer is, on the white-positive scale
+ * every game's `analyze` reports in.
+ *
+ * A magnitude, not a measurement: a group lives or it does not, and there is no
+ * partial credit to express. It only has to clear the runtime's refutation
+ * threshold, which is what turns "your move fails" into the punishing line
+ * being played out on the board.
+ */
+const GO_DECISIVE = 100;
+
+/**
+ * Go puzzles are life-and-death problems, and the reason is worth stating.
+ *
+ * Every other game here can be asked "what is the best move" by a search that
+ * returns a number. Go cannot: its playing engine is Monte-Carlo, asynchronous,
+ * and statistical, so a whole-board "best move" puzzle could not be *proved*
+ * and would sometimes be wrong. Inside a stated boundary, though, life and
+ * death is a small finite game that exhaustive search settles exactly — which is
+ * what `region` and `target` on the puzzle are for, and why `analyze` needs the
+ * puzzle rather than just the position.
+ *
+ * Deliberately no `mustPass`/`executePass`. The runtime's auto-pass exists for
+ * reversi, where a player with no legal move must hand the turn back. Go's pass
+ * is voluntary, and passing on the solver's behalf would spend a tempo the
+ * problem is counting.
+ */
+export const goPuzzleRules: PuzzleRules<GoGameState> = {
+  game: 'go',
+  decode: (position) => goBoardStringToState(position),
+  encode: (state) => stateToGoBoardString(state),
+  currentTurn: (state) => state.currentTurn,
+
+  parseMove(move) {
+    const point = move.trim();
+    if (!/^[a-z]\d{1,2}$/.test(point)) {
+      throw new Error(`Invalid go puzzle move: '${move}'`);
+    }
+    // A placement has no origin; `from === to` is the convention the boards use.
+    return { from: point, to: point };
+  },
+
+  formatMove: (move) => move.to,
+
+  sameMove: (input, scripted) => input.to === scripted.to,
+
+  validateMove(state, move) {
+    const result = GoEngine.validateMove(state, move.to);
+    return { valid: result.valid, resultingState: result.resultingState };
+  },
+
+  isGameOver: (state) => state.isGameOver,
+
+  analyze(state, _depth, puzzle) {
+    const spec = goPuzzleSpec(puzzle);
+    if (!spec) return { score: 0, bestMove: null };
+
+    const { region, target, defender, playerColor } = spec;
+    const sign = playerColor === 'white' ? 1 : -1;
+    const decisive = (playerSucceeded: boolean) =>
+      sign * (playerSucceeded ? GO_DECISIVE : -GO_DECISIVE);
+
+    // The group is already off the board: the attacker got it, whoever that is.
+    if (getStoneAt(state.board, target) !== defender) {
+      return { score: decisive(playerColor !== defender), bestMove: null };
+    }
+
+    // Whoever is to move here is the opponent — the player has just moved. Ask
+    // whether they can now get what they want.
+    const opponentGoal = state.currentTurn === defender ? 'live' : 'kill';
+    const verdict = tryTsumego(state, { region, target, goal: opponentGoal });
+
+    // Too wide to settle. Saying nothing is the honest answer, and the runtime
+    // already has copy for a move it cannot punish.
+    if (!verdict) return { score: 0, bestMove: null };
+
+    const punish = verdict.winningMoves.find((m) => m !== TSUMEGO_PASS) ?? null;
+    return {
+      score: decisive(!verdict.solved),
+      bestMove: verdict.solved && punish ? { from: punish, to: punish } : null,
+    };
+  },
+};
+
+/** The boundary a Go puzzle states, if it is one. */
+function goPuzzleSpec(puzzle?: Puzzle): {
+  region: string[];
+  target: string;
+  defender: GoColor;
+  playerColor: GoColor;
+} | null {
+  if (!puzzle || puzzle.game !== 'go') return null;
+  if (!puzzle.region?.length || !puzzle.target) return null;
+  const playerColor = puzzle.playerColor as GoColor;
+  return {
+    region: puzzle.region,
+    target: puzzle.target,
+    // The solver is the attacker in a kill and the defender in a live.
+    defender: puzzle.goal === 'kill' ? getOpponentColor(playerColor) : playerColor,
+    playerColor,
+  };
+}
+
+// ---------------------------------------------------------------------------
 
 /** Rules by game, each keeping its own concrete state type. */
 export const PUZZLE_RULES = {
   chess: chessPuzzleRules,
   checkers: checkersPuzzleRules,
   reversi: reversiPuzzleRules,
+  go: goPuzzleRules,
 };
 
 /**

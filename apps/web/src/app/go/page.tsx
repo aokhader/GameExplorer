@@ -49,6 +49,16 @@ export default function GoLandingPage() {
       available: true,
     },
     {
+      id: 'puzzles',
+      title: 'Puzzles',
+      description: 'Life and death, one shape at a time — find the point that settles the group',
+      icon: '🧩',
+      href: '/go/puzzles',
+      gradient: 'from-warning to-warning-hover',
+      available: true,
+      cta: 'Solve Puzzles',
+    },
+    {
       id: 'learn',
       title: 'How to Play',
       description: 'New to Go? Liberties, capture, ko and scoring — the whole game in a few minutes',

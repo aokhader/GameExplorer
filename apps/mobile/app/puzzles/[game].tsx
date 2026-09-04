@@ -18,7 +18,7 @@ export default function PuzzlesRoute() {
   const { game } = useLocalSearchParams<{ game: string }>();
   const key = (game ?? '').toLowerCase();
 
-  if (key === 'chess' || key === 'checkers' || key === 'reversi') {
+  if (key === 'chess' || key === 'checkers' || key === 'reversi' || key === 'go') {
     return <PuzzleScreen game={key} />;
   }
 

@@ -9,15 +9,16 @@ export interface GoScoreBarProps {
 }
 
 /**
- * The live area readout above the Go board — reversi's `DiscCountBar` for a
+ * The live score readout above the Go board — reversi's `DiscCountBar` for a
  * game where the numbers mean something different.
  *
- * Disc counts in reversi ARE the score. In Go the area is a running estimate of
- * a score that only settles when the game ends, and it counts territory the
- * player has to be able to see: the bar therefore shows both sides' area with
- * komi already applied to white (so the number shown is the number that decides
- * the game) and names captures separately, because captures are the thing
- * players actually track during play and are not the same as points.
+ * Disc counts in reversi ARE the score. In Go this is a running estimate of a
+ * score that only settles when both players have passed and agreed which groups
+ * are dead, counted under whichever ruleset the game was set up with. The bar
+ * shows both sides' totals with komi already applied to White — so the number
+ * shown is the number that decides the game — and names captures separately,
+ * because captures are what players actually track during play and, under area
+ * scoring, are not points at all.
  */
 export function GoScoreBar({ score, captured }: GoScoreBarProps) {
   const total = score.black + score.white;
@@ -49,7 +50,9 @@ export function GoScoreBar({ score, captured }: GoScoreBarProps) {
           <span className="text-xs font-medium text-fg-subtle">+{captured.white} taken</span>
         )}
         {score.white}
-        <span className="sr-only">points for white, komi included</span>
+        <span className="sr-only">
+          points for white, komi included, {score.scoring} scoring
+        </span>
         <span
           className="inline-flex rounded-full"
           style={{ boxShadow: '0 0 8px var(--c-game-go-glow)' }}

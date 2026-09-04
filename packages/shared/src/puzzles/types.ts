@@ -10,7 +10,7 @@
 
 import type { PieceType } from '../types/chess.types';
 
-export type PuzzleGame = 'chess' | 'checkers' | 'reversi';
+export type PuzzleGame = 'chess' | 'checkers' | 'reversi' | 'go';
 export type PuzzleDifficulty = 'easy' | 'medium' | 'hard';
 
 /**
@@ -18,7 +18,16 @@ export type PuzzleDifficulty = 'easy' | 'medium' | 'hard';
  * claim against the real engine at the end of the line, so a wrong goal fails
  * the build rather than misleading a player.
  */
-export type PuzzleGoal = 'mate' | 'win-material' | 'promote' | 'win-game' | 'best-move';
+export type PuzzleGoal =
+  | 'mate'
+  | 'win-material'
+  | 'promote'
+  | 'win-game'
+  | 'best-move'
+  /** Go — capture the group named by `target`, or leave it unable to live. */
+  | 'kill'
+  /** Go — make the group named by `target` impossible to capture. */
+  | 'live';
 
 /** One ply-pair: the move the player must find, and the opponent's scripted answer. */
 export interface PuzzleStep {
@@ -46,6 +55,22 @@ export interface Puzzle {
   goal: PuzzleGoal;
   /** Pawns of material swing required, for `goal: 'win-material'`. */
   goalValue?: number;
+  /**
+   * Go only — the boundary of the fight. Every point either side may play in;
+   * anything outside it stands in for "the rest of the board is settled".
+   *
+   * Carried on the puzzle rather than derived because it is part of the problem
+   * as composed, the same way a tsumego diagram's frame is. It is also what
+   * makes a Go puzzle *provable*: "is this group dead" is only decidable inside
+   * a stated boundary, and the validation suite searches this region
+   * exhaustively to show the key move is the only one that works.
+   */
+  region?: string[];
+  /**
+   * Go only — any stone of the group whose life is at stake, for `goal: 'kill'`
+   * and `goal: 'live'`.
+   */
+  target?: string;
   /** "White to play and mate in two." */
   prompt: string;
   difficulty: PuzzleDifficulty;
@@ -82,6 +107,15 @@ export const PUZZLE_THEMES = [
   'wedge',
   'forced-pass',
   'parity',
+  // go
+  'ladder',
+  'net',
+  'snapback',
+  'capture-race',
+  'eye-shape',
+  'vital-point',
+  'false-eye',
+  'throw-in',
 ] as const;
 
 export type PuzzleTheme = (typeof PUZZLE_THEMES)[number];
@@ -142,5 +176,17 @@ export interface PuzzleRules<S> {
    * Depth is the caller's choice because the three engines are not remotely
    * comparable in cost — see `REFUTATION_DEPTH`.
    */
-  analyze(state: S, depth: number): { score: number; bestMove: PuzzleMove | null };
+  /**
+   * Explain a position — used to punish a wrong move, never to judge one.
+   *
+   * `score` is **white-positive in every game**, so one flip in the runtime
+   * puts it in the player's terms. `puzzle` is the puzzle being explained; the
+   * three board games ignore it, and Go needs it because "is this group dead"
+   * is only a question inside the boundary the puzzle states.
+   */
+  analyze(
+    state: S,
+    depth: number,
+    puzzle?: Puzzle,
+  ): { score: number; bestMove: PuzzleMove | null };
 }

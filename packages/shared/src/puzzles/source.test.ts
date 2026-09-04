@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createStaticPuzzleSource, staticPuzzleSource } from './source';
+import { PUZZLES } from '../constants/puzzles';
 import type { Puzzle, PuzzleDifficulty, PuzzleGame } from './types';
 
 function puzzle(
@@ -102,5 +103,21 @@ describe('staticPuzzleSource', () => {
     expect(await staticPuzzleSource.countPuzzles('chess')).toBeGreaterThan(0);
     const first = await staticPuzzleSource.nextPuzzle('chess');
     expect(first?.game).toBe('chess');
+  });
+});
+
+describe('every shipped game is actually served', () => {
+  /**
+   * The bug this exists for has no symptom: the route loads, the board renders,
+   * and there is simply nothing to solve. `createStaticPuzzleSource` used to
+   * flatten its table with a hand-written spread, so a game added everywhere
+   * else would still serve zero puzzles. Asserting per game rather than in
+   * total is what makes the next one fail loudly.
+   */
+  it.each(Object.keys(PUZZLES) as PuzzleGame[])('serves %s puzzles', async (game) => {
+    expect(PUZZLES[game].length).toBeGreaterThan(0);
+    const listed = await staticPuzzleSource.listPuzzles({ game });
+    expect(listed.length).toBe(PUZZLES[game].length);
+    expect(await staticPuzzleSource.nextPuzzle(game, { solved: [] })).not.toBeNull();
   });
 });

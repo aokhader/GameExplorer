@@ -12,6 +12,8 @@ import { createInitialBoard as createInitialReversiBoard } from '../../game-logi
 import { createInitialGameState as createInitialChessState } from '../../game-logic/chess/utils';
 import { GoEngine } from '../../game-logic/go/engine';
 import { getGroup, isSingleSpaceEye } from '../../game-logic/go/moves';
+import { detectDeadStones } from '../../game-logic/go/deadStones';
+import { ownershipMap as goOwnershipMap } from '../../game-logic/go/scoring';
 import {
   boardKey as goBoardKey,
   positionToCoordinates as goPositionToCoordinates,
@@ -235,11 +237,17 @@ describe('chess setup diagram', () => {
  * and here those are assertions rather than hopes.
  */
 describe('go diagrams match the engine', () => {
-  /** Build a game state from a diagram's stones, with `turn` to move. */
-  function stateFromDiagram(sectionId: string, turn: GoColor): GoGameState {
+  /** The first Go diagram in a section, narrowed. */
+  function goDiagram(sectionId: string) {
     const diagram = TUTORIALS.go.sections.find(s => s.id === sectionId)?.diagrams?.[0];
     expect(diagram?.game, `section '${sectionId}' needs a go diagram`).toBe('go');
     if (diagram?.game !== 'go') throw new Error('unreachable');
+    return diagram;
+  }
+
+  /** Build a game state from a diagram's stones, with `turn` to move. */
+  function stateFromDiagram(sectionId: string, turn: GoColor): GoGameState {
+    const diagram = goDiagram(sectionId);
 
     const state = GoEngine.newGame({ size: diagram.size });
     for (const piece of diagram.pieces) {
@@ -307,6 +315,86 @@ describe('go diagrams match the engine', () => {
     const komi = GoEngine.newGame().komi;
     const text = TUTORIALS.go.sections.flatMap(s => s.paragraphs).join(' ');
     expect(text).toContain(String(komi));
+  });
+
+  it('refuses the move the self-capture section says is illegal', () => {
+    const state = stateFromDiagram('self-capture', 'black');
+    const result = GoEngine.validateMove(state, 'e5');
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/self-capture/i);
+    // And the exception the section promises: White may play there quite happily.
+    expect(GoEngine.validateMove({ ...state, currentTurn: 'white' }, 'e5').valid).toBe(true);
+  });
+
+  it('draws stones the engine agrees are dead', () => {
+    const state = stateFromDiagram('dead-stones', 'black');
+    const dead = new Set(detectDeadStones(state));
+    const diagram = goDiagram('dead-stones');
+
+    // Everything the caption rings must actually be provable, and nothing else
+    // on the board may be — a diagram that over-claims teaches the wrong lesson.
+    const ringed = (diagram.highlights ?? [])
+      .filter(h => h.kind === 'capture')
+      .map(h => h.square);
+    expect(ringed.length).toBeGreaterThan(0);
+    expect([...dead].sort()).toEqual([...ringed].sort());
+  });
+
+  it('shades the counting diagram exactly as the rules would', () => {
+    const state = stateFromDiagram('scoring', 'black');
+    const diagram = goDiagram('scoring');
+    const owners = goOwnershipMap(state.board, state.size);
+
+    // Every empty point is accounted for, and none is claimed for the wrong side.
+    expect(diagram.territory, 'the counting diagram needs its shading').toBeDefined();
+    expect(diagram.territory!.length).toBe(owners.size);
+    for (const mark of diagram.territory!) {
+      expect(owners.has(mark.square), `${mark.square} is not an empty point`).toBe(true);
+      expect(owners.get(mark.square) ?? 'neutral', `${mark.square} is shaded wrong`).toBe(mark.owner);
+    }
+  });
+
+  it('quotes both rulesets\' numbers, and they are the engine\'s', () => {
+    const state = stateFromDiagram('scoring', 'black');
+    const area = GoEngine.score({ ...state, scoring: 'area' });
+    const territory = GoEngine.score({ ...state, scoring: 'territory' });
+
+    // The section claims the two rules differ by the walls and agree on the
+    // winner. Both halves of that are checked rather than described.
+    expect(area.black).toBe(36);
+    expect(territory.black).toBe(27);
+    expect(area.lead).toBe(territory.lead);
+
+    const text = TUTORIALS.go.sections
+      .filter(s => s.id === 'scoring' || s.id === 'rulesets')
+      .flatMap(s => [...s.paragraphs, ...(s.diagrams ?? []).map(d => d.caption)])
+      .join(' ');
+    for (const n of [area.black, territory.black, area.white]) {
+      expect(text, `the sections never mention ${n}`).toContain(String(n));
+    }
+  });
+
+  it('labels only points that exist, and never two on one', () => {
+    for (const section of TUTORIALS.go.sections) {
+      for (const diagram of section.diagrams ?? []) {
+        if (diagram.game !== 'go') continue;
+        const seen = new Set<string>();
+        for (const label of diagram.labels ?? []) {
+          expect(label.square, `${section.id}: label off the board`).toMatch(/^[a-i][1-9]$/);
+          expect(seen.has(label.square), `${section.id}: two labels on ${label.square}`).toBe(false);
+          seen.add(label.square);
+          expect(label.text.length, `${section.id}: label '${label.text}' is too long`).toBeLessThanOrEqual(2);
+        }
+      }
+    }
+  });
+
+  it('never labels or shades a point the prose calls by a file that skips I', () => {
+    // Diagram data uses engine coordinates (a1..i9) but both renderers print
+    // the display files, which skip I — so the 9th file is J on screen. Prose
+    // that named an `i` point would name a file the reader cannot find.
+    const text = TUTORIALS.go.sections.flatMap(s => [...s.paragraphs, ...(s.diagrams ?? []).map(d => d.caption)]).join(' ');
+    expect(text).not.toMatch(/\bI[1-9]\b/);
   });
 });
 

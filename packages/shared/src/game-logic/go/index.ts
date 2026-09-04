@@ -30,3 +30,32 @@ export {
 } from './bot';
 export type { GoBotMove, GoBotOptions, GoPositionEval } from './bot';
 export * from './notation';
+export {
+  passAliveChains,
+  isPassAlive,
+} from './benson';
+export {
+  detectDeadStones,
+  toggleDeadChain,
+  MAX_REGION_POINTS,
+  DEAD_STONE_NODE_LIMIT,
+} from './deadStones';
+export {
+  solveTsumego,
+  tryTsumego,
+  TSUMEGO_PASS,
+} from './tsumego';
+export type { TsumegoSpec, TsumegoResult, TsumegoOptions } from './tsumego';
+export {
+  stateToGoBoardString,
+  goBoardStringToState,
+  GO_EMPTY_POSITION,
+} from './boardString';
+// `ownershipMap` and `scoreBoard` are too generic for the flat barrel — the same
+// alias rule the utils re-exports above follow.
+export {
+  ownershipMap as goOwnershipMap,
+  scoreBoard as goScoreBoard,
+  boardWithoutStones as goBoardWithoutStones,
+} from './scoring';
+export type { GoPrisoners } from './scoring';

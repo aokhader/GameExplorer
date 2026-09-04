@@ -48,6 +48,12 @@ describe('game catalog', () => {
         expect.arrayContaining(['bot', 'training', 'online', 'local', 'learn', 'puzzles']),
       );
     }
+    // Go has everything but online: its puzzles arrived once the gate had
+    // something exact to ask it (life and death inside a stated boundary).
+    expect(GAME_CATALOG.go.modes).toEqual(
+      expect.arrayContaining(['bot', 'training', 'local', 'learn', 'puzzles']),
+    );
+    expect(GAME_CATALOG.go.modes).not.toContain('online');
     // Liquidate has no online mode by design: GameType excludes it, a session
     // seats exactly two, and `game_ended` carries two RatingInfo.
     expect(GAME_CATALOG.liquidate.modes).not.toContain('online');

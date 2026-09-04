@@ -20,6 +20,7 @@ const GAME_LABEL: Record<PuzzleGame, string> = {
   chess: 'Chess',
   checkers: 'Checkers',
   reversi: 'Reversi',
+  go: 'Go',
 };
 
 const DIFFICULTY_STYLE: Record<string, string> = {

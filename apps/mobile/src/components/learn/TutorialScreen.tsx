@@ -9,23 +9,28 @@ import { TutorialBoard } from './TutorialBoard';
 
 // Colors are looked up during render, never captured here — the token objects
 // are live views, so a module-scope read freezes them at import (see themeRuntime).
-const GLOW_KEY = {
+const GLOW_KEY: Record<GameTutorial['game'], keyof typeof GLOWS_NATIVE> = {
   chess: 'glowChess',
   checkers: 'glowCheckers',
   reversi: 'glowReversi',
   go: 'glowGo',
   liquidate: 'glowLiquidate',
-} as const;
+};
 
 /**
- * Narrow before indexing the native accent/glow/icon maps. Every game in the
- * shared tutorial set ships on mobile today, so this is a guard rather than a
- * filter — routing only ever passes a game this app can render, and the
- * fallback just keeps the screen total if that ever stops being true.
+ * `GLOW_KEY` covers every game in the shared tutorial set, and TypeScript
+ * enforces that: `Record<GameTutorial['game'], …>` fails to compile the day a
+ * sixth game is added without an entry here.
+ *
+ * This used to be a runtime `in` guard with a `: 'chess'` fallback, which was
+ * dead code that read as safety. It was not safe. `keyof typeof GLOW_KEY` was
+ * already the whole union, so the fallback could never fire — and if a game
+ * HAD slipped through it, the screen would have rendered that game's title and
+ * prose under the chess knight, chess accent and chess glow, silently. This
+ * screen has drawn a chess knight on the Go tutorial once already; a compile
+ * error is the version of this check that actually works.
  */
-type MobileTutorialGame = keyof typeof GLOW_KEY;
-const isMobileGame = (game: GameTutorial['game']): game is MobileTutorialGame =>
-  game in GLOW_KEY;
+type MobileTutorialGame = GameTutorial['game'];
 
 /**
  * Scrollable "How to play" screen — the mobile rendering of the shared
@@ -37,7 +42,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
   useThemeName();
 
   const router = useRouter();
-  const game = isMobileGame(tutorial.game) ? tutorial.game : 'chess';
+  const game: MobileTutorialGame = tutorial.game;
   const accent = GAME_ACCENTS[game];
 
   return (

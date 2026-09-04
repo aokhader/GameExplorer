@@ -310,7 +310,7 @@ test('reversi: the opponent’s forced pass hands the move straight back', async
   );
 });
 
-for (const game of ['chess', 'checkers', 'reversi'] as const) {
+for (const game of ['chess', 'checkers', 'reversi', 'go'] as const) {
   test(`${game} hub links to its puzzles, and the route loads`, async ({ page }) => {
     await page.goto(`/${game}`);
     const card = page.locator(`a[href="/${game}/puzzles"]`).first();
@@ -321,3 +321,42 @@ for (const game of ['chess', 'checkers', 'reversi'] as const) {
     await expect(page.locator('nav')).toHaveCount(0);
   });
 }
+
+/** A point on the Go board, which addresses its crossings by `data-pos`. */
+function goPoint(page: Page, point: string) {
+  return page.locator(`[data-pos="${point}"]`);
+}
+
+test('go: a life-and-death puzzle is solved point by point', async ({ page }) => {
+  const total = await staticPuzzleSource.countPuzzles('go');
+  const { solved } = await openPuzzle(page, 'go', 'go-001');
+  const puzzle = (await staticPuzzleSource.getPuzzle('go-001'))!;
+  await expect(page.getByTestId('puzzle-prompt')).toContainText('three points of eye space');
+
+  // Go's puzzles are the ones that could not exist until the engine could prove
+  // something. Playing the proved line is the check that the proof and the
+  // board agree about what the moves are.
+  for (const step of puzzle.steps) {
+    await goPoint(page, step.move).click();
+    if (step.reply !== undefined) await expect(status(page)).toHaveText('Your move');
+  }
+
+  await expect(status(page)).toHaveText('Solved');
+  await expect(page.getByTestId('puzzle-progress')).toContainText(
+    `${solved.length + 1} / ${total} solved`,
+  );
+  await expect(page.getByTestId('puzzle-explanation')).toContainText('Play in the middle');
+});
+
+test('go: a plausible wrong point is refused and the punishment is played out', async ({ page }) => {
+  await openPuzzle(page, 'go', 'go-001');
+  const puzzle = (await staticPuzzleSource.getPuzzle('go-001'))!;
+  const wrong = puzzle.region!.find((p) => p !== puzzle.steps[0].move)!;
+
+  await goPoint(page, wrong).click();
+  await expect(status(page)).toHaveText('Not quite');
+  // The refutation comes from the tsumego solver, so it names a real move
+  // rather than the generic "that is playable" fallback.
+  await expect(page.locator('[role="status"]')).toContainText(/White answers|Black answers/);
+  await expect(page.getByTestId('puzzle-explanation')).toHaveCount(0);
+});

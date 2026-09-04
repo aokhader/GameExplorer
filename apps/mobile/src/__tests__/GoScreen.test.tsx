@@ -11,8 +11,10 @@ import { SettingsProvider } from '@/providers/SettingsProvider';
  *
  * What that leaves inside the test is exactly what this screen is responsible
  * for: which mode configures what, that a placement reaches the engine, and —
- * the one thing Go has that no other game here does — that **passing is a move**
- * and two of them end the game and score the board.
+ * the two things Go has that no other game here does — that **passing is a
+ * move**, and that two of them open a **dead-stone review** rather than ending
+ * the game. That second one is also the only place `useLocalGame`'s new
+ * `isAwaitingReview` guards actually run, so this is where they are covered.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -34,15 +36,21 @@ function mockGoBoardModule() {
   const { Pressable, Text } = require('react-native');
   function MockGoBoard(props: Record<string, unknown>) {
     mockBoard.props = props;
+    const dead = (props.deadStones as string[] | undefined) ?? [];
     return React.createElement(
       Pressable,
       {
         accessibilityRole: 'button',
         accessibilityLabel: 'go board',
-        onPress: () => (props.onMove as (p: string) => void)(mockBoard.move),
+        onPress: () =>
+          props.onMarkToggle
+            ? (props.onMarkToggle as (p: string) => void)(mockBoard.move)
+            : (props.onMove as (p: string) => void)(mockBoard.move),
       },
       React.createElement(Text, null, `interactive:${String(props.interactive)}`),
       React.createElement(Text, null, `hint:${props.hintPos ?? 'none'}`),
+      React.createElement(Text, null, `dead:${dead.length}`),
+      React.createElement(Text, null, `markable:${String(!!props.onMarkToggle)}`),
     );
   }
   return MockGoBoard;
@@ -50,8 +58,10 @@ function mockGoBoardModule() {
 
 jest.mock('@/board/GoBoard', () => ({ GoBoard: mockGoBoardModule() }));
 
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => false }),
+  useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn(), canGoBack: () => false }),
+  useFocusEffect: (cb: () => void) => cb(),
 }));
 
 // `useIsOnline` subscribes to expo-network, whose native listener has no
@@ -97,14 +107,60 @@ describe('GoScreen — setup', () => {
     expect(screen.getByRole('button', { name: /vs Bot/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Training/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Pass & Play/ })).toBeTruthy();
-    // No online (no socket protocol for Go) and no puzzles (no forcing gate).
+    expect(screen.getByRole('button', { name: /Puzzles/ })).toBeTruthy();
+    // Still no online: the socket protocol seats two known game types and Go
+    // is not one of them.
     expect(screen.queryByRole('button', { name: /Online/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Puzzles/ })).toBeNull();
+  });
+
+  it('sends the puzzles mode to its own route rather than setting up a game', () => {
+    renderScreen();
+    fireEvent.press(screen.getByRole('button', { name: /Puzzles/ }));
+
+    // The rules card belongs to a game about to be played; puzzles have none.
+    expect(screen.queryByRole('button', { name: /^Komi 7\.5/ })).toBeNull();
+
+    fireEvent.press(screen.getByRole('button', { name: /Start Puzzles/ }));
+    expect(mockPush).toHaveBeenCalledWith('/puzzles/go');
   });
 
   it('states the ruleset the player is agreeing to', () => {
     renderScreen();
     expect(screen.getByText(/9×9 · area scoring · 7\.5 komi to white/)).toBeTruthy();
+  });
+
+  it('restates the ruleset when either rule is changed', () => {
+    renderScreen();
+    fireEvent.press(screen.getByRole('button', { name: /^Territory scoring/ }));
+    expect(screen.getByText(/9×9 · territory scoring · 7\.5 komi to white/)).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: /^Komi None/ }));
+    expect(screen.getByText(/9×9 · territory scoring · no komi/)).toBeTruthy();
+  });
+
+  it('starts the game under the rules that were on screen, not the defaults', async () => {
+    // The bug this pins: `useLocalGame` builds its first position in a
+    // `useState` initializer, which runs once. The setup screen and the board
+    // are the same component, so a ruleset chosen after mount used to be
+    // discarded and the game began under area scoring at 7.5 komi regardless.
+    renderScreen();
+    fireEvent.press(screen.getByRole('button', { name: /^Territory scoring/ }));
+    fireEvent.press(screen.getByRole('button', { name: /^Komi None/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Start Game/ }));
+
+    await waitFor(() => expect(screen.getByLabelText('go board')).toBeTruthy());
+    // The info card title-cases in CSS, so the text node itself is lowercase.
+    expect(screen.getByText('territory')).toBeTruthy();
+    expect(screen.getByText('none')).toBeTruthy();
+  });
+
+  it('takes the rated toggle away at a komi the bot was never measured at', () => {
+    renderScreen();
+    expect(screen.getByLabelText('Rated')).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: /^Komi 5\.5/ }));
+    expect(screen.queryByLabelText('Rated')).toBeNull();
+    expect(screen.getByText(/casual/)).toBeTruthy();
   });
 
   it('blocks training for a guest, since training is always rated', () => {
@@ -135,7 +191,7 @@ describe('GoScreen — playing', () => {
     await waitFor(() => expect(screen.getAllByText('E5')).toHaveLength(1));
   });
 
-  it('treats a pass as a move, and ends the game on the second one', async () => {
+  it('treats a pass as a move, and opens the review on the second one', async () => {
     await startGame('Pass & Play');
 
     // Held across both presses on purpose: once the first pass lands, the move
@@ -147,17 +203,83 @@ describe('GoScreen — playing', () => {
 
     fireEvent.press(pass);
 
+    // Two passes stop the game; they do not finish it. No result screen yet.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Accept score' })).toBeTruthy());
+    expect(screen.getByRole('button', { name: 'Resume play' })).toBeTruthy();
+    expect(screen.queryByText(/White by 7\.5/)).toBeNull();
+  });
+
+  it('scores the board when the review is accepted', async () => {
+    await startGame('Pass & Play');
+    const pass = screen.getByRole('button', { name: /^Pass$/ });
+    fireEvent.press(pass);
+    fireEvent.press(pass);
+
+    fireEvent.press(await screen.findByRole('button', { name: 'Accept score' }));
+
     // An empty board is all neutral, so white takes it on komi alone — and the
     // result has to be stated in points, not just as a winner.
-    await waitFor(() => expect(screen.getByText(/Two passes — White by 7\.5/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/White by 7\.5/)).toBeTruthy());
     await waitFor(() => expect(screen.getByText(/Black 0, White 7\.5/)).toBeTruthy());
   });
+
+  it('goes back to the board on resume, and does not end on the next single pass', async () => {
+    await startGame('Pass & Play');
+    const pass = screen.getByRole('button', { name: /^Pass$/ });
+    fireEvent.press(pass);
+    fireEvent.press(pass);
+
+    fireEvent.press(await screen.findByRole('button', { name: 'Resume play' }));
+
+    await waitFor(() => expect(screen.getByText('interactive:true')).toBeTruthy());
+
+    // The move ribbon now carries its own "Pass" chips for the two that were
+    // played, so the bar's button is the last match rather than the only one.
+    const barPass = screen.getAllByRole('button', { name: /^Pass$/ }).at(-1)!;
+    fireEvent.press(barPass);
+    expect(screen.queryByRole('button', { name: 'Accept score' })).toBeNull();
+  });
+
+  it('lets two humans argue about a group, and marks a whole chain at a time', async () => {
+    await startGame('Pass & Play');
+    mockBoard.move = 'e5';
+    fireEvent.press(screen.getByLabelText('go board'));
+    await waitFor(() => expect(screen.getByText('E5')).toBeTruthy());
+
+    const pass = screen.getByRole('button', { name: /^Pass$/ });
+    fireEvent.press(pass);
+    fireEvent.press(pass);
+
+    // A lone stone on an open board is not provably dead, so nothing is marked —
+    // and pass-and-play is the one mode where a human may say otherwise.
+    await waitFor(() => expect(screen.getByText('markable:true')).toBeTruthy());
+    expect(screen.getByText('dead:0')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('go board'));
+    await waitFor(() => expect(screen.getByText('dead:1')).toBeTruthy());
+
+    fireEvent.press(screen.getByLabelText('go board'));
+    await waitFor(() => expect(screen.getByText('dead:0')).toBeTruthy());
+  });
+
+  it('does not let the marks be edited against the bot', async () => {
+    await startGame('vs Bot');
+    const pass = screen.getByRole('button', { name: /^Pass$/ });
+    fireEvent.press(pass);
+
+    // The bot answers the pass with one of its own, which opens the review.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Accept score' })).toBeTruthy(), {
+      timeout: 10_000,
+    });
+    expect(screen.getByText('markable:false')).toBeTruthy();
+  }, 20_000);
 
   it('makes the board inert once the game is over', async () => {
     await startGame('Pass & Play');
     const pass = screen.getByRole('button', { name: /^Pass$/ });
     fireEvent.press(pass);
     fireEvent.press(pass);
+    fireEvent.press(await screen.findByRole('button', { name: 'Accept score' }));
 
     await waitFor(() => expect(screen.getByText('interactive:false')).toBeTruthy());
   });

@@ -33,3 +33,28 @@ for (const game of ['chess', 'checkers', 'reversi'] as const) {
     await expect(page.locator(`a[href="/${game}/bot"]`).first()).toBeVisible();
   });
 }
+
+// Go and Liquidate had no tutorial smoke coverage at all — the loop above was
+// written for the three 8x8 games and never widened. Go's board is not a grid
+// of squares and Liquidate has no diagrams, so they get the shape of the same
+// check rather than the check itself.
+for (const game of ['go', 'liquidate'] as const) {
+  test(`${game} tutorial page renders rules and the play CTA`, async ({ page }) => {
+    await page.goto(`/${game}/learn`);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('How to Play');
+    await expect(page.getByText('Beginner tips')).toBeVisible();
+    await expect(page.locator(`a[href="/${game}/bot"]`).first()).toBeVisible();
+  });
+}
+
+test('the Go tutorial draws its diagrams, including the counted board', async ({ page }) => {
+  await page.goto('/go/learn');
+  const boards = page.locator('figure [role="img"]');
+  expect(await boards.count()).toBeGreaterThan(2);
+
+  // The section the rewrite exists for: a board where every point is shaded
+  // with the side it counts for, and the count spelled out beside it.
+  await expect(page.getByRole('heading', { name: 'Counting the board' })).toBeVisible();
+  await expect(page.getByText(/Black 36, White 43\.5/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Two ways to count/ })).toBeVisible();
+});

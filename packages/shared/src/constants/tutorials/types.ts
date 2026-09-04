@@ -76,17 +76,51 @@ export interface ReversiDiagram extends DiagramBase {
   pieces: ReversiDiagramPiece[];
 }
 
+/** Who an empty point counts for, on a board being scored. */
+export interface GoTerritoryMark {
+  square: TutorialSquare;
+  /** `neutral` is dame — a point touching both colours, which scores for nobody. */
+  owner: 'black' | 'white' | 'neutral';
+}
+
+/** A number or letter written on a point, occupied or not. */
+export interface GoDiagramLabel {
+  square: TutorialSquare;
+  /** Keep it to one or two characters — it is drawn inside one intersection. */
+  text: string;
+}
+
 /**
  * Go's diagrams carry their own `size`, because Go is the first game here whose
  * board is not 8×8 — every other diagram type inherits that assumption from the
  * `a1`..`h8` square convention. A Go stone also sits on a line crossing rather
  * than in a cell, which only the renderers care about.
+ *
+ * `territory` and `labels` are on this type and NOT on `DiagramBase` on purpose.
+ * Only the Go renderers draw them, and a field the other three boards silently
+ * ignored would be an invitation to author a chess diagram whose shading never
+ * appears — the same class of quiet mistake that once put a chess knight on the
+ * Go tutorial. Here the type simply refuses.
  */
 export interface GoDiagram extends DiagramBase {
   game: 'go';
   /** Board edge in lines. 9 for everything shipped today. */
   size: number;
   pieces: GoDiagramPiece[];
+  /**
+   * Per-point ownership, drawn as the small square every Go client uses for a
+   * counted board. Verified against the engine's own `goOwnershipMap`, so a
+   * diagram cannot claim a point the rules would award to the other side.
+   */
+  territory?: GoTerritoryMark[];
+  /**
+   * Move numbers, or letters naming a point the caption talks about.
+   *
+   * Go's prose has to refer to points, and "the point above the marked stone"
+   * is unreadable. A number on a stone also turns a sequence into one diagram
+   * instead of three.
+   */
+  labels?: GoDiagramLabel[];
 }
 
 export type TutorialDiagram = ChessDiagram | CheckersDiagram | ReversiDiagram | GoDiagram;

@@ -10,6 +10,12 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_PUZZLES, PUZZLES } from './index';
 import { PUZZLE_THEMES } from '../../puzzles/types';
+import { GoEngine } from '../../game-logic/go/engine';
+import { goBoardStringToState } from '../../game-logic/go/boardString';
+import { solveTsumego } from '../../game-logic/go/tsumego';
+import { getGroup } from '../../game-logic/go/moves';
+import { getOpponentColor, getStoneAt } from '../../game-logic/go/utils';
+import type { GoColor, GoGameState } from '../../game-logic/go/types';
 import type { Puzzle, PuzzleGame } from '../../puzzles/types';
 import { puzzleRulesFor } from '../../puzzles/rules';
 import { startPuzzle, applyPlayerMove, applyOpponentReply } from '../../puzzles/runtime';
@@ -37,7 +43,7 @@ import type { ChessGameState } from '../../types/chess.types';
  */
 const ANALYZER_DEPTH = 6;
 
-const ID_PATTERN = /^(chess|checkers|reversi)-\d{3}$/;
+const ID_PATTERN = /^(chess|checkers|reversi|go)-\d{3}$/;
 
 /** Play the whole line the way the runtime does, returning every state it passed through. */
 function walkLine<S>(puzzle: Puzzle): { states: S[]; final: S } {
@@ -69,7 +75,7 @@ function walkLine<S>(puzzle: Puzzle): { states: S[]; final: S } {
 
 describe('puzzle content', () => {
   it('ships puzzles for every game', () => {
-    const games: PuzzleGame[] = ['chess', 'checkers', 'reversi'];
+    const games: PuzzleGame[] = ['chess', 'checkers', 'reversi', 'go'];
     for (const game of games) expect(PUZZLES[game].length).toBeGreaterThan(0);
   });
 
@@ -316,5 +322,140 @@ describe.each(PUZZLES.reversi.map((p) => [p.id, p] as const))('reversi %s', (_id
       // the least bad of a losing set.
       expect(forPlayer(analyzeReversiPosition(played, ANALYZER_DEPTH).score)).toBeGreaterThan(0);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Go-specific
+// ---------------------------------------------------------------------------
+
+/**
+ * Go's forcing proof, and why it looks different from the other three.
+ *
+ * Chess proves a mate. Checkers and reversi ask a depth-limited analyzer for
+ * its best move and refuse anything else. Go can do neither: its playing engine
+ * is Monte-Carlo and would sometimes disagree with itself. What it can do —
+ * exactly, synchronously, and with no evaluation function anywhere — is settle
+ * life and death inside a stated boundary, which is what `region` on the puzzle
+ * is for and what makes these puzzles provable at all.
+ *
+ * So the standard here is the strongest of the four: not "the engine agrees
+ * with this move" but "**this is the only move that works**", established by
+ * searching every legal first move to the end.
+ */
+describe('go puzzles', () => {
+  const goPuzzles = PUZZLES.go;
+
+  it('ships some', () => {
+    expect(goPuzzles.length).toBeGreaterThan(0);
+  });
+
+  describe.each(goPuzzles.map((p) => [p.id, p] as const))('%s', (_id, puzzle) => {
+    /** Every Go puzzle must carry its own boundary; nothing is provable without one. */
+    function spec(state: GoGameState) {
+      expect(puzzle.region?.length, `${puzzle.id} has no region`).toBeGreaterThan(0);
+      expect(puzzle.target, `${puzzle.id} has no target`).toBeTruthy();
+      const target = puzzle.target as string;
+      const defender = getStoneAt(state.board, target);
+      expect(defender, `${puzzle.id} target ${target} is empty`).not.toBeNull();
+      return { region: puzzle.region as string[], target, defender: defender as GoColor };
+    }
+
+    it('states a goal only a life-and-death puzzle can have', () => {
+      expect(['kill', 'live']).toContain(puzzle.goal);
+      expect(puzzle.goalValue, 'goalValue is a chess field').toBeUndefined();
+    });
+
+    it('starts from a position that could occur in a game', () => {
+      const state = goBoardStringToState(puzzle.position);
+      expect(state.size).toBe(9);
+      // Nothing on the board may already be captured — a group with no
+      // liberties standing is a diagram, not a position.
+      for (let row = 0; row < state.size; row++) {
+        for (let col = 0; col < state.size; col++) {
+          if (state.board[row][col] === null) continue;
+          const point = String.fromCharCode(97 + col) + (row + 1);
+          expect(
+            getGroup(state.board, point, state.size)!.liberties.length,
+            `${puzzle.id}: the group at ${point} has no liberties`,
+          ).toBeGreaterThan(0);
+        }
+      }
+      expect(GoEngine.getAllLegalMoves(state).length).toBeGreaterThan(0);
+    });
+
+    it('draws its boundary around the fight', () => {
+      const state = goBoardStringToState(puzzle.position);
+      const { region, target, defender } = spec(state);
+
+      // The solver searches this region exhaustively. A region big enough to be
+      // slow is a region too big to be a life-and-death problem.
+      expect(region.length, `${puzzle.id} region is too wide`).toBeLessThanOrEqual(12);
+      expect(new Set(region).size, `${puzzle.id} region repeats a point`).toBe(region.length);
+
+      // The group under discussion must be sealed in: if it has a liberty
+      // outside the region it can simply run away, and the answer would depend
+      // on a part of the board the puzzle never drew.
+      const group = getGroup(state.board, target, state.size)!;
+      const escapes = group.liberties.filter((l) => !region.includes(l));
+      expect(escapes, `${puzzle.id}: ${target} can escape via ${escapes}`).toEqual([]);
+
+      // The solver is the attacker in a kill and the defender in a live.
+      const mover = puzzle.goal === 'kill' ? getOpponentColor(defender) : defender;
+      expect(state.currentTurn, `${puzzle.id} has the wrong side to move`).toBe(mover);
+      expect(puzzle.playerColor).toBe(mover);
+    });
+
+    it('has a key move that is the ONLY move that works', () => {
+      const state = goBoardStringToState(puzzle.position);
+      const { region, target } = spec(state);
+
+      const solved = solveTsumego(state, {
+        region,
+        target,
+        goal: puzzle.goal as 'kill' | 'live',
+      });
+
+      expect(solved.solved, `${puzzle.id} is not solvable as stated`).toBe(true);
+      expect(
+        solved.winningMoves,
+        `${puzzle.id}: the answer is not forced — ${solved.winningMoves.join(', ')} all work`,
+      ).toEqual([puzzle.steps[0].move]);
+    });
+
+    it('delivers the goal at the end of the line', () => {
+      const { final } = walkLine<GoGameState>(puzzle);
+      const { region, target, defender } = spec(goBoardStringToState(puzzle.position));
+
+      // "Dead" does not mean "already captured" — a settled group can still be
+      // standing. What is asserted is that the result can no longer change, by
+      // handing the opponent the move and finding they cannot alter it.
+      const opponentGoal = puzzle.goal === 'kill' ? 'live' : 'kill';
+      const opponent = puzzle.goal === 'kill' ? defender : getOpponentColor(defender);
+
+      if (getStoneAt(final.board, target) === null) {
+        // Already off the board. Only a kill can end that way.
+        expect(puzzle.goal, `${puzzle.id}: the target was captured in a 'live' puzzle`).toBe('kill');
+        return;
+      }
+
+      const rebuttal = solveTsumego(
+        { ...final, currentTurn: opponent },
+        { region, target, goal: opponentGoal },
+      );
+      expect(
+        rebuttal.solved,
+        `${puzzle.id}: after the line, ${opponent} can still ${opponentGoal} with ${rebuttal.winningMoves.join(', ')}`,
+      ).toBe(false);
+    });
+
+    it('never scripts a pass', () => {
+      // Go's pass is voluntary and the runtime never inserts one, so a pass in
+      // the data would be a move the board cannot offer.
+      for (const step of puzzle.steps) {
+        expect(step.move).not.toBe('pass');
+        if (step.reply !== undefined) expect(step.reply).not.toBe('pass');
+      }
+    });
   });
 });

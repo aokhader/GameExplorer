@@ -108,11 +108,11 @@ export const GAME_CATALOG: Record<GameId, GameCatalogEntry> = {
     accent: 'go',
     minPlayers: 2,
     maxPlayers: 2,
-    // No `online` (the socket protocol seats two known game types and Go is not
-    // one of them yet) and no `puzzles`: the puzzle gate proves a solution line
-    // forced by replaying it through the engine, and no Go engine here can settle
-    // that the way the chess and checkers analyzers do.
-    modes: ['bot', 'training', 'local', 'learn'],
+    // No `online` — the socket protocol seats two known game types and Go is
+    // not one of them yet. Puzzles arrived once the gate had something exact to
+    // ask: life and death inside a stated boundary is decidable, so Go puzzles
+    // are proved the same way the others are (see `go/tsumego.ts`).
+    modes: ['bot', 'training', 'local', 'learn', 'puzzles'],
     available: true,
     rated: true,
   },

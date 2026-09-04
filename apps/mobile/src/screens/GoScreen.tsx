@@ -1,13 +1,29 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
-import { GoEngine, moveHistoryToGo, toGoPoint, type GoColor, type GoGameState } from '@gameexplorer/shared';
+import {
+  GoEngine,
+  detectDeadStones,
+  goBoardWithoutStones,
+  goOwnershipMap,
+  moveHistoryToGo,
+  toGoPoint,
+  toggleDeadChain,
+  type GoColor,
+  type GoGameState,
+  type GoScoring,
+} from '@gameexplorer/shared';
 import {
   GO_DIFFICULTY_LEVELS,
   GO_PASS,
+  GO_RATED_KOMI,
+  GO_RESUME,
   GO_TRAINING_ELO_BOUNDS,
-  goAdapter,
   goEloLabel,
+  goFinalizeMove,
+  goRulesetSummary,
+  makeGoAdapter,
 } from '@gameexplorer/client/game/goAdapter';
 import { COLORS, GAME_ACCENTS, GO_STONE_STYLE, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
@@ -17,17 +33,23 @@ import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { BackToHomeButton } from '@/game/resultDismiss';
 import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
+import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
 import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
+import { GoReviewBar } from '@/game/GoReviewBar';
+import { GoRulesCard } from '@/game/GoRulesCard';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
 
-/** Modes Go offers. No online (no socket protocol) and no puzzles (no gate). */
-const GO_MODES: readonly SetupMode[] = ['bot', 'training', 'pass-and-play'];
+/**
+ * Modes Go offers. No online — the socket protocol seats two known game types
+ * and Go is not one of them yet.
+ */
+const GO_MODES: readonly SetupMode[] = ['bot', 'training', 'pass-and-play', 'puzzles'];
 
 /** "black" → "Black" for pass-and-play messages. */
 function cap(color: string): string {
@@ -76,46 +98,108 @@ export function GoScreen() {
   const [playerColor, setPlayerColor] = useState<GoColor>('black');
   const [rated, setRated] = useState(true);
   const [started, setStarted] = useState(false);
+  const [komi, setKomi] = useState(GO_RATED_KOMI);
+  const [scoring, setScoring] = useState<GoScoring>('area');
 
   const online = useIsOnline();
+  const router = useRouter();
+  const isPuzzles = mode === 'puzzles';
   const isPassAndPlay = mode === 'pass-and-play';
   const isTraining = mode === 'training';
   const isBotSetup = mode === 'bot';
   const picksColor = mode === 'bot' || mode === 'training';
 
+  /**
+   * Komi is worth about seven points on a 9×9 board, so choosing it is choosing
+   * a head start, and the bot's tiers were only ever measured at 7.5. Anything
+   * else plays fine and counts for nothing.
+   */
+  const komiIsRated = komi === GO_RATED_KOMI;
+
   // Rated needs connectivity at game start (the offline semantics every mobile
   // game screen follows). Training is rated by definition, so it has no toggle.
-  const ratedEffective = isTraining
-    ? !!userId && online
-    : rated && !!userId && !isPassAndPlay && online;
+  const ratedEffective =
+    (isTraining ? !!userId && online : rated && !!userId && !isPassAndPlay && online) &&
+    komiIsRated;
 
   const gameMode: LocalGameMode = isPassAndPlay ? 'pass-and-play' : isTraining ? 'training' : 'bot';
 
+  /**
+   * Memoized on the two rules it carries. The loop treats the adapter as an
+   * identity — it is a dependency of the bot turn, `handleMove`, `pass`, the
+   * hint and the rating effect — so rebuilding it every render would re-fire
+   * all of them.
+   */
+  const adapter = useMemo(() => makeGoAdapter({ komi, scoring }), [komi, scoring]);
+
   const game = useLocalGame<GoGameState>({
-    adapter: goAdapter,
+    adapter,
     mode: gameMode,
     playerColor,
     targetElo,
     rated: ratedEffective,
     userId,
     eloBounds: GO_TRAINING_ELO_BOUNDS,
-    started,
+    // Puzzles are their own screen behind their own route; keeping the loop out
+    // of them is what stops a game being set up behind the setup screen.
+    started: started && !isPuzzles,
   });
 
   const botElo = game.botElo;
   const canStart = isTraining ? ratedEffective && !game.ratingLoading : true;
 
+  // ── The end-of-game review ──────────────────────────────────────────────────
+
+  /**
+   * Marks held here rather than on the game state: they are a proposal until the
+   * player accepts, and `finalize` is what commits them to the timeline.
+   */
+  const [dead, setDead] = useState<string[]>([]);
+  const awaitingReview = game.awaitingReview;
+
   const handleNewGame = () => {
     game.newGame();
+    setDead([]);
     setStarted(false);
   };
+
+  // Seeded the moment the second pass lands, and cleared on the way out so a
+  // resumed game that reaches a second review starts from a fresh proof.
+  useEffect(() => {
+    setDead(awaitingReview ? detectDeadStones(game.liveState) : []);
+    // Only when the phase flips — recomputing per render would re-run the solver.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingReview]);
+
+  const reviewScore = useMemo(
+    () => (awaitingReview ? GoEngine.scoreWith(game.liveState, dead) : null),
+    [awaitingReview, game.liveState, dead],
+  );
+
+  /**
+   * Shading stays on once the score is accepted. The player has just agreed to a
+   * number, and being able to see where it came from is the whole reason the
+   * review exists.
+   */
+  const showTerritory = awaitingReview || game.displayState.phase === 'scored';
+
+  const ownership = useMemo(
+    () =>
+      showTerritory
+        ? goOwnershipMap(goBoardWithoutStones(game.displayState.board, dead), game.displayState.size)
+        : null,
+    [showTerritory, game.displayState, dead],
+  );
 
   // Above the setup-screen early return: hooks can't be called conditionally.
   const goMoves = useMemo(
     () => moveHistoryToGo(game.timeline[game.timeline.length - 1].moveHistory),
     [game.timeline],
   );
-  const score = useMemo(() => GoEngine.score(game.displayState), [game.displayState]);
+  const score = useMemo(
+    () => (awaitingReview && reviewScore ? reviewScore : GoEngine.score(game.displayState)),
+    [awaitingReview, reviewScore, game.displayState],
+  );
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
@@ -137,9 +221,23 @@ export function GoScreen() {
           modes={GO_MODES}
         />
 
-        <Text style={{ color: COLORS.fgSubtle, fontSize: 12, marginBottom: 20 }}>
-          9×9 · area scoring · {goAdapter.newGame().komi} komi to white
-        </Text>
+        {isPuzzles ? (
+          <PuzzlesCard game="go" />
+        ) : (
+          <Text style={{ color: COLORS.fgSubtle, fontSize: 12, marginBottom: 20 }}>
+            {goRulesetSummary(9, komi, scoring)}
+          </Text>
+        )}
+
+        {!isPuzzles && (
+        <GoRulesCard
+          komi={komi}
+          onKomiChange={setKomi}
+          scoring={scoring}
+          onScoringChange={setScoring}
+          showRatedNote={!isPassAndPlay}
+        />
+        )}
 
         {isTraining && (
           <TrainingSetup
@@ -239,7 +337,11 @@ export function GoScreen() {
                       {color}
                     </Text>
                     <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
-                      {color === 'black' ? 'You move first' : `Gets ${goAdapter.newGame().komi} komi`}
+                      {color === 'black'
+                        ? 'You move first'
+                        : komi === 0
+                          ? 'Moves second, no komi'
+                          : `Gets ${komi} komi`}
                     </Text>
                   </Pressable>
                 );
@@ -248,7 +350,7 @@ export function GoScreen() {
           </>
         )}
 
-        {isBotSetup && (
+        {isBotSetup && komiIsRated && (
           <View
             style={{
               flexDirection: 'row',
@@ -285,8 +387,8 @@ export function GoScreen() {
         )}
 
         <Button
-          label={isTraining ? 'Start Rated Game' : 'Start Game'}
-          onPress={() => setStarted(true)}
+          label={isPuzzles ? 'Start Puzzles' : isTraining ? 'Start Rated Game' : 'Start Game'}
+          onPress={() => (isPuzzles ? router.push('/puzzles/go' as never) : setStarted(true))}
           disabled={!canStart}
           glow
         />
@@ -302,17 +404,25 @@ export function GoScreen() {
   const pnpWinner = manualEnd === 'resign' ? moverOther : liveState.winner;
 
   const finalScore = GoEngine.score(liveState);
-  const margin = `${finalScore.lead > 0 ? 'Black' : 'White'} by ${Math.abs(finalScore.lead)}`;
+  // A level game is real Go (jigo), and reachable at the integer komi presets.
+  const margin =
+    finalScore.lead === 0
+      ? 'a level game'
+      : `${finalScore.lead > 0 ? 'Black' : 'White'} by ${Math.abs(finalScore.lead)}`;
+  const removed = liveState.deadStones.length;
+  const removedNote = removed > 0 ? ` · ${removed} stone${removed === 1 ? '' : 's'} removed` : '';
 
   let gameOverMsg: string | null = null;
   if (manualEnd === 'resign') {
     gameOverMsg = isPassAndPlay ? `${cap(mover)} resigned — ${cap(moverOther)} wins` : 'You resigned';
   } else if (liveState.isGameOver) {
     gameOverMsg = isPassAndPlay
-      ? `Two passes — ${margin}`
+      ? `${margin}${removedNote}`
       : liveState.winner === playerColor
         ? `You win — ${margin} 🎉`
-        : `Bot wins — ${margin}`;
+        : liveState.winner === null
+          ? `Level — ${margin}`
+          : `Bot wins — ${margin}`;
   }
 
   const myResult: GameResult = isPassAndPlay
@@ -331,7 +441,17 @@ export function GoScreen() {
   const moverTurn = isAtLive && !gameOverMsg;
   const lastPlaced = liveState.moveHistory[liveState.moveHistory.length - 1]?.position ?? null;
   const botLabel = isTraining ? `${botElo} · ${goEloLabel(botElo)}` : goEloLabel(targetElo);
-  const interactive = isAtLive && !liveState.isGameOver && !manualEnd;
+  const interactive = isAtLive && !liveState.isGameOver && !manualEnd && !awaitingReview;
+
+  /**
+   * Only two people sharing a phone may change the marks. Against the bot they
+   * are what the solver could prove and nothing else — otherwise a rated game
+   * could be won by declaring the opponent's living groups dead. Disagreeing
+   * with the bot works the way it does over a real board: resume and play on.
+   */
+  const canMark = awaitingReview && isAtLive && isPassAndPlay;
+  const acceptScore = () => game.handleMove(goFinalizeMove(dead), '');
+  const resumePlay = () => game.handleMove(GO_RESUME, '');
   // The Go board never flips; in pass-and-play `playerColor` is the tap gate, so
   // it follows whoever is to move.
   const boardColor: GoColor = isPassAndPlay ? mover : playerColor;
@@ -367,9 +487,14 @@ export function GoScreen() {
             gameState={displayState}
             onMove={(pos) => game.handleMove(pos, pos)}
             playerColor={boardColor}
-            highlightPos={isAtLive ? lastPlaced : null}
+            highlightPos={isAtLive && !awaitingReview ? lastPlaced : null}
             hintPos={isAtLive ? hintPos : null}
-            interactive={interactive}
+            interactive={interactive || canMark}
+            deadStones={awaitingReview ? dead : undefined}
+            ownership={ownership}
+            onMarkToggle={
+              canMark ? (pos) => setDead((prev) => toggleDeadChain(liveState, prev, pos)) : undefined
+            }
           />
         }
         bottomCard={
@@ -418,8 +543,13 @@ export function GoScreen() {
                     <InfoCell label="Playing" value={playerColor} capitalize />
                   </>
                 )}
-                <InfoCell label="Turn" value={gameOverMsg ? '—' : liveState.currentTurn} capitalize />
-                <InfoCell label="Komi" value={String(liveState.komi)} />
+                <InfoCell
+                  label="Turn"
+                  value={gameOverMsg || awaitingReview ? '—' : liveState.currentTurn}
+                  capitalize
+                />
+                <InfoCell label="Komi" value={liveState.komi === 0 ? 'none' : String(liveState.komi)} />
+                <InfoCell label="Scoring" value={liveState.scoring} capitalize />
                 {isTraining && (
                   <InfoCell
                     label="Hints"
@@ -454,14 +584,29 @@ export function GoScreen() {
                   White {score.white}
                 </Text>
               </View>
+              {/* How many stones the number above assumes are gone — the player
+                  is being asked to check the marks, so say how many there are. */}
+              {awaitingReview && dead.length > 0 && (
+                <Text style={{ color: COLORS.fgMuted, fontSize: 11, textAlign: 'center' }}>
+                  {dead.length} stone{dead.length === 1 ? '' : 's'} removed
+                </Text>
+              )}
               <Text style={{ color: COLORS.fgSubtle, fontSize: 11, lineHeight: 15 }}>
-                Capture dead stones before passing — anything left on the board counts for its
-                owner. Two passes end the game.
+                {awaitingReview
+                  ? canMark
+                    ? 'Both players passed. Tap a group to mark it dead or bring it back — groups with two eyes cannot be marked.'
+                    : dead.length > 0
+                      ? 'Both players passed. Dead groups have been taken off; if you disagree, resume and settle it on the board.'
+                      : 'Both players passed. Nothing could be proved dead — if a group should come off, resume and capture it.'
+                  : 'Two passes end the game. You then agree which groups are dead before the board is counted.'}
               </Text>
             </View>
           </>
         }
         bottomBar={
+          awaitingReview ? (
+            <GoReviewBar onAccept={acceptScore} onResume={resumePlay} />
+          ) : (
           <GameBar
             viewIndex={game.viewIndex}
             total={game.timeline.length}
@@ -479,6 +624,7 @@ export function GoScreen() {
             hintPending={game.isHinting}
             hintsUsed={game.hintsUsed}
           />
+          )
         }
       />
 
@@ -489,7 +635,7 @@ export function GoScreen() {
         subtitle={
           manualEnd === 'resign'
             ? gameOverMsg ?? undefined
-            : `${gameOverMsg ?? ''} · Black ${finalScore.black}, White ${finalScore.white}`
+            : `${gameOverMsg ?? ''} · Black ${finalScore.black}, White ${finalScore.white}`.trim()
         }
         rating={
           ratingResult

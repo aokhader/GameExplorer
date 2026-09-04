@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GoEngine } from './engine';
+import { detectDeadStones } from './deadStones';
 import { boardKey, createInitialGameState } from './utils';
 import {
   analyzeGoPosition,
@@ -38,12 +39,19 @@ async function playBotGame(
   let state = GoEngine.newGame();
   let moves = 0;
 
-  while (!state.isGameOver && moves < moveCap) {
+  while (state.phase === 'playing' && moves < moveCap) {
     const { position } = await getBestGoMove(state, elo, { seed: seed + moves });
     state = position === null
       ? GoEngine.executePass(state)
       : GoEngine.executeMove(state, position);
     moves++;
+  }
+
+  // Two passes only open the review. Finishing it the way both screens do —
+  // detect, then accept — is what makes this harness cover the real path to a
+  // result rather than a shortcut the app no longer has.
+  if (state.phase === 'marking') {
+    state = GoEngine.finalize(state, detectDeadStones(state));
   }
   return { state, moves };
 }
@@ -189,7 +197,9 @@ describe('getBestGoMove', () => {
     const { position } = await getBestGoMove(state, 1300, { seed: 3 });
     expect(position).toBeNull();
 
-    const ended = GoEngine.executePass(state);
+    const reviewed = GoEngine.executePass(state);
+    expect(reviewed.phase).toBe('marking');
+    const ended = GoEngine.finalize(reviewed, []);
     expect(ended.isGameOver).toBe(true);
     expect(ended.winner).toBe('black');
   });
@@ -226,11 +236,22 @@ describe('getBestGoMove', () => {
     expect(position).toBeNull();
   });
 
+  it('refuses to move while the board is being counted', async () => {
+    // Not `isGameOver` — that stays false through the review, and a bot that
+    // kept searching there would fight the screen for the turn.
+    let state = GoEngine.newGame();
+    state = GoEngine.executePass(state);
+    state = GoEngine.executePass(state);
+    expect(state.isGameOver).toBe(false);
+    await expect(getBestGoMove(state, 1000)).rejects.toThrow(/counted/i);
+  });
+
   it('refuses to move once the game is over', async () => {
     let state = GoEngine.newGame();
     state = GoEngine.executePass(state);
     state = GoEngine.executePass(state);
-    await expect(getBestGoMove(state, 1000)).rejects.toThrow(/over/i);
+    state = GoEngine.finalize(state, []);
+    await expect(getBestGoMove(state, 1000)).rejects.toThrow(/counted/i);
   });
 
   it('honours an abort signal', async () => {
@@ -310,6 +331,7 @@ describe('analyzeGoPosition', () => {
     let state = GoEngine.newGame();
     state = GoEngine.executePass(state);
     state = GoEngine.executePass(state);
+    state = GoEngine.finalize(state, []);
     const result = await analyzeGoPosition(state, { seed: 1 });
     expect(result.position).toBeNull();
     expect(result.scoreLead).toBe(-7.5); // empty board, white on komi
@@ -363,13 +385,16 @@ describe('bot-vs-bot harness', () => {
 
       let state = GoEngine.newGame();
       let moves = 0;
-      while (!state.isGameOver && moves < 400) {
+      while (state.phase === 'playing' && moves < 400) {
         const elo = state.currentTurn === 'black' ? black : white;
         const { position } = await getBestGoMove(state, elo, { seed: 500 + i * 97 + moves });
         state = position === null
           ? GoEngine.executePass(state)
           : GoEngine.executeMove(state, position);
         moves++;
+      }
+      if (state.phase === 'marking') {
+        state = GoEngine.finalize(state, detectDeadStones(state));
       }
       if (state.winner === (strongIsBlack ? 'black' : 'white')) strongWins++;
     }

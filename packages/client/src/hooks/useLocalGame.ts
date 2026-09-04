@@ -77,6 +77,20 @@ export interface LocalGameAdapter<S> {
    * the work for both cases.
    */
   allowsVoluntaryPass?: boolean;
+  /**
+   * Go only — the game is between moves, not over.
+   *
+   * Two passes in Go open the dead-stone review: the players agree which groups
+   * are dead before the board is counted. The game is emphatically not over
+   * (`isGameOver` stays false, so nothing is saved or rated on a score nobody
+   * has accepted yet), but nobody is to move either. Every turn-taking part of
+   * this loop has to stand down for it — the bot must not search, the forced
+   * auto-pass must not fire, and the human acts on the review whether or not
+   * the clock says it is their turn.
+   *
+   * Unset for the other four games, where it is always somebody's move.
+   */
+  isAwaitingReview?(state: S): boolean;
   save(args: {
     state: S;
     playerColor: Color;
@@ -155,6 +169,27 @@ export function useLocalGame<S>({
 
   const [timeline, setTimeline] = useState<S[]>(() => [adapter.newGame()]);
   const [viewIndex, setViewIndex] = useState(0);
+  /**
+   * Rebuild the starting position when the adapter changes before the game has
+   * begun.
+   *
+   * `useState`'s initializer runs once, so a game built at mount keeps whatever
+   * rules the adapter had then — and Go's adapter carries the komi and scoring
+   * rule the setup screen is still choosing. The setup screen and the board are
+   * the same component, so by the time the player picks "territory" the state
+   * has already been created with "area", and pressing Start would begin a game
+   * under rules nobody selected.
+   *
+   * Only while `!started`: once a game is under way its rules are fixed, and a
+   * mid-game adapter change (there is none today) must never silently reset the
+   * board. A no-op for the other four games, whose adapters are constants.
+   */
+  const setupAdapterRef = useRef(adapter);
+  if (setupAdapterRef.current !== adapter && !started) {
+    setupAdapterRef.current = adapter;
+    setTimeline([adapter.newGame()]);
+    setViewIndex(0);
+  }
   const [isThinking, setIsThinking] = useState(false);
   const [manualEnd, setManualEnd] = useState<'resign' | 'draw' | null>(null);
   const [userRating, setUserRating] = useState<UserRating | null>(null);
@@ -304,6 +339,9 @@ export function useLocalGame<S>({
   useEffect(() => {
     if (!started) return;
     if (adapter.isGameOver(liveState) || manualEnd || isThinking) return;
+    // The board is being counted — neither branch below applies, and a bot
+    // searching here would fight the review screen for the turn.
+    if (adapter.isAwaitingReview?.(liveState)) return;
     const isBotTurn = vsBot && adapter.currentTurn(liveState) !== playerColor;
 
     if (adapter.mustPass?.(liveState) && adapter.executePass) {
@@ -423,6 +461,7 @@ export function useLocalGame<S>({
     const live = timelineRef.current[timelineRef.current.length - 1];
     if (viewIndexRef.current !== timelineRef.current.length - 1) return;
     if (adapter.isGameOver(live) || manualEndRef.current) return;
+    if (adapter.isAwaitingReview?.(live)) return;
     if (adapter.currentTurn(live) !== playerColorRef.current) return;
     // Reversi can hand the player a turn with no legal move; the loop is about
     // to auto-pass it, and there's nothing to advise on (nor to charge for).
@@ -456,8 +495,11 @@ export function useLocalGame<S>({
       const live = timelineRef.current[timelineRef.current.length - 1];
       if (viewIndexRef.current !== timelineRef.current.length - 1) return;
       if (adapter.isGameOver(live) || manualEndRef.current) return;
-      // In pass-and-play both colors are the human; against a bot only the player's.
-      if (vsBot && adapter.currentTurn(live) !== playerColorRef.current) return;
+      // In pass-and-play both colors are the human; against a bot only the
+      // player's — except during a review, which is nobody's turn and whose
+      // accept/resume actions travel this same channel.
+      const reviewing = adapter.isAwaitingReview?.(live) ?? false;
+      if (!reviewing && vsBot && adapter.currentTurn(live) !== playerColorRef.current) return;
 
       const result = adapter.validateMove(live, from, to, promotion);
       if (result.valid && result.resultingState) {
@@ -479,6 +521,7 @@ export function useLocalGame<S>({
     const live = timelineRef.current[timelineRef.current.length - 1];
     if (viewIndexRef.current !== timelineRef.current.length - 1) return;
     if (adapter.isGameOver(live) || manualEndRef.current) return;
+    if (adapter.isAwaitingReview?.(live)) return;
     if (vsBot && adapter.currentTurn(live) !== playerColorRef.current) return;
 
     clearHint();
@@ -528,7 +571,9 @@ export function useLocalGame<S>({
     handleMove,
     /** Go only — a no-op unless the adapter sets `allowsVoluntaryPass`. */
     pass,
-    canPass: !!adapter.allowsVoluntaryPass,
+    canPass: !!adapter.allowsVoluntaryPass && !adapter.isAwaitingReview?.(liveState),
+    /** Go only — the two passes have landed and the board is being counted. */
+    awaitingReview: adapter.isAwaitingReview?.(liveState) ?? false,
     resign: () => endManually('resign'),
     agreeDraw: () => endManually('draw'),
     newGame,

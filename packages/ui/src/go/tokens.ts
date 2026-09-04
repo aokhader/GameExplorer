@@ -34,6 +34,15 @@ const DARK_GO_BOARD_COLORS = {
   ghost:       'rgba(226,205,168,0.35)',
   /** Training hint ring. */
   hintRing:    'rgba(245,158,11,0.95)',
+  /**
+   * The dead-stone review's territory markers — a small square on each point
+   * the count is about to award, in the colour that is about to be awarded it.
+   * Squares rather than dots on purpose: a dot at this size reads as a stone.
+   */
+  territoryBlack: 'rgba(12,16,24,0.88)',
+  territoryWhite: 'rgba(245,240,230,0.92)',
+  /** Hairline around those squares, so both read against the wood. */
+  territoryEdge:  'rgba(226,205,168,0.5)',
 };
 
 const COZY_GO_BOARD_COLORS = {
@@ -47,6 +56,9 @@ const COZY_GO_BOARD_COLORS = {
   lastMoveRing: 'rgba(162,72,46,0.95)',
   ghost:       'rgba(45,30,15,0.28)',
   hintRing:    'rgba(138,102,29,0.95)',
+  territoryBlack: 'rgba(18,12,7,0.88)',
+  territoryWhite: 'rgba(255,253,247,0.95)',
+  territoryEdge:  'rgba(45,30,15,0.5)',
 };
 
 export const GO_BOARD_COLORS =

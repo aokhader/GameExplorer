@@ -145,6 +145,9 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
     highlights.set(h.square, [...(highlights.get(h.square) ?? []), h.kind]);
   }
 
+  const territory = new Map((diagram.territory ?? []).map(t => [t.square, t.owner]));
+  const labels = new Map((diagram.labels ?? []).map(l => [l.square, l.text]));
+
   const lines = [];
   for (let i = 0; i < size; i++) {
     const edge = i === 0 || i === size - 1;
@@ -164,7 +167,9 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
       const pos = `${String.fromCharCode(97 + col)}${row + 1}`;
       const stone = diagram.pieces.find(p => p.square === pos);
       const kinds = highlights.get(pos) ?? [];
-      if (!stone && kinds.length === 0) continue;
+      const owner = territory.get(pos);
+      const label = labels.get(pos);
+      if (!stone && kinds.length === 0 && !owner && !label) continue;
 
       const style: CSSProperties = {
         position: 'absolute',
@@ -188,11 +193,47 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
               style={{ backgroundColor: `var(--gx-go-board-ghost, ${GO_BOARD_COLORS.ghost})` }}
             />
           )}
+          {/* Territory: a square, never a dot. A dot at this size reads as a
+              stone, which is the one thing it must not be mistaken for. */}
+          {!stone && owner && (
+            <div
+              className="absolute h-[24%] w-[24%]"
+              style={{
+                background:
+                  owner === 'black'
+                    ? `var(--gx-go-board-territory-black, ${GO_BOARD_COLORS.territoryBlack})`
+                    : owner === 'white'
+                      ? `var(--gx-go-board-territory-white, ${GO_BOARD_COLORS.territoryWhite})`
+                      : 'transparent',
+                border:
+                  owner === 'neutral'
+                    ? `1px dashed var(--gx-go-board-territory-edge, ${GO_BOARD_COLORS.territoryEdge})`
+                    : `1px solid var(--gx-go-board-territory-edge, ${GO_BOARD_COLORS.territoryEdge})`,
+              }}
+            />
+          )}
           {(kinds.includes('capture') || kinds.includes('target')) && (
             <div
               className="absolute inset-[6%] rounded-full border-2"
               style={{ borderColor: `var(--gx-go-board-last-move, ${GO_BOARD_COLORS.lastMoveRing})` }}
             />
+          )}
+          {/* A label takes its contrast from whatever it lands on: white on a
+              black stone, ink on a white one, and the coordinate colour on an
+              empty point where there is only wood underneath. */}
+          {label && (
+            <span
+              className="absolute text-[9px] font-bold leading-none select-none"
+              style={{
+                color: stone
+                  ? stone.color === 'black'
+                    ? '#f4efe4'
+                    : '#15100b'
+                  : `var(--gx-go-board-coordinate, ${GO_BOARD_COLORS.coordinate})`,
+              }}
+            >
+              {label}
+            </span>
           )}
         </div>,
       );

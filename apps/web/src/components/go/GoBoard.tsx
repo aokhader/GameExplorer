@@ -24,6 +24,9 @@ const WOOD = {
   lastMoveRing: `var(--gx-go-board-last-move, ${GO_BOARD_COLORS.lastMoveRing})`,
   ghost:        `var(--gx-go-board-ghost, ${GO_BOARD_COLORS.ghost})`,
   hintRing:     `var(--gx-go-board-hint, ${GO_BOARD_COLORS.hintRing})`,
+  territoryBlack: `var(--gx-go-board-territory-black, ${GO_BOARD_COLORS.territoryBlack})`,
+  territoryWhite: `var(--gx-go-board-territory-white, ${GO_BOARD_COLORS.territoryWhite})`,
+  territoryEdge:  `var(--gx-go-board-territory-edge, ${GO_BOARD_COLORS.territoryEdge})`,
 } as const;
 
 /** Column letters as Go writes them — I is skipped. */
@@ -48,6 +51,23 @@ export interface GoBoardProps {
    * must not offer a ghost stone or a pointer cursor either.
    */
   interactive?: boolean;
+  /**
+   * Points agreed dead in the end-of-game review. Drawn as ghosts of themselves
+   * — still visible, because the player is being asked to check them, but
+   * plainly no longer on the board.
+   */
+  deadStones?: readonly string[];
+  /**
+   * Who each empty point will count for. Drawn as small squares, which is how
+   * every Go client shows a finished count.
+   */
+  ownership?: ReadonlyMap<string, GoColor | null> | null;
+  /**
+   * Review mode: tapping a stone toggles its whole chain dead or alive. Its
+   * presence is what switches the board out of placement mode — legal points
+   * stop being offered, and every stone becomes the target instead.
+   */
+  onMarkToggle?: (position: string) => void;
 }
 
 function positionAt(row: number, col: number): string {
@@ -79,6 +99,9 @@ export const GoBoard = React.memo(function GoBoard({
   highlightPos,
   hintPos,
   interactive = true,
+  deadStones,
+  ownership,
+  onMarkToggle,
 }: GoBoardProps) {
   const { size } = gameState;
   const [hovered, setHovered] = useState<string | null>(null);
@@ -109,15 +132,23 @@ export const GoBoard = React.memo(function GoBoard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyLength]);
 
+  const marking = !!onMarkToggle;
   const isPlayerTurn = gameState.currentTurn === playerColor && !gameState.isGameOver;
 
   // Legal-move generation walks every empty point and floods each one, so it is
   // by far the most expensive thing here — keep it off every unrelated re-render
   // (a clock tick, a hover) and off the opponent's turn, when nothing shows it.
+  // During the review there are no legal points at all: the question has stopped
+  // being "where may I play" and become "which of these are dead".
   const legalMoves = useMemo(
-    () => (interactive && isPlayerTurn ? new Set(GoEngine.getAllLegalMoves(gameState)) : new Set<string>()),
-    [gameState, interactive, isPlayerTurn],
+    () =>
+      interactive && isPlayerTurn && !marking
+        ? new Set(GoEngine.getAllLegalMoves(gameState))
+        : new Set<string>(),
+    [gameState, interactive, isPlayerTurn, marking],
   );
+
+  const dead = useMemo(() => new Set(deadStones ?? []), [deadStones]);
 
   const cell = 100 / size;
   const at = (index: number) => (index + 0.5) * cell;
@@ -156,6 +187,11 @@ export const GoBoard = React.memo(function GoBoard({
       const stone = gameState.board[row][col];
       const isLegal = legalMoves.has(position);
       const isGhost = isLegal && hovered === position;
+      const isDead = dead.has(position);
+      // A dead stone's point already belongs to the other side, so it is shaded
+      // like any other empty point rather than left blank.
+      const owner = ownership && (stone === null || isDead) ? ownership.get(position) ?? null : null;
+      const markable = marking && stone !== null;
 
       points.push(
         <div
@@ -163,10 +199,18 @@ export const GoBoard = React.memo(function GoBoard({
           data-pos={position}
           data-stone={stone ?? undefined}
           data-legal={isLegal || undefined}
-          onClick={() => interactive && isLegal && onMove(position)}
+          data-dead={isDead || undefined}
+          data-territory={owner ?? undefined}
+          onClick={() => {
+            if (!interactive) return;
+            if (markable) onMarkToggle!(position);
+            else if (isLegal) onMove(position);
+          }}
           onMouseEnter={() => setHovered(position)}
           onMouseLeave={() => setHovered(prev => (prev === position ? null : prev))}
-          className={`absolute flex items-center justify-center ${isLegal ? 'cursor-pointer' : 'cursor-default'}`}
+          className={`absolute flex items-center justify-center ${
+            isLegal || markable ? 'cursor-pointer' : 'cursor-default'
+          }`}
           style={{
             left: `${x}%`,
             top: `${y}%`,
@@ -177,11 +221,47 @@ export const GoBoard = React.memo(function GoBoard({
         >
           {stone && (
             <div
-              className="pointer-events-none flex items-center justify-center"
-              style={{ width: `${STONE_RATIO * 100}%`, height: `${STONE_RATIO * 100}%` }}
+              className="pointer-events-none flex items-center justify-center transition-opacity"
+              style={{
+                width: `${(isDead ? STONE_RATIO * 0.7 : STONE_RATIO) * 100}%`,
+                height: `${(isDead ? STONE_RATIO * 0.7 : STONE_RATIO) * 100}%`,
+                // A dead black stone at 0.3 on dark wood is simply not there,
+                // and the player is being asked to *check* these. Half opacity
+                // plus the ring below keeps them findable while still reading
+                // as removed.
+                opacity: isDead ? 0.5 : 1,
+              }}
             >
               <GoStone color={stone} size="100%" />
             </div>
+          )}
+
+          {/* A dashed ring around a dead stone. The ghost alone is ambiguous —
+              a faint stone could be a rendering artefact — and this says "this
+              one is coming off" in a way that survives either theme. */}
+          {isDead && (
+            <div
+              className="pointer-events-none absolute rounded-full"
+              style={{
+                width: `${STONE_RATIO * 100}%`,
+                height: `${STONE_RATIO * 100}%`,
+                border: `1.5px dashed ${WOOD.coordinate}`,
+              }}
+            />
+          )}
+
+          {/* Territory marker. Squares, not dots — a dot at this size reads as
+              a stone, which is the one thing it must not be mistaken for. */}
+          {owner && (
+            <div
+              className="pointer-events-none absolute"
+              style={{
+                width: '21%',
+                height: '21%',
+                background: owner === 'black' ? WOOD.territoryBlack : WOOD.territoryWhite,
+                border: `1px solid ${WOOD.territoryEdge}`,
+              }}
+            />
           )}
 
           {/* A stone that just came off, fading out where it stood. The colour

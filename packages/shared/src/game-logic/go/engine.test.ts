@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GoEngine } from './engine';
-import { boardKey, createInitialGameState } from './utils';
+import { boardKey, createInitialGameState, getStoneAt } from './utils';
 import { getGroup, isSingleSpaceEye } from './moves';
 import type { GoBoard, GoColor, GoGameState } from './types';
 
@@ -246,14 +246,29 @@ describe('GoEngine — ko and superko', () => {
   });
 });
 
-describe('GoEngine — passing and game end', () => {
-  it('ends the game after two consecutive passes and scores the board', () => {
+describe('GoEngine — passing and the dead-stone review', () => {
+  it('opens the review after two consecutive passes without ending the game', () => {
     let state = GoEngine.newGame();
     state = GoEngine.executePass(state);
-    expect(state.isGameOver).toBe(false);
+    expect(state.phase).toBe('playing');
     expect(state.consecutivePasses).toBe(1);
 
     state = GoEngine.executePass(state);
+    expect(state.phase).toBe('marking');
+    // The load-bearing assertion of the whole feature: the shared local-game
+    // loop saves and rates on `isGameOver`, so a score nobody has agreed to
+    // must not flip it.
+    expect(state.isGameOver).toBe(false);
+    expect(state.winner).toBeNull();
+  });
+
+  it('scores the board once the review is accepted', () => {
+    let state = GoEngine.newGame();
+    state = GoEngine.executePass(state);
+    state = GoEngine.executePass(state);
+    state = GoEngine.finalize(state, []);
+
+    expect(state.phase).toBe('scored');
     expect(state.isGameOver).toBe(true);
     // An empty board is all neutral, so white wins on komi alone.
     expect(state.winner).toBe('white');
@@ -266,9 +281,23 @@ describe('GoEngine — passing and game end', () => {
     expect(state.consecutivePasses).toBe(0);
 
     state = GoEngine.executePass(state);
-    expect(state.isGameOver).toBe(false);
+    expect(state.phase).toBe('playing');
     state = GoEngine.executePass(state);
-    expect(state.isGameOver).toBe(true);
+    expect(state.phase).toBe('marking');
+  });
+
+  it('goes back to the board on a dispute, and does not end on the next single pass', () => {
+    let state = GoEngine.newGame();
+    state = GoEngine.executePass(state);
+    state = GoEngine.executePass(state);
+
+    state = GoEngine.resumePlay(state);
+    expect(state.phase).toBe('playing');
+    expect(state.consecutivePasses).toBe(0);
+    expect(GoEngine.validateMove(state, 'e5').valid).toBe(true);
+
+    state = GoEngine.executePass(state);
+    expect(state.phase).toBe('playing');
   });
 
   it('records a pass in the move history with a null position', () => {
@@ -276,13 +305,22 @@ describe('GoEngine — passing and game end', () => {
     expect(state.moveHistory).toEqual([{ position: null, color: 'black', captures: [] }]);
   });
 
-  it('rejects any move once the game is over', () => {
+  it('rejects any placement while the board is being counted', () => {
     let state = GoEngine.newGame();
     state = GoEngine.executePass(state);
     state = GoEngine.executePass(state);
     expect(GoEngine.validateMove(state, 'e5').valid).toBe(false);
     expect(GoEngine.getAllLegalMoves(state)).toEqual([]);
     expect(GoEngine.mustPass(state)).toBe(false);
+  });
+
+  it('rejects any placement once the game is over', () => {
+    let state = GoEngine.newGame();
+    state = GoEngine.executePass(state);
+    state = GoEngine.executePass(state);
+    state = GoEngine.finalize(state, []);
+    expect(GoEngine.validateMove(state, 'e5').valid).toBe(false);
+    expect(GoEngine.getAllLegalMoves(state)).toEqual([]);
   });
 
   it('reports mustPass only for a side with no legal point at all', () => {
@@ -335,6 +373,7 @@ describe('GoEngine.score — Tromp-Taylor area scoring', () => {
 
   it('gives an empty board to white on komi', () => {
     expect(GoEngine.score(GoEngine.newGame())).toEqual({
+      scoring: 'area',
       black: 0,
       white: 7.5,
       komi: 7.5,
@@ -441,5 +480,138 @@ describe('isSingleSpaceEye', () => {
   it('is never an eye on an occupied point', () => {
     const state = GoEngine.executeMove(GoEngine.newGame(), 'e5');
     expect(isSingleSpaceEye(state.board, 'e5', 'black', 9)).toBe(false);
+  });
+});
+
+describe('GoEngine — marking stones dead', () => {
+  /**
+   * A finished corner: Black's group is sealed in with only a straight three to
+   * live in, so it is dead, and White's wall around it is unconditionally alive.
+   * Six stones come off, and every number below follows from that.
+   */
+  const FINISHED = [
+    'OOO......',
+    'OOO......',
+    'OOO......',
+    'OOO......',
+    'OOO......',
+    'XXO......',
+    '.XO......',
+    '.XO......',
+    '.XO......',
+  ];
+
+  function reviewing(scoring: 'area' | 'territory' = 'area') {
+    const state = stateFrom(FINISHED, 'black', { scoring });
+    return GoEngine.executePass(GoEngine.executePass(state));
+  }
+
+  const DEAD_BLACK = ['a4', 'b1', 'b2', 'b3', 'b4'];
+
+  it('takes the marked stones off and counts what is left', () => {
+    const scored = GoEngine.finalize(reviewing(), DEAD_BLACK);
+
+    expect(scored.deadStones).toEqual(DEAD_BLACK);
+    expect(getStoneAt(scored.board, 'b2')).toBeNull();
+    expect(scored.phase).toBe('scored');
+    expect(scored.isGameOver).toBe(true);
+    expect(scored.winner).toBe('white');
+  });
+
+  it('credits removed stones to the other side as prisoners', () => {
+    const scored = GoEngine.finalize(reviewing(), DEAD_BLACK);
+    expect(scored.captured.white).toBe(5);
+    expect(scored.captured.black).toBe(0);
+  });
+
+  it('makes those prisoners count under territory scoring and not under area', () => {
+    const area = GoEngine.finalize(reviewing('area'), DEAD_BLACK);
+    const territory = GoEngine.finalize(reviewing('territory'), DEAD_BLACK);
+
+    // With Black gone, White's 19 stones and the 62 empty points are the whole
+    // board. Area counts all 81; territory counts the 62 plus five prisoners.
+    expect(area.board.flat().filter(Boolean)).toHaveLength(19);
+    expect(GoEngine.score(area).white).toBe(81 + 7.5);
+    expect(GoEngine.score(territory).white).toBe(62 + 5 + 7.5);
+  });
+
+  it('marks the whole chain when one of its stones is marked', () => {
+    const scored = GoEngine.finalize(reviewing(), ['b2']);
+    expect(scored.deadStones).toEqual(DEAD_BLACK);
+  });
+
+  it('refuses to mark an unconditionally alive group, whoever asks', () => {
+    // The same corner one point better off: Black holds two real eyes at a1 and
+    // a3, so nothing either player does can take the group. Marking it dead is
+    // not a judgement the review is allowed to make — otherwise a rated game
+    // could be won by declaring the opponent's living group dead.
+    const twoEyes = GoEngine.executePass(
+      GoEngine.executePass(
+        stateFrom(
+          [
+            '.........',
+            '.........',
+            '.........',
+            '.........',
+            'OO.......',
+            'XXO......',
+            '.XO......',
+            'XXO......',
+            '.XO......',
+          ],
+          'black',
+        ),
+      ),
+    );
+
+    expect(GoEngine.validMarks(twoEyes, ['b2'])).toEqual([]);
+
+    // The white wall beside it is NOT unconditionally alive — it is an open
+    // wall with somewhere to run — so marking it is allowed to be argued about.
+    expect(GoEngine.validMarks(twoEyes, ['c1'])).toContain('c1');
+  });
+
+  it('ignores marks on empty points', () => {
+    expect(GoEngine.validMarks(reviewing(), ['a1', 'i9'])).toEqual([]);
+  });
+
+  it('previews a score without committing to it', () => {
+    const state = reviewing();
+
+    const before = GoEngine.score(state);
+    const preview = GoEngine.scoreWith(state, DEAD_BLACK);
+    expect(preview.black).toBeLessThan(before.black);
+
+    // Nothing moved: the preview is a pure read of a hypothetical.
+    expect(state.deadStones).toEqual([]);
+    expect(getStoneAt(state.board, 'b2')).toBe('black');
+
+    // And the preview is the number the player then gets.
+    expect(GoEngine.score(GoEngine.finalize(state, DEAD_BLACK))).toEqual(preview);
+  });
+
+  it('can end level at an integer komi, which is a real Go result', () => {
+    // Two equal walls and komi 0: jigo. The default 7.5 rules this out, but the
+    // setup screen offers presets that do not.
+    let level = stateFrom(
+      [
+        '...X.O...',
+        '...X.O...',
+        '...X.O...',
+        '...X.O...',
+        '...X.O...',
+        '...X.O...',
+        '...X.O...',
+        '...X.O...',
+        '...X.O...',
+      ],
+      'black',
+      { komi: 0 },
+    );
+    level = GoEngine.executePass(GoEngine.executePass(level));
+    const scored = GoEngine.finalize(level, []);
+
+    expect(GoEngine.score(scored).lead).toBe(0);
+    expect(scored.winner).toBeNull();
   });
 });

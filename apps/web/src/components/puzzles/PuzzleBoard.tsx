@@ -4,6 +4,8 @@ import React, { useCallback } from 'react';
 import type {
   ChessGameState,
   CheckersGameState,
+  GoColor,
+  GoGameState,
   PuzzleGame,
   PuzzleMove,
   ReversiGameState,
@@ -12,6 +14,7 @@ import type { PieceType, Position } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
+import { GoBoard } from '@/components/go/GoBoard';
 // `ChessBoard.tsx` does NOT import its own stylesheet — every route that renders
 // it imports this instead (see chess/bot, chess/play, chess/training, …), and a
 // route that forgets gets a board with `display: block`, i.e. 64 squares stacked
@@ -126,12 +129,26 @@ export function PuzzleBoard({
     );
   }
 
+  if (game === 'go') {
+    return (
+      <GoBoard
+        gameState={state as GoGameState}
+        playerColor={playerColor as GoColor}
+        // A placement has no origin square, so an arrow has nothing to point
+        // from — the ring on the target point is the whole marker, exactly as
+        // in reversi.
+        hintPos={hint?.to ?? null}
+        highlightPos={refutation?.to ?? null}
+        onMove={onReversiMove}
+        interactive={interactive}
+      />
+    );
+  }
+
   return (
     <ReversiBoard
       gameState={state as ReversiGameState}
       playerColor={playerColor}
-      // Reversi placements have no origin square, so an arrow has nothing to
-      // point from — the ring on the target square is the whole marker.
       hintPos={hint?.to ?? null}
       highlightPos={refutation?.to ?? null}
       onMove={onReversiMove}

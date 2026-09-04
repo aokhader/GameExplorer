@@ -2,6 +2,8 @@ import React from 'react';
 import type {
   CheckersGameState,
   ChessGameState,
+  GoColor,
+  GoGameState,
   PuzzleGame,
   PuzzleMove,
   ReversiGameState,
@@ -9,6 +11,7 @@ import type {
 import { ChessBoard } from '@/board/ChessBoard';
 import { CheckersBoard } from '@/board/CheckersBoard';
 import { ReversiBoard } from '@/board/ReversiBoard';
+import { GoBoard } from '@/board/GoBoard';
 
 export interface PuzzleBoardProps {
   game: PuzzleGame;
@@ -77,6 +80,21 @@ export function PuzzleBoard({
         interactive={interactive}
         hintMove={hint ? { from: hint.from, to: hint.to } : null}
         onMove={(from, to) => onMove({ from, to })}
+      />
+    );
+  }
+
+  if (game === 'go') {
+    return (
+      <GoBoard
+        gameState={state as GoGameState}
+        playerColor={playerColor as GoColor}
+        interactive={interactive}
+        // A placement has no origin point, so `to` is the whole move — the same
+        // shape reversi uses, for the same reason.
+        hintPos={hint?.to ?? null}
+        highlightPos={refutation?.to ?? null}
+        onMove={(position) => onMove({ from: position, to: position })}
       />
     );
   }

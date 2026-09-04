@@ -117,6 +117,8 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
   for (const h of diagram.highlights ?? []) {
     highlights.set(h.square, [...(highlights.get(h.square) ?? []), h.kind]);
   }
+  const territory = new Map((diagram.territory ?? []).map((t) => [t.square, t.owner]));
+  const labels = new Map((diagram.labels ?? []).map((l) => [l.square, l.text]));
 
   return (
     <View style={{ marginTop: 16, marginBottom: 6 }}>
@@ -144,7 +146,9 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
               const pos = `${String.fromCharCode(97 + col)}${row + 1}`;
               const stone = diagram.pieces.find((p) => p.square === pos);
               const kinds = highlights.get(pos) ?? [];
-              if (!stone && kinds.length === 0) continue;
+              const owner = territory.get(pos);
+              const label = labels.get(pos);
+              if (!stone && kinds.length === 0 && !owner && !label) continue;
 
               const cx = at(col);
               const cy = at(size - 1 - row);
@@ -173,6 +177,26 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
                       }}
                     />
                   )}
+                  {/* Territory: a square, never a dot — a dot at this size
+                      reads as a stone, which it must not be mistaken for. */}
+                  {!stone && owner && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        width: stoneSize * 0.24,
+                        height: stoneSize * 0.24,
+                        borderWidth: 1,
+                        borderColor: GO_BOARD_COLORS.territoryEdge,
+                        borderStyle: owner === 'neutral' ? 'dashed' : 'solid',
+                        backgroundColor:
+                          owner === 'black'
+                            ? GO_BOARD_COLORS.territoryBlack
+                            : owner === 'white'
+                              ? GO_BOARD_COLORS.territoryWhite
+                              : 'transparent',
+                      }}
+                    />
+                  )}
                   {(kinds.includes('capture') || kinds.includes('target')) && (
                     <View
                       style={{
@@ -184,6 +208,23 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
                         borderColor: GO_BOARD_COLORS.lastMoveRing,
                       }}
                     />
+                  )}
+                  {/* A label takes its contrast from whatever it lands on. */}
+                  {label && (
+                    <Text
+                      style={{
+                        position: 'absolute',
+                        fontSize: Math.max(8, stoneSize * 0.42),
+                        fontFamily: FONTS.bodyBold,
+                        color: stone
+                          ? stone.color === 'black'
+                            ? '#f4efe4'
+                            : '#15100b'
+                          : GO_BOARD_COLORS.coordinate,
+                      }}
+                    >
+                      {label}
+                    </Text>
                   )}
                 </View>,
               );

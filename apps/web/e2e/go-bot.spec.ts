@@ -37,7 +37,7 @@ test('plays the opening of a bot game as black', async ({ page }) => {
   await expect(legal.first()).toBeVisible(); // our turn again — the game is alive
 });
 
-test('two passes end the game and the board is scored', async ({ page }) => {
+test('two passes open the review, and accepting it scores the board', async ({ page }) => {
   // Driven from pass-and-play so both passes are ours: against a bot this would
   // need a full game, since a bot that is behind correctly refuses to pass.
   await page.goto('/go/local');
@@ -50,11 +50,52 @@ test('two passes end the game and the board is scored', async ({ page }) => {
   await pass.click();
   await expect(page.getByText('Pass').first()).toBeVisible();
 
-  // The second pass ends the game. An empty board is all neutral, so white wins
-  // on komi alone — and the result screen has to say so in points.
+  // The second pass stops the game without ending it. No result screen yet —
+  // a score nobody has agreed to must not be announced, let alone saved.
   await pass.click();
-  await expect(page.getByText(/Two passes — White by 7\.5/)).toBeVisible();
+  const review = page.getByTestId('go-marking-panel');
+  await expect(review).toBeVisible();
+  await expect(page.getByText(/White by 7\.5/)).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Accept score' }).click();
   await expect(page.getByText(/Black 0 · White 7\.5/)).toBeVisible();
+});
+
+test('the review can be disputed, and the game carries on', async ({ page }) => {
+  await page.goto('/go/local');
+  await page.getByRole('button', { name: 'Start Game' }).click();
+
+  const pass = page.getByRole('button', { name: 'Pass', exact: true });
+  await pass.click();
+  await pass.click();
+  await expect(page.getByTestId('go-marking-panel')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Resume play' }).click();
+  await expect(page.getByTestId('go-marking-panel')).toHaveCount(0);
+  // Back on the board with every point playable, and the pass count forgotten:
+  // one further pass must not end the game again.
+  await expect(page.locator('[data-legal]')).toHaveCount(81);
+  await pass.click();
+  await expect(page.getByTestId('go-marking-panel')).toHaveCount(0);
+});
+
+test('the rules card sets komi and scoring, and a non-standard komi is casual', async ({ page }) => {
+  await page.goto('/go/bot');
+  await expect(page.getByText('9×9 · area scoring · 7.5 komi to white')).toBeVisible();
+
+  // `exact`, because the Strong bot tier's description also says "territory".
+  await page.getByRole('button', { name: 'Territory', exact: true }).click();
+  await expect(page.getByText('9×9 · territory scoring · 7.5 komi to white')).toBeVisible();
+
+  await page.getByRole('button', { name: 'None', exact: true }).click();
+  await expect(page.getByText('9×9 · territory scoring · no komi')).toBeVisible();
+  await expect(page.getByText(/Games away from 7\.5 komi are casual/)).toBeVisible();
+
+  // The chosen ruleset reaches the game, not just the setup screen.
+  await page.getByRole('button', { name: 'Start Game' }).click();
+  const info = page.locator('text=Scoring:').locator('..');
+  await expect(info).toContainText('territory');
+  await expect(page.locator('text=Komi:').locator('..')).toContainText('none');
 });
 
 test('New Game returns to the setup screen', async ({ page }) => {

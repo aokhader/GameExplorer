@@ -1,4 +1,4 @@
-import type { GoBoard, GoColor, GoGameState } from './types';
+import type { GoBoard, GoColor, GoGameState, GoScoring } from './types';
 import { DEFAULT_KOMI, GO_BOARD_SIZE } from './types';
 
 export interface Coordinates { row: number; col: number }
@@ -43,6 +43,7 @@ export function cloneGameState(state: GoGameState): GoGameState {
     moveHistory: [...state.moveHistory],
     captured: { ...state.captured },
     positionKeys: [...state.positionKeys],
+    deadStones: [...state.deadStones],
   };
 }
 
@@ -72,6 +73,8 @@ export function createEmptyBoard(size: number = GO_BOARD_SIZE): GoBoard {
 export interface NewGoGameOptions {
   size?: number;
   komi?: number;
+  /** How the board will be counted. Defaults to area (Tromp-Taylor). */
+  scoring?: GoScoring;
 }
 
 export function createInitialGameState(options: NewGoGameOptions = {}): GoGameState {
@@ -80,6 +83,7 @@ export function createInitialGameState(options: NewGoGameOptions = {}): GoGameSt
   return {
     size,
     komi: options.komi ?? DEFAULT_KOMI,
+    scoring: options.scoring ?? 'area',
     board,
     currentTurn: 'black', // Black plays first in Go
     moveHistory: [],
@@ -88,6 +92,8 @@ export function createInitialGameState(options: NewGoGameOptions = {}): GoGameSt
     // rule is complete from move one rather than from move two.
     positionKeys: [boardKey(board)],
     consecutivePasses: 0,
+    phase: 'playing',
+    deadStones: [],
     isGameOver: false,
     winner: null,
   };

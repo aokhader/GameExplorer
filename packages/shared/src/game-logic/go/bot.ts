@@ -725,7 +725,9 @@ export async function getBestGoMove(
   targetElo: number,
   options: GoBotOptions = {},
 ): Promise<GoBotMove> {
-  if (state.isGameOver) throw new Error('Game is over — no move to make');
+  // Not `isGameOver`: two passes open the dead-stone review, where the game
+  // is not over but nobody is to move. The bot must sit that out too.
+  if (state.phase !== 'playing') throw new Error('The board is being counted — no move to make');
 
   const candidates = rootCandidates(state);
   if (shouldPass(state, candidates)) return { position: null };
@@ -755,7 +757,7 @@ export async function analyzeGoPosition(
   state: GoGameState,
   options: GoBotOptions & { iterations?: number } = {},
 ): Promise<GoPositionEval> {
-  if (state.isGameOver) {
+  if (state.phase !== 'playing') {
     const { lead } = GoEngine.score(state);
     return { position: null, winRate: lead > 0 ? 1 : 0, scoreLead: lead };
   }

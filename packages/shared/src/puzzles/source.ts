@@ -62,7 +62,11 @@ function byProgression(a: Puzzle, b: Puzzle): number {
 export function createStaticPuzzleSource(
   data: Record<PuzzleGame, Puzzle[]> = PUZZLES,
 ): PuzzleSource {
-  const all = (): Puzzle[] => [...data.chess, ...data.checkers, ...data.reversi];
+  // `Object.values`, not a hand-written spread: a spread silently serves no
+  // puzzles for a game nobody remembered to add, which is a failure with no
+  // symptom anywhere — the route loads, the board renders, and there is simply
+  // nothing to solve. Adding a game to `PuzzleGame` is now enough.
+  const all = (): Puzzle[] => Object.values(data).flat();
 
   return {
     async getPuzzle(id) {

@@ -31,10 +31,9 @@ export interface OpponentPickerProps {
    * Which modes this game actually offers. Defaults to all of them, in the
    * order below.
    *
-   * Go passes a subset: it has no puzzles, because the puzzle gate proves a
-   * solution forced by replaying it through an engine and no Go engine here can
-   * settle that. Showing a tile that leads nowhere would be worse than not
-   * showing it.
+   * Go passes a subset: it has no online mode, because the socket protocol
+   * seats two known game types and Go is not one of them. Showing a tile that
+   * leads nowhere would be worse than not showing it.
    */
   modes?: readonly SetupMode[];
 }
