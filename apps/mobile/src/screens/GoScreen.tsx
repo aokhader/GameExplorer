@@ -40,6 +40,7 @@ import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
+import { AnalysisCard } from '@/game/AnalysisCard';
 import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
 import { GoReviewBar } from '@/game/GoReviewBar';
@@ -227,31 +228,6 @@ export function GoScreen() {
 
         <LearnLink game="go" label="New to Go? How to play →" />
 
-        {/*
-          * SGF is the format every other Go program writes, so this is how a
-          * game from OGS or a book gets looked at here. It sits beside the
-          * tutorial link rather than inside a mode, because it is not a mode:
-          * nothing is played, an existing game is studied. Chess's setup screen
-          * points at its own analysis board from the same spot.
-          */}
-        <Pressable
-          onPress={() => router.push('/analysis/go' as never)}
-          accessibilityRole="button"
-          accessibilityLabel="Analyse a game from SGF"
-          style={{ marginBottom: 20 }}
-        >
-          <Text
-            style={{
-              color: GAME_ACCENTS.go.base,
-              fontFamily: FONTS.bodySemi,
-              fontSize: 14,
-              textAlign: 'center',
-            }}
-          >
-            Analyse a game from SGF →
-          </Text>
-        </Pressable>
-
         <OpponentPicker
           value={mode}
           onChange={setMode}
@@ -259,6 +235,14 @@ export function GoScreen() {
           tint={GAME_ACCENTS.go.tintBg}
           modes={GO_MODES}
         />
+
+        {/*
+          * SGF is the format every other Go program writes, so this is how a
+          * game from OGS or a book gets looked at here. It sits under the mode
+          * grid rather than in it: nothing is played, an existing game is
+          * studied.
+          */}
+        <AnalysisCard game="go" />
 
         {isPuzzles ? (
           <PuzzlesCard game="go" />

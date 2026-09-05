@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   createGoAnalysis,
-  goOwnershipMap,
+  goReviewOwnership,
   goTimelineToPoints,
   type GoGameState,
 } from '@gameexplorer/shared';
@@ -123,7 +123,7 @@ function SgfAnalysis({ timeline, onExit }: { timeline: GoGameState[]; onExit: ()
           onMove={() => {}}
           playerColor="black"
           hintPos={best?.to ?? null}
-          ownership={goOwnershipMap(displayState.board, start.size)}
+          ownership={goReviewOwnership(displayState.board, start.size)}
           interactive={false}
         />
       }

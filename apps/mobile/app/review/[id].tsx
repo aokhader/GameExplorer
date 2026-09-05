@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   checkersAnalysis,
   createGoAnalysis,
-  goOwnershipMap,
+  goReviewOwnership,
   goTimelineToPoints,
   moveHistoryToReversi,
   moveHistoryToPdn,
@@ -199,7 +199,7 @@ export default function PastGameReviewScreen() {
   const best = analysis.current?.bestMove ?? null;
   const goOwnership =
     gameType === 'go'
-      ? goOwnershipMap((displayState as GoGameState).board, goRules.size)
+      ? goReviewOwnership((displayState as GoGameState).board, goRules.size)
       : null;
 
   const board =

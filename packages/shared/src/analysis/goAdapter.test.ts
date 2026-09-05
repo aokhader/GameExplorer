@@ -8,7 +8,7 @@
  * blunder and grading every good move a mistake.
  */
 import { describe, it, expect } from 'vitest';
-import { createGoAnalysis, goAnalysis, goTimelineToPoints } from './goAdapter';
+import { createGoAnalysis, goAnalysis, goReviewOwnership, goTimelineToPoints } from './goAdapter';
 import { replayGoMoves } from './timeline';
 import { GoEngine } from '../game-logic/go/engine';
 import { goBoardStringToState } from '../game-logic/go/boardString';
@@ -214,4 +214,55 @@ describe('the engine actually reaches a verdict', () => {
     // Black is winning here, and white-positive means that reads negative.
     expect(evaluation.score).toBeLessThan(0);
   }, 60_000);
+});
+
+describe('territory shading under review', () => {
+  /*
+   * Caught on the device, not by a test: the first position of every reviewed
+   * game came up shaded end to end for Black. `ownershipMap` was right — one
+   * empty region, one colour on its border, so the whole board is Black's — and
+   * as a picture of a game one move old it is nonsense, sitting directly under
+   * an eval bar reading B+0.1.
+   */
+  const rows = (r: string[]) => stateFrom(r).board;
+
+  it('shows nothing when only one player has played', () => {
+    const board = rows([
+      '.........',
+      '.........',
+      '.........',
+      '.........',
+      '....X....',
+      '.........',
+      '.........',
+      '.........',
+      '.........',
+    ]);
+    expect(goReviewOwnership(board, 9)).toBeNull();
+  });
+
+  it('shows nothing on an empty board either', () => {
+    expect(goReviewOwnership(rows(Array(9).fill('.........')), 9)).toBeNull();
+  });
+
+  it('shades once both colours are on the board', () => {
+    // Black walls off the top-left corner; White is present, so the position is
+    // a real one to read.
+    const board = rows([
+      '..X......',
+      '..X......',
+      'XXX......',
+      '.........',
+      '.........',
+      '.........',
+      '......O..',
+      '.........',
+      '.........',
+    ]);
+    const owners = goReviewOwnership(board, 9);
+    expect(owners).not.toBeNull();
+    expect(owners!.get('a9')).toBe('black');
+    // The open middle touches both colours, so it belongs to neither.
+    expect(owners!.get('e5')).toBeNull();
+  });
 });

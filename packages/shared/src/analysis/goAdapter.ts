@@ -14,9 +14,10 @@
  */
 
 import { GoEngine } from '../game-logic/go/engine';
+import { ownershipMap } from '../game-logic/go/scoring';
 import { analyzeGoPosition, goAnalysisIterations } from '../game-logic/go/bot';
 import { toGoPoint } from '../game-logic/go/notation';
-import type { GoGameState } from '../game-logic/go/types';
+import type { GoBoard, GoColor, GoGameState } from '../game-logic/go/types';
 import { logisticShare, type AnalysisAdapter } from './types';
 
 /**
@@ -149,4 +150,39 @@ export function goTimelineToPoints(timeline: readonly GoGameState[]): string[] {
   return last.moveHistory.map((move) =>
     move.position === null ? 'Pass' : toGoPoint(move.position),
   );
+}
+
+/**
+ * Territory shading for a position under review — or `null` where it would lie.
+ *
+ * `ownershipMap` answers "who owns what if the game stopped here", and it does
+ * that by flooding each empty region and giving it to the single colour on its
+ * border. On a board where only one player has played, there is one region, it
+ * borders one colour, and the answer is **the whole board** — correct by the
+ * scoring rules, and nonsense as a picture of a game one move old. Caught on
+ * device: the first position of every reviewed game came up shaded end to end
+ * for Black while the eval bar above it read B+0.1.
+ *
+ * So a position with an empty side gets no shading at all. The cost is the rare
+ * settled position where one colour really has been wiped off the board and the
+ * shading would have been right; showing nothing there is the safe direction,
+ * because the overlay is read as a fact rather than as an estimate.
+ *
+ * The live game screens do NOT go through this: they only shade once the game
+ * has stopped, where "one side owns everything" is a real result.
+ */
+export function goReviewOwnership(
+  board: GoBoard,
+  size: number,
+): Map<string, GoColor | null> | null {
+  let black = false;
+  let white = false;
+  for (const row of board) {
+    for (const stone of row) {
+      if (stone === 'black') black = true;
+      else if (stone === 'white') white = true;
+      if (black && white) return ownershipMap(board, size);
+    }
+  }
+  return null;
 }

@@ -3,7 +3,7 @@ import { ScrollView, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   createGoAnalysis,
-  goOwnershipMap,
+  goReviewOwnership,
   goTimelineToPoints,
   sgfToTimeline,
   type Color,
@@ -143,7 +143,7 @@ function SgfAnalysis({ timeline, onExit }: { timeline: GoGameState[]; onExit: ()
           onMove={() => {}}
           playerColor="black"
           hintPos={best?.to ?? null}
-          ownership={goOwnershipMap(displayState.board, size)}
+          ownership={goReviewOwnership(displayState.board, size)}
           interactive={false}
         />
       }

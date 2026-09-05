@@ -19,6 +19,7 @@ import { OpponentPicker, FlipBoardCard, type SetupMode } from '@/game/OpponentPi
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
+import { AnalysisCard } from '@/game/AnalysisCard';
 import { CustomEloPicker } from '@/game/CustomEloPicker';
 import { CapturedTray } from '@/game/CapturedTray';
 import { GameBar } from '@/game/GameBar';
@@ -219,20 +220,11 @@ export function ChessScreen() {
 
         <LearnLink game="chess" label="New to chess? How to play →" />
 
-        {/* Chess only, like web: the analysis board is a position editor with an
-            engine behind it, and the other two games have no engine to ask. */}
-        <Pressable
-          onPress={() => router.push('/analysis/chess' as never)}
-          accessibilityRole="link"
-          accessibilityLabel="Open the analysis board"
-          style={{ paddingVertical: 6 }}
-        >
-          <Text style={{ color: GAME_ACCENTS.chess.base, fontFamily: FONTS.bodySemi, fontSize: 14 }}>
-            Analysis board — set up any position →
-          </Text>
-        </Pressable>
-
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.chess.base} tint={GAME_ACCENTS.chess.tintBg} />
+
+        {/* Chess and Go only: the analysis board is a position editor with an
+            engine behind it, and the other three games have no engine to ask. */}
+        <AnalysisCard game="chess" />
 
         {isPuzzles && <PuzzlesCard game="chess" />}
 
