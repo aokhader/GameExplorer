@@ -59,6 +59,16 @@ export default function GoLandingPage() {
       cta: 'Solve Puzzles',
     },
     {
+      id: 'analysis',
+      title: 'Analysis Board',
+      description: 'Paste a game as SGF and have the engine grade every move',
+      icon: '🔍',
+      href: '/go/analysis',
+      gradient: 'from-warning to-danger',
+      available: true,
+      cta: 'Analyze a Game',
+    },
+    {
       id: 'learn',
       title: 'How to Play',
       description: 'New to Go? Liberties, capture, ko and scoring — the whole game in a few minutes',

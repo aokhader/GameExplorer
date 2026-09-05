@@ -1,21 +1,24 @@
 import { Pressable, Text, View } from 'react-native';
 import type { GoScoring } from '@gameexplorer/shared';
 import {
+  GO_BOARD_SIZES,
   GO_KOMI_PRESETS,
-  GO_RATED_KOMI,
   GO_SCORING_OPTIONS,
+  goRatedEligibility,
 } from '@gameexplorer/client/game/goSetup';
 import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface GoRulesCardProps {
+  size: number;
+  onSizeChange: (size: number) => void;
   komi: number;
   onKomiChange: (komi: number) => void;
   scoring: GoScoring;
   onScoringChange: (scoring: GoScoring) => void;
   /**
-   * Show the note explaining that a non-standard komi makes the game casual.
-   * False in pass-and-play, where nothing was going to be rated anyway.
+   * Show the note explaining that these settings make the game casual. False in
+   * pass-and-play, where nothing was going to be rated anyway.
    */
   showRatedNote?: boolean;
 }
@@ -60,27 +63,71 @@ function Chip({
   );
 }
 
+/** One labelled row of chips, plus the line explaining the current choice. */
+function Choice<T extends string | number>({
+  label,
+  announce,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  /** How one option reads to a screen reader, which cannot see the group heading. */
+  announce: (option: { label: string; description: string }) => string;
+  options: readonly { value: T; label: string; description: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <View>
+      <Text
+        style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 8 }}
+      >
+        {label}
+      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {options.map((option) => (
+          <Chip
+            key={String(option.value)}
+            label={option.label}
+            selected={value === option.value}
+            onPress={() => onChange(option.value)}
+            accessibilityLabel={announce(option)}
+          />
+        ))}
+      </View>
+      <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 8, lineHeight: 16 }}>
+        {selected?.description}
+      </Text>
+    </View>
+  );
+}
+
 /**
- * The two rules a Go game is set up with: how much White gets for moving
- * second, and how the board is counted at the end.
+ * The three rules a Go game is set up with: how big the board is, how much
+ * White gets for moving second, and how the board is counted at the end.
  *
- * Rendered in **every** mode, unlike the bot tier and the rated toggle — komi
- * and the scoring rule apply just as much to two people sharing a phone.
+ * Rendered in **every** mode, unlike the bot tier and the rated toggle — all
+ * three apply just as much to two people sharing a phone.
  *
  * The line under each row is the point of the card. "Territory" and "area" mean
  * nothing to a new player, and a setting nobody understands is worse than no
  * setting at all.
  */
 export function GoRulesCard({
+  size,
+  onSizeChange,
   komi,
   onKomiChange,
   scoring,
   onScoringChange,
   showRatedNote = false,
 }: GoRulesCardProps) {
-  const scoringOption = GO_SCORING_OPTIONS.find((o) => o.value === scoring);
-  const komiPreset = GO_KOMI_PRESETS.find((k) => k.value === komi);
-  const unrated = showRatedNote && komi !== GO_RATED_KOMI;
+  // One shared rule, so this card and the web one cannot disagree about what
+  // counts as rated.
+  const eligibility = goRatedEligibility({ size, komi });
 
   return (
     <View
@@ -94,54 +141,36 @@ export function GoRulesCard({
         gap: 16,
       }}
     >
-      <View>
-        <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 8 }}>
-          Scoring
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {GO_SCORING_OPTIONS.map((option) => (
-            <Chip
-              key={option.value}
-              label={option.label}
-              selected={scoring === option.value}
-              onPress={() => onScoringChange(option.value)}
-              accessibilityLabel={`${option.label} scoring — ${option.description}`}
-            />
-          ))}
-        </View>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 8, lineHeight: 16 }}>
-          {scoringOption?.description}
-        </Text>
-      </View>
+      <Choice
+        label="Board"
+        options={GO_BOARD_SIZES}
+        value={size}
+        onChange={onSizeChange}
+        announce={(o) => `${o.label} board — ${o.description}`}
+      />
+      <Choice
+        label="Scoring"
+        options={GO_SCORING_OPTIONS}
+        value={scoring}
+        onChange={onScoringChange}
+        announce={(o) => `${o.label} scoring — ${o.description}`}
+      />
+      <Choice
+        label="Komi"
+        options={GO_KOMI_PRESETS}
+        value={komi}
+        onChange={onKomiChange}
+        announce={(o) => `Komi ${o.label} — ${o.description}`}
+      />
 
-      <View>
-        <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 8 }}>
-          Komi
+      {showRatedNote && !eligibility.rated && (
+        <Text
+          accessibilityRole="text"
+          style={{ color: COLORS.warning, fontSize: 12, lineHeight: 16 }}
+        >
+          {eligibility.reason}
         </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {GO_KOMI_PRESETS.map((preset) => (
-            <Chip
-              key={preset.value}
-              label={preset.label}
-              selected={komi === preset.value}
-              onPress={() => onKomiChange(preset.value)}
-              accessibilityLabel={`Komi ${preset.label} — ${preset.description}`}
-            />
-          ))}
-        </View>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 8, lineHeight: 16 }}>
-          {komiPreset?.description}
-        </Text>
-        {unrated && (
-          <Text
-            accessibilityRole="text"
-            style={{ color: COLORS.warning, fontSize: 12, marginTop: 8, lineHeight: 16 }}
-          >
-            Games away from {GO_RATED_KOMI} komi are casual — komi is worth about seven
-            points here, and the bot’s tiers were measured at {GO_RATED_KOMI}.
-          </Text>
-        )}
-      </View>
+      )}
     </View>
   );
 }

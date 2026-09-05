@@ -121,3 +121,34 @@ test('pass-and-play seats both colours on one screen', async ({ page }) => {
   await expect(page.locator('[data-stone]')).toHaveCount(1);
   await expect(legal).toHaveCount(80);
 });
+
+test('the board size picker reaches the game, and only 9×9 stays rated', async ({ page }) => {
+  /*
+   * The size has to reach the BOARD, not just the summary line. The last Go
+   * pass shipped a bug of exactly this shape: `useLocalGame` builds its first
+   * position in a `useState` initialiser, which runs once, and the setup screen
+   * and the board are the same component — so a ruleset chosen after mount was
+   * silently discarded and the game began under the defaults. Counting the
+   * points on the board is the assertion that would have caught it.
+   */
+  await page.goto('/go/bot');
+  await expect(page.getByText('9×9 · area scoring · 7.5 komi to white')).toBeVisible();
+
+  await page.getByRole('button', { name: '13×13', exact: true }).click();
+  await expect(page.getByText('13×13 · area scoring · 7.5 komi to white')).toBeVisible();
+  await expect(page.getByText(/Only 9×9 games are rated/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Start Game' }).click();
+  await expect(page.locator('[data-legal]')).toHaveCount(169);
+});
+
+test('19×19 is offered and playable', async ({ page }) => {
+  await page.goto('/go/local');
+  await page.getByRole('button', { name: '19×19', exact: true }).click();
+  await page.getByRole('button', { name: 'Start Game' }).click();
+  await expect(page.locator('[data-legal]')).toHaveCount(361);
+
+  // A stone goes down on the big board like any other.
+  await page.locator('[data-legal]').first().click();
+  await expect(page.locator('[data-legal]')).toHaveCount(360);
+});

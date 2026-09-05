@@ -119,11 +119,51 @@ const COZY_GO_STONE_STYLE = {
 export const GO_STONE_STYLE =
   liveView({ dark: DARK_GO_STONE_STYLE, cozy: COZY_GO_STONE_STYLE });
 
+export type GoPoint = readonly [row: number, col: number];
+
 /**
- * Star points for a 9×9 board, as `[row, col]` zero-based from the bottom-left
- * — the 3-3 points and tengen. Larger boards have their own pattern; when 13×13
- * and 19×19 arrive this becomes a function of size.
+ * Star points (*hoshi*) for a board, as `[row, col]` zero-based from the
+ * bottom-left.
+ *
+ * They are not decoration: they mark the handicap points, and players read the
+ * whole board's geometry off them. The convention is fixed by centuries of
+ * practice rather than by a formula, so it is spelled out here:
+ *
+ *  - the corner stars sit on the **3-3** points on 9×9 and on the **4-4**
+ *    points from 13×13 up;
+ *  - 9×9 and 13×13 mark four corners and tengen — five in all;
+ *  - 19×19 also marks the four side midpoints, making the familiar nine.
+ *
+ * Anything else (an even size, or something smaller than 7) gets corners and,
+ * where there is one, a centre — enough to orient by, and no invented tradition.
  */
-export const GO_STAR_POINTS_9: readonly (readonly [number, number])[] = [
-  [2, 2], [2, 6], [4, 4], [6, 2], [6, 6],
-];
+export function goStarPoints(size: number): readonly GoPoint[] {
+  if (size < 7) return [];
+
+  const offset = size >= 13 ? 3 : 2;
+  const far = size - 1 - offset;
+  const centre = (size - 1) / 2;
+  const hasCentre = Number.isInteger(centre);
+
+  const points: GoPoint[] = [
+    [offset, offset],
+    [offset, far],
+    [far, offset],
+    [far, far],
+  ];
+
+  if (hasCentre) {
+    if (size >= 19) {
+      points.push([offset, centre], [centre, offset], [centre, far], [far, centre]);
+    }
+    points.push([centre, centre]);
+  }
+
+  return points;
+}
+
+/**
+ * The 9×9 star points, kept as a named constant because it is what the boards
+ * shipped with and what the tutorial diagrams are pinned against.
+ */
+export const GO_STAR_POINTS_9: readonly GoPoint[] = goStarPoints(9);

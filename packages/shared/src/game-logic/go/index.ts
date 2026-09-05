@@ -27,6 +27,7 @@ export {
   analyzeGoPosition,
   goEloToConfig,
   GO_ANALYSIS_ITERATIONS,
+  goAnalysisIterations,
 } from './bot';
 export type { GoBotMove, GoBotOptions, GoPositionEval } from './bot';
 export * from './notation';
@@ -59,3 +60,12 @@ export {
   boardWithoutStones as goBoardWithoutStones,
 } from './scoring';
 export type { GoPrisoners } from './scoring';
+export {
+  stateToSgf,
+  parseSgf,
+  sgfToState,
+  sgfToTimeline,
+  toSgfPoint,
+  fromSgfPoint,
+} from './sgf';
+export type { ParsedSgf, SgfExportOptions } from './sgf';

@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Circle, Line } from 'react-native-svg';
-import { GoEngine, goColumnLabel } from '@gameexplorer/shared';
+import { GoEngine, confirmPlacementFor, goColumnLabel } from '@gameexplorer/shared';
 import type { GoColor, GoGameState } from '@gameexplorer/shared';
-import { GO_BOARD_COLORS, GO_STAR_POINTS_9, GoStone } from '@gameexplorer/ui';
+import { GO_BOARD_COLORS, goStarPoints, GoStone } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
+import { placementOnRelease } from './goPlacement';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
@@ -135,13 +136,37 @@ function GoBoardInner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyLength]);
 
-  const handleTap = (x: number, y: number) => {
-    if (!interactiveRef.current) return;
-    const state = stateRef.current;
-    if (state.isGameOver) return;
+  /**
+   * Aim-then-confirm placement.
+   *
+   * On 9×9 a point is a comfortable target and a single tap is right. On 19×19
+   * a point is about 18pt across against a 44pt guideline, so a single tap is a
+   * coin flip between two intersections — and in Go a stone in the wrong place
+   * cannot be taken back. So above 9×9, and whenever the player asks for it,
+   * pressing the board *aims*: a ghost stone appears with crosshairs through it
+   * and follows the finger, and only a second press on the same point plays it.
+   *
+   * Marking is deliberately exempt. Toggling a chain dead is reversible and the
+   * targets are whole groups rather than single points, so the extra step would
+   * be friction for nothing.
+   */
+  const [aim, setAim] = useState<string | null>(null);
+  const aimRef = useRef<string | null>(null);
+  aimRef.current = aim;
+  /** What was aimed when the current press began — pressing it again commits. */
+  const aimAtPressRef = useRef<string | null>(null);
 
+  const confirmMode = confirmPlacementFor(size, settings) && !marking;
+  const confirmRef = useRef(confirmMode);
+  confirmRef.current = confirmMode;
+
+  // A move landing (ours or the bot's) makes any aim stale.
+  useEffect(() => setAim(null), [historyLength, marking]);
+
+  /** The intersection under a touch, or null before the board has been measured. */
+  const pointAt = (x: number, y: number): { position: string; row: number; col: number } | null => {
     const px = pxRef.current;
-    if (px <= 0) return;
+    if (px <= 0) return null;
 
     // Nearest crossing, not the containing cell: the board is inset by half a
     // cell, so `round` is what maps a fingertip to the point under it.
@@ -149,35 +174,95 @@ function GoBoardInner({
     const clamp = (n: number) => Math.max(0, Math.min(size - 1, Math.round(n / cell - 0.5)));
     const col = clamp(x);
     const screenRow = clamp(y);
-    const position = posFromCoords(size - 1 - screenRow, col);
+    const row = size - 1 - screenRow;
+    return { position: posFromCoords(row, col), row, col };
+  };
+
+  /** Play the point, or refuse it audibly. Shared by both interaction styles. */
+  const commit = (position: string) => {
+    if (getLegalMoves().includes(position)) onMove(position);
+    else sfx.play('illegal');
+  };
+
+  const handlePress = (x: number, y: number) => {
+    if (!interactiveRef.current) return;
+    const state = stateRef.current;
+    if (state.isGameOver) return;
+
+    const hit = pointAt(x, y);
+    if (!hit) return;
 
     // The review is nobody's turn, and the target is a stone rather than an
     // empty point — so it runs before the turn gate rather than through it.
     const toggle = markRef.current;
     if (toggle) {
-      if (state.board[size - 1 - screenRow][col] !== null) toggle(position);
+      if (state.board[hit.row][hit.col] !== null) toggle(hit.position);
       else sfx.play('illegal');
       return;
     }
 
     if (state.currentTurn !== playerColorRef.current) return;
-    if (getLegalMoves().includes(position)) onMove(position);
-    else sfx.play('illegal');
+
+    aimAtPressRef.current = aimRef.current;
+    if (confirmRef.current) setAim(hit.position);
   };
 
-  // Handler ref so the memoized gesture always calls the latest closure.
-  const tapRef = useRef(handleTap);
-  tapRef.current = handleTap;
-  const callTap = (x: number, y: number) => tapRef.current(x, y);
+  const handleDrag = (x: number, y: number) => {
+    if (!confirmRef.current || markRef.current) return;
+    if (!interactiveRef.current) return;
+    if (stateRef.current.currentTurn !== playerColorRef.current) return;
+    const hit = pointAt(x, y);
+    if (hit) setAim(hit.position);
+  };
+
+  const handleRelease = (x: number, y: number) => {
+    if (!interactiveRef.current || markRef.current) return;
+    const state = stateRef.current;
+    if (state.isGameOver) return;
+    if (state.currentTurn !== playerColorRef.current) return;
+
+    const hit = pointAt(x, y);
+    if (!hit) return;
+
+    const outcome = placementOnRelease({
+      confirm: confirmRef.current,
+      released: hit.position,
+      aimAtPress: aimAtPressRef.current,
+    });
+    if (outcome === 'commit') {
+      setAim(null);
+      commit(hit.position);
+    }
+  };
+
+  // Handler refs so the memoized gesture always calls the latest closures.
+  const pressRef = useRef(handlePress);
+  pressRef.current = handlePress;
+  const dragRef = useRef(handleDrag);
+  dragRef.current = handleDrag;
+  const releaseRef = useRef(handleRelease);
+  releaseRef.current = handleRelease;
 
   const gesture = useMemo(
     () =>
-      Gesture.Tap()
-        .maxDuration(400)
+      // A Pan rather than a Tap, because the aim has to follow the finger and a
+      // Tap never reports movement.
+      Gesture.Pan()
+        .minDistance(0)
         .runOnJS(true)
-        .onEnd((e) => {
-          callTap(e.x, e.y);
-        }),
+        .onBegin((e) => pressRef.current(e.x, e.y))
+        .onUpdate((e) => dragRef.current(e.x, e.y))
+        /*
+         * `onFinalize`, NOT `onEnd`. A Pan only ends if it *activated*, and a
+         * still finger never moves, so a plain tap fires `onBegin` and nothing
+         * else — the aim appeared and the second tap could never place the
+         * stone. `onFinalize` runs whether the gesture activated or failed.
+         *
+         * Found on the device, not by any test: the pure placement rule was
+         * right, the tests that cover it passed, and the gesture never called
+         * it.
+         */
+        .onFinalize((e) => releaseRef.current(e.x, e.y)),
     [],
   );
 
@@ -227,6 +312,55 @@ function GoBoardInner({
                     backgroundColor: GO_BOARD_COLORS.ghost,
                   }}
                 />,
+              );
+            }
+
+            if (aim === position) {
+              // Crosshairs plus a translucent stone. The crosshairs are what
+              // make the aim readable at 19x19, where the stone itself is
+              // barely bigger than the finger hiding it.
+              overlays.push(
+                <View
+                  key={`aim-h-${position}`}
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: cy - 0.5,
+                    width: px,
+                    height: 1,
+                    backgroundColor: GO_BOARD_COLORS.lastMoveRing,
+                    opacity: 0.5,
+                  }}
+                />,
+                <View
+                  key={`aim-v-${position}`}
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    left: cx - 0.5,
+                    top: 0,
+                    width: 1,
+                    height: px,
+                    backgroundColor: GO_BOARD_COLORS.lastMoveRing,
+                    opacity: 0.5,
+                  }}
+                />,
+                <View
+                  key={`aim-${position}`}
+                  pointerEvents="none"
+                  accessibilityLabel={`Aiming at ${goColumnLabel(col)}${row + 1}`}
+                  style={{
+                    position: 'absolute',
+                    left: cx - stoneSize / 2,
+                    top: cy - stoneSize / 2,
+                    width: stoneSize,
+                    height: stoneSize,
+                    opacity: 0.55,
+                  }}
+                >
+                  <GoStone color={playerColor} size={stoneSize} />
+                </View>,
               );
             }
 
@@ -363,16 +497,20 @@ function GoBoardInner({
             >
               <Svg width={px} height={px} style={{ position: 'absolute', left: 0, top: 0 }}>
                 {lines}
-                {size === 9 &&
-                  GO_STAR_POINTS_9.map(([row, col]) => (
-                    <Circle
-                      key={`star-${row}-${col}`}
-                      cx={at(col)}
-                      cy={at(size - 1 - row)}
-                      r={Math.max(2, cell * 0.08)}
-                      fill={GO_BOARD_COLORS.hoshi}
-                    />
-                  ))}
+                {/*
+                  * `goStarPoints(size)`, not `size === 9 && …`: the old form drew
+                  * nothing at all on any other board and could not fail a
+                  * typecheck.
+                  */}
+                {goStarPoints(size).map(([row, col]) => (
+                  <Circle
+                    key={`star-${row}-${col}`}
+                    cx={at(col)}
+                    cy={at(size - 1 - row)}
+                    r={Math.max(2, cell * 0.08)}
+                    fill={GO_BOARD_COLORS.hoshi}
+                  />
+                ))}
               </Svg>
 
               {coordsOn &&

@@ -33,7 +33,8 @@ export { REVERSI_BOARD_COLORS, REVERSI_DISC_COLORS, REVERSI_DISC_STYLE } from '.
 
 export { GoStone } from './go/GoStone';
 export type { GoStoneProps, GoStoneColor } from './go/GoStone';
-export { GO_BOARD_COLORS, GO_STONE_STYLE, GO_STAR_POINTS_9 } from './go/tokens';
+export { GO_BOARD_COLORS, GO_STONE_STYLE, GO_STAR_POINTS_9, goStarPoints } from './go/tokens';
+export type { GoPoint } from './go/tokens';
 
 export {
   COZY_LIQUIDATE_SEAT_COLORS,

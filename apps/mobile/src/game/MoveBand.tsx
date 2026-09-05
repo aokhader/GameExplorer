@@ -24,6 +24,14 @@ export interface MoveBandProps {
    * yet, or a reversi pass) render exactly as they do during play.
    */
   grades?: (MoveGrade | null)[];
+  /**
+   * Which timeline index each move produced, when that is not simply `i + 1`.
+   *
+   * Go needs it: leaving the dead-stone review appends a position that is not a
+   * move, so from there the count and the timeline disagree and every chip
+   * jumped one position too early. The other three games leave it out.
+   */
+  positions?: readonly number[];
 }
 
 /**
@@ -36,7 +44,7 @@ export interface MoveBandProps {
  * move" — something the player cards already show. Stepping controls live on
  * the bottom `GameBar`, so the band is display + jump only.
  */
-export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades }: MoveBandProps) {
+export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades, positions }: MoveBandProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
@@ -45,8 +53,11 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades }: Move
   // Chip x-offsets, captured on layout, so the auto-scroll can centre one.
   const offsets = useRef<number[]>([]);
 
-  // Keep the active move visible. `viewIndex` is a timeline index (1-based over
-  // moves), so chip `viewIndex - 1` produced the position on the board.
+  /** Chip showing on the board, or −1 for a position no move produced. */
+  const activeChip = positions ? positions.indexOf(viewIndex) : viewIndex - 1;
+
+  // Keep the active move visible. `viewIndex` is a timeline index, and without a
+  // `positions` map chip `viewIndex - 1` produced the position on the board.
   //
   // The live tail scrolls to the end rather than to a measured offset: when a
   // move is appended, this runs before the new chip's onLayout has recorded its
@@ -57,10 +68,10 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades }: Move
     if (!scroll) return;
     if (viewIndex <= 0) {
       scroll.scrollTo({ x: 0, animated: true });
-    } else if (viewIndex >= san.length) {
+    } else if (activeChip < 0 || activeChip >= san.length - 1) {
       scroll.scrollToEnd({ animated: true });
     } else {
-      const x = offsets.current[viewIndex - 1];
+      const x = offsets.current[activeChip];
       if (x !== undefined) scroll.scrollTo({ x: Math.max(0, x - 90), animated: true });
     }
   };
@@ -96,8 +107,8 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades }: Move
         onContentSizeChange={scrollToActive}
       >
         {san.map((text, i) => {
-          const stateIdx = i + 1;
-          const isActive = viewIndex === stateIdx;
+          const stateIdx = positions?.[i] ?? i + 1;
+          const isActive = i === activeChip;
           // Every game's moveHistory strictly alternates (reversi records a pass
           // as its own entry), so the first ply of each pair — white/gold, or
           // black in reversi where it moves first — carries the move number.
@@ -124,7 +135,7 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades }: Move
                 onPress={() => onSeek(stateIdx)}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  marked ? `Move ${stateIdx}, ${text}, ${meta!.label}` : `Move ${stateIdx}, ${text}`
+                  marked ? `Move ${i + 1}, ${text}, ${meta!.label}` : `Move ${i + 1}, ${text}`
                 }
                 accessibilityState={{ selected: isActive }}
                 style={{ marginLeft: 4 }}

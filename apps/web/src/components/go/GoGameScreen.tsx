@@ -19,11 +19,14 @@ import {
   GO_DIFFICULTY_LEVELS,
   GO_PASS,
   GO_RATED_KOMI,
+  GO_RATED_SIZE,
   GO_RESUME,
   GO_TRAINING_ELO_BOUNDS,
   goEloLabel,
   goFinalizeMove,
+  goRatedEligibility,
   goRulesetSummary,
+  goTimelineRows,
   makeGoAdapter,
 } from '@gameexplorer/client/game/goAdapter';
 import { HINT_PENALTY } from '@gameexplorer/client/trainingRules';
@@ -31,6 +34,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { GoBoard } from '@/components/go/GoBoard';
 import { GoMarkingPanel } from '@/components/go/GoMarkingPanel';
 import { GoRulesCard } from '@/components/go/GoRulesCard';
+import { GoSgfButton } from '@/components/go/GoSgfButton';
 import { GoScoreBar } from '@/components/go/GoScoreBar';
 import type { GameResult } from '@/components/game/GameResultScreen';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
@@ -84,6 +88,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   const [playerColor, setPlayerColor] = useState<GoColor>('black');
   const [rated, setRated] = useState(true);
   const [started, setStarted] = useState(false);
+  const [size, setSize] = useState(GO_RATED_SIZE);
   const [komi, setKomi] = useState(GO_RATED_KOMI);
   const [scoring, setScoring] = useState<GoScoring>('area');
 
@@ -91,14 +96,15 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   const userId = user?.id ?? null;
 
   /**
-   * Komi is worth about seven points on a 9×9 board, so choosing it is choosing
-   * a head start, and the bot's tiers were only ever measured at 7.5. Anything
-   * else plays fine and counts for nothing.
+   * What makes a game count, in one shared place — see `goRatedEligibility`.
+   * Board size and komi both move the goalposts, and the bot’s ladder was only
+   * ever measured on one setting of each.
    */
-  const komiIsRated = komi === GO_RATED_KOMI;
+  const eligibility = goRatedEligibility({ size, komi });
 
   // Training is rated by definition; the other two ask.
-  const ratedEffective = (isTraining ? !!userId : rated && !!userId && !isLocal) && komiIsRated;
+  const ratedEffective =
+    (isTraining ? !!userId : rated && !!userId && !isLocal) && eligibility.rated;
   const loopMode: LocalGameMode = isLocal ? 'pass-and-play' : isTraining ? 'training' : 'bot';
 
   /**
@@ -107,7 +113,10 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
    * hint and the rating effect — so rebuilding it every render would re-fire
    * all of them.
    */
-  const adapter = useMemo(() => makeGoAdapter({ komi, scoring }), [komi, scoring]);
+  const adapter = useMemo(
+    () => makeGoAdapter({ size, komi, scoring }),
+    [size, komi, scoring],
+  );
 
   const game = useLocalGame<GoGameState>({
     adapter,
@@ -172,7 +181,19 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
     () => (awaitingReview && reviewScore ? reviewScore : GoEngine.score(displayState)),
     [awaitingReview, reviewScore, displayState],
   );
-  const notation = useMemo(() => moveHistoryToGo(liveState.moveHistory), [liveState.moveHistory]);
+  /**
+   * The move list, and the position each entry jumps to.
+   *
+   * Read off the timeline rather than counted off the move history: leaving the
+   * dead-stone review appends a position that is not a move, so `timeline[i+1]`
+   * — which every other game's list can assume — is off by one for the rest of
+   * a Go game that went through it. See `goTimelineRows`.
+   */
+  const rows = useMemo(() => goTimelineRows(timeline), [timeline]);
+  const notation = useMemo(
+    () => moveHistoryToGo(rows.map((row) => row.move)),
+    [rows],
+  );
 
   const lastMove = liveState.moveHistory[liveState.moveHistory.length - 1];
   const lastPlacedPos = lastMove?.position ?? null;
@@ -210,7 +231,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
             {isLocal ? 'Pass & Play' : isTraining ? 'Training' : 'Play vs Bot'}
           </h1>
           <p className="text-center text-fg-muted mb-8">
-            {goRulesetSummary(9, komi, scoring)}
+            {goRulesetSummary(size, komi, scoring)}
           </p>
 
           {/* Training matches the bot to you, so there is no tier to pick. */}
@@ -261,7 +282,19 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
             </div>
           )}
 
+          {/* SGF lives on the analysis page: a file is a whole game, and what
+              you want with someone else's game is to walk it, not to take it
+              over halfway through. */}
+          <Link
+            href="/go/analysis"
+            className="mb-6 flex w-full items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-3 text-sm font-semibold text-fg-muted transition-colors hover:bg-white/[0.06] hover:text-fg"
+          >
+            Have an SGF? Analyse it move by move →
+          </Link>
+
           <GoRulesCard
+            size={size}
+            onSizeChange={setSize}
             komi={komi}
             onKomiChange={setKomi}
             scoring={scoring}
@@ -313,7 +346,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
             </div>
           )}
 
-          {mode === 'bot' && komiIsRated && (
+          {mode === 'bot' && eligibility.rated && (
             <RatedToggle checked={rated} onChange={setRated} gameLabel="Go" userId={userId} />
           )}
 
@@ -484,6 +517,10 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                 Two passes end the game. You then agree which groups are dead
                 before the board is counted.
               </p>
+
+              <div className="mt-3">
+                <GoSgfButton state={liveState} />
+              </div>
             </div>
 
             {isTraining && (
@@ -532,22 +569,21 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
               </div>
 
               <div className="flex-1 overflow-y-auto p-3 text-sm font-mono">
-                {liveState.moveHistory.length === 0 ? (
+                {rows.length === 0 ? (
                   <p className="text-fg-subtle text-xs text-center py-4">No moves yet</p>
                 ) : (
                   <div className="space-y-0.5">
-                    {liveState.moveHistory.map((move, i) => {
+                    {rows.map(({ index, move }, i) => {
                       const moveNum = Math.floor(i / 2) + 1;
-                      const isBlack = i % 2 === 0;
-                      const stateIdx = i + 1;
-                      const isActive = viewIndex === stateIdx;
+                      const isBlack = move.color === 'black';
+                      const isActive = viewIndex === index;
                       return (
-                        <div key={i} className="flex items-center gap-1">
+                        <div key={index} className="flex items-center gap-1">
                           {isBlack
                             ? <span className="text-fg-subtle w-6 shrink-0 text-right pr-0.5 text-xs">{moveNum}.</span>
                             : <span className="w-6 shrink-0" />}
                           <button
-                            onClick={() => setViewIndex(stateIdx)}
+                            onClick={() => setViewIndex(index)}
                             className={`flex-1 text-left px-2 py-0.5 rounded transition-colors text-xs ${
                               isActive
                                 ? 'bg-[color-mix(in_srgb,var(--c-accent)_18%,transparent)] text-[var(--c-accent-text)] font-semibold'

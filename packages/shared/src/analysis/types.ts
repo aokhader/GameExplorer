@@ -67,6 +67,17 @@ export interface AnalysisAdapter<S> {
   /** Human-readable eval, e.g. "+1.25" or "Mate in 3". */
   formatScore(evaluation: PositionEval): string;
   /**
+   * How a move reads to a player of THIS game. Optional; the default prints the
+   * square, or `from→to` where they differ.
+   *
+   * Go is the reason it exists. Its engine coordinates are `a1`–`s19`, but a Go
+   * board's columns **skip the letter I**, so the engine's `i9` is the point a
+   * player calls `J9`. Printing the raw string is right for the other three
+   * games — their engine strings are their display strings — and silently wrong
+   * for Go on every column past H.
+   */
+  formatMove?(move: EngineMove): string;
+  /**
    * White's share of the eval bar, 0–1. A squash of `score`, since the raw
    * number is unbounded and a bar is not.
    */

@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { GoScoring } from '@gameexplorer/shared';
-import { GO_KOMI_PRESETS, GO_SCORING_OPTIONS } from '@gameexplorer/client/game/goSetup';
+import {
+  GO_BOARD_SIZES,
+  GO_KOMI_PRESETS,
+  GO_RATED_SIZE,
+  GO_SCORING_OPTIONS,
+} from '@gameexplorer/client/game/goSetup';
 import { GoRulesCard } from '@/game/GoRulesCard';
 
 /**
- * The setup card that chooses the two rules a Go game is played under.
+ * The setup card that chooses the three rules a Go game is played under.
  *
  * What is actually worth pinning here is not that the buttons fire — it is that
  * every option the shared table offers reaches the screen with a description
@@ -20,10 +25,13 @@ jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').m
 
 /** Drives the card the way the setup screen does, so selection is observable. */
 function Harness({ showRatedNote = false }: { showRatedNote?: boolean }) {
+  const [size, setSize] = useState(GO_RATED_SIZE);
   const [komi, setKomi] = useState(7.5);
   const [scoring, setScoring] = useState<GoScoring>('area');
   return (
     <GoRulesCard
+      size={size}
+      onSizeChange={setSize}
       komi={komi}
       onKomiChange={setKomi}
       scoring={scoring}
@@ -34,8 +42,13 @@ function Harness({ showRatedNote = false }: { showRatedNote?: boolean }) {
 }
 
 describe('GoRulesCard', () => {
-  it('offers every komi preset and both rulesets', () => {
+  it('offers every board size, komi preset and ruleset', () => {
     render(<Harness />);
+    for (const boardSize of GO_BOARD_SIZES) {
+      expect(
+        screen.getByRole('button', { name: new RegExp(`^${boardSize.label} board`) }),
+      ).toBeTruthy();
+    }
     for (const preset of GO_KOMI_PRESETS) {
       expect(screen.getByRole('button', { name: new RegExp(`^Komi ${preset.label}`) })).toBeTruthy();
     }
@@ -79,6 +92,14 @@ describe('GoRulesCard', () => {
 
     fireEvent.press(screen.getByRole('button', { name: /^Komi 6\.5/ }));
     expect(screen.getByText(/casual/)).toBeTruthy();
+  });
+
+  it('warns that a bigger board makes the game casual, and says why', () => {
+    render(<Harness showRatedNote />);
+    fireEvent.press(screen.getByRole('button', { name: /^13×13 board/ }));
+    // Not just "casual" — the reason matters, because "the bot is weaker on a
+    // bigger board" is a real limitation and hiding it would be a small lie.
+    expect(screen.getByText(/weaker on a bigger board/)).toBeTruthy();
   });
 
   it('says nothing about rating where nothing was going to be rated', () => {

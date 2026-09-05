@@ -62,6 +62,19 @@ export interface SavedGame {
   rating_after?: number;
   // How the game ended. Set for multiplayer games; NULL for legacy/bot rows.
   end_reason?: EndReason;
+
+  /*
+   * Go's ruleset. Optional and nullable everywhere, because a move list cannot
+   * carry it and `supabase-add-go-rules.sql` may not have been run yet.
+   *
+   * NULL means the shipped defaults — 9x9, 7.5 komi, area scoring — which is
+   * what every Go row written before the sizes pass actually was. Readers must
+   * default rather than assert, so review works identically before and after
+   * the migration.
+   */
+  board_size?: number | null;
+  komi?: number | null;
+  scoring?: 'area' | 'territory' | null;
 }
 
 // What we send to Supabase on insert (no id/created_at, those are auto-generated)

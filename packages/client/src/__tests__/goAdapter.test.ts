@@ -9,7 +9,7 @@
  * actually runs, in `apps/mobile/src/__tests__/GoScreen.test.tsx`.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { GoEngine, detectDeadStones } from '@gameexplorer/shared';
+import { GoEngine, detectDeadStones, type GoGameState } from '@gameexplorer/shared';
 
 // The adapter imports the game writer, and `@gameexplorer/db` builds a Supabase
 // client the moment it is loaded. Nothing here saves anything, so the module
@@ -17,14 +17,19 @@ import { GoEngine, detectDeadStones } from '@gameexplorer/shared';
 vi.mock('@gameexplorer/db', () => ({ saveGoGame: vi.fn(async () => null) }));
 import {
   GO_FINALIZE,
+  GO_BOARD_SIZES,
   GO_KOMI_PRESETS,
   GO_PASS,
   GO_RATED_KOMI,
+  GO_RATED_SIZE,
   GO_RESUME,
   GO_SCORING_OPTIONS,
+  goActiveRow,
   goFinalizeMove,
   goKomiLabel,
+  goRatedEligibility,
   goRulesetSummary,
+  goTimelineRows,
   makeGoAdapter,
 } from '../game/goAdapter';
 
@@ -146,8 +151,12 @@ describe('setup tables', () => {
     expect(GO_KOMI_PRESETS.map((k) => k.value)).toContain(GO_RATED_KOMI);
   });
 
+  it('offers the rated board size among the sizes', () => {
+    expect(GO_BOARD_SIZES.map((s) => s.value)).toContain(GO_RATED_SIZE);
+  });
+
   it('gives every preset and ruleset a line the player can act on', () => {
-    for (const entry of [...GO_KOMI_PRESETS, ...GO_SCORING_OPTIONS]) {
+    for (const entry of [...GO_BOARD_SIZES, ...GO_KOMI_PRESETS, ...GO_SCORING_OPTIONS]) {
       expect(entry.label.length).toBeGreaterThan(0);
       expect(entry.description.length).toBeGreaterThan(10);
     }
@@ -162,5 +171,130 @@ describe('setup tables', () => {
     expect(goRulesetSummary(9, 0, 'area')).toBe('9×9 · area scoring · no komi');
     expect(goKomiLabel(0)).toBe('no komi');
     expect(goKomiLabel(7.5)).toBe('7.5 komi');
+  });
+});
+
+describe('goRatedEligibility', () => {
+  /*
+   * One function, read by both setup screens. It replaced an inline
+   * `komi !== GO_RATED_KOMI` in each of them — fine while komi was the only
+   * thing that could make a game casual, and a place for the two screens to
+   * drift apart the moment board size joined it.
+   */
+  it('rates the standard 9x9 game at 7.5 komi', () => {
+    const { rated, reason } = goRatedEligibility({ size: GO_RATED_SIZE, komi: GO_RATED_KOMI });
+    expect(rated).toBe(true);
+    expect(reason).toBeUndefined();
+  });
+
+  it('refuses any board but 9x9, whatever the komi', () => {
+    for (const size of [13, 19]) {
+      const { rated, reason } = goRatedEligibility({ size, komi: GO_RATED_KOMI });
+      expect(rated).toBe(false);
+      // The reason has to name the real limitation rather than just say "no":
+      // the search is genuinely weaker on a bigger board.
+      expect(reason).toMatch(/weaker on a bigger board/);
+    }
+  });
+
+  it('refuses a non-standard komi on the rated board', () => {
+    for (const preset of GO_KOMI_PRESETS) {
+      const { rated, reason } = goRatedEligibility({ size: GO_RATED_SIZE, komi: preset.value });
+      if (preset.value === GO_RATED_KOMI) {
+        expect(rated).toBe(true);
+      } else {
+        expect(rated).toBe(false);
+        expect(reason).toMatch(/casual/);
+      }
+    }
+  });
+
+  it('gives every refusal a reason, so no screen has to invent one', () => {
+    for (const size of GO_BOARD_SIZES) {
+      for (const komi of GO_KOMI_PRESETS) {
+        const result = goRatedEligibility({ size: size.value, komi: komi.value });
+        if (!result.rated) expect(result.reason && result.reason.length).toBeGreaterThan(20);
+      }
+    }
+  });
+
+  it('does not let the scoring rule affect rating — it does not change difficulty', () => {
+    // Deliberately not a parameter of the function at all, so this can only
+    // ever be true. Asserted anyway because the setup screens show scoring
+    // right beside two settings that DO make a game casual.
+    expect(goRatedEligibility({ size: 9, komi: 7.5 }).rated).toBe(true);
+  });
+});
+
+describe('board sizes reach the game', () => {
+  it.each(GO_BOARD_SIZES.map((s) => s.value))('builds a %i×%i board', (size) => {
+    const state = makeGoAdapter({ size }).newGame();
+    expect(state.size).toBe(size);
+    expect(state.board).toHaveLength(size);
+    expect(state.board[0]).toHaveLength(size);
+  });
+
+  it('carries the size into the ruleset line the setup screens print', () => {
+    expect(goRulesetSummary(19, 7.5, 'area')).toBe('19×19 · area scoring · 7.5 komi to white');
+  });
+});
+
+describe('the move list a Go screen shows', () => {
+  /*
+   * The bug this exists for. Every other game's move list maps move `i` to
+   * `timeline[i + 1]`, and Go cannot: leaving the dead-stone review appends a
+   * position that is **not a move**, so from that point on every entry pointed
+   * one position too early — clicking a move showed the position before it, and
+   * the move just played never highlighted.
+   */
+  const adapter = makeGoAdapter();
+
+  /** Drive the adapter the way the loop does, keeping every position. */
+  function run(...moves: string[]): GoGameState[] {
+    const timeline = [adapter.newGame()];
+    for (const move of moves) {
+      const result = adapter.validateMove(timeline[timeline.length - 1], move, move);
+      expect(result.valid).toBe(true);
+      timeline.push(result.resultingState!);
+    }
+    return timeline;
+  }
+
+  it('gives every move the position it produced', () => {
+    const rows = goTimelineRows(run('d4', 'f6', 'e5'));
+    expect(rows.map((row) => row.index)).toEqual([1, 2, 3]);
+    expect(rows.map((row) => row.move.position)).toEqual(['d4', 'f6', 'e5']);
+  });
+
+  it('counts a pass as a move, because it is one', () => {
+    const rows = goTimelineRows(run('d4', GO_PASS, 'f6'));
+    expect(rows.map((row) => row.move.position)).toEqual(['d4', null, 'f6']);
+  });
+
+  it('stays aligned after a resume, which appends a position and no move', () => {
+    // Two passes open the review, resuming leaves it: four states, three moves.
+    const timeline = run('d4', GO_PASS, GO_PASS, GO_RESUME, 'f6');
+    const rows = goTimelineRows(timeline);
+
+    expect(timeline).toHaveLength(6);
+    expect(rows).toHaveLength(4);
+    // The naive mapping would send this last move to index 4 — the resumed
+    // position, which is the board *before* it was played.
+    expect(rows[3]).toMatchObject({ index: 5 });
+    expect(timeline[rows[3].index].moveHistory).toHaveLength(4);
+  });
+
+  it('has no active row on a position no move produced', () => {
+    const timeline = run('d4', GO_PASS, GO_PASS, GO_RESUME);
+    const rows = goTimelineRows(timeline);
+    expect(goActiveRow(rows, 0)).toBe(-1);
+    expect(goActiveRow(rows, 4)).toBe(-1);
+    expect(goActiveRow(rows, 3)).toBe(2);
+  });
+
+  it('builds an empty board when nothing was chosen', () => {
+    const state = makeGoAdapter({ size: 13 }).newGame();
+    expect(state.size).toBe(13);
+    expect(state.moveHistory).toHaveLength(0);
   });
 });

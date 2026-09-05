@@ -81,6 +81,7 @@ export function ReviewScreen<S>({
   const currentGrade = viewIndex > 0 ? grades[viewIndex - 1] : null;
   const gradeList = grades.map((g) => g?.grade ?? null);
 
+  const formatMove = adapter.formatMove ?? defaultFormatMove;
   const share = evaluation ? adapter.whiteShare(evaluation) : 0.5;
   const label = evaluation ? adapter.formatScore(evaluation) : '';
 
@@ -126,7 +127,7 @@ export function ReviewScreen<S>({
               {viewIndex === 0 ? 'STARTING POSITION' : `AFTER MOVE ${viewIndex}`}
             </Text>
             {currentGrade ? (
-              <MoveVerdict grade={currentGrade} />
+              <MoveVerdict grade={currentGrade} formatMove={formatMove} />
             ) : (
               <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13, lineHeight: 19 }}>
                 {viewIndex === 0
@@ -206,12 +207,23 @@ export function ReviewScreen<S>({
   );
 }
 
-/** "e2→e4", or just the square for a placement game where from === to. */
-function formatMove(move: { from: string; to: string }): string {
+/**
+ * "e2→e4", or just the square for a placement game where from === to.
+ *
+ * The fallback only. A game whose engine coordinates are not what a player
+ * reads supplies `adapter.formatMove` instead — see `AnalysisAdapter`.
+ */
+function defaultFormatMove(move: { from: string; to: string }): string {
   return move.from === move.to ? move.to : `${move.from}→${move.to}`;
 }
 
-function MoveVerdict({ grade }: { grade: GradedMove }) {
+function MoveVerdict({
+  grade,
+  formatMove,
+}: {
+  grade: GradedMove;
+  formatMove: (move: { from: string; to: string }) => string;
+}) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 

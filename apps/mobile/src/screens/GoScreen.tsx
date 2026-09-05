@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Share, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
 import {
@@ -9,6 +9,7 @@ import {
   goOwnershipMap,
   moveHistoryToGo,
   toGoPoint,
+  stateToSgf,
   toggleDeadChain,
   type GoColor,
   type GoGameState,
@@ -18,11 +19,14 @@ import {
   GO_DIFFICULTY_LEVELS,
   GO_PASS,
   GO_RATED_KOMI,
+  GO_RATED_SIZE,
   GO_RESUME,
   GO_TRAINING_ELO_BOUNDS,
   goEloLabel,
   goFinalizeMove,
+  goRatedEligibility,
   goRulesetSummary,
+  goTimelineRows,
   makeGoAdapter,
 } from '@gameexplorer/client/game/goAdapter';
 import { COLORS, GAME_ACCENTS, GO_STONE_STYLE, useThemeName } from '@gameexplorer/ui';
@@ -98,6 +102,7 @@ export function GoScreen() {
   const [playerColor, setPlayerColor] = useState<GoColor>('black');
   const [rated, setRated] = useState(true);
   const [started, setStarted] = useState(false);
+  const [size, setSize] = useState(GO_RATED_SIZE);
   const [komi, setKomi] = useState(GO_RATED_KOMI);
   const [scoring, setScoring] = useState<GoScoring>('area');
 
@@ -110,17 +115,17 @@ export function GoScreen() {
   const picksColor = mode === 'bot' || mode === 'training';
 
   /**
-   * Komi is worth about seven points on a 9×9 board, so choosing it is choosing
-   * a head start, and the bot's tiers were only ever measured at 7.5. Anything
-   * else plays fine and counts for nothing.
+   * What makes a game count, in one shared place — see `goRatedEligibility`.
+   * Board size and komi both move the goalposts, and the bot's ladder was only
+   * ever measured on one setting of each.
    */
-  const komiIsRated = komi === GO_RATED_KOMI;
+  const eligibility = goRatedEligibility({ size, komi });
 
   // Rated needs connectivity at game start (the offline semantics every mobile
   // game screen follows). Training is rated by definition, so it has no toggle.
   const ratedEffective =
     (isTraining ? !!userId && online : rated && !!userId && !isPassAndPlay && online) &&
-    komiIsRated;
+    eligibility.rated;
 
   const gameMode: LocalGameMode = isPassAndPlay ? 'pass-and-play' : isTraining ? 'training' : 'bot';
 
@@ -130,7 +135,10 @@ export function GoScreen() {
    * hint and the rating effect — so rebuilding it every render would re-fire
    * all of them.
    */
-  const adapter = useMemo(() => makeGoAdapter({ komi, scoring }), [komi, scoring]);
+  const adapter = useMemo(
+    () => makeGoAdapter({ size, komi, scoring }),
+    [size, komi, scoring],
+  );
 
   const game = useLocalGame<GoGameState>({
     adapter,
@@ -191,11 +199,17 @@ export function GoScreen() {
     [showTerritory, game.displayState, dead],
   );
 
-  // Above the setup-screen early return: hooks can't be called conditionally.
-  const goMoves = useMemo(
-    () => moveHistoryToGo(game.timeline[game.timeline.length - 1].moveHistory),
-    [game.timeline],
-  );
+  /**
+   * The move ribbon, and the position each chip jumps to.
+   *
+   * Above the setup-screen early return: hooks can't be called conditionally.
+   * Read off the timeline rather than counted off the move history — leaving the
+   * dead-stone review appends a position that is not a move, and the count and
+   * the timeline disagree from there on. See `goTimelineRows`.
+   */
+  const rows = useMemo(() => goTimelineRows(game.timeline), [game.timeline]);
+  const goMoves = useMemo(() => moveHistoryToGo(rows.map((row) => row.move)), [rows]);
+  const movePositions = useMemo(() => rows.map((row) => row.index), [rows]);
   const score = useMemo(
     () => (awaitingReview && reviewScore ? reviewScore : GoEngine.score(game.displayState)),
     [awaitingReview, reviewScore, game.displayState],
@@ -213,6 +227,31 @@ export function GoScreen() {
 
         <LearnLink game="go" label="New to Go? How to play →" />
 
+        {/*
+          * SGF is the format every other Go program writes, so this is how a
+          * game from OGS or a book gets looked at here. It sits beside the
+          * tutorial link rather than inside a mode, because it is not a mode:
+          * nothing is played, an existing game is studied. Chess's setup screen
+          * points at its own analysis board from the same spot.
+          */}
+        <Pressable
+          onPress={() => router.push('/analysis/go' as never)}
+          accessibilityRole="button"
+          accessibilityLabel="Analyse a game from SGF"
+          style={{ marginBottom: 20 }}
+        >
+          <Text
+            style={{
+              color: GAME_ACCENTS.go.base,
+              fontFamily: FONTS.bodySemi,
+              fontSize: 14,
+              textAlign: 'center',
+            }}
+          >
+            Analyse a game from SGF →
+          </Text>
+        </Pressable>
+
         <OpponentPicker
           value={mode}
           onChange={setMode}
@@ -225,12 +264,14 @@ export function GoScreen() {
           <PuzzlesCard game="go" />
         ) : (
           <Text style={{ color: COLORS.fgSubtle, fontSize: 12, marginBottom: 20 }}>
-            {goRulesetSummary(9, komi, scoring)}
+            {goRulesetSummary(size, komi, scoring)}
           </Text>
         )}
 
         {!isPuzzles && (
         <GoRulesCard
+          size={size}
+          onSizeChange={setSize}
           komi={komi}
           onKomiChange={setKomi}
           scoring={scoring}
@@ -350,7 +391,7 @@ export function GoScreen() {
           </>
         )}
 
-        {isBotSetup && komiIsRated && (
+        {isBotSetup && eligibility.rated && (
           <View
             style={{
               flexDirection: 'row',
@@ -451,6 +492,23 @@ export function GoScreen() {
    */
   const canMark = awaitingReview && isAtLive && isPassAndPlay;
   const acceptScore = () => game.handleMove(goFinalizeMove(dead), '');
+
+  /**
+   * Hand the finished game to any other Go app, as SGF.
+   *
+   * Go is the one game here with an interchange format its players actually
+   * use, so this is the difference between a game that can be shown to a
+   * teacher or run through a stronger engine and one that only exists inside
+   * this app. The share sheet rather than a file: on a phone the destination is
+   * a message or another app, not the filesystem.
+   */
+  const shareSgf = () => {
+    const sgf = stateToSgf(liveState);
+    Share.share({ message: sgf, title: 'Go game (SGF)' }).catch(() => {
+      // The user dismissing the sheet rejects on some platforms. Nothing to
+      // report and nothing to recover.
+    });
+  };
   const resumePlay = () => game.handleMove(GO_RESUME, '');
   // The Go board never flips; in pass-and-play `playerColor` is the tap gate, so
   // it follows whoever is to move.
@@ -519,6 +577,7 @@ export function GoScreen() {
           <>
             <MoveBand
               moves={goMoves}
+              positions={movePositions}
               viewIndex={game.viewIndex}
               onSeek={game.setViewIndex}
               accent="go"
@@ -648,6 +707,7 @@ export function GoScreen() {
         actions={
           <>
             <Button label="Play Again" onPress={handleNewGame} glow />
+            <Button label="Share as SGF" onPress={shareSgf} variant="secondary" />
             <BackToHomeButton />
           </>
         }

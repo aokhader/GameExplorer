@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GoEngine } from '@gameexplorer/shared';
 import type { GoColor, GoGameState } from '@gameexplorer/shared';
-import { GO_BOARD_COLORS, GO_STAR_POINTS_9, GoStone } from '@gameexplorer/ui';
+import { GO_BOARD_COLORS, goStarPoints, GoStone } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
@@ -153,7 +153,10 @@ export const GoBoard = React.memo(function GoBoard({
   const cell = 100 / size;
   const at = (index: number) => (index + 0.5) * cell;
 
-  const stars = size === 9 ? GO_STAR_POINTS_9 : [];
+  // `goStarPoints(size)`, not `size === 9 ? … : []`. The old form drew no star
+  // points at all on any other board and could not fail a typecheck — the
+  // silent-empty fallback this repo has shipped six times.
+  const stars = goStarPoints(size);
 
   const lines = [];
   for (let i = 0; i < size; i++) {

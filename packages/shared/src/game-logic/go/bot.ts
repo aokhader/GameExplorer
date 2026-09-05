@@ -1,465 +1,65 @@
 /**
- * The Go bot — Monte-Carlo tree search with random playouts.
+ * The Go bot: the ELO ladder, the pass decision, and which search backend runs.
  *
  * **Why not the minimax the other three games use.** Chess, checkers and
  * reversi are all searched by `weakEngine.ts`: alpha-beta over a hand-written
  * static evaluation. Neither half of that works in Go. The branching factor is
- * 81 at move one against chess's ~35, so the tree is out of reach at any useful
- * depth; and far worse, there is no cheap static evaluation to prune on — a
- * stone's value depends on whether the group it belongs to will live, which is
- * a whole-board question that a material count or a positional weight table
+ * 81 at move one against chess's ~35, and far worse, there is no cheap static
+ * evaluation to prune on — a stone's value depends on whether the group it
+ * belongs to will live, which is a whole-board question that a material count
  * cannot answer. Counting stones on the board is close to meaningless in Go.
  *
- * MCTS sidesteps both problems by never evaluating a position at all. It plays
- * the game out at random to the end, where scoring IS trivial and exact, and
- * lets the average result of thousands of such playouts stand in for the
+ * Monte-Carlo tree search sidesteps both problems by never evaluating a position
+ * at all. It plays the game out to the end, where scoring IS trivial and exact,
+ * and lets the average result of thousands of playouts stand in for the
  * evaluation. Strength then scales with the number of playouts, which is what
  * the ELO bands below buy.
  *
- * **The one piece of Go knowledge here** is `isEye` — random play must not fill
- * its own eyes, or every group it builds dies during the playout and the result
- * carries no information. Every Monte-Carlo Go program since the 1990s has this
- * exclusion; without it the bot is not weak, it is random.
+ * **Two backends live behind `GoSearch`** (`search/types.ts`). `pattern` plays
+ * every real game: shaped playouts plus RAVE, which is what made 13×13 and
+ * 19×19 worth offering at all. `classic` is the original uniform-playout engine,
+ * kept because the bot-vs-bot harness measures the new one against it — a
+ * strength claim needs something to be stronger than.
  *
- * The search runs on a flat `Uint8Array` board, not on `GoGameState`: a playout
- * is ~60–120 moves and a search is thousands of playouts, so cloning an
- * immutable 9×9 array of strings per move would dominate the runtime entirely.
- * The engine remains the authority on what is legal at the ROOT (including
- * superko, which playouts deliberately ignore — see `playout`).
+ * The searches run on a flat `Uint8Array` board (`fastBoard.ts`), not on
+ * `GoGameState`. This module is the only part that speaks both.
  */
 
 import { GoEngine } from './engine';
 import type { GoColor, GoGameState } from './types';
 import { randomSeed } from '../../utils/rng';
-import { coordinatesToPosition, positionToCoordinates } from './utils';
+import {
+  BLACK,
+  WHITE,
+  createRandom,
+  createScratch,
+  geometryFor,
+  isEye,
+  positionToIndex,
+  scoreFast,
+  toFastBoard,
+} from './fastBoard';
+import { classicSearch } from './search/classic';
+import { patternSearch } from './search/pattern';
+import type { GoSearch } from './search/types';
 
-// ---------------------------------------------------------------------------
-// Flat board representation
-// ---------------------------------------------------------------------------
-
-const EMPTY = 0;
-const BLACK = 1;
-const WHITE = 2;
-
-type FastBoard = Uint8Array;
-
-/** Precomputed adjacency for one board size — built once, shared by every search. */
-interface Geometry {
-  size: number;
-  points: number;
-  /** `points × 4`, off-board entries are −1. */
-  neighbors: Int16Array;
-  neighborCount: Uint8Array;
-  diagonals: Int16Array;
-  diagonalCount: Uint8Array;
-}
-
-const GEOMETRY_CACHE = new Map<number, Geometry>();
-
-function geometryFor(size: number): Geometry {
-  const cached = GEOMETRY_CACHE.get(size);
-  if (cached) return cached;
-
-  const points = size * size;
-  const neighbors = new Int16Array(points * 4).fill(-1);
-  const neighborCount = new Uint8Array(points);
-  const diagonals = new Int16Array(points * 4).fill(-1);
-  const diagonalCount = new Uint8Array(points);
-
-  const orthogonal = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-  const diagonal = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
-
-  for (let row = 0; row < size; row++) {
-    for (let col = 0; col < size; col++) {
-      const idx = row * size + col;
-      for (const [dr, dc] of orthogonal) {
-        const r = row + dr;
-        const c = col + dc;
-        if (r < 0 || r >= size || c < 0 || c >= size) continue;
-        neighbors[idx * 4 + neighborCount[idx]++] = r * size + c;
-      }
-      for (const [dr, dc] of diagonal) {
-        const r = row + dr;
-        const c = col + dc;
-        if (r < 0 || r >= size || c < 0 || c >= size) continue;
-        diagonals[idx * 4 + diagonalCount[idx]++] = r * size + c;
-      }
-    }
-  }
-
-  const geometry: Geometry = { size, points, neighbors, neighborCount, diagonals, diagonalCount };
-  GEOMETRY_CACHE.set(size, geometry);
-  return geometry;
-}
-
-function opponentOf(color: number): number {
-  return color === BLACK ? WHITE : BLACK;
-}
+export { classicSearch } from './search/classic';
+export { patternSearch, tunedPatternSearch, DEFAULT_TUNING } from './search/pattern';
+export type { PatternSearchTuning } from './search/pattern';
+export { FULL_POLICY, UNIFORM_POLICY } from './search/policy';
+export type { PolicyOptions } from './search/policy';
+export type { GoSearch, GoSearchOptions, GoSearchResult } from './search/types';
 
 /**
- * Scratch buffers reused across every flood fill in a search.
+ * The backend every shipped game plays through.
  *
- * `marks` holds a monotonically increasing stamp per point instead of a boolean
- * that would have to be cleared: a fill just bumps the stamp, so visiting is
- * O(1) and resetting is free.
+ * A constant rather than a setting: two players on the same tier must be facing
+ * the same engine, or the rating attached to that tier means nothing.
  */
-interface Scratch {
-  marks: Int32Array;
-  stamp: number;
-  stones: Int16Array;
-  stack: Int16Array;
-  order: Int16Array;
-}
+export const GO_SEARCH: GoSearch = patternSearch;
 
-function createScratch(points: number): Scratch {
-  return {
-    marks: new Int32Array(points),
-    stamp: 0,
-    stones: new Int16Array(points),
-    stack: new Int16Array(points),
-    order: new Int16Array(points),
-  };
-}
-
-/**
- * Does the group containing `start` have at least one liberty?
- *
- * This is the hot function of the whole bot — every stone placed in every
- * playout asks it once per adjacent group — and it exists separately from
- * `collectGroup` for one reason: it **stops at the first liberty it finds**.
- * Counting a group's liberties means walking all of it, and groups late in a
- * playout run to forty stones; answering "any?" instead usually costs a handful
- * of steps, because a living group almost always has an empty point near the
- * one we came in through. Flooding the whole group is then only paid on the
- * rare move that actually captures.
- */
-function groupHasLiberty(board: FastBoard, geo: Geometry, start: number, scratch: Scratch): boolean {
-  const color = board[start];
-  const { neighbors, neighborCount } = geo;
-  const marks = scratch.marks;
-  const stamp = ++scratch.stamp;
-
-  let top = 0;
-  scratch.stack[top++] = start;
-  marks[start] = stamp;
-
-  while (top > 0) {
-    const current = scratch.stack[--top];
-    const base = current * 4;
-    for (let i = 0; i < neighborCount[current]; i++) {
-      const neighbor = neighbors[base + i];
-      const stone = board[neighbor];
-      if (stone === EMPTY) return true;
-      if (stone === color && marks[neighbor] !== stamp) {
-        marks[neighbor] = stamp;
-        scratch.stack[top++] = neighbor;
-      }
-    }
-  }
-  return false;
-}
-
-/**
- * Flood the group containing `start` into `scratch.stones`, returning
- * `{ count, liberties }`. Only called on the capture path — see
- * `groupHasLiberty` for why.
- */
-function collectGroup(
-  board: FastBoard,
-  geo: Geometry,
-  start: number,
-  scratch: Scratch,
-): { count: number; liberties: number } {
-  const color = board[start];
-  const { neighbors, neighborCount } = geo;
-  const marks = scratch.marks;
-  const groupStamp = ++scratch.stamp;
-  const libertyStamp = ++scratch.stamp;
-
-  let count = 0;
-  let liberties = 0;
-  let top = 0;
-
-  scratch.stack[top++] = start;
-  marks[start] = groupStamp;
-
-  while (top > 0) {
-    const current = scratch.stack[--top];
-    scratch.stones[count++] = current;
-    const base = current * 4;
-    for (let i = 0; i < neighborCount[current]; i++) {
-      const neighbor = neighbors[base + i];
-      const stone = board[neighbor];
-      if (stone === EMPTY) {
-        if (marks[neighbor] !== libertyStamp) {
-          marks[neighbor] = libertyStamp;
-          liberties++;
-        }
-      } else if (stone === color && marks[neighbor] !== groupStamp) {
-        marks[neighbor] = groupStamp;
-        scratch.stack[top++] = neighbor;
-      }
-    }
-  }
-
-  return { count, liberties };
-}
-
-/**
- * Play a stone, resolving captures. Returns false (leaving the board untouched)
- * when the point is occupied or the move is self-capture.
- *
- * Superko is not consulted — see the module note. The engine screens the root
- * move; inside a playout a repetition is harmless and the move cap bounds it.
- */
-function playFast(board: FastBoard, geo: Geometry, idx: number, color: number, scratch: Scratch): boolean {
-  if (board[idx] !== EMPTY) return false;
-
-  board[idx] = color;
-
-  const opponent = opponentOf(color);
-  const { neighbors, neighborCount } = geo;
-  const base = idx * 4;
-  let captured = 0;
-
-  for (let i = 0; i < neighborCount[idx]; i++) {
-    const neighbor = neighbors[base + i];
-    if (board[neighbor] !== opponent) continue;
-    if (groupHasLiberty(board, geo, neighbor, scratch)) continue;
-    const group = collectGroup(board, geo, neighbor, scratch);
-    for (let s = 0; s < group.count; s++) board[scratch.stones[s]] = EMPTY;
-    captured += group.count;
-  }
-
-  if (captured === 0 && !groupHasLiberty(board, geo, idx, scratch)) {
-    board[idx] = EMPTY; // undo — the move was suicide
-    return false;
-  }
-
-  return true;
-}
-
-/** See `isSingleSpaceEye` in moves.ts — this is the same rule on the flat board. */
-function isEye(board: FastBoard, geo: Geometry, idx: number, color: number): boolean {
-  if (board[idx] !== EMPTY) return false;
-
-  const base = idx * 4;
-  for (let i = 0; i < geo.neighborCount[idx]; i++) {
-    if (board[geo.neighbors[base + i]] !== color) return false;
-  }
-
-  const diagonalCount = geo.diagonalCount[idx];
-  const allowed = diagonalCount < 4 ? 0 : 1;
-  let nonFriendly = 0;
-  for (let i = 0; i < diagonalCount; i++) {
-    if (board[geo.diagonals[base + i]] !== color) nonFriendly++;
-  }
-  return nonFriendly <= allowed;
-}
-
-/** Tromp-Taylor area difference (black − white), komi excluded. */
-function scoreFast(board: FastBoard, geo: Geometry, scratch: Scratch): number {
-  const { neighbors, neighborCount, points } = geo;
-  const marks = scratch.marks;
-  let black = 0;
-  let white = 0;
-
-  // One stamp for the whole pass: every empty point belongs to exactly one
-  // region, so regions can share it and each point is still visited once.
-  const stamp = ++scratch.stamp;
-
-  for (let start = 0; start < points; start++) {
-    const stone = board[start];
-    if (stone === BLACK) { black++; continue; }
-    if (stone === WHITE) { white++; continue; }
-    if (marks[start] === stamp) continue;
-
-    // Flood the empty region, noting which colours sit on its border.
-    let top = 0;
-    let count = 0;
-    let touchesBlack = false;
-    let touchesWhite = false;
-    scratch.stack[top++] = start;
-    marks[start] = stamp;
-
-    while (top > 0) {
-      const current = scratch.stack[--top];
-      count++;
-      const base = current * 4;
-      for (let i = 0; i < neighborCount[current]; i++) {
-        const neighbor = neighbors[base + i];
-        const neighborStone = board[neighbor];
-        if (neighborStone === BLACK) touchesBlack = true;
-        else if (neighborStone === WHITE) touchesWhite = true;
-        else if (marks[neighbor] !== stamp) {
-          marks[neighbor] = stamp;
-          scratch.stack[top++] = neighbor;
-        }
-      }
-    }
-
-    if (touchesBlack && !touchesWhite) black += count;
-    else if (touchesWhite && !touchesBlack) white += count;
-  }
-
-  return black - white;
-}
-
-// ---------------------------------------------------------------------------
-// Playouts
-// ---------------------------------------------------------------------------
-
-/**
- * A seeded generator as a closure rather than the package's counter-based
- * `RngState`.
- *
- * `utils/rng.ts` is built so RNG state can live *inside* a game state and
- * serialize — the right trade for dice, where there are tens of draws per game.
- * A single Go search makes millions, and `next()` allocates a fresh state object
- * per draw. This keeps the same mulberry32 mixing and the same "seeded, so a
- * bot game replays exactly" contract, without the per-draw allocation.
- */
-function createRandom(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/**
- * One uniformly random legal move that is not an own eye, applied to the board.
- * Returns the point played, or −1 when the player has nothing left but to pass.
- *
- * The partial Fisher–Yates over `scratch.order` gives a uniform choice with an
- * early exit: a legal point is usually found in the first few draws, and the
- * full scan only happens when the board is nearly finished.
- */
-function randomMove(
-  board: FastBoard,
-  geo: Geometry,
-  color: number,
-  random: () => number,
-  scratch: Scratch,
-): number {
-  const order = scratch.order;
-  const n = geo.points;
-
-  for (let i = 0; i < n; i++) {
-    const j = i + Math.floor(random() * (n - i));
-    const swap = order[i];
-    order[i] = order[j];
-    order[j] = swap;
-
-    const idx = order[i];
-    if (board[idx] !== EMPTY) continue;
-    if (isEye(board, geo, idx, color)) continue;
-    if (playFast(board, geo, idx, color, scratch)) return idx;
-  }
-  return -1;
-}
-
-/**
- * Play the position out at random and return the final area difference
- * (black − white), komi excluded.
- *
- * The move cap is what guarantees termination: playouts skip the superko test,
- * so a ko could in principle be recaptured forever. In practice random play
- * exhausts the board long before the cap, which is set well above the longest
- * sensible game.
- */
-function playout(
-  board: FastBoard,
-  geo: Geometry,
-  colorToMove: number,
-  random: () => number,
-  scratch: Scratch,
-): number {
-  let color = colorToMove;
-  let passes = 0;
-  const cap = geo.points * 3;
-
-  for (let move = 0; move < cap && passes < 2; move++) {
-    const played = randomMove(board, geo, color, random, scratch);
-    passes = played === -1 ? passes + 1 : 0;
-    color = opponentOf(color);
-  }
-
-  return scoreFast(board, geo, scratch);
-}
-
-// ---------------------------------------------------------------------------
-// Monte-Carlo tree search
-// ---------------------------------------------------------------------------
-
-/** A move index of −1 means "pass"; the root carries −2, which is never played. */
-const PASS = -1;
-const ROOT = -2;
-
-interface Node {
-  move: number;
-  /** Whose turn it is AT this node. The player who moved INTO it is the other. */
-  colorToMove: number;
-  visits: number;
-  /** Wins for the player who moved into this node — the value its parent maximises. */
-  wins: number;
-  children: Node[];
-  /** Pseudo-legal candidates not yet expanded; null until first needed. */
-  untried: number[] | null;
-  parent: Node | null;
-}
-
-function createNode(move: number, colorToMove: number, parent: Node | null): Node {
-  return { move, colorToMove, visits: 0, wins: 0, children: [], untried: null, parent };
-}
-
-/**
- * Empty points that are not an own eye — the moves worth considering.
- *
- * Only *pseudo*-legal: a point that turns out to be self-capture is discovered
- * when it is applied and simply dropped. Testing all 81 points properly at every
- * expansion would cost more than it saves.
- */
-function candidateMoves(board: FastBoard, geo: Geometry, color: number): number[] {
-  const moves: number[] = [];
-  for (let idx = 0; idx < geo.points; idx++) {
-    if (board[idx] !== EMPTY) continue;
-    if (isEye(board, geo, idx, color)) continue;
-    moves.push(idx);
-  }
-  return moves;
-}
-
-/** Standard UCT: exploitation + `C · sqrt(ln N / n)`. */
-const UCT_C = 1.4;
-
-function selectChild(node: Node): Node {
-  let best = node.children[0];
-  let bestValue = -Infinity;
-  const logVisits = Math.log(node.visits);
-
-  for (const child of node.children) {
-    const value = child.wins / child.visits + UCT_C * Math.sqrt(logVisits / child.visits);
-    if (value > bestValue) {
-      bestValue = value;
-      best = child;
-    }
-  }
-  return best;
-}
-
-/** Credit the playout back up the path, each node from its own mover's view. */
-function backpropagate(node: Node | null, winner: number): void {
-  let current = node;
-  while (current) {
-    current.visits++;
-    if (opponentOf(current.colorToMove) === winner) current.wins++;
-    current = current.parent;
-  }
-}
+/** The benchmark opponent — see `search/classic.ts`. Never plays a real game. */
+export const GO_REFERENCE_SEARCH: GoSearch = classicSearch;
 
 // ---------------------------------------------------------------------------
 // ELO bands
@@ -478,50 +78,88 @@ interface GoBotConfig {
  *
  * Strength in MCTS is bought with playouts, so the ladder is a playout budget
  * rather than a search depth. The random-move share is what makes the bottom
- * tiers beginner-weak: at 60 playouts the search is already poor, but it still
- * captures and connects, which reads as far too strong for a 400.
+ * tiers beginner-weak: a search this shaped still captures and connects at 30
+ * playouts, which reads as far too strong for a 400.
+ *
+ * **These numbers are lower than the ones Go shipped with, and the bot is much
+ * stronger.** The shaped-playout engine wins every game against the original at
+ * *four times its playout budget* — that is, at equal wall-clock time — so a
+ * budget that used to buy a mediocre move now buys a good one. Rebuilding the
+ * ladder around the new engine is the only honest option: capping it back down
+ * to the old strength would mean shipping a worse bot on purpose.
+ *
+ * The consequence is stated rather than hidden: **a Go rating earned before
+ * this change was earned against a weaker opponent.** Nothing is migrated,
+ * because with the ladder rebuilt there is no correct number to migrate to.
  */
 const ELO_BANDS: [number, number, number, number, number, number][] = [
-  [ 400,  700,    40,  120, 0.55, 0.30],
-  [ 700, 1000,   120,  400, 0.30, 0.14],
-  [1000, 1300,   400, 1200, 0.14, 0.05],
-  [1300, 1600,  1200, 3000, 0.05, 0.01],
-  [1600, 2000,  3000, 6000, 0.01, 0.00],
+  [ 400,  700,    20,   60, 0.55, 0.30],
+  [ 700, 1000,    60,  180, 0.30, 0.14],
+  [1000, 1300,   180,  600, 0.14, 0.05],
+  [1300, 1600,   600, 1800, 0.05, 0.01],
+  [1600, 2000,  1800, 4000, 0.01, 0.00],
 ];
 
 const MIN_ELO = 400;
 const MAX_ELO = 2000;
 
 /**
- * Hard ceiling on one search, whatever the iteration budget says.
+ * Playout budgets scale DOWN as the board grows, which looks backwards and is
+ * not.
  *
- * The budget is deliberately the *primary* limit rather than a time slice: a
- * tier has to mean the same strength on a laptop and on a mid-range Android, or
- * a rating earned against "Expert" means two different things. Measured at
- * ~100 µs an iteration on desktop Node, the top tier's 6,000 iterations is
- * ~0.6 s there and comfortably inside this ceiling on a phone several times
- * slower. The ceiling exists only so a device slower still degrades to a weaker
- * move instead of freezing.
+ * A playout is a whole game, so it costs what the board costs: measured at
+ * 1,000 playouts on desktop Node, one search takes 0.38 s at 9×9, 0.79 s at
+ * 13×13 and 1.93 s at 19×19. Holding the budget fixed would put a 19×19 move
+ * five times over the ceiling, and `SEARCH_CEILING_MS` would silently truncate
+ * it — so a tier would mean one thing on a small board and something else on a
+ * big one, which is exactly what the ceiling exists to prevent.
+ *
+ * Scaling the ladder instead keeps every tier's *thinking time* roughly equal
+ * across sizes and makes the cost visible in one number. The bot is genuinely
+ * weaker on a big board as a result. That is true of the technique, not just of
+ * this implementation, and it is why **only 9×9 is rated.**
  */
-const SEARCH_CEILING_MS = 3000;
+const SIZE_BUDGET_SCALE: readonly (readonly [size: number, scale: number])[] = [
+  [9, 1],
+  [13, 0.5],
+  [19, 0.25],
+];
 
-export function goEloToConfig(elo: number): GoBotConfig {
+function budgetScale(size: number): number {
+  for (const [boardSize, scale] of SIZE_BUDGET_SCALE) {
+    if (size <= boardSize) return scale;
+  }
+  return 0.2;
+}
+
+export function goEloToConfig(elo: number, size = 9): GoBotConfig {
   const clamped = Math.max(MIN_ELO, Math.min(MAX_ELO, elo));
+  const scale = budgetScale(size);
+
   for (const [lo, hi, iterLo, iterHi, randLo, randHi] of ELO_BANDS) {
     if (clamped >= lo && clamped <= hi) {
       const t = hi > lo ? (clamped - lo) / (hi - lo) : 0;
       return {
-        iterations: Math.round(iterLo + t * (iterHi - iterLo)),
+        // Never below 10: a search with nothing to search is not a weak bot, it
+        // is the first legal move on the board.
+        iterations: Math.max(10, Math.round((iterLo + t * (iterHi - iterLo)) * scale)),
         randomChance: randLo + t * (randHi - randLo),
       };
     }
   }
-  return { iterations: 10000, randomChance: 0 };
+  return { iterations: Math.round(6000 * scale), randomChance: 0 };
 }
 
-/** Playouts the hint and the position analyser use — the engine's best effort. */
-export const GO_ANALYSIS_ITERATIONS = 6000;
+/**
+ * Playouts the hint and the position analyser use — the engine's best effort at
+ * 9×9, scaled down for bigger boards the same way the ladder is.
+ */
+export const GO_ANALYSIS_ITERATIONS = 4000;
 
+/** The analyser's budget for a board of this size. */
+export function goAnalysisIterations(size: number): number {
+  return Math.max(50, Math.round(GO_ANALYSIS_ITERATIONS * budgetScale(size)));
+}
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -550,36 +188,6 @@ export interface GoPositionEval extends GoBotMove {
   winRate: number;
   /** Estimated final area lead for BLACK, komi included. Positive = black ahead. */
   scoreLead: number;
-}
-
-function abortError(): Error {
-  const error = new Error('Go search aborted');
-  error.name = 'AbortError';
-  return error;
-}
-
-const SLICE_MS = 8;
-const yieldToHost = () => new Promise<void>(resolve => setTimeout(resolve, 0));
-
-function toFastBoard(state: GoGameState): FastBoard {
-  const geo = geometryFor(state.size);
-  const board = new Uint8Array(geo.points);
-  for (let row = 0; row < state.size; row++) {
-    for (let col = 0; col < state.size; col++) {
-      const stone = state.board[row][col];
-      board[row * state.size + col] = stone === 'black' ? BLACK : stone === 'white' ? WHITE : EMPTY;
-    }
-  }
-  return board;
-}
-
-function indexToPosition(idx: number, size: number): string {
-  return coordinatesToPosition({ row: Math.floor(idx / size), col: idx % size });
-}
-
-function positionToIndex(position: string, size: number): number {
-  const { row, col } = positionToCoordinates(position);
-  return row * size + col;
 }
 
 /**
@@ -624,94 +232,6 @@ function rootCandidates(state: GoGameState): string[] {
   );
 }
 
-async function search(
-  state: GoGameState,
-  candidates: string[],
-  iterations: number,
-  options: GoBotOptions,
-): Promise<{ position: string; winRate: number; scoreLead: number }> {
-  const geo = geometryFor(state.size);
-  const rootBoard = toFastBoard(state);
-  const rootColor = state.currentTurn === 'black' ? BLACK : WHITE;
-  const random = createRandom(options.seed ?? randomSeed());
-  const scratch = createScratch(geo.points);
-  for (let i = 0; i < geo.points; i++) scratch.order[i] = i;
-
-  const root = createNode(ROOT, rootColor, null);
-  root.untried = candidates.map(position => positionToIndex(position, state.size));
-
-  const board = new Uint8Array(geo.points);
-  let leadTotal = 0;
-  let leadSamples = 0;
-  const searchStart = Date.now();
-  let sliceStart = searchStart;
-
-  for (let iteration = 0; iteration < iterations; iteration++) {
-    board.set(rootBoard);
-    let node = root;
-    let color = rootColor;
-
-    // 1. Selection — descend by UCT while the node is fully expanded.
-    while ((node.untried === null || node.untried.length === 0) && node.children.length > 0) {
-      node = selectChild(node);
-      if (node.move !== PASS) playFast(board, geo, node.move, color, scratch);
-      color = opponentOf(color);
-    }
-
-    // 2. Expansion — one new child, dropping any candidate that proves illegal.
-    if (node.untried === null) node.untried = candidateMoves(board, geo, color);
-    while (node.untried.length > 0) {
-      const pick = Math.floor(random() * node.untried.length);
-      const move = node.untried[pick];
-      node.untried[pick] = node.untried[node.untried.length - 1];
-      node.untried.pop();
-
-      if (!playFast(board, geo, move, color, scratch)) continue; // self-capture
-
-      const child = createNode(move, opponentOf(color), node);
-      node.children.push(child);
-      node = child;
-      color = opponentOf(color);
-      break;
-    }
-
-    // 3. Simulation.
-    const lead = playout(board, geo, color, random, scratch);
-    leadTotal += lead;
-    leadSamples++;
-
-    // 4. Backpropagation. Komi decides the winner, so a half-point loss counts
-    //    as a loss — which is the whole point of a fractional komi.
-    backpropagate(node, lead > state.komi ? BLACK : WHITE);
-
-    if (Date.now() - sliceStart >= SLICE_MS) {
-      if (options.signal?.aborted) throw abortError();
-      await yieldToHost();
-      sliceStart = Date.now();
-      if (sliceStart - searchStart >= SEARCH_CEILING_MS) break;
-    }
-  }
-
-  // Most-visited rather than best win rate: a child with one lucky playout can
-  // top the rate, but only a genuinely good move accumulates visits.
-  let best = root.children[0];
-  for (const child of root.children) {
-    if (!best || child.visits > best.visits) best = child;
-  }
-
-  // No child at all means every candidate was illegal on application — take the
-  // first candidate rather than returning nothing.
-  if (!best) {
-    return { position: candidates[0], winRate: 0.5, scoreLead: 0 };
-  }
-
-  return {
-    position: indexToPosition(best.move, state.size),
-    winRate: best.wins / best.visits,
-    scoreLead: leadSamples > 0 ? leadTotal / leadSamples - state.komi : -state.komi,
-  };
-}
-
 /**
  * The bot's move for a target rating, or a pass.
  *
@@ -732,7 +252,7 @@ export async function getBestGoMove(
   const candidates = rootCandidates(state);
   if (shouldPass(state, candidates)) return { position: null };
 
-  const config = goEloToConfig(targetElo);
+  const config = goEloToConfig(targetElo, state.size);
   // The move number is mixed into the blunder seed on purpose. A caller that
   // passes a fixed seed (the tests, the bot-vs-bot harness) would otherwise get
   // the same first draw at every move of the game, so the "blunder now?" verdict
@@ -744,7 +264,14 @@ export async function getBestGoMove(
     return { position: candidates[Math.floor(random() * candidates.length)] };
   }
 
-  const result = await search(state, candidates, config.iterations, options);
+  const result = await GO_SEARCH.search(state, candidates, {
+    // Resolved here, not defaulted inside the backend: a backend that invented
+    // its own fallback would make every unseeded game identical, which is a
+    // bug with no symptom until someone plays twice.
+    iterations: config.iterations,
+    seed: options.seed ?? randomSeed(),
+    signal: options.signal,
+  });
   return { position: result.position };
 }
 
@@ -768,14 +295,24 @@ export async function analyzeGoPosition(
     return { position: null, winRate: 0.5, scoreLead: lead };
   }
 
-  const result = await search(
-    state,
-    candidates,
-    options.iterations ?? GO_ANALYSIS_ITERATIONS,
-    options,
-  );
-  return result;
+  return GO_SEARCH.search(state, candidates, {
+    iterations: options.iterations ?? goAnalysisIterations(state.size),
+    seed: options.seed ?? randomSeed(),
+    signal: options.signal,
+  });
 }
 
-/** Exported for the tests — the eye rule the playout policy depends on. */
-export const __testing = { geometryFor, toFastBoard, isEye, scoreFast, createScratch, BLACK, WHITE };
+
+/** Exported for the tests — the primitives the engine's behaviour is pinned on. */
+export const __testing = {
+  geometryFor,
+  toFastBoard,
+  isEye,
+  positionToIndex,
+  scoreFast,
+  createScratch,
+  rootCandidates,
+  shouldPass,
+  BLACK,
+  WHITE,
+};

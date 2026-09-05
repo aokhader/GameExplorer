@@ -274,7 +274,16 @@ export const GO_TUTORIAL: GameTutorial = {
       paragraphs: [
         'The setup screen offers two scoring rules, and the board above shows the difference. Area scoring counts your stones as well as your territory: 36 each. Territory scoring counts only the empty points you surround, plus any enemy stones you captured: 27 each. Either way White wins by the same 7.5, which is usually how it goes — the two rules almost never disagree about who won.',
         'What they do change is the last few moves. Under area scoring a neutral point is free to fill, so there is no harm in playing it. Under territory scoring filling your own space costs you a point, so you stop earlier.',
-        'Komi is the compensation White gets for moving second, and you can change it too. The standard 7.5 makes a tie impossible; set it to a whole number and a level game becomes possible, which is a real Go result. Games at any komi other than 7.5 are casual, because the bot’s difficulty tiers were measured at that number.',
+        'Komi is the compensation White gets for moving second, and you can change it too. The standard 7.5 makes a tie impossible; set it to a whole number and a level game becomes possible, which is a real Go result.',
+      ],
+    },
+    {
+      id: 'board-sizes',
+      heading: 'Which board to play on',
+      paragraphs: [
+        'Everything on this page is the whole of Go, and it is the same game on every board. 9×9 is where to learn it: a game takes ten minutes, every move touches every other, and you will see a group live or die within a few moves of the fight starting.',
+        '13×13 is the first size with room for more than one thing to be happening at once, and it is where direction starts to matter more than reading. 19×19 is the board the game is really played on — four corners, four sides, and enough space that a fight you lose can be worth losing.',
+        'Only 9×9 at 7.5 komi counts towards a rating. The bot’s difficulty tiers were measured there, and it is genuinely weaker on a bigger board: it works out a move by playing the game to the end thousands of times, and there is a great deal more game to play on 361 points than on 81. Every other setting is casual, and says so on the setup screen.',
       ],
     },
   ],

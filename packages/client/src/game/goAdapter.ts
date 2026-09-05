@@ -3,7 +3,6 @@ import {
   analyzeGoPosition,
   getBestGoMove,
   type GoGameState,
-  type GoScoring,
   type NewGoGameOptions,
 } from '@gameexplorer/shared';
 import { saveGoGame } from '@gameexplorer/db';
@@ -151,11 +150,17 @@ export const goAdapter = makeGoAdapter();
  */
 export {
   GO_DIFFICULTY_LEVELS,
+  GO_BOARD_SIZES,
   GO_KOMI_PRESETS,
   GO_RATED_KOMI,
+  GO_RATED_SIZE,
   GO_SCORING_OPTIONS,
   GO_TRAINING_ELO_BOUNDS,
   goEloLabel,
   goKomiLabel,
+  goActiveRow,
+  goRatedEligibility,
   goRulesetSummary,
+  goTimelineRows,
 } from './goSetup';
+export type { GoHistoryRow } from './goSetup';

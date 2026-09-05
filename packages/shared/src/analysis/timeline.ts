@@ -1,9 +1,11 @@
 import { ChessEngine } from '../game-logic/chess/engine';
 import { CheckersEngine } from '../game-logic/checkers/engine';
 import { ReversiEngine } from '../game-logic/reversi/engine';
+import { GoEngine } from '../game-logic/go/engine';
 import type { ChessGameState, PieceType } from '../types/chess.types';
 import type { CheckersGameState } from '../game-logic/checkers/types';
 import type { ReversiGameState } from '../game-logic/reversi/types';
+import type { GoGameState, GoScoring } from '../game-logic/go/types';
 
 /**
  * Rebuild every position of a finished game from its move list.
@@ -73,6 +75,35 @@ export function replayReversiMoves(
       continue;
     }
     const result = ReversiEngine.validateMove(previous, move.position);
+    if (!result.valid || !result.resultingState) break;
+    timeline.push(result.resultingState);
+  }
+  return timeline;
+}
+
+/**
+ * Rebuild a Go game.
+ *
+ * Unlike the other three, this one needs the **ruleset** as well as the moves:
+ * board size, komi and the scoring method are not derivable from a move list,
+ * and replaying a 13x13 game on a 9x9 board would reject the first move played
+ * outside the corner. They are parameters with the shipped defaults, so a row
+ * saved before the ruleset was stored still reviews as the 9x9 game it was.
+ */
+export function replayGoMoves(
+  moves: readonly { position: string | null }[],
+  rules: { size?: number; komi?: number; scoring?: GoScoring } = {},
+): GoGameState[] {
+  const timeline: GoGameState[] = [GoEngine.newGame(rules)];
+  for (const move of moves) {
+    const previous = timeline[timeline.length - 1];
+    // A pass is a real move in Go, and two in a row open the dead-stone review
+    // rather than ending the game - so the phase can change without a stone.
+    if (move.position === null) {
+      timeline.push(GoEngine.executePass(previous));
+      continue;
+    }
+    const result = GoEngine.validateMove(previous, move.position);
     if (!result.valid || !result.resultingState) break;
     timeline.push(result.resultingState);
   }

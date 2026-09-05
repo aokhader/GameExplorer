@@ -18,6 +18,7 @@ import { Screen, Card, Button } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { BlockedPlayers } from '@/multiplayer/BlockedPlayers';
 import { FONTS } from '@/theme/typography';
+import { REVIEWABLE } from '@/analysis/reviewable';
 
 // Colors are looked up during render, never captured here — the token objects
 // are live views, so a module-scope read freezes them at import (see themeRuntime).
@@ -28,13 +29,9 @@ const GAME_META: Record<GameType, { label: string }> = {
   go: { label: 'Go' },
 };
 
-/**
- * Game types with an analysis adapter behind `/review/[id]`. Go is absent by
- * design (v1 ships no Go review), and that screen falls back to the chess
- * replayer for unknown types — so gate on this rather than letting a Go row
- * through.
- */
-const REVIEWABLE: ReadonlySet<GameType> = new Set<GameType>(['chess', 'checkers', 'reversi']);
+// Imported rather than declared: this list and the review route's own gate used
+// to be two copies of the same fact. See `analysis/reviewable.ts`.
+
 
 /** History filter — "all" plus one pill per game, mirroring web's profile. */
 type Tab = 'all' | GameType;

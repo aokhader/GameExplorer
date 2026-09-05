@@ -49,6 +49,15 @@ export interface ReviewPanelProps<S> {
   onScan: () => void;
   onStopScan: () => void;
   onExit: () => void;
+  /**
+   * `overlay` (the default) covers the game screen it was opened from; `page`
+   * renders inline on a route whose whole purpose is the review, where a
+   * fixed-position dialog would be covering nothing but its own paste box.
+   */
+  variant?: 'overlay' | 'page';
+  /** Heading, and the label on the button `onExit` is behind. */
+  title?: string;
+  exitLabel?: string;
 }
 
 /**
@@ -81,28 +90,40 @@ export function ReviewPanel<S>({
   onScan,
   onStopScan,
   onExit,
+  variant = 'overlay',
+  title = 'Review',
+  exitLabel = 'Done',
 }: ReviewPanelProps<S>) {
   // `viewIndex` is a position; the move that produced it is one lower.
   const currentGrade = viewIndex > 0 ? grades[viewIndex - 1] : null;
+  const formatMove = adapter.formatMove ?? defaultFormatMove;
   const share = evaluation ? adapter.whiteShare(evaluation) : 0.5;
   const label = evaluation ? adapter.formatScore(evaluation) : '';
 
+  const overlay = variant === 'overlay';
+
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-surface/95 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Game review"
+      className={
+        overlay
+          ? 'fixed inset-0 z-50 overflow-y-auto bg-surface/95 backdrop-blur-sm'
+          : 'w-full'
+      }
+      // A page is not a dialog: announcing one as modal would tell a screen
+      // reader there is something behind it to go back to, and there isn't.
+      role={overlay ? 'dialog' : undefined}
+      aria-modal={overlay ? true : undefined}
+      aria-label={overlay ? 'Game review' : undefined}
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-4 p-4 sm:p-6">
         <header className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-fg">Review</h2>
+          <h2 className="text-lg font-semibold text-fg">{title}</h2>
           <button
             type="button"
             onClick={onExit}
             className="rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-sm font-semibold text-fg hover:bg-surface-alt"
           >
-            Done
+            {exitLabel}
           </button>
         </header>
 
@@ -118,7 +139,7 @@ export function ReviewPanel<S>({
                 {viewIndex === 0 ? 'Starting position' : `After move ${viewIndex}`}
               </h3>
               {currentGrade ? (
-                <MoveVerdict grade={currentGrade} />
+                <MoveVerdict grade={currentGrade} formatMove={formatMove} />
               ) : (
                 <p className="mt-1 text-sm text-fg-muted">
                   {viewIndex === 0
@@ -196,12 +217,23 @@ export function ReviewPanel<S>({
   );
 }
 
-/** "e2→e4", or just the square for a placement game where from === to. */
-function formatMove(move: { from: string; to: string }): string {
+/**
+ * "e2→e4", or just the square for a placement game where from === to.
+ *
+ * The fallback only. A game whose engine coordinates are not what a player
+ * reads supplies `adapter.formatMove` instead — see `AnalysisAdapter`.
+ */
+function defaultFormatMove(move: { from: string; to: string }): string {
   return move.from === move.to ? move.to : `${move.from}→${move.to}`;
 }
 
-function MoveVerdict({ grade }: { grade: GradedMove }) {
+function MoveVerdict({
+  grade,
+  formatMove,
+}: {
+  grade: GradedMove;
+  formatMove: (move: { from: string; to: string }) => string;
+}) {
   const info = GRADE_INFO[grade.grade];
   return (
     <div className="mt-1">

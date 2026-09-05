@@ -356,6 +356,11 @@ export default function SettingsScreen() {
           description="Rotate the board to face whoever's turn it is."
           settingKey="flipBoardPassAndPlay"
         />
+        <SettingRow
+          title="Confirm Go placements"
+          description="Press to aim, then press again to play. Always on above 9×9, where a point is smaller than a fingertip."
+          settingKey="confirmMove"
+        />
       </Card>
 
       <SectionLabel>Help &amp; support</SectionLabel>

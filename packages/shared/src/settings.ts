@@ -36,6 +36,27 @@ export interface Settings {
   /** Show rank/file coordinate labels on boards. */
   showCoordinates: boolean;
   /**
+   * Go only: place a stone in two steps — press to aim, then confirm.
+   *
+   * Not a fussiness setting. Go stones sit on the LINES' crossings, and on a
+   * 19×19 board on a phone a point is about 18pt across against a 44pt
+   * guideline, so a single tap is a coin flip between two intersections. The
+   * two-step form lets the player slide to the point they meant and commit
+   * deliberately, which is how every serious Go app on a touch screen works.
+   *
+   * Default **off**, and forced on above 9×9 regardless — see
+   * `confirmPlacementFor`. Off by default because 9×9 shipped with a single tap
+   * and was device-verified that way; a point there is about 38pt, which is
+   * close enough to the guideline to be honest. Changing the interaction under
+   * every existing player to fix a problem they do not have would be the wrong
+   * trade.
+   *
+   * Read by the **mobile** board only. A mouse can hit a 19×19 intersection
+   * that a fingertip cannot, so the web board keeps click-to-place and this
+   * setting would be friction there rather than a fix.
+   */
+  confirmMove: boolean;
+  /**
    * Pass-and-play: turn the board around between turns so the player to move is
    * always at the bottom. Defaults ON — two people sharing one screen expect the
    * board to face whoever is thinking.
@@ -50,6 +71,7 @@ export const SETTINGS_DEFAULTS: Settings = {
   haptics: false,
   reduceMotion: false,
   showCoordinates: true,
+  confirmMove: false,
   flipBoardPassAndPlay: true,
   theme: 'dark',
 };
@@ -81,4 +103,17 @@ export function parseSettings(raw: string | null | undefined): Settings {
 
 export function serializeSettings(settings: Settings): string {
   return JSON.stringify(settings);
+}
+
+/**
+ * Should this board ask for confirmation before placing a stone?
+ *
+ * The setting is the player's preference; the board size is a fact about
+ * whether a fingertip can hit the point at all. On a phone a 19×19 point is
+ * roughly 18pt across against a 44pt guideline, so above 9×9 the step is forced
+ * on regardless of the preference — the alternative is a player losing a game to
+ * a mis-tap they never made, in a game where a stone cannot be taken back.
+ */
+export function confirmPlacementFor(size: number, settings: Pick<Settings, 'confirmMove'>): boolean {
+  return settings.confirmMove || size > 9;
 }

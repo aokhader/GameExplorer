@@ -3,10 +3,14 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   checkersAnalysis,
+  createGoAnalysis,
+  goOwnershipMap,
+  goTimelineToPoints,
   moveHistoryToReversi,
   moveHistoryToPdn,
   replayCheckersMoves,
   replayChessMoves,
+  replayGoMoves,
   replayReversiMoves,
   reversiAnalysis,
   timelineToSan,
@@ -14,17 +18,20 @@ import {
   type CheckersGameState,
   type ChessGameState,
   type Color,
+  type GoGameState,
   type ReversiGameState,
 } from '@gameexplorer/shared';
 import { getGameById, type GameType, type SavedGame } from '@gameexplorer/db';
 import { COLORS } from '@gameexplorer/ui';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
+import { isReviewable } from '@/analysis/reviewable';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
 import { chessAnalysis } from '@/analysis/adapters';
 import { useEngineNative } from '@/engine/useEngineNative';
 import { ChessBoard } from '@/board/ChessBoard';
 import { CheckersBoard } from '@/board/CheckersBoard';
 import { ReversiBoard } from '@/board/ReversiBoard';
+import { GoBoard } from '@/board/GoBoard';
 import { Screen } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 
@@ -66,10 +73,29 @@ export default function PastGameReviewScreen() {
 
   const gameType: GameType = game?.game_type ?? 'chess';
 
-  // Types with a replayer + analysis adapter below. Everything else would fall
-  // through to the chess pair and replay foreign move objects as chess, so it is
-  // refused outright instead. Go is the current absentee (no v1 review).
-  const reviewSupported = gameType === 'chess' || gameType === 'checkers' || gameType === 'reversi';
+  // Everything not on this list would fall through to the chess pair below and
+  // replay foreign move objects as chess, so it is refused outright instead.
+  // The list is shared with the profile's history rows — see
+  // `analysis/reviewable.ts` for why it is not declared twice.
+  const reviewSupported = isReviewable(gameType);
+
+  /**
+   * Go's ruleset, which a move list cannot carry.
+   *
+   * Board size, komi and the scoring method are columns on the row (added by
+   * `supabase-add-go-rules.sql`). A row written before that migration — or on a
+   * database where it has not been run — has null for all three, and reads back
+   * as the 9×9 / 7.5 / area game it actually was. That is why every reader here
+   * defaults rather than asserting.
+   */
+  const goRules = useMemo(
+    () => ({
+      size: game?.board_size ?? 9,
+      komi: game?.komi ?? 7.5,
+      scoring: game?.scoring ?? 'area',
+    }),
+    [game],
+  );
 
   // Rebuild every position from the stored moves. `replay*Moves` stops at the
   // first move the engine rejects, so a row written by an older version reviews
@@ -84,8 +110,11 @@ export default function PastGameReviewScreen() {
     if (gameType === 'reversi') {
       return replayReversiMoves(moves as { position: string | null }[]);
     }
+    if (gameType === 'go') {
+      return replayGoMoves(moves as { position: string | null }[], goRules);
+    }
     return replayChessMoves(moves as { from: string; to: string; promotion?: never }[]);
-  }, [game, gameType, reviewSupported]);
+  }, [game, gameType, reviewSupported, goRules]);
 
   const moves = useMemo(() => {
     if (timeline.length === 0) return [];
@@ -96,6 +125,9 @@ export default function PastGameReviewScreen() {
     if (gameType === 'reversi') {
       const last = timeline[timeline.length - 1] as ReversiGameState;
       return moveHistoryToReversi(last.moveHistory);
+    }
+    if (gameType === 'go') {
+      return goTimelineToPoints(timeline as GoGameState[]);
     }
     return timelineToSan(timeline as ChessGameState[]);
   }, [timeline, gameType]);
@@ -111,9 +143,15 @@ export default function PastGameReviewScreen() {
   // Chess needs the native engine; the other two are scored by the shared TS
   // engines and work on any build.
   const engine = useEngineNative({ enabled: gameType === 'chess' });
+  // Go's adapter is built per board size: its grade bands and eval-bar squash
+  // both scale with the board, because a ten-point swing is most of a 9×9 game
+  // and a detail on 19×19.
+  const goAdapterForSize = useMemo(() => createGoAnalysis(goRules.size), [goRules.size]);
+
   const adapter = (
     gameType === 'checkers' ? checkersAnalysis
     : gameType === 'reversi' ? reversiAnalysis
+    : gameType === 'go' ? goAdapterForSize
     : chessAnalysis
   ) as AnalysisAdapter<unknown>;
 
@@ -159,6 +197,10 @@ export default function PastGameReviewScreen() {
   const displayState = timeline[viewIndex];
   const playerColor = game.player_color as Color;
   const best = analysis.current?.bestMove ?? null;
+  const goOwnership =
+    gameType === 'go'
+      ? goOwnershipMap((displayState as GoGameState).board, goRules.size)
+      : null;
 
   const board =
     gameType === 'checkers' ? (
@@ -174,6 +216,19 @@ export default function PastGameReviewScreen() {
         gameState={displayState as ReversiGameState}
         onMove={() => {}}
         playerColor={playerColor}
+        interactive={false}
+      />
+    ) : gameType === 'go' ? (
+      <GoBoard
+        gameState={displayState as GoGameState}
+        onMove={() => {}}
+        playerColor={playerColor}
+        // The engine's choice reuses the training hint's outline — same meaning.
+        hintPos={best?.to ?? null}
+        // Who each empty point counts for, from the same `ownershipMap` the
+        // end-of-game review and the tutorial's shaded diagram read. Territory
+        // is what a Go player reviews with; a bare eval number is not.
+        ownership={goOwnership}
         interactive={false}
       />
     ) : (

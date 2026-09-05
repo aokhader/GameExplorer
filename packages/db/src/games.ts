@@ -248,6 +248,19 @@ export async function saveGoGame(
     mode: options?.mode ?? 'casual',
     rating_before: options?.rating_before,
     rating_after: options?.rating_after,
+    /*
+     * The ruleset, which the move list cannot carry: `q16` is not a point on a
+     * 9x9 board, so a 13x13 or 19x19 game replayed under the defaults truncates
+     * at the first move played outside the corner — and a shorter timeline looks
+     * exactly like a shorter game.
+     *
+     * Written unconditionally. If `supabase-add-go-rules.sql` has not been run
+     * these three columns do not exist and PostgREST rejects the insert, so
+     * they are stripped and retried once below rather than losing the game.
+     */
+    board_size: gameState.size,
+    komi: gameState.komi,
+    scoring: gameState.scoring,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     moves: gameState.moveHistory.map(m => ({
       position: m.position,
@@ -256,11 +269,36 @@ export async function saveGoGame(
     })) as any,
   };
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('games')
     .insert(newGame)
     .select()
     .single();
+
+  /*
+   * The ruleset columns are new, and `supabase-add-go-rules.sql` is run by hand.
+   * On a database where it has not been run, PostgREST rejects the insert with
+   * PGRST204 ("column not found in the schema cache") — which would mean adding
+   * this feature *broke saving Go games entirely*, a strictly worse outcome than
+   * not storing the ruleset.
+   *
+   * So a schema-cache failure retries once without them. The game is saved and
+   * reviews as a 9x9 / 7.5 / area game, exactly as it would have before; running
+   * the migration is what makes a 13x13 game come back as one.
+   */
+  if (error?.code === 'PGRST204') {
+    const { board_size, komi, scoring, ...withoutRules } = newGame;
+    void board_size; void komi; void scoring;
+    console.warn(
+      'games.board_size/komi/scoring missing — saving without the Go ruleset. ' +
+      'Run project-docs/sql-queries/supabase-add-go-rules.sql to store it.',
+    );
+    ({ data, error } = await supabase
+      .from('games')
+      .insert(withoutRules)
+      .select()
+      .single());
+  }
 
   if (error) {
     console.error('Failed to save go game:', error);

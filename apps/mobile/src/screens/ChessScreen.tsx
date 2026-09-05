@@ -222,7 +222,7 @@ export function ChessScreen() {
         {/* Chess only, like web: the analysis board is a position editor with an
             engine behind it, and the other two games have no engine to ask. */}
         <Pressable
-          onPress={() => router.push('/analysis' as never)}
+          onPress={() => router.push('/analysis/chess' as never)}
           accessibilityRole="link"
           accessibilityLabel="Open the analysis board"
           style={{ paddingVertical: 6 }}
