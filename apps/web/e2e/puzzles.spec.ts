@@ -1,6 +1,8 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test, expect, type Page } from '@playwright/test';
-import { staticPuzzleSource, WEB_PUZZLE_PROGRESS_KEY } from '@gameexplorer/shared';
-import type { PuzzleGame } from '@gameexplorer/shared';
+import { bandFor, PUZZLE_BANDS, staticPuzzleSource, WEB_PUZZLE_PROGRESS_KEY } from '@gameexplorer/shared';
+import type { Puzzle, PuzzleGame } from '@gameexplorer/shared';
 
 /**
  * Puzzles, end to end, signed out.
@@ -48,22 +50,52 @@ function status(page: Page) {
 }
 
 /**
- * Open a game's puzzle page sitting on one specific puzzle.
+ * What the app actually serves, in the order it serves it.
  *
- * The page always serves the first unsolved puzzle in progression order, so
- * pinning one means marking everything before it solved. The list comes from
- * the shipped source rather than a hand-written array of ids — content gets
- * added, and a test that hard-codes "the second puzzle" quietly starts testing
- * a different position when it does.
+ * **Not `staticPuzzleSource`.** The screen reads a layered source whose primary
+ * is the published corpus under `apps/web/public/puzzles/`, so seeding against
+ * the bundled set computes band sizes and "which puzzle is next" for content
+ * the page is not showing. Reading the published index and pages here mirrors
+ * the app exactly; a game with nothing published falls back to the bundled set,
+ * which is also what the layered source does.
  */
+function servedPuzzles(game: PuzzleGame): Puzzle[] | null {
+  const dir = join(__dirname, '..', 'public', 'puzzles', game);
+  const indexFile = join(dir, 'index.json');
+  if (!existsSync(indexFile)) return null;
+
+  const index = JSON.parse(readFileSync(indexFile, 'utf8')) as {
+    pageSize: number;
+    bands: Record<string, { total: number; ids: string[] }>;
+  };
+  const out: Puzzle[] = [];
+  for (const [band, entry] of Object.entries(index.bands)) {
+    const pages = Math.ceil(entry.total / index.pageSize);
+    for (let n = 0; n < pages; n++) {
+      const file = join(dir, `${band}-${n}.json`);
+      if (existsSync(file)) out.push(...(JSON.parse(readFileSync(file, 'utf8')) as Puzzle[]));
+    }
+  }
+  // Empty is a miss, not truth — the same rule `createLayeredPuzzleSource`
+  // applies. Games with no corpus publish an empty index (so the fetch is a
+  // fast 200 rather than a slow Next 404), and for those the app serves the
+  // bundled set, so that is what the test must compute against.
+  return out.length > 0 ? out : null;
+}
+
 async function openPuzzle(page: Page, game: PuzzleGame, id?: string) {
-  const ordered = await staticPuzzleSource.listPuzzles({ game });
+  const ordered = servedPuzzles(game) ?? (await staticPuzzleSource.listPuzzles({ game }));
   const index = id ? ordered.findIndex((p) => p.id === id) : 0;
   expect(index, `${id} is not in the ${game} set`).toBeGreaterThanOrEqual(0);
 
-  const solved = ordered.slice(0, index).map((p) => p.id);
+  const target = ordered[index];
+  const band = bandFor(game, target.rating);
+  const inBand = ordered.filter((p) => bandFor(game, p.rating).id === band.id);
+  const total = inBand.length;
+  const solved = inBand.slice(0, inBand.findIndex((p) => p.id === target.id)).map((p) => p.id);
+
   await page.addInitScript(
-    ([key, ids]) => {
+    ([key, ids, g, bandId]) => {
       // Seed once. This script runs on every navigation, so writing
       // unconditionally would wipe a solve the moment the page reloaded — which
       // is precisely what one of the tests below is checking survives.
@@ -76,16 +108,17 @@ async function openPuzzle(page: Page, game: PuzzleGame, id?: string) {
           streak: 0,
           bestStreak: 0,
           lastSeen: {},
+          bands: { [g as string]: bandId },
           updatedAt: '',
         }),
       );
     },
-    [WEB_PUZZLE_PROGRESS_KEY, solved] as const,
+    [WEB_PUZZLE_PROGRESS_KEY, solved, game, band.id] as const,
   );
 
   await page.goto(`/${game}/puzzles`);
   await expect(page.getByTestId('puzzle-prompt')).toBeVisible();
-  return { ordered, solved };
+  return { ordered, solved, band, total };
 }
 
 test('renders without the global navbar', async ({ page }) => {
@@ -98,8 +131,7 @@ test('renders without the global navbar', async ({ page }) => {
 });
 
 test('opens on the easiest unsolved puzzle with progress at zero', async ({ page }) => {
-  const total = await staticPuzzleSource.countPuzzles('chess');
-  await openPuzzle(page, 'chess');
+  const { total } = await openPuzzle(page, 'chess');
 
   await expect(page.getByTestId('puzzle-prompt')).toContainText('mate in one');
   await expect(page.getByTestId('puzzle-progress')).toContainText(`0 / ${total} solved`);
@@ -165,22 +197,21 @@ test('a solved puzzle stays on screen until Next is pressed', async ({ page }) =
 });
 
 test('solving records progress that survives a reload', async ({ page }) => {
-  const total = await staticPuzzleSource.countPuzzles('chess');
-  await openPuzzle(page, 'chess', 'chess-003');
+  const { solved, total } = await openPuzzle(page, 'chess', 'chess-003');
 
   await chessSquare(page, 'b1').click();
   await chessSquare(page, 'b8').click();
 
   await expect(status(page)).toHaveText('Solved');
   await expect(page.getByTestId('puzzle-explanation')).toContainText('Qb8 is mate');
-  await expect(page.getByTestId('puzzle-progress')).toContainText(`1 / ${total} solved`);
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`${solved.length + 1} / ${total} solved`);
   // Solved first try with no hint — that is what a streak counts.
   await expect(page.getByTestId('puzzle-progress')).toContainText('streak 1');
 
   await page.reload();
   // The solved one is not served again, so the next puzzle loads and the count
   // has stuck.
-  await expect(page.getByTestId('puzzle-progress')).toContainText(`1 / ${total} solved`);
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`${solved.length + 1} / ${total} solved`);
   await expect(page.getByTestId('puzzle-prompt')).toBeVisible();
 });
 
@@ -231,15 +262,14 @@ test('a moved piece travels to its square instead of appearing on it', async ({ 
 });
 
 test('the hint points at the solution and costs the streak', async ({ page }) => {
-  const total = await staticPuzzleSource.countPuzzles('chess');
-  await openPuzzle(page, 'chess', 'chess-003');
+  const { solved, total } = await openPuzzle(page, 'chess', 'chess-003');
   await page.getByRole('button', { name: 'Hint' }).click();
 
   await chessSquare(page, 'b1').click();
   await chessSquare(page, 'b8').click();
 
   await expect(status(page)).toHaveText('Solved');
-  await expect(page.getByTestId('puzzle-progress')).toContainText(`1 / ${total} solved`);
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`${solved.length + 1} / ${total} solved`);
   // Counted as solved, but a hinted solve is not a clean one.
   await expect(page.getByTestId('puzzle-progress')).not.toContainText('streak');
 });
@@ -255,8 +285,7 @@ function gridCell(page: Page, square: string) {
 }
 
 test('checkers: a multi-jump is answered by its first and last square', async ({ page }) => {
-  const total = await staticPuzzleSource.countPuzzles('checkers');
-  const { solved } = await openPuzzle(page, 'checkers', 'checkers-001');
+  const { solved, total } = await openPuzzle(page, 'checkers', 'checkers-001');
   await expect(page.getByTestId('puzzle-prompt')).toContainText('Two jumps are on offer');
 
   // e2–g4–e6–c8 is a triple jump ending in a crowning. The board only ever
@@ -272,14 +301,13 @@ test('checkers: a multi-jump is answered by its first and last square', async ({
 });
 
 test('checkers: the tempting shorter jump is refused', async ({ page }) => {
-  const { solved } = await openPuzzle(page, 'checkers', 'checkers-001');
+  const { solved, total } = await openPuzzle(page, 'checkers', 'checkers-001');
 
   // c2–e4–g6 is legal, and a double capture — just not the best one.
   await gridCell(page, 'c2').click();
   await gridCell(page, 'g6').click();
 
   await expect(status(page)).toHaveText('Not quite');
-  const total = await staticPuzzleSource.countPuzzles('checkers');
   await expect(page.getByTestId('puzzle-progress')).toContainText(
     `${solved.length} / ${total} solved`,
   );
@@ -287,7 +315,7 @@ test('checkers: the tempting shorter jump is refused', async ({ page }) => {
 
 test('reversi: the opponent’s forced pass hands the move straight back', async ({ page }) => {
   // The parity endgame is the puzzle with a forced pass in the middle of it.
-  const { solved } = await openPuzzle(page, 'reversi', 'reversi-002');
+  const { solved, total } = await openPuzzle(page, 'reversi', 'reversi-002');
   await expect(page.getByTestId('puzzle-prompt')).toContainText('Win the game');
 
   await gridCell(page, 'h1').click();
@@ -304,7 +332,6 @@ test('reversi: the opponent’s forced pass hands the move straight back', async
 
   await gridCell(page, 'a1').click();
   await expect(status(page)).toHaveText('Solved');
-  const total = await staticPuzzleSource.countPuzzles('reversi');
   await expect(page.getByTestId('puzzle-progress')).toContainText(
     `${solved.length + 1} / ${total} solved`,
   );
@@ -317,7 +344,10 @@ for (const game of ['chess', 'checkers', 'reversi', 'go'] as const) {
     await expect(card).toBeVisible();
 
     await card.click();
-    await expect(page.getByTestId('puzzle-prompt')).toBeVisible();
+    // Longer than the default: this is a client-side route transition in a dev
+    // server under parallel workers, and the mode now fetches its index before
+    // it can paint. Production serves those off a CDN in a fraction of this.
+    await expect(page.getByTestId('puzzle-prompt')).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('nav')).toHaveCount(0);
   });
 }
@@ -328,8 +358,7 @@ function goPoint(page: Page, point: string) {
 }
 
 test('go: a life-and-death puzzle is solved point by point', async ({ page }) => {
-  const total = await staticPuzzleSource.countPuzzles('go');
-  const { solved } = await openPuzzle(page, 'go', 'go-001');
+  const { solved, total } = await openPuzzle(page, 'go', 'go-001');
   const puzzle = (await staticPuzzleSource.getPuzzle('go-001'))!;
   await expect(page.getByTestId('puzzle-prompt')).toContainText('three points of eye space');
 
@@ -359,4 +388,163 @@ test('go: a plausible wrong point is refused and the punishment is played out', 
   // rather than the generic "that is playable" fallback.
   await expect(page.locator('[role="status"]')).toContainText(/White answers|Black answers/);
   await expect(page.getByTestId('puzzle-explanation')).toHaveCount(0);
+});
+
+/**
+ * The difficulty band picker.
+ *
+ * The mode's claim is that "Club" here means the same strength as "Club" on the
+ * bot setup screen, so what these check is that the band actually governs which
+ * puzzle is served — not merely that a pill highlights.
+ */
+test('the band picker serves a puzzle whose rating is inside the band', async ({ page }) => {
+  await openPuzzle(page, 'chess');
+
+  for (const band of PUZZLE_BANDS.chess) {
+    const served = servedPuzzles('chess') ?? [];
+    const count = served.filter((p) => bandFor('chess', p.rating).id === band.id).length;
+    if (count === 0) continue;
+
+    await page.getByTestId(`puzzle-band-${band.id}`).click();
+    await expect(page.getByTestId('puzzle-band-label')).toContainText(band.label);
+
+    // The rating shown must fall inside the band it was served from. This is
+    // the assertion that would catch a filter that silently stopped filtering.
+    const label = await page.getByTestId('puzzle-band-label').textContent();
+    const rating = Number(label!.split('·')[1].trim());
+    expect(rating, `${band.id} served a ${rating}`).toBeGreaterThanOrEqual(band.min);
+    if (band.max !== Infinity) expect(rating).toBeLessThan(band.max);
+  }
+});
+
+test('the chosen band survives a reload', async ({ page }) => {
+  await openPuzzle(page, 'chess');
+  await page.getByTestId('puzzle-band-beginner').click();
+  await expect(page.getByTestId('puzzle-band-label')).toContainText('Beginner');
+
+  await page.reload();
+  // A guest, with no account anywhere in this flow — the band rides in the same
+  // `localStorage` record the solves do.
+  await expect(page.getByTestId('puzzle-band-label')).toContainText('Beginner');
+});
+
+test('progress counts the band, not the whole game', async ({ page }) => {
+  const { solved, total } = await openPuzzle(page, 'chess', 'chess-003');
+  const whole = (servedPuzzles('chess') ?? []).length;
+
+  // Guard the guard: if these were equal the assertion below would pass for
+  // the wrong reason.
+  expect(total).toBeLessThan(whole);
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`/ ${total} solved`);
+});
+
+test('an empty band says so and offers a way out', async ({ page }) => {
+  // Checkers, not chess. Chess's Master band was empty until the Lichess import
+  // filled it with 1,388 puzzles, and this test failed loudly and demanded to be
+  // repointed — which is what its previous comment asked for and the reason it
+  // was written that way. Checkers has no mined corpus yet, so its Beginner band
+  // is genuinely empty; the same will happen here when checkers is mined.
+  await openPuzzle(page, 'checkers');
+
+  const served = servedPuzzles('checkers') ?? (await staticPuzzleSource.listPuzzles({ game: 'checkers' }));
+  const empty = served.filter(
+    (p) => bandFor('checkers', p.rating).id === 'beginner',
+  );
+  expect(empty, 'the checkers Beginner band now has content — repoint this test').toHaveLength(0);
+
+  // The band must say so plainly rather than looking like a broken mode, and
+  // must leave the picker reachable: the way out of an empty band is another
+  // band, not "start over", which would throw away a solved set to escape one
+  // that was never started.
+  await page.getByTestId('puzzle-band-beginner').click();
+
+  await expect(page.getByText(/No Beginner Checkers puzzles yet/)).toBeVisible();
+  await expect(page.getByTestId('puzzle-band-club')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start over' })).toHaveCount(0);
+
+  // …and picking a populated band recovers.
+  await page.getByTestId('puzzle-band-club').click();
+  await expect(page.getByTestId('puzzle-prompt')).toBeVisible();
+});
+
+test('progress never counts solves from other bands', async ({ page }) => {
+  // The bug this exists for read "3 / 1": `solved` counted the whole game while
+  // `total` counted the band, so working across two bands produced a progress
+  // line that was both wrong and impossible.
+  const ordered = (servedPuzzles('chess') ?? await staticPuzzleSource.listPuzzles({ game: 'chess' }));
+  const beginner = ordered.filter((p) => bandFor('chess', p.rating).id === 'beginner');
+  const novice = ordered.filter((p) => bandFor('chess', p.rating).id === 'novice');
+
+  await page.addInitScript(
+    ([key, ids]) => {
+      localStorage.setItem(
+        key as string,
+        JSON.stringify({
+          v: 1,
+          solved: ids,
+          streak: 0,
+          bestStreak: 0,
+          lastSeen: {},
+          bands: { chess: 'novice' },
+          updatedAt: '',
+        }),
+      );
+    },
+    // Everything in Beginner solved, plus one in Novice.
+    [WEB_PUZZLE_PROGRESS_KEY, [...beginner.map((p) => p.id), novice[0].id]] as const,
+  );
+
+  await page.goto('/chess/puzzles');
+  await expect(page.getByTestId('puzzle-prompt')).toBeVisible();
+
+  // Novice: exactly one solved, out of the band's own size.
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`1 / ${novice.length} solved`);
+  // Never more solved than the band holds — the shape of the original bug.
+  const text = (await page.getByTestId('puzzle-progress').textContent())!;
+  const [done, of] = text.match(/(\d+) \/ (\d+)/)!.slice(1).map(Number);
+  expect(done).toBeLessThanOrEqual(of);
+
+  // …and the picker reports each band separately.
+  await expect(page.getByTestId('puzzle-band-beginner-progress')).toContainText(
+    `${beginner.length}/${beginner.length}`,
+  );
+  await expect(page.getByTestId('puzzle-band-novice-progress')).toContainText(
+    `1/${novice.length}`,
+  );
+});
+
+test('start over clears only the band it was pressed in', async ({ page }) => {
+  const ordered = (servedPuzzles('chess') ?? await staticPuzzleSource.listPuzzles({ game: 'chess' }));
+  const beginner = ordered.filter((p) => bandFor('chess', p.rating).id === 'beginner');
+  const novice = ordered.filter((p) => bandFor('chess', p.rating).id === 'novice');
+
+  await page.addInitScript(
+    ([key, ids]) => {
+      localStorage.setItem(
+        key as string,
+        JSON.stringify({
+          v: 1,
+          solved: ids,
+          streak: 0,
+          bestStreak: 0,
+          lastSeen: {},
+          bands: { chess: 'beginner' },
+          updatedAt: '',
+        }),
+      );
+    },
+    // Beginner finished (so it shows the empty state), one Novice solved.
+    [WEB_PUZZLE_PROGRESS_KEY, [...beginner.map((p) => p.id), novice[0].id]] as const,
+  );
+
+  await page.goto('/chess/puzzles');
+  await expect(page.getByText("You've solved every Beginner puzzle")).toBeVisible();
+  await page.getByRole('button', { name: 'Start over' }).click();
+
+  // Beginner restarts…
+  await expect(page.getByTestId('puzzle-progress')).toContainText(`0 / ${beginner.length} solved`);
+  // …and the Novice solve is still there. `clearGame` would have taken it.
+  await expect(page.getByTestId('puzzle-band-novice-progress')).toContainText(
+    `1/${novice.length}`,
+  );
 });

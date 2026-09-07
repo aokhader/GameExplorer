@@ -68,3 +68,16 @@ test('the browser icon is first-party, not the create-next-app default', async (
   const stale = await page.request.get('/favicon.ico');
   expect(stale.status()).toBe(404);
 });
+
+test('the licenses page records the puzzle corpus provenance', async ({ page }) => {
+  // The repo has been burned once by a dependency whose licence text was
+  // missing and whose origin could not be reconstructed. Imported puzzle
+  // content gets its dedication named on the page, not just in a data file.
+  await page.goto('/licenses');
+  await expect(page.getByRole('heading', { name: 'Puzzle content' })).toBeVisible();
+  await expect(page.getByText(/Lichess open puzzle database/)).toBeVisible();
+  await expect(page.getByText(/CC0 1\.0 Universal/).first()).toBeVisible();
+  // …and says plainly which content is first-party, so the two are never
+  // conflated by someone reading only this page.
+  await expect(page.getByText(/composed or engine-generated for this app/)).toBeVisible();
+});

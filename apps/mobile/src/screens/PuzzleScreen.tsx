@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 // Deep import, not the package barrel. The barrel re-exports `useSocket`, which
 // pulls in `@gameexplorer/db` — and that module builds a Supabase client at
@@ -6,7 +7,14 @@ import { ActivityIndicator, Text, View } from 'react-native';
 // also what lets it be tested without standing up either.
 import { usePuzzle } from '@gameexplorer/client/hooks/usePuzzle';
 import { mobilePuzzleProgressStore } from '@/lib/puzzleProgress';
-import { staticPuzzleSource } from '@gameexplorer/shared';
+import {
+  createFetchPuzzleSource,
+  createLayeredPuzzleSource,
+  defaultBandFor,
+  staticPuzzleSource,
+} from '@gameexplorer/shared';
+import { puzzleCorpusUrl } from '@/config/corpus';
+import { mobilePuzzleChunkCache } from '@/lib/puzzleChunkCache';
 import type { PuzzleGame, PuzzlePhase } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button } from '@/components/ui';
@@ -14,6 +22,7 @@ import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { StatusBanner } from '@/game/StatusBanner';
 import { PuzzleBoard } from '@/puzzles/PuzzleBoard';
 import { PuzzleBar } from '@/puzzles/PuzzleBar';
+import { PuzzleBandPicker } from '@/puzzles/PuzzleBandPicker';
 import { usePuzzleFeedback } from '@/puzzles/usePuzzleFeedback';
 import { Confetti } from '@/game/Confetti';
 import { BackToHomeButton } from '@/game/resultDismiss';
@@ -63,9 +72,50 @@ export interface PuzzleScreenProps {
  * in `usePuzzle`, so this file is layout: it picks a board, names the phase, and
  * pins three buttons under it. Progress is device-local and works signed out.
  */
+/**
+ * The full corpus, with the bundled core behind it.
+ *
+ * Module scope so the in-flight map survives a remount — reopening the screen
+ * must not refetch the index. Pages are cached to AsyncStorage, so a band the
+ * player has worked through once keeps working with no signal; the layered
+ * source falls back to the bundled ~100-per-band set when neither the network
+ * nor the cache can answer.
+ */
+const puzzleSource = createLayeredPuzzleSource(
+  createFetchPuzzleSource(puzzleCorpusUrl(), fetch, mobilePuzzleChunkCache),
+  staticPuzzleSource,
+);
+
 export function PuzzleScreen({ game }: PuzzleScreenProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
+
+  // The player's own rating, which decides the band the picker opens on.
+  //
+  // Loaded through a **dynamic** import so nothing db-shaped is pulled at module
+  // load: `@gameexplorer/db` builds a Supabase client the moment it is imported,
+  // and this screen deep-imports `usePuzzle` precisely to keep that out of its
+  // graph. `null` while unknown — a guest never leaves that state and gets the
+  // middle band, matching web.
+  const [rating, setRating] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { getCurrentUser, getUserRating } = await import('@gameexplorer/db');
+        const user = await getCurrentUser();
+        if (!user || cancelled) return;
+        const row = await getUserRating(user.id, game);
+        if (!cancelled) setRating(row?.rating ?? null);
+      } catch {
+        // Signed out, offline, or no Supabase config — the picker simply opens
+        // on the middle band. A rating is a nicety here, never a requirement.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [game]);
 
   const {
     puzzle,
@@ -78,6 +128,10 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     progress,
     solved,
     total,
+    band,
+    bandCounts,
+    bandSolved,
+    setBand,
     hint,
     board,
     viewIndex,
@@ -93,8 +147,11 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     startOver,
   } = usePuzzle<unknown>({
     game,
-    source: staticPuzzleSource,
+    source: puzzleSource,
     progress: mobilePuzzleProgressStore,
+    // Resolved on the platform, not in the hook — the rating lives behind the
+    // Supabase client this screen keeps out of its graph.
+    defaultBand: rating === null ? undefined : defaultBandFor(game, rating).id,
   });
 
   usePuzzleFeedback({ phase, attempts: run?.attempts ?? 0, puzzleId: puzzle?.id ?? null });
@@ -123,11 +180,34 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
   }
 
   if (exhausted || !puzzle || !run) {
+    // Exhaustion is per band, so the way out is usually another band — offering
+    // only "Start over" would throw away a solved set to escape a finished one.
+    const empty = total === 0;
     return (
       <EmptyState
-        title={`You've solved every ${GAME_LABEL[game]} puzzle`}
-        body={`That's all ${total} of them. More are coming — or start the set again from the beginning.`}
-        action={<Button label="Start over" onPress={startOver} glow />}
+        title={
+          empty
+            ? `No ${band.label} ${GAME_LABEL[game]} puzzles yet`
+            : `You've solved every ${band.label} ${GAME_LABEL[game]} puzzle`
+        }
+        body={
+          empty
+            ? `The ${GAME_LABEL[game]} set doesn't reach this strength yet. Pick another band below.`
+            : `That's all ${total} at ${band.label}. Try another band, or start this one again.`
+        }
+        action={
+          <View style={{ width: '100%', gap: 12 }}>
+            <PuzzleBandPicker
+              game={game}
+              band={band}
+              counts={bandCounts}
+              solved={bandSolved}
+              onSelect={setBand}
+              rating={rating}
+            />
+            {!empty && <Button label="Start over" onPress={startOver} glow />}
+          </View>
+        }
       />
     );
   }
@@ -210,6 +290,15 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
       sidebar={
         <>
           <StatusBanner accent={game} title={status.title} description={status.description} />
+
+          <PuzzleBandPicker
+            game={game}
+            band={band}
+            counts={bandCounts}
+            solved={bandSolved}
+            onSelect={setBand}
+            rating={rating}
+          />
 
           {/* The hint is a visual ring on the board; spelling the move out here
               is what makes it reachable without sight — same reasoning as the

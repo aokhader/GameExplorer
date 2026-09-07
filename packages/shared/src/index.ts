@@ -41,6 +41,9 @@ export * from './constants/games';
 export * from './audio/recipes';
 // First-run tour — the vibe→ELO ladder both platforms' welcome screens use
 export * from './constants/onboarding';
+// Bot strength tiers — one copy of the numbers the setup screens and the
+// puzzle bands both name
+export * from './constants/botTiers';
 // How a game ended, in words — shared by both platforms' history lists
 export * from './constants/endReasons';
 

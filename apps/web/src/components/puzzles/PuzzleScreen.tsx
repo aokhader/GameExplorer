@@ -8,12 +8,21 @@ import Link from 'next/link';
 // of which a puzzle touches.
 import { usePuzzle } from '@gameexplorer/client/hooks/usePuzzle';
 import type { PuzzleGame } from '@gameexplorer/shared';
+import { defaultBandFor } from '@gameexplorer/shared';
+import { useAuth } from '@/hooks/useAuth';
+import { getUserRating } from '@/lib/db';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { StatusBanner } from '@/components/game/StatusBanner';
 import { GameSkeleton } from '@/components/game/GameSkeleton';
-import { staticPuzzleSource } from '@gameexplorer/shared';
+import {
+  createFetchPuzzleSource,
+  createLayeredPuzzleSource,
+  staticPuzzleSource,
+} from '@gameexplorer/shared';
 import { webPuzzleProgressStore } from '@/lib/puzzleProgress';
+import { webPuzzleChunkCache } from '@/lib/puzzleChunkCache';
 import { PuzzleBoard } from './PuzzleBoard';
+import { PuzzleBandPicker } from './PuzzleBandPicker';
 import { usePuzzleFeedback } from './usePuzzleFeedback';
 
 const GAME_LABEL: Record<PuzzleGame, string> = {
@@ -55,11 +64,43 @@ function statusFor(
   }
 }
 
+/**
+ * The full corpus, with the bundled core behind it.
+ *
+ * Module scope so the in-flight map and the session cache are shared by every
+ * mount — remounting the screen must not refetch the index. The layered source
+ * falls back to `staticPuzzleSource` on any failure, so a reader offline on a
+ * cold cache still gets the ~100-per-band bundled set rather than an error.
+ */
+const puzzleSource = createLayeredPuzzleSource(
+  createFetchPuzzleSource('/puzzles', fetch, webPuzzleChunkCache),
+  staticPuzzleSource,
+);
+
 export interface PuzzleScreenProps {
   game: PuzzleGame;
 }
 
 export function PuzzleScreen({ game }: PuzzleScreenProps) {
+  const { user } = useAuth();
+
+  // The player's own rating in this game, which decides the band the picker
+  // opens on. `null` while it is unknown — a guest never leaves that state, and
+  // `defaultBandFor` gives them the middle band.
+  const [rating, setRating] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    // Never null: `getUserRating` falls back to a default for a player with no
+    // games yet, which is the right band to open on for a new account.
+    void getUserRating(user.id, game).then((r) => {
+      if (!cancelled) setRating(r.rating);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, game]);
+
   const {
     puzzle,
     run,
@@ -71,6 +112,10 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     progress,
     solved,
     total,
+    band,
+    bandCounts,
+    bandSolved,
+    setBand,
     hint,
     board,
     refutation,
@@ -80,7 +125,15 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     next,
     showHint,
     startOver,
-  } = usePuzzle<unknown>({ game, source: staticPuzzleSource, progress: webPuzzleProgressStore });
+  } = usePuzzle<unknown>({
+    game,
+    source: puzzleSource,
+    progress: webPuzzleProgressStore,
+    // Resolved here rather than inside the hook: the rating comes from
+    // `@gameexplorer/db`, and this file deep-imports `usePuzzle` precisely to
+    // keep that Supabase client off the puzzle chunk.
+    defaultBand: rating === null ? undefined : defaultBandFor(game, rating).id,
+  });
 
   usePuzzleFeedback({ phase, attempts: run?.attempts ?? 0, puzzleId: puzzle?.id ?? null });
 
@@ -99,18 +152,42 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
   }
 
   if (exhausted || !puzzle || !run) {
+    // Exhaustion is now per band, so the way out is usually another band rather
+    // than starting over — offering only "Start over" would throw away a
+    // solved set to escape a finished one.
+    const empty = total === 0;
     return (
       <EmptyState
         game={game}
-        title={`You've solved every ${GAME_LABEL[game]} puzzle`}
-        body={`That's all ${total} of them. More are coming — or start the set again from the beginning.`}
+        title={
+          empty
+            ? `No ${band.label} ${GAME_LABEL[game]} puzzles yet`
+            : `You've solved every ${band.label} puzzle`
+        }
+        body={
+          empty
+            ? `The ${GAME_LABEL[game]} set doesn't reach this strength yet. Pick another band below.`
+            : `That's all ${total} at ${band.label}. Try another band, or start this one again.`
+        }
         action={
-          <button
-            onClick={startOver}
-            className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
-          >
-            Start over
-          </button>
+          <div className="flex w-full max-w-sm flex-col gap-3">
+            <PuzzleBandPicker
+              game={game}
+              band={band}
+              counts={bandCounts}
+              solved={bandSolved}
+              onSelect={setBand}
+              rating={rating}
+            />
+            {!empty && (
+              <button
+                onClick={startOver}
+                className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
+              >
+                Start over
+              </button>
+            )}
+          </div>
         }
       />
     );
@@ -127,12 +204,17 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
       headerCenter={
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-fg">Puzzle</span>
+          {/* The band, not the authoring tier. `difficulty` says how the puzzle
+              was written; the band says how hard it measured, and it is the one
+              the player chose — so it is the one that belongs beside the
+              rating. */}
           <span
-            className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold capitalize ${
+            className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold ${
               DIFFICULTY_STYLE[puzzle.difficulty] ?? DIFFICULTY_STYLE.medium
             }`}
+            data-testid="puzzle-band-label"
           >
-            {puzzle.difficulty}
+            {band.label} · {puzzle.rating}
           </span>
         </div>
       }
@@ -169,6 +251,15 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
             title={status.title}
             description={status.description}
             className="shrink-0"
+          />
+
+          <PuzzleBandPicker
+            game={game}
+            band={band}
+            counts={bandCounts}
+            solved={bandSolved}
+            onSelect={setBand}
+            rating={rating}
           />
 
           <div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-4">

@@ -15,25 +15,29 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BOARD_ANIM_MS,
   EMPTY_PROGRESS,
+  PUZZLE_BANDS,
   applyOpponentReply,
   applyPlayerMove,
   applyRefutation,
-  clearGame,
+  bandById,
+  clearPuzzles,
   describeRefutation,
   displayState,
   hintFor,
   isAtLive,
   markHintUsed,
   puzzleRulesFor,
+  recordBand,
   recordSeen,
   recordSolved,
   retryPuzzle,
   seekPuzzle,
-  solvedCount,
+  solvedAmong,
   startPuzzle,
 } from '@gameexplorer/shared';
 import type {
   Puzzle,
+  PuzzleBand,
   PuzzleGame,
   PuzzleMove,
   PuzzlePhase,
@@ -76,6 +80,17 @@ export interface UsePuzzleOptions {
   progress: PuzzleProgressStore;
   /** Pin a specific puzzle instead of taking the next unsolved one. */
   puzzleId?: string;
+  /**
+   * Band to open on when the player has no saved choice for this game.
+   *
+   * Passed in by the platform rather than resolved here, and that is
+   * load-bearing: the natural default is the player's own rating, which lives
+   * behind `getUserRating` in `@gameexplorer/db` — a module that builds a
+   * Supabase client at import time. Both `PuzzleScreen`s deep-import this hook
+   * precisely to keep that client (and socket.io behind it) off the puzzle
+   * chunk, so reading a rating here would undo the thing the deep import buys.
+   */
+  defaultBand?: string;
   replyDelayMs?: number;
 }
 
@@ -91,11 +106,20 @@ export interface UsePuzzleResult<S> {
    */
   swapping: boolean;
   error: string | null;
-  /** True when this game has no unsolved puzzles left. */
+  /** True when this game has no unsolved puzzles left **in the current band**. */
   exhausted: boolean;
   progress: PuzzleProgress;
   solved: number;
+  /** Puzzles in the current band, not in the whole game. */
   total: number;
+  /** The band being served. */
+  band: PuzzleBand;
+  /** How many puzzles each band holds, for the picker. */
+  bandCounts: Record<string, number>;
+  /** How many of each band the player has solved, for the picker. */
+  bandSolved: Record<string, number>;
+  /** Switch band. Persists the choice and loads a puzzle from the new one. */
+  setBand: (id: string) => void;
   /** The hint move, once asked for. Cleared on every step and retry. */
   hint: PuzzleMove | null;
   /** The position to draw — history or refutation branch, not always the live one. */
@@ -114,7 +138,7 @@ export interface UsePuzzleResult<S> {
   retry: () => void;
   next: () => void;
   showHint: () => void;
-  /** Forget this game's solves and start the set again. */
+  /** Forget the current band's solves and start that band again. */
   startOver: () => void;
 }
 
@@ -123,6 +147,7 @@ export function usePuzzle<S>({
   source,
   progress: store,
   puzzleId,
+  defaultBand,
   replyDelayMs = DEFAULT_REPLY_DELAY_MS,
 }: UsePuzzleOptions): UsePuzzleResult<S> {
   const rules = puzzleRulesFor<S>(game);
@@ -136,6 +161,17 @@ export function usePuzzle<S>({
   const [error, setError] = useState<string | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [hint, setHint] = useState<PuzzleMove | null>(null);
+  const [bandCounts, setBandCounts] = useState<Record<string, number>>({});
+  // Ids per band, so "solved" can be scoped to the set the player is working
+  // through and "start over" can clear just that set.
+  const [bandIds, setBandIds] = useState<Record<string, string[]>>({});
+
+  // Null until the stored choice has been read, so the first load does not
+  // fetch from the default band and then immediately refetch from the saved
+  // one. `activeBand` resolves it for everything that needs a value now.
+  const [band, setBandState] = useState<string | null>(null);
+  const activeBand =
+    band ?? defaultBand ?? PUZZLE_BANDS[game][Math.floor(PUZZLE_BANDS[game].length / 2) - 1].id;
 
   // Bumped to ask for a fresh puzzle without changing any other input.
   const [loadToken, setLoadToken] = useState(0);
@@ -147,15 +183,57 @@ export function usePuzzle<S>({
   // The puzzle whose solve has already been written, so a re-render or a
   // double-fired effect cannot bank it twice.
   const recordedRef = useRef<string | null>(null);
+  // The game the player last picked a band for by hand, so neither the store
+  // nor a late-arriving `defaultBand` may move it. Holds the game rather than a
+  // boolean so switching games still resolves a fresh band for the new one.
+  const bandChosenRef = useRef<PuzzleGame | null>(null);
 
   // What is currently painted. A `loadToken` bump asks for a different puzzle
   // in the SAME set, which is the Next button; changing game or pinning an id
   // is a different set and has nothing worth keeping on screen.
+  // Switching band is a different SET, not a Next within one: the right
+  // treatment is to blank and reload, not to keep the old board up and make it
+  // inert. Putting the band in the key is what makes that fall out of the
+  // existing `replacing` test rather than needing a second branch.
   const paintedKeyRef = useRef<string | null>(null);
-  const loadKey = `${game}:${puzzleId ?? ''}`;
+  const loadKey = `${game}:${puzzleId ?? ''}:${activeBand}`;
+
+  // -- resolve the band before anything is fetched ---------------------------
+  //
+  // Its own effect, and it has to be. The band the player last chose lives in
+  // the progress store, so it is not known synchronously — and if the main load
+  // below ran first it would fetch from the default band, resolve the saved
+  // one, and fetch again. Free over an in-memory table and a wasted round trip
+  // over a fetched corpus.
+  useEffect(() => {
+    // Once the player has picked, nothing may move the band under them — not a
+    // stored value, and not a `defaultBand` that arrives late.
+    if (bandChosenRef.current === game) return;
+
+    let cancelled = false;
+    void (async () => {
+      const stored = await store.load();
+      if (cancelled || bandChosenRef.current === game) return;
+      const saved = stored.bands?.[game];
+      setBandState(saved && bandById(game, saved) ? saved : activeBand);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Keyed on `defaultBand` as well as `game`, because the platform's default
+    // is the player's own rating and that arrives from the database a tick or
+    // two after first paint. Without it a signed-in player with no saved band
+    // would be given the middle band — the guest default — and the mode would
+    // quietly stop answering "what does MY rating look like". A saved band
+    // still wins, and `bandChosenRef` keeps a deliberate choice safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game, defaultBand]);
 
   // -- load ----------------------------------------------------------------
   useEffect(() => {
+    // Nothing to fetch until the band is known — see above.
+    if (band === null) return;
+
     let cancelled = false;
 
     // Blank the screen only when there is nothing on it. Puzzle data is an
@@ -170,16 +248,26 @@ export function usePuzzle<S>({
 
     (async () => {
       try {
-        const [stored, count] = await Promise.all([store.load(), source.countPuzzles(game)]);
+        const [stored, counts, ids] = await Promise.all([
+          store.load(),
+          source.countByBand(game),
+          source.idsByBand(game),
+        ]);
         if (cancelled) return;
 
         solvedRef.current = stored.solved;
         setProgress(stored);
-        setTotal(count);
+        setBandCounts(counts);
+        setBandIds(ids);
+
+        // `total` is the band's size, because that is the set the player is
+        // working through — "12 of 60" against a whole-game count would be a
+        // progress bar that never fills.
+        setTotal(counts[band] ?? 0);
 
         const found = puzzleId
           ? await source.getPuzzle(puzzleId)
-          : await source.nextPuzzle(game, { solvedIds: stored.solved });
+          : await source.nextPuzzle(game, { solvedIds: stored.solved, band });
         if (cancelled) return;
 
         if (!found) {
@@ -217,7 +305,7 @@ export function usePuzzle<S>({
     // `rules` is derived from `game` and `store`/`source` are module-level
     // singletons in practice; keeping them out avoids a reload per render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game, puzzleId, loadToken]);
+  }, [game, puzzleId, band, loadToken]);
 
   // -- the opponent's beat ---------------------------------------------------
   useEffect(() => {
@@ -297,12 +385,32 @@ export function usePuzzle<S>({
   }, [run, rules]);
 
   const startOver = useCallback(() => {
-    const cleared = clearGame(progress, game);
+    // Scoped to the band the player is looking at, not the whole game. Someone
+    // who has worked through Club and then finishes Beginner would otherwise
+    // lose Club too, to restart a set of two.
+    const cleared = clearPuzzles(progress, bandIds[activeBand] ?? []);
     solvedRef.current = cleared.solved;
     setProgress(cleared);
     void store.save(cleared);
     setLoadToken((n) => n + 1);
-  }, [progress, game, store]);
+  }, [progress, bandIds, activeBand, store]);
+
+  const setBand = useCallback(
+    (id: string) => {
+      // Refuse an unknown id rather than serving an empty band. A stale URL or
+      // a renamed band would otherwise land the player on "no puzzles here",
+      // which reads as a broken mode rather than a bad link.
+      if (!bandById(game, id) || id === activeBand) return;
+      bandChosenRef.current = game;
+      setBandState(id);
+      const next = recordBand(progress, game, id);
+      if (next !== progress) {
+        setProgress(next);
+        void store.save(next);
+      }
+    },
+    [game, activeBand, progress, store],
+  );
 
   return {
     puzzle,
@@ -313,8 +421,17 @@ export function usePuzzle<S>({
     error,
     exhausted,
     progress,
-    solved: solvedCount(progress, game),
+    // Scoped to the band, matching `total`. Counting the whole game against a
+    // band's size is what produced "3 / 1" for a player who had solved two
+    // puzzles in one band and one in another.
+    solved: solvedAmong(progress, bandIds[activeBand] ?? []),
     total,
+    band: bandById(game, activeBand) ?? PUZZLE_BANDS[game][0],
+    bandCounts,
+    bandSolved: Object.fromEntries(
+      Object.entries(bandIds).map(([id, ids]) => [id, solvedAmong(progress, ids)]),
+    ),
+    setBand,
     hint,
     board: run ? displayState(run) : null,
     viewIndex: run?.viewIndex ?? 0,

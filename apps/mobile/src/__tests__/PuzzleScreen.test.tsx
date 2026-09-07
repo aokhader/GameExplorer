@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { MOBILE_PUZZLE_PROGRESS_KEY, staticPuzzleSource } from '@gameexplorer/shared';
+import { bandFor, MOBILE_PUZZLE_PROGRESS_KEY, staticPuzzleSource } from '@gameexplorer/shared';
 import type { PuzzleGame } from '@gameexplorer/shared';
 import { PuzzleScreen } from '@/screens/PuzzleScreen';
 import { SettingsProvider } from '@/providers/SettingsProvider';
@@ -108,24 +108,62 @@ async function storedProgress() {
  * the shipped source rather than a hand-written list of ids, because content
  * gets added — and a test that assumes "chess-001 is first" quietly starts
  * testing a different position the day it isn't.
+ *
+ * **Band-aware since the difficulty picker landed.** The screen serves one band
+ * at a time, so pinning a puzzle also means putting the picker on that puzzle's
+ * band and marking as solved only the puzzles *in that band* before it. Seeding
+ * the whole game's earlier ids would leave the screen on the default band,
+ * where the target is not served at all. `total` is likewise the band's size —
+ * the progress line counts the set the player is working through.
  */
 async function seedUpTo(game: PuzzleGame, id?: string) {
   const ordered = await staticPuzzleSource.listPuzzles({ game });
   const index = id ? ordered.findIndex((p) => p.id === id) : 0;
   expect(index).toBeGreaterThanOrEqual(0);
 
-  const solved = ordered.slice(0, index).map((p) => p.id);
+  const target = ordered[index];
+  const band = bandFor(game, target.rating);
+  const inBand = ordered.filter((p) => bandFor(game, p.rating).id === band.id);
+  const solved = inBand.slice(0, inBand.findIndex((p) => p.id === target.id)).map((p) => p.id);
+
   await AsyncStorage.setItem(
     MOBILE_PUZZLE_PROGRESS_KEY,
-    JSON.stringify({ v: 1, solved, streak: 0, bestStreak: 0, lastSeen: {}, updatedAt: '' }),
+    JSON.stringify({
+      v: 1,
+      solved,
+      streak: 0,
+      bestStreak: 0,
+      lastSeen: {},
+      bands: { [game]: band.id },
+      updatedAt: '',
+    }),
   );
-  return { ordered, solved, total: ordered.length };
+  return { ordered, solved, band, total: inBand.length };
 }
 
 /** "3 / 20" as a matcher, so a test never hard-codes how much content ships. */
 function progressText(solved: number, total: number) {
   return new RegExp(`${solved} / ${total}`);
 }
+
+/**
+ * No network, ever, from this suite.
+ *
+ * The screen's source is layered: a fetched corpus in front of the bundled set.
+ * Left alone under jest that reaches the *deployed site* — Node has a global
+ * `fetch`, so these tests silently started making real requests and asserting
+ * against whatever content happened to be published, which is both flaky and
+ * wrong. Rejecting here pins them to the bundled core, which is the set every
+ * expectation below is computed from, and exercises the offline fallback into
+ * the bargain.
+ */
+beforeAll(() => {
+  jest.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.reject(new Error('offline')));
+});
+
+afterAll(() => {
+  jest.restoreAllMocks();
+});
 
 beforeEach(async () => {
   await AsyncStorage.clear();
@@ -145,7 +183,7 @@ describe('PuzzleScreen', () => {
   });
 
   it('refuses a wrong move, goes inert, and comes back on Try again', async () => {
-    await seedUpTo('chess', 'chess-003');
+    const { solved } = await seedUpTo('chess', 'chess-003');
     await openPuzzles('chess');
 
     // Qb1–b7 is a legal queen move and not the mate.
@@ -167,8 +205,13 @@ describe('PuzzleScreen', () => {
     fireEvent.press(screen.getByLabelText('Try again'));
     await waitFor(() => expect(screen.getByText('Your move')).toBeOnTheScreen());
     expect(screen.getByText('interactive:true')).toBeOnTheScreen();
-    // A miss is not a solve.
-    expect(await storedProgress()).toMatchObject({ solved: [] });
+    // A miss is not a solve: the seeded set is untouched and this puzzle was
+    // not added to it. Asserted against the seed rather than against `[]`,
+    // because the band is no longer two puzzles deep — the bundled core put
+    // fifty-odd ahead of this one, and an empty-array assertion was really
+    // testing how little content shipped.
+    expect((await storedProgress()).solved).toEqual(solved);
+    expect((await storedProgress()).solved).not.toContain('chess-003');
   });
 
   it('plays the opponent’s refutation out on the board and names it', async () => {
@@ -209,17 +252,22 @@ describe('PuzzleScreen', () => {
   });
 
   it('banks a clean solve to storage', async () => {
-    const { total } = await seedUpTo('chess', 'chess-003');
+    const { solved, total } = await seedUpTo('chess', 'chess-003');
     await openPuzzles('chess');
 
     await play('chess board', 'b1', 'b8');
     await waitFor(() => expect(screen.getByText('Solved')).toBeOnTheScreen());
 
     expect(screen.getByTestId('puzzle-explanation')).toHaveTextContent(/Qb8 is mate/);
-    expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(progressText(1, total));
+    expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(progressText(solved.length + 1, total));
     expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(/streak 1/);
     await waitFor(async () =>
-      expect(await storedProgress()).toMatchObject({ solved: ['chess-003'], streak: 1 }),
+      // The solve is appended to the seeded set, not written over it — and the
+      // streak counts the clean solve just made, whatever was seeded before it.
+      expect(await storedProgress()).toMatchObject({
+        solved: [...solved, 'chess-003'],
+        streak: 1,
+      }),
     );
   });
 
@@ -239,7 +287,7 @@ describe('PuzzleScreen', () => {
   });
 
   it('spells the hint out and drops the streak', async () => {
-    const { total } = await seedUpTo('chess', 'chess-003');
+    const { solved, total } = await seedUpTo('chess', 'chess-003');
     await openPuzzles('chess');
 
     fireEvent.press(screen.getByLabelText('Hint'));
@@ -251,7 +299,7 @@ describe('PuzzleScreen', () => {
     await play('chess board', 'b1', 'b8');
     await waitFor(() => expect(screen.getByText('Solved')).toBeOnTheScreen());
 
-    expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(progressText(1, total));
+    expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(progressText(solved.length + 1, total));
     // Counted as solved, but a hinted solve is not a clean one.
     expect(screen.getByTestId('puzzle-progress')).not.toHaveTextContent(/streak/);
   });
@@ -307,27 +355,37 @@ describe('PuzzleScreen', () => {
     );
   });
 
-  it('offers a restart once every puzzle is solved', async () => {
+  it('offers a restart once every puzzle in the band is solved', async () => {
+    // Exhaustion is per band now, so seed one band rather than the whole game —
+    // and `clearGame` still clears the game, which is why the count comes back
+    // to the band's full size rather than to zero-of-everything.
     const all = await staticPuzzleSource.listPuzzles({ game: 'chess' });
+    const band = bandFor('chess', all[0].rating);
+    const inBand = all.filter((p) => bandFor('chess', p.rating).id === band.id);
     await AsyncStorage.setItem(
       MOBILE_PUZZLE_PROGRESS_KEY,
       JSON.stringify({
         v: 1,
-        solved: all.map((p) => p.id),
+        solved: inBand.map((p) => p.id),
         streak: 2,
         bestStreak: 2,
         lastSeen: {},
+        bands: { chess: band.id },
         updatedAt: '',
       }),
     );
     renderScreen('chess');
 
     await waitFor(() =>
-      expect(screen.getByText("You've solved every Chess puzzle")).toBeOnTheScreen(),
+      // Named by band: exhaustion is per band, and with the mined corpus behind
+      // it "every Chess puzzle" would be false by several thousand.
+      expect(
+        screen.getByText(`You've solved every ${band.label} Chess puzzle`),
+      ).toBeOnTheScreen(),
     );
     fireEvent.press(screen.getByLabelText('Start over'));
     await waitFor(() => expect(screen.getByTestId('puzzle-prompt')).toBeOnTheScreen());
-    expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(progressText(0, all.length));
+    expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(progressText(0, inBand.length));
   });
 });
 

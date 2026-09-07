@@ -43,7 +43,17 @@ import type { ChessGameState } from '../../types/chess.types';
  */
 const ANALYZER_DEPTH = 6;
 
-const ID_PATTERN = /^(chess|checkers|reversi|go)-\d{3}$/;
+/**
+ * Three digits capped the set at 1,000 per game, which the mined and imported
+ * content passes. Hand-authored puzzles keep `001`–`099`; generated ones start
+ * at `1000`, so the two are separable by eye and by prefix.
+ *
+ * Note this makes `byProgression`'s `localeCompare` tiebreak order `chess-1000`
+ * before `chess-999`. That is harmless — the comparator only has to be total
+ * and stable, and difficulty then rating decide long before it — so do not
+ * "fix" it by zero-padding, which would renumber the shipped set.
+ */
+const ID_PATTERN = /^(chess|checkers|reversi|go)-\d{3,6}$/;
 
 /** Play the whole line the way the runtime does, returning every state it passed through. */
 function walkLine<S>(puzzle: Puzzle): { states: S[]; final: S } {

@@ -23,6 +23,17 @@ export interface PuzzleProgress {
   bestStreak: number;
   /** Last puzzle seen per game, so "resume" lands where the player left off. */
   lastSeen: Partial<Record<PuzzleGame, string>>;
+  /**
+   * The band each game's picker last sat on, so a returning player finds the
+   * difficulty they chose rather than the default.
+   *
+   * Optional, and `v` deliberately **stays 1**. An added optional field is
+   * compatible in both directions — an old client ignores it, a new client
+   * defaults it — whereas bumping the version would send every existing record
+   * through `EMPTY_PROGRESS` and discard every player's solved set and streak
+   * to introduce a UI preference.
+   */
+  bands?: Partial<Record<PuzzleGame, string>>;
   updatedAt: string;
 }
 
@@ -37,6 +48,7 @@ export const EMPTY_PROGRESS: PuzzleProgress = {
   streak: 0,
   bestStreak: 0,
   lastSeen: {},
+  bands: {},
   updatedAt: '',
 };
 
@@ -52,9 +64,29 @@ export function isSolved(progress: PuzzleProgress, id: string): boolean {
   return progress.solved.includes(id);
 }
 
-/** How many of this game's puzzles have been solved. Ids are game-prefixed. */
+/**
+ * How many of this game's puzzles have been solved, across every band.
+ *
+ * **Not what a band-scoped progress line wants.** Pairing this with a band's
+ * size produces "3 / 1" for a player who solved two puzzles in one band and one
+ * in another — the count and the total were measuring different sets. Use
+ * {@link solvedAmong} with the band's ids for anything the player reads as
+ * progress through a set; this one is for a whole-game total.
+ */
 export function solvedCount(progress: PuzzleProgress, game: PuzzleGame): number {
   return progress.solved.filter((id) => id.startsWith(`${game}-`)).length;
+}
+
+/**
+ * How many of `ids` have been solved.
+ *
+ * Takes the ids rather than a band because progress stores ids and nothing
+ * else: it has no ratings, so it cannot work out which band a solve belongs to
+ * on its own. The caller — which already fetched the band — supplies them.
+ */
+export function solvedAmong(progress: PuzzleProgress, ids: readonly string[]): number {
+  const solved = new Set(progress.solved);
+  return ids.reduce((n, id) => (solved.has(id) ? n + 1 : n), 0);
 }
 
 /**
@@ -101,6 +133,25 @@ export function recordSeen(
   };
 }
 
+/**
+ * Remember the band a player chose for a game.
+ *
+ * Returns the record unchanged when nothing moved, matching `recordSeen` — a
+ * new `updatedAt` on every render would make the store write on every paint.
+ */
+export function recordBand(
+  progress: PuzzleProgress,
+  game: PuzzleGame,
+  band: string,
+): PuzzleProgress {
+  if (progress.bands?.[game] === band) return progress;
+  return {
+    ...progress,
+    bands: { ...progress.bands, [game]: band },
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 /** Forget a game's solves, for "start over" once a set is exhausted. */
 export function clearGame(progress: PuzzleProgress, game: PuzzleGame): PuzzleProgress {
   const lastSeen = { ...progress.lastSeen };
@@ -111,6 +162,27 @@ export function clearGame(progress: PuzzleProgress, game: PuzzleGame): PuzzlePro
     lastSeen,
     updatedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Forget a specific set of solves — "start over" scoped to one band.
+ *
+ * Bands made `clearGame` the wrong verb for that button. A player who has
+ * worked through Club and then finishes Beginner would, on pressing Start over,
+ * lose Club as well: the whole game's solves go, to restart a set of two. This
+ * clears exactly the ids handed to it.
+ *
+ * `lastSeen` is left alone deliberately — it points at the last puzzle *seen*
+ * per game, and clearing one band does not change which that was.
+ */
+export function clearPuzzles(
+  progress: PuzzleProgress,
+  ids: readonly string[],
+): PuzzleProgress {
+  const drop = new Set(ids);
+  const solved = progress.solved.filter((id) => !drop.has(id));
+  if (solved.length === progress.solved.length) return progress;
+  return { ...progress, solved, updatedAt: new Date().toISOString() };
 }
 
 /**
@@ -138,6 +210,7 @@ export function parseProgress(raw: string | null | undefined): PuzzleProgress {
       bestStreak: typeof record.bestStreak === 'number' ? record.bestStreak : 0,
       lastSeen:
         typeof record.lastSeen === 'object' && record.lastSeen !== null ? record.lastSeen : {},
+      bands: typeof record.bands === 'object' && record.bands !== null ? record.bands : {},
       updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : '',
     };
   } catch {

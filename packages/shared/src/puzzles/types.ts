@@ -97,6 +97,19 @@ export const PUZZLE_THEMES = [
   'mate-in-1',
   'mate-in-2',
   'endgame',
+  // chess — added for the imported set. Every one of these is a Lichess theme
+  // with enough volume that dropping it would throw away puzzles rather than
+  // merely leave them untagged; see `scripts/puzzles/import-lichess.mjs`.
+  'mate-in-3',
+  'hanging-piece',
+  'double-check',
+  'attraction',
+  'clearance',
+  'interference',
+  'x-ray',
+  'zugzwang',
+  'quiet-move',
+  'defensive-move',
   // checkers
   'double-jump',
   'shot',
@@ -137,6 +150,32 @@ export interface PuzzleMove {
   promotion?: PieceType;
   /** Checkers multi-jump landing squares, final element === `to`. */
   path?: string[];
+}
+
+/**
+ * What a legal move actually did, in terms every game can answer.
+ *
+ * Exists so a lesson can accept "any move that captures something" without the
+ * matcher knowing which game it is. The vocabulary is each game's own — a
+ * checkers piece is a `'man'` or a `'king'`, a Go move places a `'stone'`, a
+ * reversi move places a `'disc'` — because the alternative is a lowest common
+ * denominator that can only say "a piece moved", which is not a thing anybody
+ * wants to teach.
+ */
+export interface PuzzleMoveFacts {
+  /** Kind of piece that moved or was placed, in this game's vocabulary. */
+  piece: string;
+  /**
+   * Pieces removed from the board.
+   *
+   * Reversi reports discs **flipped**, which is its analogue and the only
+   * number a reversi lesson could mean — nothing is ever removed there.
+   */
+  captures: number;
+  /** Chess and checkers only; false in the two placement games. */
+  check: boolean;
+  /** The move ends the game. */
+  terminal: boolean;
 }
 
 /**
@@ -189,4 +228,20 @@ export interface PuzzleRules<S> {
     depth: number,
     puzzle?: Puzzle,
   ): { score: number; bestMove: PuzzleMove | null };
+  /**
+   * Every legal move for the side to move.
+   *
+   * Not needed by the puzzle runtime, which only ever compares against a
+   * scripted string. Lessons need it to answer "make any knight move" without
+   * enumerating the answers by hand, and it is the honest way to prove such a
+   * step is teachable: a step that accepts *every* legal move is a Continue
+   * button wearing a board.
+   */
+  legalMoves(state: S): PuzzleMove[];
+  /**
+   * What a legal move did. Throws on an illegal move, like `decode` and
+   * `parseMove` — a caller asking about a move that cannot be played has a bug,
+   * and returning a zeroed answer would hide it.
+   */
+  describeMove(state: S, move: PuzzleMove): PuzzleMoveFacts;
 }

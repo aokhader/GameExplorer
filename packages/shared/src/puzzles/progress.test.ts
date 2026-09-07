@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_PROGRESS,
   clearGame,
+  clearPuzzles,
   isSolved,
+  solvedAmong,
   parseProgress,
+  recordBand,
   recordFailed,
   recordSeen,
   recordSolved,
@@ -135,5 +138,105 @@ describe('parseProgress', () => {
     expect(parsed.solved).toEqual(['chess-001']);
     expect(parsed.streak).toBe(0);
     expect(parsed.bestStreak).toBe(0);
+  });
+});
+
+describe('solvedAmong', () => {
+  const progress = {
+    ...EMPTY_PROGRESS,
+    solved: ['chess-001', 'chess-002', 'chess-014', 'go-003'],
+  };
+
+  it('counts only the ids handed to it', () => {
+    expect(solvedAmong(progress, ['chess-001', 'chess-002', 'chess-003'])).toBe(2);
+  });
+
+  it('is the fix for the "3 / 1" progress line', () => {
+    // Two solves in one band and one in another. The whole-game count is 3; a
+    // band holding one puzzle must report 1 of 1, not 3 of 1.
+    const clubIds = ['chess-014'];
+    expect(solvedCount(progress, 'chess')).toBe(3);
+    expect(solvedAmong(progress, clubIds)).toBe(1);
+    expect(solvedAmong(progress, clubIds)).toBeLessThanOrEqual(clubIds.length);
+  });
+
+  it('never exceeds the set it was given, whatever is in the record', () => {
+    expect(solvedAmong(progress, [])).toBe(0);
+    expect(solvedAmong(progress, ['nothing-here'])).toBe(0);
+  });
+
+  it('does not double-count a duplicated id', () => {
+    expect(solvedAmong({ ...EMPTY_PROGRESS, solved: ['chess-001'] }, ['chess-001'])).toBe(1);
+  });
+});
+
+describe('clearPuzzles', () => {
+  const progress = {
+    ...EMPTY_PROGRESS,
+    solved: ['chess-001', 'chess-002', 'chess-014'],
+    streak: 2,
+  };
+
+  it('clears only the ids given, leaving other bands intact', () => {
+    // The reason this exists: `clearGame` would take chess-014 with it, so a
+    // player restarting Beginner would silently lose their Club progress.
+    const cleared = clearPuzzles(progress, ['chess-001', 'chess-002']);
+    expect(cleared.solved).toEqual(['chess-014']);
+  });
+
+  it('returns the same object when nothing matched', () => {
+    expect(clearPuzzles(progress, ['chess-999'])).toBe(progress);
+    expect(clearPuzzles(progress, [])).toBe(progress);
+  });
+
+  it('leaves lastSeen alone — clearing a band does not change what was last seen', () => {
+    const seen = { ...progress, lastSeen: { chess: 'chess-002' } as const };
+    expect(clearPuzzles(seen, ['chess-002']).lastSeen).toEqual({ chess: 'chess-002' });
+  });
+});
+
+describe('recordBand', () => {
+  it('remembers the band per game', () => {
+    let p = recordBand(EMPTY_PROGRESS, 'chess', 'club');
+    p = recordBand(p, 'go', 'strong');
+    expect(p.bands).toEqual({ chess: 'club', go: 'strong' });
+  });
+
+  it('returns the same object when nothing moved', () => {
+    // The picker re-reports its band on every render; a fresh `updatedAt` each
+    // time would make the store write on every paint.
+    const p = recordBand(EMPTY_PROGRESS, 'chess', 'club');
+    expect(recordBand(p, 'chess', 'club')).toBe(p);
+  });
+
+  it('does not disturb solves or the streak', () => {
+    const solved = { ...EMPTY_PROGRESS, solved: ['chess-001'], streak: 3, bestStreak: 5 };
+    const p = recordBand(solved, 'chess', 'master');
+    expect(p.solved).toEqual(['chess-001']);
+    expect(p.streak).toBe(3);
+    expect(p.bestStreak).toBe(5);
+  });
+});
+
+describe('the band field is a compatible addition', () => {
+  it('reads a v1 record written before bands existed', () => {
+    // The whole reason `v` stayed 1: an older record must keep its solves and
+    // its streak, not be discarded to introduce a UI preference.
+    const parsed = parseProgress(
+      '{"v":1,"solved":["chess-001"],"streak":4,"bestStreak":9,"lastSeen":{"chess":"chess-001"},"updatedAt":"x"}',
+    );
+    expect(parsed.solved).toEqual(['chess-001']);
+    expect(parsed.streak).toBe(4);
+    expect(parsed.bestStreak).toBe(9);
+    expect(parsed.bands).toEqual({});
+  });
+
+  it('survives a round trip through the store format', () => {
+    const p = recordBand(EMPTY_PROGRESS, 'reversi', 'expert');
+    expect(parseProgress(serializeProgress(p))).toEqual(p);
+  });
+
+  it('ignores a bands field of the wrong shape rather than throwing', () => {
+    expect(parseProgress('{"v":1,"solved":[],"bands":"club"}').bands).toEqual({});
   });
 });

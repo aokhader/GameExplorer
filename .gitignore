@@ -42,3 +42,8 @@ yarn-error.log*
 *.pem
 project-docs/
 .vscode/
+
+# Puzzle corpus: the derived JSONL is committed, the raw dumps never are.
+# The Lichess CSV is ~250MB and its provenance is recorded in
+# data/puzzles/LICENSE-lichess.md rather than by vendoring the file.
+data/puzzles/*.csv

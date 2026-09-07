@@ -96,6 +96,24 @@ export default function LicensesPage() {
           </section>
 
           <section>
+            <h2 className="text-lg font-semibold text-fg mb-2">Puzzle content</h2>
+            <p>
+              Chess puzzles whose source line names a Lichess puzzle id are derived from the{' '}
+              <Link href="https://database.lichess.org/#puzzles">
+                Lichess open puzzle database
+              </Link>
+              , released by Lichess under CC0 1.0 Universal. No attribution is required — the
+              credit shown on each puzzle, and this note, are a courtesy. The positions come from
+              games played by Lichess users; the difficulty bands, the calibration and the wording
+              of each prompt are GameExplorer&apos;s own.
+            </p>
+            <p className="mt-2">
+              Every other puzzle — all checkers, reversi and Go problems, and the chess puzzles
+              credited to GameExplorer — was composed or engine-generated for this app.
+            </p>
+          </section>
+
+          <section>
             <h2 className="text-lg font-semibold text-fg mb-2">Everything else</h2>
             <p>
               The apps are built on Next.js, React, React Native and Expo, and a long tail of

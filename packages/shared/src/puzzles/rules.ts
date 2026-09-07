@@ -13,10 +13,12 @@
 
 import { ChessEngine } from '../game-logic/chess/engine';
 import { analyzeChessPosition } from '../game-logic/chess/weakEngine';
+import { getPieceAt as getChessPieceAt } from '../game-logic/chess/utils';
 import { fenToState, stateToFen } from '../game-logic/chess/fen';
 import { parseUciMoveString, uciMoveString } from '../game-logic/chess/uci';
 import { CheckersEngine } from '../game-logic/checkers/engine';
 import { analyzeCheckersPosition } from '../game-logic/checkers/weakEngine';
+import { getPieceAt as getCheckersPieceAt } from '../game-logic/checkers/utils';
 import { checkersFenToState, stateToCheckersFen } from '../game-logic/checkers/fen';
 import { GoEngine } from '../game-logic/go/engine';
 import { goBoardStringToState, stateToGoBoardString } from '../game-logic/go/boardString';
@@ -80,7 +82,38 @@ export const chessPuzzleRules: PuzzleRules<ChessGameState> = {
         : null,
     };
   },
+
+  legalMoves: (state) => ChessEngine.getAllLegalMoves(state).map((m) => ({ from: m.from, to: m.to })),
+
+  describeMove(state, move) {
+    const piece = getChessPieceAt(state.board, move.from);
+    if (!piece) throw new Error(`No piece on ${move.from}`);
+    // Auto-queen when the caller did not say, matching what a board hands up —
+    // otherwise a promoting move comes back valid-but-stateless (see
+    // `validateMove`) and this would throw on a perfectly legal move.
+    const promotion = move.promotion ?? 'queen';
+    const result = ChessEngine.validateMove(state, move.from, move.to, false, promotion);
+    if (!result.valid || !result.resultingState) {
+      throw new Error(`Illegal chess move: ${move.from}${move.to}`);
+    }
+    const after = result.resultingState;
+    return {
+      piece: piece.type,
+      // Counted rather than read off the destination square, because en passant
+      // removes a pawn that was never standing on `to`.
+      captures: countChessPieces(state.board) - countChessPieces(after.board),
+      check: after.isCheck,
+      terminal: after.isCheckmate || after.isStalemate || after.isDraw,
+    };
+  },
 };
+
+/** Pieces standing, both colours. Only ever compared with itself. */
+function countChessPieces(board: ChessGameState['board']): number {
+  let n = 0;
+  for (const row of board) for (const square of row) if (square) n++;
+  return n;
+}
 
 // ---------------------------------------------------------------------------
 // Checkers
@@ -127,6 +160,37 @@ export const checkersPuzzleRules: PuzzleRules<CheckersGameState> = {
     const { score, bestMove } = analyzeCheckersPosition(state, depth);
     return { score, bestMove: bestMove ? { from: bestMove.from, to: bestMove.to } : null };
   },
+
+  legalMoves: (state) =>
+    CheckersEngine.getAllLegalMoves(state).map((m) => ({
+      from: m.from,
+      to: m.to,
+      path: m.path.length > 1 ? m.path : undefined,
+    })),
+
+  describeMove(state, move) {
+    // Read the engine's own move object rather than diffing boards: it already
+    // carries the capture list and the crowning flag, and `find` here resolves
+    // the chain the same way `validateMove` does.
+    const engineMove = CheckersEngine.getAllLegalMoves(state).find(
+      (m) => m.from === move.from && m.to === move.to,
+    );
+    if (!engineMove) throw new Error(`Illegal checkers move: ${move.from}${move.to}`);
+    const piece = getCheckersPieceAt(state.board, move.from);
+    if (!piece) throw new Error(`No piece on ${move.from}`);
+    const after = CheckersEngine.validateMove(state, move.from, move.to).resultingState;
+    return {
+      // The piece as it stood BEFORE the move — a man that crowns on this move
+      // was still a man when the player chose it, which is what a lesson asking
+      // "move a man" means.
+      piece: piece.type,
+      captures: engineMove.captures.length,
+      // Checkers has no check. The engine models a win as "no legal reply",
+      // which `terminal` already carries.
+      check: false,
+      terminal: after?.isGameOver ?? false,
+    };
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -167,6 +231,26 @@ export const reversiPuzzleRules: PuzzleRules<ReversiGameState> = {
     return {
       score,
       bestMove: bestMove ? { from: bestMove.position, to: bestMove.position } : null,
+    };
+  },
+
+  legalMoves: (state) => ReversiEngine.getAllLegalMoves(state).map((p) => ({ from: p, to: p })),
+
+  describeMove(state, move) {
+    const result = ReversiEngine.validateMove(state, move.to);
+    if (!result.valid || !result.resultingState) {
+      throw new Error(`Illegal reversi move: ${move.to}`);
+    }
+    const after = result.resultingState;
+    const played = after.moveHistory[after.moveHistory.length - 1];
+    return {
+      piece: 'disc',
+      // Discs FLIPPED, not removed — see `PuzzleMoveFacts.captures`. Nothing is
+      // ever taken off a reversi board, so this is the only number the field
+      // could mean here, and it is the one a lesson about flanking asks for.
+      captures: played?.flipped.length ?? 0,
+      check: false,
+      terminal: after.isGameOver,
     };
   },
 };
@@ -255,6 +339,29 @@ export const goPuzzleRules: PuzzleRules<GoGameState> = {
     return {
       score: decisive(!verdict.solved),
       bestMove: verdict.solved && punish ? { from: punish, to: punish } : null,
+    };
+  },
+
+  // Legal points only — the pass is deliberately not offered. A lesson step
+  // saying "play any move" must not be satisfiable by declining to play, and
+  // `parseMove` cannot express a pass anyway.
+  legalMoves: (state) => GoEngine.getAllLegalMoves(state).map((p) => ({ from: p, to: p })),
+
+  describeMove(state, move) {
+    const result = GoEngine.validateMove(state, move.to);
+    if (!result.valid || !result.resultingState) {
+      throw new Error(`Illegal go move: ${move.to}`);
+    }
+    const after = result.resultingState;
+    const played = after.moveHistory[after.moveHistory.length - 1];
+    return {
+      piece: 'stone',
+      captures: played?.captures.length ?? 0,
+      check: false,
+      // Two passes open the dead-stone review rather than ending the game, and
+      // `isGameOver` stays false through it on purpose — so a placement is
+      // never terminal in Go, which is the honest answer here.
+      terminal: after.isGameOver,
     };
   },
 };
