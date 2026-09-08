@@ -405,14 +405,21 @@ export function createLayeredPuzzleSource(
    * puzzle screen on its skeleton **forever**, because the screen cannot paint
    * until the source answers. A rejection is handled; silence was not.
    *
-   * Deliberately generous. Setting it tight would trade a rare hang for a
-   * common one: on any connection slower than the bound the player would get
-   * the ~100-per-band bundled set instead of the corpus they could have had a
-   * moment later, and would never know the difference. Four seconds is past the
-   * point where a normal fetch of a 137KB index and a 96KB page has finished on
-   * anything, so in practice this fires only when something is actually wrong.
+   * **This was four seconds, and the right value changed when the fallback did.**
+   * The old reasoning was that falling back was itself a loss worth waiting to
+   * avoid — and it was, while three of the four games had no bundled core at
+   * all and "fall back" meant "show nothing". Now every game ships a core
+   * covering every band, so the fallback is a complete puzzle set rather than a
+   * degraded one, and the calculation inverts: four seconds of skeleton is a
+   * large, certain cost to avoid a small, uncertain one.
+   *
+   * Still a safety net rather than a performance target — a normal fetch of a
+   * 140KB index and a ~100KB page finishes far inside this — but now bounded by
+   * what a person will wait for rather than by what a network might need. The
+   * fetched corpus is not lost either way: the next request tries again, and by
+   * then it is in the device cache.
    */
-  timeoutMs = 4000,
+  timeoutMs = 1500,
 ): PuzzleSource {
   const via = async <T>(run: (s: PuzzleSource) => Promise<T>, empty: (v: T) => boolean) => {
     const LATE = Symbol('late');

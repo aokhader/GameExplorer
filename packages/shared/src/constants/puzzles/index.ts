@@ -22,6 +22,9 @@ import { CHECKERS_PUZZLES } from './checkers';
 import { REVERSI_PUZZLES } from './reversi';
 import { GO_PUZZLES } from './go';
 import { CHESS_CORE_PUZZLES } from './generated/chess.core';
+import { CHECKERS_CORE_PUZZLES } from './generated/checkers.core';
+import { REVERSI_CORE_PUZZLES } from './generated/reversi.core';
+import { GO_CORE_PUZZLES } from './generated/go.core';
 
 export { CHESS_PUZZLES, CHECKERS_PUZZLES, REVERSI_PUZZLES, GO_PUZZLES };
 
@@ -40,9 +43,9 @@ export { CHESS_PUZZLES, CHECKERS_PUZZLES, REVERSI_PUZZLES, GO_PUZZLES };
  */
 export const PUZZLES: Record<PuzzleGame, Puzzle[]> = {
   chess: [...CHESS_PUZZLES, ...CHESS_CORE_PUZZLES],
-  checkers: CHECKERS_PUZZLES,
-  reversi: REVERSI_PUZZLES,
-  go: GO_PUZZLES,
+  checkers: [...CHECKERS_PUZZLES, ...CHECKERS_CORE_PUZZLES],
+  reversi: [...REVERSI_PUZZLES, ...REVERSI_CORE_PUZZLES],
+  go: [...GO_PUZZLES, ...GO_CORE_PUZZLES],
 };
 
 export const ALL_PUZZLES: Puzzle[] = Object.values(PUZZLES).flat();

@@ -25,11 +25,18 @@
 const SHARED = new URL('../../packages/shared/src/', import.meta.url).href;
 const { PUZZLE_BANDS, bandFor, MIN_CORE_PUZZLES_PER_BAND } = await import(SHARED + 'puzzles/bands.ts');
 const { byProgression } = await import(SHARED + 'puzzles/source.ts');
-// The hand-authored sets, NOT `PUZZLES` — that one already folds in the
-// generated core, and re-publishing the core would duplicate it into the chunks.
-const { CHESS_PUZZLES, CHECKERS_PUZZLES, REVERSI_PUZZLES, GO_PUZZLES } = await import(
-  SHARED + 'constants/puzzles/index.ts'
-);
+// The hand-authored sets, from the LEAF modules rather than the barrel.
+//
+// Two reasons, and the second is load-bearing. `PUZZLES` already folds in the
+// generated core, so re-publishing it would duplicate the core into the chunks.
+// And the barrel imports the four generated core files that this script writes,
+// so importing it here is a bootstrap cycle: a game whose core has never been
+// generated cannot be published, because publishing it requires the file that
+// publishing produces.
+const { CHESS_PUZZLES } = await import(SHARED + 'constants/puzzles/chess.ts');
+const { CHECKERS_PUZZLES } = await import(SHARED + 'constants/puzzles/checkers.ts');
+const { REVERSI_PUZZLES } = await import(SHARED + 'constants/puzzles/reversi.ts');
+const { GO_PUZZLES } = await import(SHARED + 'constants/puzzles/go.ts');
 const AUTHORED = {
   chess: CHESS_PUZZLES,
   checkers: CHECKERS_PUZZLES,
@@ -53,8 +60,21 @@ const args = Object.fromEntries(
   }),
 );
 
-/** Puzzles per band compiled into the app. */
-const CORE_PER_BAND = Number(args.core ?? 100);
+/**
+ * Puzzles per band compiled into the app.
+ *
+ * 30, not 100, and the number is a boot-time budget rather than a content
+ * choice. `packages/shared` sets `"react-native": "./src/index.ts"`, so Metro
+ * parses this package's source on every cold launch — at 100 per band the four
+ * generated files came to **844 KB**, which is most of a megabyte of source read
+ * and parsed before the first frame, on exactly the devices that can least
+ * afford it. At 30 it is around 250 KB, still six times the coverage gate's
+ * five-per-band floor, and every band works offline on a fresh install.
+ *
+ * Raise it only with a boot trace to show the cost, not because more sounds
+ * better: the rest of the corpus is one fetch away and cached after that.
+ */
+const CORE_PER_BAND = Number(args.core ?? 30);
 
 /**
  * Puzzles per served page. Sized so a page fits comfortably in AsyncStorage on

@@ -27,8 +27,13 @@ import {
   PUZZLE_BANDS,
   bandFor,
   bandSpan,
+  isUnfillable,
+  UNFILLABLE_BANDS,
   type PuzzleBand,
 } from './bands';
+import { BOT_TO_HUMAN_KNOTS, GO_STRUCTURAL_MODEL } from '../constants/puzzles/generated/calibration';
+import { BOT_TIERS } from '../constants/botTiers';
+import { goStructuralRating, humanRating } from './calibration';
 import type { Puzzle, PuzzleGame } from './types';
 
 const GAMES: PuzzleGame[] = ['chess', 'checkers', 'reversi', 'go'];
@@ -39,10 +44,18 @@ const CORPUS_DIR = join(__dirname, '..', '..', '..', '..', 'data', 'puzzles');
 function corpusFor(game: PuzzleGame): Puzzle[] | null {
   const file = join(CORPUS_DIR, `${game}.jsonl`);
   if (!existsSync(file)) return null;
-  return readFileSync(file, 'utf8')
+  const mined = readFileSync(file, 'utf8')
     .split('\n')
     .filter((l) => l.trim().length > 0)
     .map((l) => JSON.parse(l) as Puzzle);
+
+  // Authored ∪ mined, because that is what `scripts/puzzles/publish.mjs`
+  // actually serves. Measuring the mined file alone checks a set no player ever
+  // sees, and it is the smaller one: Go's fourteen hand-composed problems are a
+  // third of everything it has in the Casual band, and they were invisible here.
+  const minedIds = new Set(mined.map((p) => p.id));
+  const authored = PUZZLES[game].filter((p) => !minedIds.has(p.id));
+  return [...authored, ...mined];
 }
 
 /**
@@ -61,6 +74,33 @@ const HAS_CORPUS: Record<PuzzleGame, boolean> = {
 };
 
 /**
+ * The lowest rating each game's rating pipeline can actually produce.
+ *
+ * Not a constant, because the three pipelines have three different floors and
+ * two of them move when the calibration is refitted:
+ *
+ * - **chess** takes its ratings straight from Lichess, so its floor is the
+ *   ladder's nominal minimum. Nothing is transferred and nothing compresses.
+ * - **checkers and reversi** are rated by transferring the chess anchor map,
+ *   whose lowest output is what the weakest bot tier can still resolve. That is
+ *   around 790 — well above the nominal 400.
+ * - **go** is rated structurally, and its floor is the smallest problem the
+ *   composer can build: a three-point eye space with one losing move.
+ *
+ * Measuring a band's spread against ground its own pipeline cannot reach
+ * reports a full band as half empty — the same error `bandSpan` already
+ * corrects for the ELO floor, one level further up.
+ */
+function ratingFloor(game: PuzzleGame): number {
+  if (game === 'chess') return 400;
+  if (game === 'go') {
+    return goStructuralRating({ regionSize: 3, logNodes: 0, losingMoves: 1 }, GO_STRUCTURAL_MODEL);
+  }
+  const tiers = BOT_TIERS[game].map((t) => t.elo);
+  return humanRating(game, tiers[0] - (tiers[1] - tiers[0]), BOT_TO_HUMAN_KNOTS);
+}
+
+/**
  * Fraction of a band's *fillable* width the ratings in it actually span.
  *
  * Measured against `bandSpan`, not the nominal edges — see its comment. The
@@ -71,7 +111,7 @@ const HAS_CORPUS: Record<PuzzleGame, boolean> = {
 function spread(game: PuzzleGame, band: PuzzleBand, ratings: number[]): number {
   if (ratings.length < 2) return 0;
   const highest = Math.max(...ratings);
-  const { min, max } = bandSpan(game, band, highest);
+  const { min, max } = bandSpan(game, band, highest, ratingFloor(game));
   return (highest - Math.min(...ratings)) / Math.max(1, max - min);
 }
 
@@ -150,6 +190,7 @@ describe('bundled core covers every band offline', () => {
     if (!HAS_CORPUS[game]) return; // no corpus yet — nothing to slice a core from
     const failures: string[] = [];
     for (const band of PUZZLE_BANDS[game]) {
+      if (isUnfillable(game, band.id)) continue;
       const n = PUZZLES[game].filter((p) => bandFor(game, p.rating).id === band.id).length;
       if (n < MIN_CORE_PUZZLES_PER_BAND) {
         failures.push(`${game}/${band.id}: ${n} bundled < ${MIN_CORE_PUZZLES_PER_BAND}`);
@@ -166,6 +207,7 @@ describe('mined corpus covers the full difficulty range', () => {
     const quota = MIN_PUZZLES_PER_BAND[game];
     const failures: string[] = [];
     for (const band of PUZZLE_BANDS[game]) {
+      if (isUnfillable(game, band.id)) continue;
       const n = corpus.filter((p) => bandFor(game, p.rating).id === band.id).length;
       if (n < quota) failures.push(`${game}/${band.id}: ${n} < ${quota}`);
     }
@@ -177,15 +219,37 @@ describe('mined corpus covers the full difficulty range', () => {
     const corpus = corpusFor(game)!;
     const failures: string[] = [];
     for (const band of PUZZLE_BANDS[game]) {
+      if (isUnfillable(game, band.id)) continue;
       const ratings = corpus
         .filter((p) => bandFor(game, p.rating).id === band.id)
         .map((p) => p.rating);
       const s = spread(game, band, ratings);
-      if (s < MIN_BAND_SPREAD) {
-        failures.push(`${game}/${band.id}: spread ${s.toFixed(2)} < ${MIN_BAND_SPREAD}`);
+      if (s < MIN_BAND_SPREAD[game]) {
+        failures.push(`${game}/${band.id}: spread ${s.toFixed(2)} < ${MIN_BAND_SPREAD[game]}`);
       }
     }
     expect(failures, failures.join('\n')).toEqual([]);
+  });
+
+  it('still needs every band it exempts', () => {
+    // Guards the exemption list. An exemption that has quietly become
+    // unnecessary is indistinguishable from one that is still load-bearing, and
+    // the difference matters: the first is a band nobody is looking at any
+    // more, the second is a documented limit. If a way is found to compose a
+    // genuinely beginner-level Go problem, this fails and says to delete the
+    // entry rather than leaving a hole nobody can see.
+    const unnecessary: string[] = [];
+    for (const { game, band, why } of UNFILLABLE_BANDS) {
+      if (!HAS_CORPUS[game]) continue;
+      const n = corpusFor(game)!.filter((p) => bandFor(game, p.rating).id === band).length;
+      if (n >= MIN_PUZZLES_PER_BAND[game]) {
+        unnecessary.push(
+          `${game}/${band} now has ${n} puzzles and meets its quota — delete the ` +
+            `UNFILLABLE_BANDS entry ("${why}") so the band is enforced again`,
+        );
+      }
+    }
+    expect(unnecessary, unnecessary.join('\n')).toEqual([]);
   });
 
   it('is enforcing at least one game today', () => {

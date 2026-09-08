@@ -47,3 +47,12 @@ project-docs/
 # The Lichess CSV is ~250MB and its provenance is recorded in
 # data/puzzles/LICENSE-lichess.md rather than by vendoring the file.
 data/puzzles/*.csv
+
+# Mining lock files. One miner per game at a time; the lock is process state,
+# never content, and a stale one committed would block everyone else's run.
+data/puzzles/.*.mining.lock
+
+# Per-run calibration checkpoints. One per worker, merged into calibration.json
+# when the run finishes; they exist so an interrupted run is resumable, not so
+# anyone reads them.
+data/puzzles/calibration.shard-*.json

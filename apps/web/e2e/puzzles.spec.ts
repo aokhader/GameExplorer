@@ -429,7 +429,7 @@ test('the chosen band survives a reload', async ({ page }) => {
 });
 
 test('progress counts the band, not the whole game', async ({ page }) => {
-  const { solved, total } = await openPuzzle(page, 'chess', 'chess-003');
+  const { total } = await openPuzzle(page, 'chess', 'chess-003');
   const whole = (servedPuzzles('chess') ?? []).length;
 
   // Guard the guard: if these were equal the assertion below would pass for
