@@ -14,12 +14,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BOARD_RATING_SPREAD,
+  BOARD_STRUCTURAL_FIT,
+  BOARD_STRUCTURAL_MODELS,
   BOT_TO_HUMAN_KNOTS,
   CALIBRATION_ENGINE,
   CALIBRATION_FITTED_AT,
   CALIBRATION_SAMPLES,
   GO_STRUCTURAL_MODEL,
 } from '../constants/puzzles/generated/calibration';
+import { PUZZLE_BANDS } from './bands';
 import { GO_PUZZLES } from '../constants/puzzles/go';
 import { BOT_TIERS } from '../constants/botTiers';
 import { goStructuralRating, humanRating } from './calibration';
@@ -143,5 +147,59 @@ describe('the Go structural model', () => {
     expect(rho, `Spearman rho ${rho.toFixed(2)} — the model has lost the ordering`).toBeGreaterThan(
       0.7,
     );
+  });
+});
+
+describe('the checkers and reversi structural models', () => {
+  const GAMES = ['checkers', 'reversi'] as const;
+
+  it.each(GAMES)('%s gives every feature the sign difficulty actually has', (game) => {
+    // Every feature is defined so larger means harder: a deeper search to see
+    // the key move, more bits of decision across the line, a longer line, a
+    // busier board. A negative coefficient means the fit found noise — which is
+    // exactly how the Go model's forced-line-length feature was caught, and how
+    // an early version of this one was caught rating a busier board as easier.
+    const model = BOARD_STRUCTURAL_MODELS[game];
+    for (const key of ['searchDepth', 'decisionLoad', 'lineLength', 'complexity'] as const) {
+      expect(model[key], `${game}.${key} is ${model[key]}`).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(GAMES)('%s still tracks the ladder it was fitted against', (game) => {
+    // The guard against a refit that quietly stops meaning anything. Absolute
+    // error is allowed to be large — these are ~200-point-error models over a
+    // 2000-point scale — but the ORDERING is what a band consumes, and if that
+    // decorrelates the ratings are decoration.
+    const fit = BOARD_STRUCTURAL_FIT[game];
+    expect(fit.n, `${game} was fitted on only ${fit.n} puzzles`).toBeGreaterThan(100);
+    expect(fit.rho, `${game} Spearman ${fit.rho} against the bot ladder`).toBeGreaterThan(0.5);
+  });
+
+  it.each(GAMES)('%s spreads ratings monotonically, in both coordinates', (game) => {
+    // The quantile map restores the range least squares shrinks away. It is only
+    // a rescaling if it is strictly increasing: any inversion here would reorder
+    // puzzles, which is the one thing a rating map may never do.
+    const knots = BOARD_RATING_SPREAD[game];
+    expect(knots.length).toBeGreaterThan(5);
+    for (let i = 1; i < knots.length; i++) {
+      expect(knots[i].from, `${game} knot ${i} prediction`).toBeGreaterThan(knots[i - 1].from);
+      expect(knots[i].to, `${game} knot ${i} rating`).toBeGreaterThanOrEqual(knots[i - 1].to);
+    }
+  });
+
+  it.each(GAMES)('%s can actually reach every band', (game) => {
+    // The regression that would be least visible: a refit that compresses the
+    // scale until the end bands are unreachable, which is precisely what the
+    // quantile map exists to prevent and precisely what left these two games'
+    // Beginner bands empty before it.
+    const bands = PUZZLE_BANDS[game];
+    const knots = BOARD_RATING_SPREAD[game];
+    const lowest = knots[0].to;
+    const highest = knots[knots.length - 1].to;
+    expect(lowest, `${game} cannot rate anything into ${bands[0].label}`).toBeLessThan(bands[0].max);
+    expect(
+      highest,
+      `${game} cannot rate anything into ${bands[bands.length - 1].label}`,
+    ).toBeGreaterThanOrEqual(bands[bands.length - 1].min);
   });
 });

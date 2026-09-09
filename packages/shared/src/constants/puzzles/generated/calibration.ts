@@ -4,11 +4,11 @@
 // puzzles where both numbers are known. Applying it to checkers, reversi and Go
 // is a MODELLING ASSUMPTION, not a measurement — see puzzles/calibration.ts.
 //
-// Fitted 2026-09-08 on 360 puzzles by ts-weak@1 + stockfish-18.0.8-lite.
+// Fitted 2026-09-09 on 360 puzzles by ts-weak@1 + stockfish-18.0.8-lite.
 // Mean absolute error against the Lichess ratings: 326.
-import type { CalibrationKnot, GoStructuralModel } from '../../../puzzles/calibration';
+import type { BoardStructuralModel, CalibrationKnot, GoStructuralModel, QuantileKnot } from '../../../puzzles/calibration';
 
-export const CALIBRATION_FITTED_AT = "2026-09-08";
+export const CALIBRATION_FITTED_AT = "2026-09-09";
 export const CALIBRATION_ENGINE = "ts-weak@1 + stockfish-18.0.8-lite";
 export const CALIBRATION_SAMPLES = 360;
 export const CALIBRATION_MAE = 326;
@@ -22,3 +22,23 @@ export const BOT_TO_HUMAN_KNOTS: readonly CalibrationKnot[] = [{"bot":300,"human
 // Fitted to 14 problems; mean absolute error 66, worst 154.
 export const GO_STRUCTURAL_MAE = 66;
 export const GO_STRUCTURAL_MODEL: GoStructuralModel = {"intercept":-8.048821712095695,"regionSize":160.99940775045258,"logNodes":57.64623036186244,"losingMoves":169.04822946253663};
+
+// Checkers and reversi are rated structurally too, and for a related reason:
+// the weakest calibration tier is a depth-1 search with a ~50% blunder rate,
+// which is both a one-move-puzzle solver AND lucky when branching is small.
+// Fitted against the bot ladder over the range it genuinely measured.
+// checkers: n=1312, MAE 218, Spearman 0.72
+// reversi:  n=652, MAE 362, Spearman 0.74
+export const BOARD_STRUCTURAL_MODELS: Record<string, BoardStructuralModel> = {"checkers":{"intercept":271.2290197654835,"searchDepth":189.97006571850218,"decisionLoad":61.71357152184186,"lineLength":4.382363421390282,"complexity":2.4402195357455225},"reversi":{"intercept":339.6707644251047,"searchDepth":157.32692946150476,"decisionLoad":129.46889153181272,"lineLength":64.7372555790219,"complexity":2.6629014160136553}};
+// The quantile map that restores the spread least squares shrinks away. It is
+// monotone, so it changes every rating and no ranking.
+export const BOARD_RATING_SPREAD: Record<string, QuantileKnot[]> = {"checkers":[{"from":537,"to":213},{"from":547,"to":425},{"from":554,"to":481},{"from":588,"to":500},{"from":630,"to":538},{"from":697,"to":567},{"from":732,"to":600},{"from":739,"to":629},{"from":770,"to":660},{"from":791,"to":740},{"from":801,"to":875},{"from":835,"to":932},{"from":931,"to":944},{"from":1042,"to":956},{"from":1067,"to":980},{"from":1093,"to":1133},{"from":1150,"to":1231},{"from":1197,"to":1525},{"from":1452,"to":1550},{"from":1575,"to":1741},{"from":1967,"to":2294}],"reversi":[{"from":697,"to":200},{"from":847,"to":444},{"from":918,"to":500},{"from":949,"to":622},{"from":974,"to":667},{"from":1041,"to":773},{"from":1109,"to":929},{"from":1164,"to":992},{"from":1235,"to":1233},{"from":1319,"to":1250},{"from":1418,"to":1443},{"from":1474,"to":1548},{"from":1539,"to":1550},{"from":1603,"to":2049},{"from":1657,"to":2131},{"from":1711,"to":2244},{"from":1785,"to":2288},{"from":1889,"to":2300},{"from":2115,"to":2300},{"from":2300,"to":2300}]};
+
+// Agreement with the HAND-RATED puzzles. Recorded, not gated: these are one
+// author's judgement over a narrow mid-range and the model is on the bot-ELO
+// scale, so they measure different things. It is here because it is the honest
+// weakness of a bot-derived rating - engine-easy is not human-easy.
+// checkers: n=12 MAE 424 bias -386 Spearman 0.392
+// reversi:  n=10 MAE 512 bias -75 Spearman 0.43
+export const BOARD_ANCHOR_AGREEMENT: Record<string, { n: number; mae: number; rho: number; bias: number }> = {"checkers":{"n":12,"mae":424,"rho":0.392,"bias":-386},"reversi":{"n":10,"mae":512,"rho":0.43,"bias":-75}};
+export const BOARD_STRUCTURAL_FIT: Record<string, { n: number; mae: number; rho: number }> = {"checkers":{"n":1312,"mae":218,"rho":0.725},"reversi":{"n":652,"mae":362,"rho":0.736}};

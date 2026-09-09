@@ -103,24 +103,63 @@ export const MIN_PUZZLES_PER_BAND: Record<PuzzleGame, number> = {
 /**
  * Bands that cannot be filled, with the reason, and nothing else.
  *
- * `go/beginner` is below 650, and no Go life-and-death problem is that easy
- * while still being a problem. The smallest eye space with a *choice* in it is
- * three points: two points has no choice worth making (either move kills, so
- * `solveTsumego` correctly refuses to call the answer forced), and the shipped
- * three-point problems are hand-rated 800-950. The structural model reproduces
- * that, so the floor is around 800 and the Beginner band sits under it.
+ * `go/beginner` is empty because of the **uniqueness requirement**, not because
+ * easy Go problems do not exist. An earlier version of this comment claimed the
+ * latter; that was wrong, and worth spelling out so nobody re-derives it.
  *
- * `checkers/beginner` and `reversi/beginner` fail for a different reason, and
- * the difference matters. Easy checkers puzzles certainly exist — the
- * *instrument* cannot see them. Difficulty there is measured by finding the bot
- * tier that solves a puzzle half the time, and the weakest tier on the ladder
- * solves every easy puzzle far more often than that, so they all pile up
- * against the bottom of its range. Calibrated against the chess anchor the
- * lowest rating the method can emit is about 790, which is above the Beginner
- * band entirely. Measured, not assumed: the 48 below-floor chess puzzles have
- * Lichess ratings from 517 to 1478 and the ladder gives them all one number.
- * The fix, if it is ever wanted, is a weaker calibration tier rather than more
- * mining — no amount of searching finds a puzzle the ruler cannot measure.
+ * Beginner Go tactics are captures — snapback, throw-in, net, short capture
+ * races — and the format handles them fine: `solveTsumego` proves a corner
+ * capture in **2 nodes**, and the structural model rates a two-point region at
+ * about 500, squarely inside this band. `PUZZLE_THEMES` has carried `snapback`,
+ * `net`, `throw-in` and `capture-race` since the mode shipped.
+ *
+ * What blocks them is the gate's demand that the answer be **the only** move
+ * that works. Composing enclosed small groups and asking the solver about them
+ * gives 970 positions the attacker can certainly kill — and every one is
+ * rejected for having more than one winning order. That is the nature of an
+ * easy position: several moves work. The uniqueness bar is what makes hard
+ * problems provable and easy ones inexpressible.
+ *
+ * **The unlock is `PuzzleStep.also`**, which the schema already declares
+ * ("Equally-good alternatives at this ply. Declared for v2; unused in v1") and
+ * the runtime does not yet read — `applyPlayerMove` compares against
+ * `step.move` alone. Accepting a set rather than a string would make "capture
+ * these stones, either order" a puzzle this mode can hold, and it is the right
+ * next step for this band. More mining will not do it.
+ *
+ * `checkers/beginner` and `reversi/beginner` **were** exempt here and are not
+ * any more. The reason they were empty was never the content: it was the
+ * instrument. Difficulty was measured by finding the bot tier that solves a
+ * puzzle half the time, and `ELO_BANDS[0]` is a depth-1 search with heavy noise
+ * and a ~50% blunder rate — both a one-move-puzzle solver and *lucky* when the
+ * branching factor is small, which is why below-floor checkers puzzles average
+ * 2.4 legal moves against 6.4 for the rest. Routed through the chess-anchored
+ * map on top of that, the lowest rating the pipeline could emit was ~790, so no
+ * puzzle could reach a band ending at 650 however easy it was.
+ *
+ * Both are now rated structurally (`boardRating.ts`) on their own bot-ELO
+ * scale, which is the frame the bands were already defined in, and both fill
+ * every band. Kept in this comment because "the ruler could not reach" is a
+ * failure that looks exactly like "the content does not exist", and the two
+ * call for opposite responses.
+ *
+ * Difficulty there is the bot tier that solves a puzzle half the time, and the
+ * weakest tier is `ELO_BANDS[0]` — a **depth-1 search** with noise and a ~50%
+ * blunder rate. Depth 1 is precisely a "find the best immediate move" machine,
+ * and the miner's easiest product is a one-move `best-move` puzzle. The bottom
+ * tier is weak at *playing* and near-expert at exactly the shape being rated,
+ * so easy puzzles pile against the bottom of its range: calibrated through the
+ * chess anchor, the lowest rating the method can emit is about 790.
+ *
+ * Measured, not assumed — the 48 below-floor chess puzzles have Lichess ratings
+ * from 517 to 1478, and the ladder gives them all one number.
+ *
+ * A weaker tier is **not** the obvious fix, tempting as it sounds: below
+ * depth-1-with-blunders lies uniform random play, which solves at one-over-the-
+ * branching-factor regardless of difficulty and so discriminates nothing. The
+ * room between them is very small. The fix that would work is the one Go
+ * already uses — rate easy puzzles structurally (how many legal moves are
+ * non-losing, how short the line) instead of by bot-solve.
  *
  * This is written down rather than solved by lowering `MIN_PUZZLES_PER_BAND`,
  * for two reasons. Lowering the quota would hide the gap in a number nobody
@@ -137,17 +176,7 @@ export const UNFILLABLE_BANDS: readonly { game: PuzzleGame; band: string; why: s
   {
     game: 'go',
     band: 'beginner',
-    why: 'the easiest tsumego with a real choice in it is a three-point eye space, which rates ~800',
-  },
-  {
-    game: 'checkers',
-    band: 'beginner',
-    why: 'the bot ladder cannot resolve below ~790: its weakest tier solves every easy puzzle',
-  },
-  {
-    game: 'reversi',
-    band: 'beginner',
-    why: 'the bot ladder cannot resolve below ~790: its weakest tier solves every easy puzzle',
+    why: 'easy Go tactics have several winning moves, and the gate demands exactly one — needs PuzzleStep.also',
   },
 ];
 

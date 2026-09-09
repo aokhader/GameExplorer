@@ -58,6 +58,10 @@ const {
 const { fitLeastSquares, goDesignRow, goModelFrom, goStructuralRating } = await import(
   SHARED + 'puzzles/calibration.ts'
 );
+const { boardDesignRow, boardModelFrom, boardStructuralRating, fitQuantileMap } = await import(
+  SHARED + 'puzzles/calibration.ts'
+);
+const { boardFeaturesFor } = await import(SHARED + 'puzzles/boardRating.ts');
 const { solveTsumego } = await import(SHARED + 'game-logic/go/tsumego.ts');
 const { GoEngine } = await import(SHARED + 'game-logic/go/engine.ts');
 const { getBestMoveElo } = await import(SHARED + 'game-logic/chess/weakEngine.ts');
@@ -421,6 +425,120 @@ function fitGo() {
 }
 
 // ---------------------------------------------------------------------------
+// Checkers and reversi - structural rating
+// ---------------------------------------------------------------------------
+
+/**
+ * Fit the structural model for one board game against the bot ladder, using
+ * ONLY the puzzles the ladder actually measured.
+ *
+ * Out-of-ladder readings are INCLUDED, after trying it both ways. They are
+ * extrapolations rather than crossings, so the first attempt excluded them - but
+ * a model fitted only to the middle can only predict the middle, and both ends
+ * of the scale collapsed: checkers Master fell to 2 puzzles and every Beginner
+ * band stayed empty. The extrapolated ratings are still ordered by a real
+ * quantity (the solve rate at the end tier), and ordering is what a band uses.
+ *
+ * Reports its own quality rather than just returning coefficients: Spearman rho
+ * against the bot ratings is the number that says whether the model learned
+ * anything, and it is printed so a weak fit cannot ship unnoticed.
+ */
+function fitBoard(game, cache) {
+  const corpus = loadCorpus(game);
+
+  const rows = [];
+  const targets = [];
+  const featureList = [];
+  // Indexed by CONTENT, never by id. The cache stores an id for readability but
+  // it is not the key, and pairing on it is silently wrong the moment a corpus
+  // is renumbered - which happened, and produced a fit between one puzzle's
+  // features and another puzzle's rating.
+  for (const puzzle of corpus) {
+    const entry = cache.entries[contentKey(puzzle)];
+    if (!entry || entry.game !== game) continue;
+    const rating = botOf(entry);
+    const f = boardFeaturesFor(puzzle);
+    featureList.push(f);
+    rows.push(boardDesignRow(f));
+    // The target is the BOT rating, not the chess-anchored "human" one.
+    //
+    // The bands are defined from each game's own `BOT_TIERS` - Club in checkers
+    // means the 1100 checkers bot - so the bot-ELO scale is the frame the bands
+    // are already stated in, and rating against it directly is a measurement
+    // rather than a transfer. Routing through the chess map instead added an
+    // assumption AND compressed the bottom: its lowest output is ~790, so no
+    // checkers puzzle could ever land in a band that ends at 650, however easy
+    // it was. The cost is that a 1200 checkers rating is no longer claimed to be
+    // "as hard as a 1200 chess puzzle" - which was always the weakest claim here
+    // and is now simply not made.
+    targets.push(rating.rating);
+  }
+  if (rows.length < 20) return { model: null, spread: [], n: rows.length, mae: 0, rho: 0 };
+
+  const model = boardModelFrom(fitLeastSquares(rows, targets));
+  // Restore the spread least squares shrank away, without moving any rank.
+  const raw = featureList.map((f) => boardStructuralRating(game, f, model));
+  const spread = fitQuantileMap(raw, targets);
+  const predicted = featureList.map((f) => boardStructuralRating(game, f, model, spread));
+  const errs = predicted.map((v, i) => v - targets[i]);
+  const mae = Math.round(errs.reduce((a, e) => a + Math.abs(e), 0) / errs.length);
+
+  // Spearman rho: does the model put them in the right ORDER? Absolute error
+  // can look respectable while the ranking is noise, and a band only ever uses
+  // the ordering.
+  const rank = (values) => {
+    const idx = values.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
+    const out = Array(values.length);
+    idx.forEach(([, i], r) => (out[i] = r));
+    return out;
+  };
+  const a = rank(targets);
+  const b = rank(predicted);
+  const n = a.length;
+  const d2 = a.reduce((sum, v, i) => sum + (v - b[i]) ** 2, 0);
+  const rho = 1 - (6 * d2) / (n * (n * n - 1));
+  return { model, spread, n, mae, rho };
+}
+
+/**
+ * How well a fitted board model agrees with the HAND-RATED puzzles.
+ *
+ * Not a fit target and deliberately not a gate — the twelve checkers and ten
+ * reversi hand ratings are one author's judgement on a narrow mid-range, while
+ * the model is on the bot-ELO scale spanning the whole ladder. They measure
+ * different things, so absolute error between them is not meaningful.
+ *
+ * It is emitted anyway because the disagreement is the honest weakness of this
+ * whole approach: a bot-derived rating says how hard a position is *for an
+ * engine*, and engine-easy is not human-easy. A depth-1 search sees a capture
+ * instantly that a person has to spot. Anyone reading these coefficients should
+ * see that number next to them.
+ */
+function anchorAgreement(game, model, spread) {
+  const hand = AUTHORED[game] ?? [];
+  if (hand.length < 3 || !model) return { n: hand.length, mae: 0, rho: 0, bias: 0 };
+  const predicted = hand.map((p) => boardStructuralRating(game, boardFeaturesFor(p), model, spread));
+  const actual = hand.map((p) => p.rating);
+  const errs = predicted.map((v, i) => v - actual[i]);
+  const rank = (values) => {
+    const idx = values.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
+    const out = Array(values.length);
+    idx.forEach(([, i], r) => (out[i] = r));
+    return out;
+  };
+  const a = rank(actual);
+  const b = rank(predicted);
+  const n = a.length;
+  const d2 = a.reduce((sum, v, i) => sum + (v - b[i]) ** 2, 0);
+  return {
+    n,
+    mae: Math.round(errs.reduce((s, e) => s + Math.abs(e), 0) / n),
+    rho: Number((1 - (6 * d2) / (n * (n * n - 1))).toFixed(3)),
+    bias: Math.round(errs.reduce((s, e) => s + e, 0) / n),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Fit and emit
 // ---------------------------------------------------------------------------
 
@@ -477,6 +595,14 @@ function emit(cache) {
   const outDir = join(ROOT, 'packages', 'shared', 'src', 'constants', 'puzzles', 'generated');
   mkdirSync(outDir, { recursive: true });
   const go = fitGo();
+  const board = {
+    checkers: fitBoard('checkers', cache),
+    reversi: fitBoard('reversi', cache),
+  };
+  const anchors = {
+    checkers: anchorAgreement('checkers', board.checkers.model, board.checkers.spread),
+    reversi: anchorAgreement('reversi', board.reversi.model, board.reversi.spread),
+  };
   const payload = {
     fittedAt: new Date().toISOString().slice(0, 10),
     engine: ENGINE_IDENTITY,
@@ -496,7 +622,7 @@ function emit(cache) {
       '//',
       `// Fitted ${payload.fittedAt} on ${payload.samples} puzzles by ${payload.engine}.`,
       `// Mean absolute error against the Lichess ratings: ${payload.meanAbsoluteError}.`,
-      "import type { CalibrationKnot, GoStructuralModel } from '../../../puzzles/calibration';",
+      "import type { BoardStructuralModel, CalibrationKnot, GoStructuralModel, QuantileKnot } from '../../../puzzles/calibration';",
       '',
       `export const CALIBRATION_FITTED_AT = ${JSON.stringify(payload.fittedAt)};`,
       `export const CALIBRATION_ENGINE = ${JSON.stringify(payload.engine)};`,
@@ -514,6 +640,33 @@ function emit(cache) {
       `export const GO_STRUCTURAL_MAE = ${go.mae};`,
       'export const GO_STRUCTURAL_MODEL: GoStructuralModel = ' + `${JSON.stringify(go.model)};`,
       '',
+      '// Checkers and reversi are rated structurally too, and for a related reason:',
+      '// the weakest calibration tier is a depth-1 search with a ~50% blunder rate,',
+      '// which is both a one-move-puzzle solver AND lucky when branching is small.',
+      '// Fitted against the bot ladder over the range it genuinely measured.',
+      `// checkers: n=${board.checkers.n}, MAE ${board.checkers.mae}, Spearman ${board.checkers.rho.toFixed(2)}`,
+      `// reversi:  n=${board.reversi.n}, MAE ${board.reversi.mae}, Spearman ${board.reversi.rho.toFixed(2)}`,
+      'export const BOARD_STRUCTURAL_MODELS: Record<string, BoardStructuralModel> = ' +
+        `${JSON.stringify({ checkers: board.checkers.model, reversi: board.reversi.model })};`,
+      '// The quantile map that restores the spread least squares shrinks away. It is',
+      '// monotone, so it changes every rating and no ranking.',
+      'export const BOARD_RATING_SPREAD: Record<string, QuantileKnot[]> = ' +
+        `${JSON.stringify({ checkers: board.checkers.spread, reversi: board.reversi.spread })};`,
+      '',
+      '// Agreement with the HAND-RATED puzzles. Recorded, not gated: these are one',
+      "// author's judgement over a narrow mid-range and the model is on the bot-ELO",
+      '// scale, so they measure different things. It is here because it is the honest',
+      '// weakness of a bot-derived rating - engine-easy is not human-easy.',
+      `// checkers: n=${anchors.checkers.n} MAE ${anchors.checkers.mae} bias ${anchors.checkers.bias} Spearman ${anchors.checkers.rho}`,
+      `// reversi:  n=${anchors.reversi.n} MAE ${anchors.reversi.mae} bias ${anchors.reversi.bias} Spearman ${anchors.reversi.rho}`,
+      'export const BOARD_ANCHOR_AGREEMENT: Record<string, { n: number; mae: number; rho: number; bias: number }> = ' +
+        `${JSON.stringify(anchors)};`,
+      'export const BOARD_STRUCTURAL_FIT: Record<string, { n: number; mae: number; rho: number }> = ' +
+        `${JSON.stringify({
+          checkers: { n: board.checkers.n, mae: board.checkers.mae, rho: Number(board.checkers.rho.toFixed(3)) },
+          reversi: { n: board.reversi.n, mae: board.reversi.mae, rho: Number(board.reversi.rho.toFixed(3)) },
+        })};`,
+      '',
     ].join('\n'),
     'utf8',
   );
@@ -523,6 +676,12 @@ function emit(cache) {
   console.log(
     `\nGo structural model fitted to ${go.n} hand-rated problems: MAE ${go.mae}, worst ${go.worst}`,
   );
+  for (const [g, fit] of Object.entries(board)) {
+    console.log(
+      `${g.padEnd(9)} structural fit: n=${fit.n}  MAE ${fit.mae}  Spearman ${fit.rho.toFixed(2)}` +
+        (fit.rho < 0.5 ? '   <-- WEAK, do not trust this to rate' : ''),
+    );
+  }
   const flagged = entries.map(botOf).filter((r) => r.aboveCeiling || r.belowFloor);
   if (flagged.length) {
     console.log(
@@ -573,24 +732,39 @@ function rate(game, cache) {
     chess.map((e) => ({ bot: botOf(e).rating, human: e.human })),
   );
   const goModel = game === 'go' ? fitGo().model : null;
+  const boardFit = game === 'go' ? null : fitBoard(game, cache);
+  if (boardFit && !boardFit.model) {
+    console.error(`Not enough measured ${game} puzzles to fit a structural model.`);
+    process.exit(1);
+  }
+  if (boardFit) {
+    console.log(
+      `structural model: n=${boardFit.n}  MAE ${boardFit.mae}  Spearman ${boardFit.rho.toFixed(2)}`,
+    );
+  }
 
   const bands = PUZZLE_BANDS[game];
   let rated = 0;
   let unmeasured = 0;
 
   for (const p of puzzles) {
+    // Structural for all three, and for the same reason each time: the bot
+    // ladder is the instrument that CALIBRATED the model, not the thing that
+    // rates a puzzle.
+    //
+    // Applied to every puzzle rather than only below the floor, so there is one
+    // scale and no seam. A hybrid would hand two puzzles of the same true
+    // difficulty ratings a band apart depending on which side of the ladder's
+    // floor they happened to fall, which is worse than a model that is
+    // uniformly approximate.
+    //
+    // Recomputed from the position rather than read off the row, so a
+    // hand-edited corpus cannot move a rating.
     let rating;
     if (game === 'go') {
-      // Structural, and computed from the puzzle rather than read off it, so a
-      // hand-edited `features` block cannot change a rating.
       rating = goStructuralRating(goFeatures(p), goModel);
     } else {
-      const entry = cache.entries[contentKey(p)];
-      if (!entry) {
-        unmeasured++;
-        continue;
-      }
-      rating = humanRating(game, botOf(entry).rating, knots);
+      rating = boardStructuralRating(game, boardFeaturesFor(p), boardFit.model, boardFit.spread);
     }
     p.rating = rating;
     // Three words cannot express six bands, so `difficulty` is kept as the

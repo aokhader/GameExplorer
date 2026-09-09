@@ -392,6 +392,134 @@ export const CALIBRATION_TIERS: Record<PuzzleGame, readonly number[]> = {
 };
 
 // ---------------------------------------------------------------------------
+// Checkers and reversi — structural rating below the ladder's floor
+// ---------------------------------------------------------------------------
+
+/**
+ * Coefficients over `BoardStructuralFeatures`, one model per game.
+ *
+ * Per game rather than shared, because the two games put their difficulty in
+ * different places and the fit says so plainly: how deep you must search to see
+ * the key move separates checkers sharply (below-floor puzzles average depth
+ * 1.5, mid-range 2.6, above-ceiling 4.9) and is nearly flat for reversi, whose
+ * puzzles are mostly endgames where the work is completing a sequence rather
+ * than spotting a move. One shared model would have to average those two facts
+ * into something true of neither.
+ */
+export interface BoardStructuralModel {
+  intercept: number;
+  searchDepth: number;
+  decisionLoad: number;
+  lineLength: number;
+  complexity: number;
+}
+
+/**
+ * The design row, in the order `BoardStructuralModel` names its fields.
+ *
+ * Kept beside the model type on purpose: the fit, the artifact and the lookup
+ * all index these by position, and a row that drifted out of order would still
+ * fit, still emit, and rate everything wrongly in silence.
+ */
+export function boardDesignRow(f: {
+  searchDepth: number;
+  decisionLoad: number;
+  lineLength: number;
+  complexity: number;
+}): number[] {
+  return [1, f.searchDepth, f.decisionLoad, f.lineLength, f.complexity];
+}
+
+export function boardModelFrom(coefficients: readonly number[]): BoardStructuralModel {
+  const [intercept, searchDepth, decisionLoad, lineLength, complexity] = coefficients;
+  return { intercept, searchDepth, decisionLoad, lineLength, complexity };
+}
+
+export function boardStructuralRating(
+  game: PuzzleGame,
+  features: { searchDepth: number; decisionLoad: number; lineLength: number; complexity: number },
+  model: BoardStructuralModel,
+  spread: readonly QuantileKnot[] = [],
+): number {
+  const raw =
+    model.intercept +
+    model.searchDepth * features.searchDepth +
+    model.decisionLoad * features.decisionLoad +
+    model.lineLength * features.lineLength +
+    model.complexity * features.complexity;
+  const bounds = PUZZLE_RATING_BOUNDS[game];
+  return Math.round(clamp(applyQuantileMap(raw, spread), bounds.min, bounds.max));
+}
+
+/**
+ * A monotone map from predicted values onto the distribution they should have.
+ *
+ * Least squares shrinks predictions toward the mean — that is what minimising
+ * squared error *does*, and it is the right behaviour for a point estimate. It
+ * is the wrong behaviour for a rating scale whose ends are the entire point: a
+ * fitted checkers model spanning 537–1967 put **four** puzzles in a Master band
+ * that starts at 1850, not because the corpus lacked hard puzzles but because
+ * regression will not predict extremes it can be penalised for.
+ *
+ * Quantile mapping fixes exactly that and nothing else. The nth-hardest puzzle
+ * by prediction is assigned the nth-hardest observed rating, so the spread is
+ * restored while **every puzzle's rank is unchanged** — Spearman against the
+ * targets is identical before and after, which is the guarantee that makes this
+ * a rescaling rather than a fudge.
+ */
+export interface QuantileKnot {
+  /** A model prediction. */
+  from: number;
+  /** The observed rating at the same quantile. */
+  to: number;
+}
+
+/** Quantile pairs from predictions and the targets they were fitted to. */
+export function fitQuantileMap(
+  predicted: readonly number[],
+  targets: readonly number[],
+  points = 21,
+): QuantileKnot[] {
+  if (predicted.length === 0 || targets.length === 0) return [];
+  const p = [...predicted].sort((a, b) => a - b);
+  const t = [...targets].sort((a, b) => a - b);
+  const at = (arr: number[], q: number) => arr[Math.round(q * (arr.length - 1))];
+
+  const knots: QuantileKnot[] = [];
+  for (let i = 0; i < points; i++) {
+    const q = i / (points - 1);
+    const knot = { from: at(p, q), to: at(t, q) };
+    // Ties in the prediction quantiles would make the map ambiguous; keeping
+    // the first is what preserves monotonicity.
+    if (knots.length === 0 || knot.from > knots[knots.length - 1].from) knots.push(knot);
+  }
+  return knots;
+}
+
+/** Apply a quantile map, extending the end segments' slope beyond the knots. */
+export function applyQuantileMap(value: number, knots: readonly QuantileKnot[]): number {
+  if (knots.length === 0) return value;
+  if (knots.length === 1) return knots[0].to;
+
+  let lo = 0;
+  if (value <= knots[0].from) lo = 0;
+  else if (value >= knots[knots.length - 1].from) lo = knots.length - 2;
+  else {
+    for (let i = 0; i < knots.length - 1; i++) {
+      if (value >= knots[i].from && value <= knots[i + 1].from) {
+        lo = i;
+        break;
+      }
+    }
+  }
+  const a = knots[lo];
+  const b = knots[lo + 1];
+  const span = b.from - a.from;
+  const t = span === 0 ? 0 : (value - a.from) / span;
+  return a.to + t * (b.to - a.to);
+}
+
+// ---------------------------------------------------------------------------
 // Least squares — the Go structural fit
 // ---------------------------------------------------------------------------
 

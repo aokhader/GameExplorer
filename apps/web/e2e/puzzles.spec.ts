@@ -439,18 +439,22 @@ test('progress counts the band, not the whole game', async ({ page }) => {
 });
 
 test('an empty band says so and offers a way out', async ({ page }) => {
-  // Checkers, not chess. Chess's Master band was empty until the Lichess import
-  // filled it with 1,388 puzzles, and this test failed loudly and demanded to be
-  // repointed — which is what its previous comment asked for and the reason it
-  // was written that way. Checkers has no mined corpus yet, so its Beginner band
-  // is genuinely empty; the same will happen here when checkers is mined.
-  await openPuzzle(page, 'checkers');
+  // Go, and this is the THIRD game this test has pointed at. Chess's Master band
+  // was empty until the Lichess import filled it; checkers' Beginner band was
+  // empty until it stopped being rated through a map whose floor sat above the
+  // band entirely. Each time the assertion below failed loudly and demanded to
+  // be repointed, which is the whole reason it is written this way — an empty
+  // band that quietly fills would leave this test passing against nothing.
+  //
+  // `go/beginner` is the last one, and the only one that is empty for a reason
+  // no amount of mining fixes: easy Go tactics have several winning moves and
+  // the content gate demands exactly one (see UNFILLABLE_BANDS). If Go ever
+  // gains `PuzzleStep.also` support, this test comes due again.
+  await openPuzzle(page, 'go');
 
-  const served = servedPuzzles('checkers') ?? (await staticPuzzleSource.listPuzzles({ game: 'checkers' }));
-  const empty = served.filter(
-    (p) => bandFor('checkers', p.rating).id === 'beginner',
-  );
-  expect(empty, 'the checkers Beginner band now has content — repoint this test').toHaveLength(0);
+  const served = servedPuzzles('go') ?? (await staticPuzzleSource.listPuzzles({ game: 'go' }));
+  const empty = served.filter((p) => bandFor('go', p.rating).id === 'beginner');
+  expect(empty, 'the Go Beginner band now has content — repoint this test').toHaveLength(0);
 
   // The band must say so plainly rather than looking like a broken mode, and
   // must leave the picker reachable: the way out of an empty band is another
@@ -458,7 +462,7 @@ test('an empty band says so and offers a way out', async ({ page }) => {
   // that was never started.
   await page.getByTestId('puzzle-band-beginner').click();
 
-  await expect(page.getByText(/No Beginner Checkers puzzles yet/)).toBeVisible();
+  await expect(page.getByText(/No Beginner Go puzzles yet/)).toBeVisible();
   await expect(page.getByTestId('puzzle-band-club')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start over' })).toHaveCount(0);
 

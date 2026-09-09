@@ -31,9 +31,8 @@ import {
   UNFILLABLE_BANDS,
   type PuzzleBand,
 } from './bands';
-import { BOT_TO_HUMAN_KNOTS, GO_STRUCTURAL_MODEL } from '../constants/puzzles/generated/calibration';
-import { BOT_TIERS } from '../constants/botTiers';
-import { goStructuralRating, humanRating } from './calibration';
+import { GO_STRUCTURAL_MODEL } from '../constants/puzzles/generated/calibration';
+import { goStructuralRating } from './calibration';
 import type { Puzzle, PuzzleGame } from './types';
 
 const GAMES: PuzzleGame[] = ['chess', 'checkers', 'reversi', 'go'];
@@ -76,28 +75,19 @@ const HAS_CORPUS: Record<PuzzleGame, boolean> = {
 /**
  * The lowest rating each game's rating pipeline can actually produce.
  *
- * Not a constant, because the three pipelines have three different floors and
- * two of them move when the calibration is refitted:
- *
- * - **chess** takes its ratings straight from Lichess, so its floor is the
- *   ladder's nominal minimum. Nothing is transferred and nothing compresses.
- * - **checkers and reversi** are rated by transferring the chess anchor map,
- *   whose lowest output is what the weakest bot tier can still resolve. That is
- *   around 790 — well above the nominal 400.
- * - **go** is rated structurally, and its floor is the smallest problem the
- *   composer can build: a three-point eye space with one losing move.
+ * Only Go differs now. Chess takes its ratings from Lichess and checkers and
+ * reversi are rated structurally on their own bot-ELO scale, so all three reach
+ * the ladder's nominal floor. Go's floor is the smallest problem its composer
+ * can build — a three-point eye space with one losing move — because its rating
+ * is a formula over shape rather than a measurement.
  *
  * Measuring a band's spread against ground its own pipeline cannot reach
- * reports a full band as half empty — the same error `bandSpan` already
+ * reports a full band as half empty, which is the same error `bandSpan` already
  * corrects for the ELO floor, one level further up.
  */
 function ratingFloor(game: PuzzleGame): number {
-  if (game === 'chess') return 400;
-  if (game === 'go') {
-    return goStructuralRating({ regionSize: 3, logNodes: 0, losingMoves: 1 }, GO_STRUCTURAL_MODEL);
-  }
-  const tiers = BOT_TIERS[game].map((t) => t.elo);
-  return humanRating(game, tiers[0] - (tiers[1] - tiers[0]), BOT_TO_HUMAN_KNOTS);
+  if (game !== 'go') return 400;
+  return goStructuralRating({ regionSize: 3, logNodes: 0, losingMoves: 1 }, GO_STRUCTURAL_MODEL);
 }
 
 /**
