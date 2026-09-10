@@ -36,7 +36,26 @@ export interface PuzzleStep {
    * `"c3e5"` or a full jump path `"c3e5g7"`, reversi `"d3"`.
    */
   move: string;
-  /** Equally-good alternatives at this ply. Declared for v2; unused in v1. */
+  /**
+   * The other moves that also solve this ply — **the complete set, proved**.
+   *
+   * Not a convenience. Uniqueness is what makes "wrong" well defined: the
+   * runtime calls a move wrong because it is not one of these, so the set has
+   * to be everything that works. A missing entry means a player finds a
+   * genuinely winning move and is told they are wrong, and then gets a
+   * refutation search run against a move that cannot be refuted — the app
+   * inventing a punishment for a correct answer, which is worse than not
+   * shipping the puzzle at all.
+   *
+   * So the content gate does not check that these moves *win*; it checks that
+   * `{move} ∪ also` is **exactly** the winning set the solver returns. Only Go
+   * can prove that today (`solveTsumego` enumerates it), and only on a
+   * single-step puzzle: a second accepted move at a ply that has a scripted
+   * reply would make the line a tree, and `reply` is one string.
+   *
+   * `move` stays the canonical answer — the one a hint shows and the
+   * explanation follows.
+   */
   also?: string[];
   /** The opponent's reply. Absent on the final step — that IS "solved". */
   reply?: string;

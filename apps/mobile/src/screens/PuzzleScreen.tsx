@@ -38,23 +38,28 @@ const GAME_LABEL: Record<PuzzleGame, string> = {
 
 /**
  * Headline + supporting line for each phase of the run — same copy as web,
- * including the refutation sentence, which comes from the shared runtime so the
- * two platforms cannot describe the same mistake differently.
+ * including the refutation and alternate-move sentences, which come from the
+ * shared runtime so the two platforms cannot describe the same move
+ * differently.
  */
 function statusFor(
   phase: PuzzlePhase | null,
   refutationText: string | null,
+  alternateText: string | null,
 ): { title: string; description: string } {
   switch (phase) {
     case 'replying':
-      return { title: 'Correct', description: 'Watch the reply…' };
+      return { title: 'Correct', description: alternateText ?? 'Watch the reply…' };
     case 'wrong':
       return {
         title: 'Not quite',
         description: refutationText ?? 'Looking at what your opponent does about that…',
       };
     case 'solved':
-      return { title: 'Solved', description: 'Read why below, then take the next one.' };
+      return {
+        title: 'Solved',
+        description: alternateText ?? 'Read why below, then take the next one.',
+      };
     default:
       return { title: 'Your move', description: 'Find the move the position is asking for.' };
   }
@@ -139,6 +144,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     atLive,
     refutation,
     refutationText,
+    alternateText,
     playMove,
     seek,
     retry,
@@ -212,7 +218,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     );
   }
 
-  const status = statusFor(phase, refutationText);
+  const status = statusFor(phase, refutationText, alternateText);
   const accent = GAME_ACCENTS[game];
 
   return (

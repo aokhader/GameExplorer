@@ -44,21 +44,29 @@ const DIFFICULTY_STYLE: Record<string, string> = {
  * The wrong-move line is the interesting one: it waits on a search, so it says
  * what it is doing rather than sitting on stale text, and the sentence it lands
  * on comes from the shared runtime so both platforms say the same thing.
+ *
+ * `alternateText` is the other shared sentence, and it takes precedence on a
+ * correct move: a player who found one of several winning moves is right, and
+ * also needs to be told which one the explanation is about.
  */
 function statusFor(
   phase: string | null,
   refutationText: string | null,
+  alternateText: string | null,
 ): { title: string; description: string } {
   switch (phase) {
     case 'replying':
-      return { title: 'Correct', description: 'Watch the reply…' };
+      return { title: 'Correct', description: alternateText ?? 'Watch the reply…' };
     case 'wrong':
       return {
         title: 'Not quite',
         description: refutationText ?? 'Looking at what your opponent does about that…',
       };
     case 'solved':
-      return { title: 'Solved', description: 'Read why below, then take the next one.' };
+      return {
+        title: 'Solved',
+        description: alternateText ?? 'Read why below, then take the next one.',
+      };
     default:
       return { title: 'Your move', description: 'Find the move the position is asking for.' };
   }
@@ -120,6 +128,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     board,
     refutation,
     refutationText,
+    alternateText,
     playMove,
     retry,
     next,
@@ -193,7 +202,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     );
   }
 
-  const status = statusFor(phase, refutationText);
+  const status = statusFor(phase, refutationText, alternateText);
   const isSolved = phase === 'solved';
 
   return (

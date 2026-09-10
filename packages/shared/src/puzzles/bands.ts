@@ -101,87 +101,88 @@ export const MIN_PUZZLES_PER_BAND: Record<PuzzleGame, number> = {
 };
 
 /**
- * Bands that cannot be filled, with the reason, and nothing else.
+ * Bands a particular check is not held to, with the reason, and nothing else.
  *
- * `go/beginner` is empty because of the **uniqueness requirement**, not because
- * easy Go problems do not exist. An earlier version of this comment claimed the
- * latter; that was wrong, and worth spelling out so nobody re-derives it.
+ * This was a list of three bands that could not be filled at all. All three are
+ * off it, for two entirely different reasons that are worth keeping apart:
+ * "the content does not exist" and "the ruler cannot reach" look identical from
+ * here and call for opposite responses.
  *
- * Beginner Go tactics are captures — snapback, throw-in, net, short capture
- * races — and the format handles them fine: `solveTsumego` proves a corner
- * capture in **2 nodes**, and the structural model rates a two-point region at
- * about 500, squarely inside this band. `PUZZLE_THEMES` has carried `snapback`,
- * `net`, `throw-in` and `capture-race` since the mode shipped.
+ * **`checkers/beginner` and `reversi/beginner` were the ruler.** Difficulty was
+ * measured by finding the bot tier that solves a puzzle half the time, and
+ * `ELO_BANDS[0]` is a depth-1 search with heavy noise and a ~50% blunder rate.
+ * Depth 1 is precisely a "find the best immediate move" machine, which is the
+ * shape of the easiest puzzles, and the blunder component *succeeds by luck*
+ * when the branching factor is small — which is why below-floor checkers
+ * puzzles average 2.4 legal moves against 6.4 for the rest. Neither is a fact
+ * about the puzzles. Measured, not assumed: the 48 below-floor chess puzzles
+ * have Lichess ratings from 517 to 1478, and the ladder gives them all one
+ * number. Routed through the chess-anchored map on top of that, the lowest
+ * rating the pipeline could emit was about 790, so nothing could reach a band
+ * ending at 650 however easy it was. A weaker tier is **not** the fix, tempting
+ * as it sounds: below depth-1-with-blunders lies uniform random play, which
+ * solves at one-over-the-branching-factor regardless of difficulty and so
+ * discriminates nothing. Both games are rated structurally now
+ * (`boardRating.ts`), on their own bot-ELO scale, and both fill every band.
  *
- * What blocks them is the gate's demand that the answer be **the only** move
- * that works. Composing enclosed small groups and asking the solver about them
- * gives 970 positions the attacker can certainly kill — and every one is
- * rejected for having more than one winning order. That is the nature of an
- * easy position: several moves work. The uniqueness bar is what makes hard
- * problems provable and easy ones inexpressible.
+ * **`go/beginner` was the uniqueness bar**, and that bar was measuring the
+ * wrong thing. Easy Go tactics are captures and small kills, and the format
+ * always handled them — `solveTsumego` proves a corner capture in a handful of
+ * nodes. What blocked them was the gate's demand that the answer be the ONLY
+ * move that works. Over the composer's whole enumeration, *every* candidate
+ * rating below 650 has more than one winning move: several answers is not
+ * incidental to easy life-and-death, it is what makes it easy. `PuzzleStep.also`
+ * carries the complete proved set instead, and the gate asserts set equality
+ * against the solver rather than a singleton — a **stronger** obligation than
+ * uniqueness, because the data must now be complete as well as correct. The
+ * band holds 52 problems.
  *
- * **The unlock is `PuzzleStep.also`**, which the schema already declares
- * ("Equally-good alternatives at this ply. Declared for v2; unused in v1") and
- * the runtime does not yet read — `applyPlayerMove` compares against
- * `step.move` alone. Accepting a set rather than a string would make "capture
- * these stones, either order" a puzzle this mode can hold, and it is the right
- * next step for this band. More mining will not do it.
+ * What is genuinely still out of reach is the *spread* measurement there, and
+ * only there. Go's Beginner band runs to 650 and the pipeline cannot emit below
+ * 475: the smallest thing the composer builds is a three-point eye space in
+ * which nothing loses. (Two points is not smaller, it is empty — a two-point
+ * space cannot hold two eyes, so the group is already dead, passing wins, and
+ * there is nothing to find.) Inside those 175 points the structural model has
+ * exactly one cell. Region size is pinned at three, because four points rate
+ * 636 before anything else is counted; losing moves are pinned at zero, because
+ * one is worth 169 and lands past the top of the band. The only term left free
+ * is the search, at 58 points per decade of nodes, and a three-point region
+ * settles in 6 to 32 of them. That is 42 points, or 0.24 of the fillable width,
+ * and the 52 problems occupy eleven distinct ratings across it.
  *
- * `checkers/beginner` and `reversi/beginner` **were** exempt here and are not
- * any more. The reason they were empty was never the content: it was the
- * instrument. Difficulty was measured by finding the bot tier that solves a
- * puzzle half the time, and `ELO_BANDS[0]` is a depth-1 search with heavy noise
- * and a ~50% blunder rate — both a one-move-puzzle solver and *lucky* when the
- * branching factor is small, which is why below-floor checkers puzzles average
- * 2.4 legal moves against 6.4 for the rest. Routed through the chess-anchored
- * map on top of that, the lowest rating the pipeline could emit was ~790, so no
- * puzzle could reach a band ending at 650 however easy it was.
+ * So the shortfall is the model's resolution rather than clustering, which is
+ * the one thing the spread check cannot tell apart. `MIN_BAND_SPREAD` stays at
+ * 0.3 — every other Go band now scores between 0.85 and 0.99, so lowering it to
+ * accommodate this one would give up the check exactly where it works. The
+ * count quota still applies here, and so does the bundled-core quota.
  *
- * Both are now rated structurally (`boardRating.ts`) on their own bot-ELO
- * scale, which is the frame the bands were already defined in, and both fill
- * every band. Kept in this comment because "the ruler could not reach" is a
- * failure that looks exactly like "the content does not exist", and the two
- * call for opposite responses.
- *
- * Difficulty there is the bot tier that solves a puzzle half the time, and the
- * weakest tier is `ELO_BANDS[0]` — a **depth-1 search** with noise and a ~50%
- * blunder rate. Depth 1 is precisely a "find the best immediate move" machine,
- * and the miner's easiest product is a one-move `best-move` puzzle. The bottom
- * tier is weak at *playing* and near-expert at exactly the shape being rated,
- * so easy puzzles pile against the bottom of its range: calibrated through the
- * chess anchor, the lowest rating the method can emit is about 790.
- *
- * Measured, not assumed — the 48 below-floor chess puzzles have Lichess ratings
- * from 517 to 1478, and the ladder gives them all one number.
- *
- * A weaker tier is **not** the obvious fix, tempting as it sounds: below
- * depth-1-with-blunders lies uniform random play, which solves at one-over-the-
- * branching-factor regardless of difficulty and so discriminates nothing. The
- * room between them is very small. The fix that would work is the one Go
- * already uses — rate easy puzzles structurally (how many legal moves are
- * non-losing, how short the line) instead of by bot-solve.
- *
- * This is written down rather than solved by lowering `MIN_PUZZLES_PER_BAND`,
- * for two reasons. Lowering the quota would hide the gap in a number nobody
- * reads, and it would lower it for the five bands that *are* filled. And a
- * permanently red build is worse than either: `MIN_PUZZLES_PER_BAND`'s own
- * comment says so, because a test everyone has learned to ignore protects
- * nothing.
- *
- * `coverage.test.ts` asserts each entry here is still *needed* — so if a way is
- * ever found to compose a genuinely beginner-level Go problem, the build says
- * to delete the exemption rather than silently keeping it.
+ * `coverage.test.ts` asserts each entry is still *needed* for the check it
+ * names, so an exemption that has quietly become unnecessary fails the build
+ * and asks to be deleted — which is how the other two came off this list.
  */
-export const UNFILLABLE_BANDS: readonly { game: PuzzleGame; band: string; why: string }[] = [
+export type BandCheck = 'count' | 'spread';
+
+export const BAND_EXEMPTIONS: readonly {
+  game: PuzzleGame;
+  band: string;
+  /** Exactly the checks this band is excused from. Never more than it needs. */
+  checks: readonly BandCheck[];
+  why: string;
+}[] = [
   {
     game: 'go',
     band: 'beginner',
-    why: 'easy Go tactics have several winning moves, and the gate demands exactly one — needs PuzzleStep.also',
+    checks: ['spread'],
+    why:
+      'the band is one cell of the structural model wide — region 3 with no losing move — ' +
+      'so its whole reachable range is 42 points of search cost',
   },
 ];
 
-export function isUnfillable(game: PuzzleGame, bandId: string): boolean {
-  return UNFILLABLE_BANDS.some((u) => u.game === game && u.band === bandId);
+export function isExempt(game: PuzzleGame, bandId: string, check: BandCheck): boolean {
+  return BAND_EXEMPTIONS.some(
+    (e) => e.game === game && e.band === bandId && e.checks.includes(check),
+  );
 }
 
 /**

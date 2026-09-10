@@ -11,7 +11,7 @@
  * the hook that drives it lives in `packages/client`.
  */
 
-import type { Puzzle, PuzzleMove, PuzzleRules } from './types';
+import type { Puzzle, PuzzleMove, PuzzleRules, PuzzleStep } from './types';
 
 export type PuzzlePhase =
   /** Waiting for the player's move. */
@@ -80,6 +80,20 @@ export interface PuzzleRun<S> {
   attempts: number;
   /** What the player played to get here, while `phase === 'wrong'`. */
   wrongMove: PuzzleMove | null;
+  /**
+   * The player solved the step with an accepted alternative rather than the
+   * canonical move — see `PuzzleStep.also`.
+   *
+   * Kept so the mode can say *which* move it had in mind instead of silently
+   * playing on with a different one. A solver who finds one of three winning
+   * moves and is shown an explanation about a move they did not play has been
+   * told they are right and then handed something that does not match; naming
+   * the main line is what closes that gap.
+   *
+   * Lives for exactly one step: set by the move that earned it, cleared by the
+   * next question.
+   */
+  alternate: { played: PuzzleMove; canonical: PuzzleMove } | null;
   /** Why that move fails. Null until `applyRefutation` has run. */
   refutation: PuzzleRefutation | null;
   hintUsed: boolean;
@@ -162,6 +176,33 @@ function settle<S>(state: S, rules: PuzzleRules<S>): S {
   return next;
 }
 
+/**
+ * Every move this step accepts, canonical first.
+ *
+ * Matching goes through `rules.sameMove` rather than string equality, because
+ * "the same move" is a per-game question: checkers ignores the chain path a
+ * jump was spelled with, and reversi has no origin square. A set built on
+ * strings would reject a correct move for being written differently.
+ *
+ * **The version after this one does not enumerate answers at all.** A capture
+ * puzzle is a goal, not a script: the honest question is not "is this move on
+ * the list" but "after this move, is the goal still forced", which is a
+ * question `solveTsumego` can answer directly for the position in front of the
+ * player. That retires the whole completeness obligation — there is no list to
+ * leave a move out of — and it generalises to any goal-shaped puzzle. It is not
+ * done here because it puts a search on the move path, where this file has
+ * deliberately never put one: the reducer is pure and synchronous, and every
+ * search in this feature is split out behind a beat (`applyRefutation`) so a
+ * platform can decide when to spend it. Doing it properly means splitting the
+ * correct path the same way, and a node budget with a fallback to the stored
+ * set for a region too wide to settle. Worth doing; not worth smuggling in.
+ */
+function acceptedMoves<S>(step: PuzzleStep, rules: PuzzleRules<S>): PuzzleMove[] {
+  const canonical = rules.parseMove(step.move);
+  if (!step.also?.length) return [canonical];
+  return [canonical, ...step.also.map((m) => rules.parseMove(m))];
+}
+
 /** Apply a move that the data says is legal. Throws if it isn't. */
 function applyScripted<S>(state: S, move: PuzzleMove, rules: PuzzleRules<S>, what: string): S {
   const result = rules.validateMove(state, move);
@@ -185,6 +226,7 @@ export function startPuzzle<S>(puzzle: Puzzle, rules: PuzzleRules<S>): PuzzleRun
     phase: puzzle.steps.length === 0 ? 'solved' : 'playing',
     attempts: 0,
     wrongMove: null,
+    alternate: null,
     refutation: null,
     hintUsed: false,
     clean: true,
@@ -236,9 +278,10 @@ export function applyPlayerMove<S>(
   if (!isAtLive(run)) return { run, result: 'ignored' };
 
   const step = run.puzzle.steps[run.stepIndex];
-  const scripted = rules.parseMove(step.move);
+  const accepted = acceptedMoves(step, rules);
+  const matched = accepted.findIndex((candidate) => rules.sameMove(move, candidate));
 
-  if (!rules.sameMove(move, scripted)) {
+  if (matched < 0) {
     // Play it anyway, onto the branch.
     //
     // `state` does not move — that is still the position the player has to
@@ -271,6 +314,7 @@ export function applyPlayerMove<S>(
           : {}),
         phase: 'wrong',
         wrongMove: move,
+        alternate: null,
         refutation: null,
         attempts: run.attempts + 1,
         clean: false,
@@ -279,11 +323,25 @@ export function applyPlayerMove<S>(
     };
   }
 
-  const state = applyScripted(run.state, scripted, rules, 'move');
+  // Which move the LINE plays on.
+  //
+  // Everything the data holds after this ply — the scripted reply, the next
+  // step, the explanation — belongs to the canonical move, so while any of it
+  // is still owed that is what has to be played, whichever accepted move the
+  // player found. But when the run ENDS here, nothing downstream reads the
+  // position except the board in front of the player, and substituting a move
+  // they did not make would be the app quietly playing something else. So the
+  // last ply is played as they played it.
+  //
+  // This is not a special case for `also`: with one accepted move the two
+  // branches are the same move.
+  const endsRun = step.reply === undefined && run.stepIndex + 1 >= run.puzzle.steps.length;
+  const state = applyScripted(run.state, endsRun ? accepted[matched] : accepted[0], rules, 'move');
+  const alternate = matched === 0 ? null : { played: move, canonical: accepted[0] };
 
   if (step.reply !== undefined) {
     return {
-      run: { ...run, ...advance(run, state), phase: 'replying', wrongMove: null },
+      run: { ...run, ...advance(run, state), phase: 'replying', wrongMove: null, alternate },
       result: 'correct',
     };
   }
@@ -301,6 +359,7 @@ export function applyPlayerMove<S>(
       stepIndex,
       phase: done ? 'solved' : 'playing',
       wrongMove: null,
+      alternate,
     },
     result: done ? 'solved' : 'correct',
   };
@@ -384,7 +443,16 @@ export function applyOpponentReply<S>(run: PuzzleRun<S>, rules: PuzzleRules<S>):
   const stepIndex = run.stepIndex + 1;
   const done = stepIndex >= run.puzzle.steps.length;
 
-  return { ...run, ...advance(run, state), stepIndex, phase: done ? 'solved' : 'playing' };
+  // A new question is being asked, so the note about the last one goes. (No
+  // shipped puzzle reaches here holding one — `also` is only allowed on a step
+  // with no reply — but the field's lifetime should not depend on that.)
+  return {
+    ...run,
+    ...advance(run, state),
+    stepIndex,
+    phase: done ? 'solved' : 'playing',
+    alternate: null,
+  };
 }
 
 /**
@@ -406,6 +474,7 @@ export function retryPuzzle<S>(run: PuzzleRun<S>, rules: PuzzleRules<S>): Puzzle
     stepIndex: 0,
     phase: 'playing',
     wrongMove: null,
+    alternate: null,
     refutation: null,
     clean: run.attempts === 0 && !run.hintUsed,
   };
@@ -419,6 +488,9 @@ export function retryPuzzle<S>(run: PuzzleRun<S>, rules: PuzzleRules<S>): Puzzle
  */
 export function hintFor<S>(run: PuzzleRun<S>, rules: PuzzleRules<S>): PuzzleMove | null {
   if (run.phase !== 'playing') return null;
+  // The canonical move, even where the step accepts several. A hint is a way
+  // through, not a survey of the position, and showing three arrows would make
+  // the easiest puzzles in the set look like the hardest.
   return rules.parseMove(run.puzzle.steps[run.stepIndex].move);
 }
 
@@ -465,6 +537,24 @@ export function describeRefutation<S>(run: PuzzleRun<S>): string | null {
   return r.reply
     ? `After ${played}, ${opponent} answers ${formatPuzzleMove(r.reply)} and you are worse.`
     : `${played} loses on the spot.`;
+}
+
+/**
+ * "b2 works too — the main line is c1", or null when the player found the
+ * canonical move.
+ *
+ * The teaching half of accepting a set. Several moves winning is a fact about
+ * the position and worth saying out loud; what a player still needs is the one
+ * the explanation is about, so they can read it against a move they recognise.
+ *
+ * Deliberately does not call one move better. The gate proved these moves are
+ * *equally* winning, and "the sharpest is c1" would be a claim about a
+ * difference the proof says is not there.
+ */
+export function describeAlternate<S>(run: PuzzleRun<S>): string | null {
+  if (!run.alternate) return null;
+  const { played, canonical } = run.alternate;
+  return `${formatPuzzleMove(played)} works too — the main line is ${formatPuzzleMove(canonical)}.`;
 }
 
 /** Record that the player took a hint — costs them the clean solve. */

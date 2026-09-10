@@ -438,37 +438,40 @@ test('progress counts the band, not the whole game', async ({ page }) => {
   await expect(page.getByTestId('puzzle-progress')).toContainText(`/ ${total} solved`);
 });
 
-test('an empty band says so and offers a way out', async ({ page }) => {
-  // Go, and this is the THIRD game this test has pointed at. Chess's Master band
-  // was empty until the Lichess import filled it; checkers' Beginner band was
-  // empty until it stopped being rated through a map whose floor sat above the
-  // band entirely. Each time the assertion below failed loudly and demanded to
-  // be repointed, which is the whole reason it is written this way — an empty
-  // band that quietly fills would leave this test passing against nothing.
+test('every band of every game actually serves a puzzle', async ({ page }) => {
+  // This test used to assert the opposite. It pointed at whichever band was
+  // empty and demanded to be repointed when that band filled — chess's Master
+  // band until the Lichess import, then checkers' Beginner band until it
+  // stopped being rated through a map whose floor sat above the band entirely,
+  // then Go's Beginner band until accepting a proved SET of winning moves let
+  // easy life-and-death be expressed at all.
   //
-  // `go/beginner` is the last one, and the only one that is empty for a reason
-  // no amount of mining fixes: easy Go tactics have several winning moves and
-  // the content gate demands exactly one (see UNFILLABLE_BANDS). If Go ever
-  // gains `PuzzleStep.also` support, this test comes due again.
+  // There is nothing left to point it at, so it is turned around: the coverage
+  // claim is now that no band is empty, which is the thing worth protecting and
+  // fails just as loudly if a retune or a re-mine hollows one out.
+  //
+  // The empty-band screen it used to exercise is unreachable end to end for the
+  // same reason — the layered source treats an empty answer as a miss and falls
+  // back to the bundled core, which covers every band. Its band-picker half is
+  // still covered as a unit, in apps/mobile's PuzzleBandPicker test; the
+  // exhausted-band screen next to it, which shares the component, is covered
+  // further down this file.
+  const holes: string[] = [];
+  for (const game of ['chess', 'checkers', 'reversi', 'go'] as const) {
+    const served = servedPuzzles(game) ?? (await staticPuzzleSource.listPuzzles({ game }));
+    for (const band of PUZZLE_BANDS[game]) {
+      const n = served.filter((p) => bandFor(game, p.rating).id === band.id).length;
+      if (n === 0) holes.push(`${game}/${band.id}`);
+    }
+  }
+  expect(holes, `empty bands: ${holes.join(', ')}`).toEqual([]);
+
+  // And the newest of them reaches a player, rather than merely existing in a
+  // file: Go's Beginner band is the one that needed `PuzzleStep.also`.
   await openPuzzle(page, 'go');
-
-  const served = servedPuzzles('go') ?? (await staticPuzzleSource.listPuzzles({ game: 'go' }));
-  const empty = served.filter((p) => bandFor('go', p.rating).id === 'beginner');
-  expect(empty, 'the Go Beginner band now has content — repoint this test').toHaveLength(0);
-
-  // The band must say so plainly rather than looking like a broken mode, and
-  // must leave the picker reachable: the way out of an empty band is another
-  // band, not "start over", which would throw away a solved set to escape one
-  // that was never started.
   await page.getByTestId('puzzle-band-beginner').click();
-
-  await expect(page.getByText(/No Beginner Go puzzles yet/)).toBeVisible();
-  await expect(page.getByTestId('puzzle-band-club')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Start over' })).toHaveCount(0);
-
-  // …and picking a populated band recovers.
-  await page.getByTestId('puzzle-band-club').click();
   await expect(page.getByTestId('puzzle-prompt')).toBeVisible();
+  await expect(page.getByTestId('puzzle-progress')).toContainText('solved');
 });
 
 test('progress never counts solves from other bands', async ({ page }) => {

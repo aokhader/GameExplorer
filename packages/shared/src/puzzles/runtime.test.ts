@@ -3,6 +3,7 @@ import {
   applyOpponentReply,
   applyPlayerMove,
   applyRefutation,
+  describeAlternate,
   describeRefutation,
   displayState,
   hintFor,
@@ -12,7 +13,9 @@ import {
   seekPuzzle,
   startPuzzle,
 } from './runtime';
-import { chessPuzzleRules, checkersPuzzleRules, reversiPuzzleRules } from './rules';
+import { chessPuzzleRules, checkersPuzzleRules, goPuzzleRules, reversiPuzzleRules } from './rules';
+import { getStoneAt } from '../game-logic/go/utils';
+import type { GoGameState } from '../game-logic/go/types';
 import type { Puzzle } from './types';
 import type { ChessGameState } from '../types/chess.types';
 import type { CheckersGameState } from '../game-logic/checkers/types';
@@ -68,6 +71,40 @@ const REVERSI_PARITY: Puzzle = {
   themes: ['parity'],
   steps: [{ move: 'h1', reply: 'a8' }, { move: 'h8' }, { move: 'a1' }],
   explanation: 'Parity.',
+};
+
+/**
+ * A step with more than one accepted answer.
+ *
+ * Go, because it is the only game whose content can carry `also` — a winning
+ * set is only provable where something enumerates it, and `solveTsumego` does.
+ *
+ * The reducer takes the set on trust: it has no way to tell a proved set from
+ * an invented one, and it should not try. Proving it is the content gate's job,
+ * and the gate does it by set equality against the solver. So these two points
+ * only need to be legal, which is all this file is testing.
+ */
+const EITHER_POINT: Puzzle = {
+  id: 'go-900',
+  game: 'go',
+  position: '........./........./........./........./........./OO......./XXO....../..XO...../X.XO..... w',
+  playerColor: 'white',
+  goal: 'kill',
+  region: ['a1', 'b1', 'a2', 'b2'],
+  target: 'c1',
+  prompt: 'White to play and kill.',
+  difficulty: 'easy',
+  rating: 540,
+  themes: ['eye-shape'],
+  steps: [{ move: 'b2', also: ['a2'] }],
+  explanation: 'Either point kills; b2 is the main line.',
+};
+
+/** An alternative offered at a ply that still owes a scripted reply. */
+const BRANCHING: Puzzle = {
+  ...MATE_IN_TWO,
+  id: 'chess-903',
+  steps: [{ move: 'b2b8', also: ['b1b8'], reply: 'a8b8' }, { move: 'b1b8' }],
 };
 
 describe('startPuzzle', () => {
@@ -472,5 +509,78 @@ describe('refuting a wrong move', () => {
     expect(run.refutation?.legal).toBe(true);
     expect(run.timeline.length).toBeGreaterThan(1);
     expect(describeRefutation(run)).toContain('e2→d3');
+  });
+});
+
+describe('a step that accepts more than one move', () => {
+  it('takes the alternative, and says which move the line is about', () => {
+    const run = startPuzzle<GoGameState>(EITHER_POINT, goPuzzleRules);
+    const { run: next, result } = applyPlayerMove(run, goPuzzleRules, { from: 'a2', to: 'a2' });
+
+    expect(result).toBe('solved');
+    expect(next.alternate).toEqual({
+      played: { from: 'a2', to: 'a2' },
+      canonical: { from: 'b2', to: 'b2' },
+    });
+    expect(describeAlternate(next)).toBe('a2 works too — the main line is b2.');
+  });
+
+  it('leaves on the board the move the player actually made', () => {
+    // The one that would be least visible and worst to get wrong: accepting a2
+    // and then putting the stone on b2 is the app playing a move nobody chose.
+    // Safe only because the run ends here — see `endsRun`.
+    const run = startPuzzle<GoGameState>(EITHER_POINT, goPuzzleRules);
+    const { run: next } = applyPlayerMove(run, goPuzzleRules, { from: 'a2', to: 'a2' });
+
+    expect(getStoneAt(next.state.board, 'a2')).toBe('white');
+    expect(getStoneAt(next.state.board, 'b2')).toBeNull();
+  });
+
+  it('plays the canonical move when the line still owes a reply', () => {
+    // The scripted answer belongs to the scripted move, so a ply with a reply
+    // has to advance on it. The content gate forbids `also` here for exactly
+    // this reason; the reducer must not depend on the gate to stay sound.
+    const run = startPuzzle<ChessGameState>(BRANCHING, chessPuzzleRules);
+    const { run: next, result } = applyPlayerMove(run, chessPuzzleRules, {
+      from: 'b1',
+      to: 'b8',
+    });
+
+    expect(result).toBe('correct');
+    expect(next.phase).toBe('replying');
+    // b1 still holds its rook: what was played is b2–b8, the canonical move,
+    // and the scripted reply a8xb8 is legal against that and only that.
+    expect(next.state.board[0][1]).toMatchObject({ type: 'rook', color: 'white' });
+    expect(applyOpponentReply(next, chessPuzzleRules).phase).toBe('playing');
+  });
+
+  it('says nothing when the player found the canonical move', () => {
+    const run = startPuzzle<GoGameState>(EITHER_POINT, goPuzzleRules);
+    const { run: next } = applyPlayerMove(run, goPuzzleRules, { from: 'b2', to: 'b2' });
+
+    expect(next.alternate).toBeNull();
+    expect(describeAlternate(next)).toBeNull();
+  });
+
+  it('still calls everything outside the set wrong', () => {
+    // The whole reason the set has to be complete: what is not in it is still
+    // wrong, and is still refuted rather than waved through.
+    const run = startPuzzle<GoGameState>(EITHER_POINT, goPuzzleRules);
+    const { run: next, result } = applyPlayerMove(run, goPuzzleRules, { from: 'b1', to: 'b1' });
+
+    expect(result).toBe('wrong');
+    expect(next.alternate).toBeNull();
+  });
+
+  it('drops the note on retry, so the next attempt starts silent', () => {
+    const run = startPuzzle<GoGameState>(EITHER_POINT, goPuzzleRules);
+    const { run: solved } = applyPlayerMove(run, goPuzzleRules, { from: 'a2', to: 'a2' });
+
+    expect(retryPuzzle(solved, goPuzzleRules).alternate).toBeNull();
+  });
+
+  it('hints the canonical move, not the alternative', () => {
+    const run = startPuzzle<GoGameState>(EITHER_POINT, goPuzzleRules);
+    expect(hintFor(run, goPuzzleRules)).toEqual({ from: 'b2', to: 'b2' });
   });
 });

@@ -27,8 +27,8 @@ import {
   PUZZLE_BANDS,
   bandFor,
   bandSpan,
-  isUnfillable,
-  UNFILLABLE_BANDS,
+  isExempt,
+  BAND_EXEMPTIONS,
   type PuzzleBand,
 } from './bands';
 import { GO_STRUCTURAL_MODEL } from '../constants/puzzles/generated/calibration';
@@ -75,11 +75,18 @@ const HAS_CORPUS: Record<PuzzleGame, boolean> = {
 /**
  * The lowest rating each game's rating pipeline can actually produce.
  *
- * Only Go differs now. Chess takes its ratings from Lichess and checkers and
+ * Only Go differs. Chess takes its ratings from Lichess and checkers and
  * reversi are rated structurally on their own bot-ELO scale, so all three reach
  * the ladder's nominal floor. Go's floor is the smallest problem its composer
- * can build — a three-point eye space with one losing move — because its rating
- * is a formula over shape rather than a measurement.
+ * can build, because its rating is a formula over shape rather than a
+ * measurement: a three-point eye space — the smallest shape in the composer's
+ * list — in which nothing loses.
+ *
+ * It used to say "with one losing move", which was true while the gate demanded
+ * a unique answer and every other move in the region therefore lost. Accepting
+ * a proved set of answers took that term to zero and dropped the floor by 169,
+ * which is a whole band step: written down rather than left as a stale constant
+ * because it is the number the Beginner band's spread is measured against.
  *
  * Measuring a band's spread against ground its own pipeline cannot reach
  * reports a full band as half empty, which is the same error `bandSpan` already
@@ -87,7 +94,7 @@ const HAS_CORPUS: Record<PuzzleGame, boolean> = {
  */
 function ratingFloor(game: PuzzleGame): number {
   if (game !== 'go') return 400;
-  return goStructuralRating({ regionSize: 3, logNodes: 0, losingMoves: 1 }, GO_STRUCTURAL_MODEL);
+  return goStructuralRating({ regionSize: 3, logNodes: 0, losingMoves: 0 }, GO_STRUCTURAL_MODEL);
 }
 
 /**
@@ -180,7 +187,7 @@ describe('bundled core covers every band offline', () => {
     if (!HAS_CORPUS[game]) return; // no corpus yet — nothing to slice a core from
     const failures: string[] = [];
     for (const band of PUZZLE_BANDS[game]) {
-      if (isUnfillable(game, band.id)) continue;
+      if (isExempt(game, band.id, 'count')) continue;
       const n = PUZZLES[game].filter((p) => bandFor(game, p.rating).id === band.id).length;
       if (n < MIN_CORE_PUZZLES_PER_BAND) {
         failures.push(`${game}/${band.id}: ${n} bundled < ${MIN_CORE_PUZZLES_PER_BAND}`);
@@ -197,7 +204,7 @@ describe('mined corpus covers the full difficulty range', () => {
     const quota = MIN_PUZZLES_PER_BAND[game];
     const failures: string[] = [];
     for (const band of PUZZLE_BANDS[game]) {
-      if (isUnfillable(game, band.id)) continue;
+      if (isExempt(game, band.id, 'count')) continue;
       const n = corpus.filter((p) => bandFor(game, p.rating).id === band.id).length;
       if (n < quota) failures.push(`${game}/${band.id}: ${n} < ${quota}`);
     }
@@ -209,7 +216,7 @@ describe('mined corpus covers the full difficulty range', () => {
     const corpus = corpusFor(game)!;
     const failures: string[] = [];
     for (const band of PUZZLE_BANDS[game]) {
-      if (isUnfillable(game, band.id)) continue;
+      if (isExempt(game, band.id, 'spread')) continue;
       const ratings = corpus
         .filter((p) => bandFor(game, p.rating).id === band.id)
         .map((p) => p.rating);
@@ -221,22 +228,32 @@ describe('mined corpus covers the full difficulty range', () => {
     expect(failures, failures.join('\n')).toEqual([]);
   });
 
-  it('still needs every band it exempts', () => {
+  it('still needs every exemption it grants, for the check it names', () => {
     // Guards the exemption list. An exemption that has quietly become
     // unnecessary is indistinguishable from one that is still load-bearing, and
     // the difference matters: the first is a band nobody is looking at any
-    // more, the second is a documented limit. If a way is found to compose a
-    // genuinely beginner-level Go problem, this fails and says to delete the
-    // entry rather than leaving a hole nobody can see.
+    // more, the second is a documented limit. This is what took the other two
+    // entries off the list, and it is deliberately checked per CHECK — a band
+    // excused from the spread measurement is still held to its count, and an
+    // exemption that grew wider than it needs to be should fail here too.
     const unnecessary: string[] = [];
-    for (const { game, band, why } of UNFILLABLE_BANDS) {
+    for (const { game, band, checks, why } of BAND_EXEMPTIONS) {
       if (!HAS_CORPUS[game]) continue;
-      const n = corpusFor(game)!.filter((p) => bandFor(game, p.rating).id === band).length;
-      if (n >= MIN_PUZZLES_PER_BAND[game]) {
+      const model = PUZZLE_BANDS[game].find((b) => b.id === band);
+      const held = corpusFor(game)!.filter((p) => bandFor(game, p.rating).id === band);
+      const drop = (what: string) =>
         unnecessary.push(
-          `${game}/${band} now has ${n} puzzles and meets its quota — delete the ` +
-            `UNFILLABLE_BANDS entry ("${why}") so the band is enforced again`,
+          `${game}/${band} no longer needs its '${what}' exemption ("${why}") — ` +
+            'delete it so the band is enforced again',
         );
+
+      if (checks.includes('count') && held.length >= MIN_PUZZLES_PER_BAND[game]) drop('count');
+      if (
+        checks.includes('spread') &&
+        model &&
+        spread(game, model, held.map((p) => p.rating)) >= MIN_BAND_SPREAD[game]
+      ) {
+        drop('spread');
       }
     }
     expect(unnecessary, unnecessary.join('\n')).toEqual([]);

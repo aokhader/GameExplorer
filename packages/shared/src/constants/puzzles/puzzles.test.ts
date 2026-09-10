@@ -138,6 +138,39 @@ describe('puzzle content', () => {
         expect(rules.parseMove(rules.formatMove(parsed))).toEqual(parsed);
       }
     });
+
+    it('offers alternative answers only where they can be proved complete', () => {
+      const rules = puzzleRulesFor<unknown>(puzzle.game);
+      if (!puzzle.steps.some((step) => step.also?.length)) return;
+
+      // `also` is not a convenience field, it is a claim: these and the
+      // scripted move are ALL the moves that work. Only Go can support that
+      // claim — `solveTsumego` enumerates the winning set and the block below
+      // asserts equality against it. In the other three games the same field
+      // would make the runtime accept moves on an author's word, with nothing
+      // to catch one that was left out.
+      expect(puzzle.game, `${puzzle.id}: only Go can prove an alternative set is complete`).toBe(
+        'go',
+      );
+      // A second accepted move at a ply that has a scripted answer makes the
+      // line a tree, and `reply` is one string. Restricting the field to a
+      // single-step line is what keeps the data a line.
+      expect(puzzle.steps.length, `${puzzle.id}: alternatives need a single-step line`).toBe(1);
+      expect(puzzle.steps[0].reply, `${puzzle.id}: alternatives cannot carry a reply`).toBeUndefined();
+
+      const state = rules.decode(puzzle.position);
+      const seen = new Set([puzzle.steps[0].move]);
+      for (const alternative of puzzle.steps[0].also ?? []) {
+        expect(seen.has(alternative), `${puzzle.id}: ${alternative} is listed twice`).toBe(false);
+        seen.add(alternative);
+        const parsed = rules.parseMove(alternative);
+        expect(rules.parseMove(rules.formatMove(parsed))).toEqual(parsed);
+        expect(
+          rules.validateMove(state, parsed).valid,
+          `${puzzle.id}: ${alternative} is not legal in this position`,
+        ).toBe(true);
+      }
+    });
   });
 });
 
@@ -350,8 +383,14 @@ describe.each(PUZZLES.reversi.map((p) => [p.id, p] as const))('reversi %s', (_id
  * is for and what makes these puzzles provable at all.
  *
  * So the standard here is the strongest of the four: not "the engine agrees
- * with this move" but "**this is the only move that works**", established by
- * searching every legal first move to the end.
+ * with this move" but "**these are exactly the moves that work**", established
+ * by searching every legal first move to the end.
+ *
+ * Usually that set has one element and the puzzle scripts it. Where it has
+ * more, the extras go in `PuzzleStep.also` and the assertion becomes set
+ * equality — which is a *stronger* obligation, not a weaker one: the data must
+ * now be complete as well as correct, because the runtime calls a move wrong
+ * precisely by not finding it in that set.
  */
 describe('go puzzles', () => {
   const goPuzzles = PUZZLES.go;
@@ -416,7 +455,7 @@ describe('go puzzles', () => {
       expect(puzzle.playerColor).toBe(mover);
     });
 
-    it('has a key move that is the ONLY move that works', () => {
+    it('accepts exactly the moves that work — no more, and none missing', () => {
       const state = goBoardStringToState(puzzle.position);
       const { region, target } = spec(state);
 
@@ -427,10 +466,69 @@ describe('go puzzles', () => {
       });
 
       expect(solved.solved, `${puzzle.id} is not solvable as stated`).toBe(true);
+
+      // Passing must not be among them. If doing nothing already achieves the
+      // goal then the position is settled and there is nothing to find, however
+      // many moves happen to keep it that way.
       expect(
         solved.winningMoves,
-        `${puzzle.id}: the answer is not forced — ${solved.winningMoves.join(', ')} all work`,
-      ).toEqual([puzzle.steps[0].move]);
+        `${puzzle.id}: the goal is already achieved — there is nothing to find`,
+      ).not.toContain('pass');
+
+      // Set equality, in BOTH directions, and the second direction is the point.
+      // That the accepted moves win is the easy half; what actually protects the
+      // player is that no winning move is missing. A move left out is someone
+      // finding a real answer, being told "not quite", and then being shown a
+      // refutation of a move that cannot be refuted.
+      const accepted = [puzzle.steps[0].move, ...(puzzle.steps[0].also ?? [])];
+      expect(
+        [...accepted].sort(),
+        `${puzzle.id}: accepts ${accepted.join(', ')} but ${solved.winningMoves.join(', ')} work`,
+      ).toEqual([...solved.winningMoves].sort());
+    });
+
+    it('delivers the goal from every move it accepts, not just the main line', () => {
+      // `delivers the goal at the end of the line` covers the scripted move.
+      // These are the alternatives, and each is played through the real runtime
+      // and then judged the same way: hand the opponent the move and find that
+      // they cannot turn the result around. Where the two tests differ is that
+      // the position judged here is the one the PLAYER's move produced, which
+      // is what the board actually shows them at the end of a run.
+      const also = puzzle.steps[0].also ?? [];
+      if (also.length === 0) return;
+
+      const rules = puzzleRulesFor<GoGameState>('go');
+      const { region, target, defender } = spec(goBoardStringToState(puzzle.position));
+      const opponentGoal = puzzle.goal === 'kill' ? 'live' : 'kill';
+      const opponent = puzzle.goal === 'kill' ? defender : getOpponentColor(defender);
+
+      for (const move of also) {
+        const played = applyPlayerMove(startPuzzle(puzzle, rules), rules, rules.parseMove(move));
+        expect(
+          played.result,
+          `${puzzle.id}: the runtime answered '${played.result}' to ${move}`,
+        ).toBe('solved');
+        expect(
+          played.run.alternate?.canonical.to,
+          `${puzzle.id}: ${move} was not reported as an alternative`,
+        ).toBe(puzzle.steps[0].move);
+
+        const final = played.run.state;
+        if (getStoneAt(final.board, target) === null) {
+          expect(puzzle.goal, `${puzzle.id}: ${move} captured the target in a 'live' puzzle`).toBe(
+            'kill',
+          );
+          continue;
+        }
+        const rebuttal = solveTsumego(
+          { ...final, currentTurn: opponent },
+          { region, target, goal: opponentGoal },
+        );
+        expect(
+          rebuttal.solved,
+          `${puzzle.id}: after ${move}, ${opponent} can still ${opponentGoal}`,
+        ).toBe(false);
+      }
     });
 
     it('delivers the goal at the end of the line', () => {

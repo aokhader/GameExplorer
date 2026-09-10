@@ -21,6 +21,7 @@ import {
   applyRefutation,
   bandById,
   clearPuzzles,
+  describeAlternate,
   describeRefutation,
   displayState,
   hintFor,
@@ -133,6 +134,11 @@ export interface UsePuzzleResult<S> {
   refutation: PuzzleRefutation | null;
   /** That same finding as one sentence, shared with the other platform. */
   refutationText: string | null;
+  /**
+   * "b2 works too — the main line is c1", when the player solved the step with
+   * an accepted alternative. Null the rest of the time, which is nearly always.
+   */
+  alternateText: string | null;
   playMove: (move: PuzzleMove) => void;
   seek: (index: number) => void;
   retry: () => void;
@@ -439,6 +445,7 @@ export function usePuzzle<S>({
     atLive: run ? isAtLive(run) : true,
     refutation: run?.refutation ?? null,
     refutationText: run ? describeRefutation(run) : null,
+    alternateText: run ? describeAlternate(run) : null,
     playMove,
     seek,
     retry,
