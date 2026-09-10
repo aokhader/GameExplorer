@@ -21,7 +21,7 @@ import {
 } from '@gameexplorer/shared';
 import { webPuzzleProgressStore } from '@/lib/puzzleProgress';
 import { webPuzzleChunkCache } from '@/lib/puzzleChunkCache';
-import { PuzzleBoard } from './PuzzleBoard';
+import { InteractiveBoard } from '@/components/board/InteractiveBoard';
 import { PuzzleBandPicker } from './PuzzleBandPicker';
 import { usePuzzleFeedback } from './usePuzzleFeedback';
 
@@ -240,7 +240,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
       // than scrolls. The prompt lives in the sidebar instead, where it can be
       // any length.
       board={
-        <PuzzleBoard
+        <InteractiveBoard
           game={game}
           // `board`, not `run.state`: after a wrong move the board runs on past
           // the line to play out the refutation, while `run.state` stays on the

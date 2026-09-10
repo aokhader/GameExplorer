@@ -1,5 +1,7 @@
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { PUZZLES } from '@gameexplorer/shared';
+import type { PuzzleGame } from '@gameexplorer/shared';
 import { COLORS, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader } from '@/components/ui';
 import { PuzzleScreen } from '@/screens/PuzzleScreen';
@@ -18,8 +20,13 @@ export default function PuzzlesRoute() {
   const { game } = useLocalSearchParams<{ game: string }>();
   const key = (game ?? '').toLowerCase();
 
-  if (key === 'chess' || key === 'checkers' || key === 'reversi' || key === 'go') {
-    return <PuzzleScreen game={key} />;
+  // A lookup against the shipped sets rather than a hand-written `||` chain,
+  // for the same reason as `learn/[game]`: a chain does not fail to compile
+  // when a fifth puzzle game ships.
+  const known = Object.prototype.hasOwnProperty.call(PUZZLES, key);
+
+  if (known) {
+    return <PuzzleScreen game={key as PuzzleGame} />;
   }
 
   return (

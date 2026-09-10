@@ -6,6 +6,7 @@ import { Screen, BackHeader, Button, Card, GlowBackdrop } from '@/components/ui'
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
 import { TutorialBoard } from './TutorialBoard';
+import { LessonList } from '@/lessons/LessonList';
 
 // Colors are looked up during render, never captured here — the token objects
 // are live views, so a module-scope read freezes them at import (see themeRuntime).
@@ -93,6 +94,11 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
           {tutorial.intro}
         </Text>
       </View>
+
+      {/* Coached lessons — beside the rules prose, not instead of it. This
+          screen is where somebody comes to look a rule up; the lessons are
+          where they come to be walked through one. */}
+      <LessonList game={tutorial.game} />
 
       {/* Rules sections */}
       {tutorial.sections.map(section => (

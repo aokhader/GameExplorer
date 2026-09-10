@@ -3,9 +3,10 @@ import { Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { GoEngine, confirmPlacementFor, goColumnLabel } from '@gameexplorer/shared';
-import type { GoColor, GoGameState } from '@gameexplorer/shared';
+import type { GoColor, GoGameState, LessonMark } from '@gameexplorer/shared';
 import { GO_BOARD_COLORS, goStarPoints, GoStone } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
+import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
 import { placementOnRelease } from './goPlacement';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -23,6 +24,13 @@ interface GoBoardProps {
   interactive?: boolean;
   /** Training hint — outlines the point the engine would play. */
   hintPos?: string | null;
+  /**
+   * Coached annotations, drawn per square — see `BoardMark`.
+   *
+   * The hint props above name exactly one move or point; a lesson step marks
+   * several squares at once and says different things about them.
+   */
+  highlightSquares?: LessonMark[];
   /**
    * Points agreed dead in the end-of-game review. Drawn as ghosts of themselves
    * inside a dashed ring — still visible, because the player is being asked to
@@ -70,6 +78,7 @@ function GoBoardInner({
   highlightPos,
   interactive = true,
   hintPos,
+  highlightSquares,
   deadStones,
   ownership,
   onMarkToggle,
@@ -287,6 +296,10 @@ function GoBoardInner({
         }
 
         const overlays: React.ReactNode[] = [];
+        const marks = markMap(highlightSquares);
+        // `overlays` is drawn UNDER the stones, which is right for a ring and
+        // wrong for a number written on one — so labels get their own array.
+        const markLabels: React.ReactNode[] = [];
         const stones: React.ReactNode[] = [];
 
         for (let row = 0; row < size; row++) {
@@ -362,6 +375,37 @@ function GoBoardInner({
                   <GoStone color={playerColor} size={stoneSize} />
                 </View>,
               );
+            }
+
+            if (marks.has(position)) {
+              // Wrapped, because these overlays are positioned from the
+              // intersection centre while `BoardMark` fills its parent.
+              overlays.push(
+                <View
+                  key={`m-${position}`}
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    left: cx - cell / 2,
+                    top: cy - cell / 2,
+                    width: cell,
+                    height: cell,
+                  }}
+                >
+                  <BoardMark mark={marks.get(position)!} size={cell} round />
+                </View>,
+              );
+              if (marks.get(position)!.text) {
+                markLabels.push(
+                  <BoardMarkLabel
+                    key={`ml-${position}`}
+                    mark={marks.get(position)!}
+                    size={cell}
+                    left={cx - cell / 2}
+                    top={cy - cell / 2}
+                  />,
+                );
+              }
             }
 
             if (hintPos === position) {
@@ -547,6 +591,7 @@ function GoBoardInner({
 
               {overlays}
               {stones}
+              {markLabels}
             </View>
           </GestureDetector>
         );

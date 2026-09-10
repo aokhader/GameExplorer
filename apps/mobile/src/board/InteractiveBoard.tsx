@@ -5,6 +5,7 @@ import type {
   GoColor,
   GoGameState,
   PuzzleGame,
+  LessonMark,
   PuzzleMove,
   ReversiGameState,
 } from '@gameexplorer/shared';
@@ -13,7 +14,12 @@ import { CheckersBoard } from '@/board/CheckersBoard';
 import { ReversiBoard } from '@/board/ReversiBoard';
 import { GoBoard } from '@/board/GoBoard';
 
-export interface PuzzleBoardProps {
+export interface InteractiveBoardProps {
+  /**
+   * Which game's board to draw. `PuzzleGame` and `LessonGame` are the same
+   * union — the four games with a `PuzzleRules` binding — so one prop serves
+   * both modes.
+   */
   game: PuzzleGame;
   /** The position to draw — typed opaquely here and narrowed per game below. */
   state: unknown;
@@ -25,12 +31,21 @@ export interface PuzzleBoardProps {
   hint?: PuzzleMove | null;
   /** The opponent's answer to a wrong move, drawn on the branch it happens in. */
   refutation?: PuzzleMove | null;
+  /**
+   * Coached annotations for a lesson step: liberty counts, the point to play
+   * on, the point not to. Puzzles never pass this.
+   */
+  marks?: LessonMark[];
 }
 
 /**
- * The right board for the puzzle's game.
+ * The right board for the game, wired for a mode that plays moves on it.
  *
- * **No board component needed changing for this**, exactly as on web: all three
+ * Shared by puzzles and lessons rather than forked — the per-game dispatch
+ * below is exactly the hand-maintained list this repo has watched go stale six
+ * times, and a fifth game must not be addable to one copy and not the other.
+ *
+ * **No board component needed changing for the puzzle half**, exactly as on web: all three
  * already take `hintMove` / `hintPos` (the amber training rings) and
  * `interactive`, and their rules come from the shared engines, so a puzzle
  * position is just a position.
@@ -51,7 +66,7 @@ export interface PuzzleBoardProps {
  *   solved means the board says no the way the rest of the app does — with the
  *   boards' own illegal-move cue.
  */
-export function PuzzleBoard({
+export function InteractiveBoard({
   game,
   state,
   playerColor,
@@ -59,7 +74,8 @@ export function PuzzleBoard({
   onMove,
   hint,
   refutation,
-}: PuzzleBoardProps) {
+  marks,
+}: InteractiveBoardProps) {
   if (game === 'chess') {
     return (
       <ChessBoard
@@ -67,6 +83,7 @@ export function PuzzleBoard({
         playerColor={playerColor}
         interactive={interactive}
         hintMove={hint ? { from: hint.from, to: hint.to } : null}
+        highlightSquares={marks}
         onMove={(from, to, promotion) => onMove({ from, to, promotion })}
       />
     );
@@ -79,6 +96,7 @@ export function PuzzleBoard({
         playerColor={playerColor}
         interactive={interactive}
         hintMove={hint ? { from: hint.from, to: hint.to } : null}
+        highlightSquares={marks}
         onMove={(from, to) => onMove({ from, to })}
       />
     );
@@ -94,6 +112,7 @@ export function PuzzleBoard({
         // shape reversi uses, for the same reason.
         hintPos={hint?.to ?? null}
         highlightPos={refutation?.to ?? null}
+        highlightSquares={marks}
         onMove={(position) => onMove({ from: position, to: position })}
       />
     );
@@ -107,6 +126,7 @@ export function PuzzleBoard({
       // Reversi placements have no origin square, so `to` is the whole move.
       hintPos={hint?.to ?? null}
       highlightPos={refutation?.to ?? null}
+      highlightSquares={marks}
       onMove={(position) => onMove({ from: position, to: position })}
     />
   );

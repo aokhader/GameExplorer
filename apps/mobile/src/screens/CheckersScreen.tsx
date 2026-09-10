@@ -18,6 +18,7 @@ import { OpponentPicker, FlipBoardCard, type SetupMode } from '@/game/OpponentPi
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
+import { LessonsCard } from '@/game/LessonsCard';
 import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
 import { TrainingSetup } from '@/game/TrainingSetup';
@@ -177,6 +178,7 @@ export function CheckersScreen() {
         <SetupHero game="checkers" />
 
         <LearnLink game="checkers" label="New to checkers? How to play →" />
+        <LessonsCard game="checkers" />
 
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.checkers.base} tint={GAME_ACCENTS.checkers.tintBg} />
 

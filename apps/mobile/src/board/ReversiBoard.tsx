@@ -9,9 +9,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { BOARD_ANIM_MS, ReversiEngine } from '@gameexplorer/shared';
-import type { ReversiGameState, ReversiColor } from '@gameexplorer/shared';
+import type { LessonMark, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 import { ReversiDisc, REVERSI_BOARD_COLORS, SHADOWS_NATIVE } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
+import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
@@ -28,6 +29,13 @@ interface ReversiBoardProps {
   interactive?: boolean;
   /** Training hint — outlines the square the engine would play. */
   hintPos?: string | null;
+  /**
+   * Coached annotations, drawn per square — see `BoardMark`.
+   *
+   * The hint props above name exactly one move or point; a lesson step marks
+   * several squares at once and says different things about them.
+   */
+  highlightSquares?: LessonMark[];
 }
 
 const DISC_RATIO = 0.86;
@@ -155,6 +163,7 @@ function ReversiBoardInner({
   highlightPos,
   interactive = true,
   hintPos,
+  highlightSquares,
 }: ReversiBoardProps) {
   const [justPlaced, setJustPlaced] = useState<string | null>(null);
   const [justFlipped, setJustFlipped] = useState<Set<string>>(() => new Set());
@@ -244,6 +253,10 @@ function ReversiBoardInner({
         const sq = size / 8;
 
         const squares: React.ReactNode[] = [];
+        const marks = markMap(highlightSquares);
+        // Written marks are drawn after the discs — inside the square they
+        // would sit under whatever is standing on it.
+        const markLabels: React.ReactNode[] = [];
         const discs: React.ReactNode[] = [];
 
         for (let screenRow = 0; screenRow < 8; screenRow++) {
@@ -255,6 +268,18 @@ function ReversiBoardInner({
             const isLegal = legalNow.includes(pos);
             const isHighlighted = highlightPos === pos;
             const isHint = hintPos === pos;
+            const mark = marks.get(pos);
+            if (mark?.text) {
+              markLabels.push(
+                <BoardMarkLabel
+                  key={`ml-${pos}`}
+                  mark={mark}
+                  size={sq}
+                  left={screenCol * sq}
+                  top={screenRow * sq}
+                />,
+              );
+            }
 
             const showRank = coordsOn && screenCol === 0;
             const showFile = coordsOn && screenRow === 7;
@@ -304,6 +329,7 @@ function ReversiBoardInner({
                     {String.fromCharCode(97 + boardCol)}
                   </Text>
                 )}
+                {mark && <BoardMark mark={mark} size={sq} round />}
                 {/* Legal-move ghost dot on an empty square. */}
                 {isLegal && !disc && (
                   <View
@@ -387,6 +413,7 @@ function ReversiBoardInner({
             >
               {squares}
               {discs}
+              {markLabels}
             </View>
           </GestureDetector>
         );

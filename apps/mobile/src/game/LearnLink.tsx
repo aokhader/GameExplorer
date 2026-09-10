@@ -1,10 +1,15 @@
 import { Pressable, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import type { TutorialGame } from '@gameexplorer/shared';
 import { GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface LearnLinkProps {
-  game: 'chess' | 'checkers' | 'reversi' | 'go';
+  /**
+   * The shared union, not a hand-rolled copy of it. Every game with a tutorial
+   * can carry this link, and spelling the list out here is how it drifts.
+   */
+  game: TutorialGame;
   /** Each game words its invitation slightly differently. */
   label: string;
 }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { GameTutorial, TutorialGame } from '@gameexplorer/shared';
 import { GradientText, Reveal } from '@/components/visual';
 import { TutorialBoard } from './TutorialBoard';
+import { LessonIndex, SectionLessonLink } from '@/components/lessons/LessonIndex';
 import { GameIcon } from '@/components/game/GameIcon';
 
 const GAME_META: Record<
@@ -16,9 +17,16 @@ const GAME_META: Record<
 };
 
 /**
- * Shared body for the three /{game}/learn pages. Server-renderable: static
- * prose + TutorialBoard diagrams, styled after the privacy page's prose column
- * and the game hubs' hero treatment.
+ * Shared body for the /{game}/learn pages. Server-renderable: static prose +
+ * TutorialBoard diagrams, styled after the privacy page's prose column and the
+ * game hubs' hero treatment.
+ *
+ * The coached lessons sit **beside** this article rather than replacing it.
+ * These four routes are the SEO surface, they work with JS disabled, and they
+ * are the right shape for "I just want to look up en passant" — which a
+ * step-gated lesson serves badly. What they gain is a strip of lesson cards
+ * under the hero, and a "Try it on a board" link under every section a lesson
+ * teaches.
  */
 export function TutorialArticle({ tutorial }: { tutorial: GameTutorial }) {
   const meta = GAME_META[tutorial.game];
@@ -54,8 +62,10 @@ export function TutorialArticle({ tutorial }: { tutorial: GameTutorial }) {
           </Reveal>
         </div>
 
+        <LessonIndex game={tutorial.game} />
+
         {/* Rules sections */}
-        <div className="space-y-12 text-fg-muted leading-relaxed">
+        <div className="mt-14 space-y-12 text-fg-muted leading-relaxed">
           {tutorial.sections.map(section => (
             <section key={section.id} id={section.id}>
               <h2 className="text-xl font-semibold text-fg mb-3">{section.heading}</h2>
@@ -67,6 +77,7 @@ export function TutorialArticle({ tutorial }: { tutorial: GameTutorial }) {
               {section.diagrams?.map((diagram, i) => (
                 <TutorialBoard key={i} diagram={diagram} />
               ))}
+              <SectionLessonLink game={tutorial.game} sectionId={section.id} />
             </section>
           ))}
         </div>

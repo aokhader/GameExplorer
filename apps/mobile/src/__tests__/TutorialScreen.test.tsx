@@ -20,6 +20,10 @@ jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').m
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn(), canGoBack: () => false }),
+  // The lesson strip under the hero re-reads completion on focus, so this
+  // screen now needs the same shim `PuzzlesCard.test.tsx` uses.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  useFocusEffect: (cb: () => undefined | (() => void)) => require('react').useEffect(cb, [cb]),
 }));
 
 function renderTutorial(game: keyof typeof TUTORIALS) {

@@ -34,6 +34,10 @@ export * from './constants/tutorials';
 export * from './puzzles';
 // Puzzle content (web + mobile) — pure data, see the module's contract note
 export * from './constants/puzzles';
+// Coached lessons — content model, matching, the step loop and progress
+export * from './lessons';
+// Lesson content (web + mobile) — pure data, same contract as the puzzles above
+export * from './constants/lessons';
 // Game catalog (id, players, modes) — see the scope note in the module
 export * from './constants/games';
 

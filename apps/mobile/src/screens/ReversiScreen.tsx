@@ -19,6 +19,7 @@ import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
+import { LessonsCard } from '@/game/LessonsCard';
 import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
 import { TrainingSetup } from '@/game/TrainingSetup';
@@ -177,6 +178,7 @@ export function ReversiScreen() {
         <SetupHero game="reversi" />
 
         <LearnLink game="reversi" label="New to Reversi? How to play →" />
+        <LessonsCard game="reversi" />
 
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.reversi.base} tint={GAME_ACCENTS.reversi.tintBg} />
 

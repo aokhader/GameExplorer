@@ -14,6 +14,7 @@
     "./game/goSetup": "./src/game/goSetup.ts",
     "./hooks/useLocalGame": "./src/hooks/useLocalGame.ts",
     "./hooks/usePuzzle": "./src/hooks/usePuzzle.ts",
+    "./hooks/useLesson": "./src/hooks/useLesson.ts",
     "./trainingRules": "./src/hooks/trainingRules.ts",
     "./stores/authStore": "./src/stores/authStore.ts",
     "./package.json": "./package.json",

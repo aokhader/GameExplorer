@@ -19,6 +19,7 @@ import { OpponentPicker, FlipBoardCard, type SetupMode } from '@/game/OpponentPi
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
+import { LessonsCard } from '@/game/LessonsCard';
 import { AnalysisCard } from '@/game/AnalysisCard';
 import { CustomEloPicker } from '@/game/CustomEloPicker';
 import { CapturedTray } from '@/game/CapturedTray';
@@ -219,6 +220,7 @@ export function ChessScreen() {
         <SetupHero game="chess" />
 
         <LearnLink game="chess" label="New to chess? How to play →" />
+        <LessonsCard game="chess" />
 
         <OpponentPicker value={mode} onChange={setMode} accent={GAME_ACCENTS.chess.base} tint={GAME_ACCENTS.chess.tintBg} />
 

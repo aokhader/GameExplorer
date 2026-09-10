@@ -20,7 +20,7 @@ import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button } from '@/components/ui';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { StatusBanner } from '@/game/StatusBanner';
-import { PuzzleBoard } from '@/puzzles/PuzzleBoard';
+import { InteractiveBoard } from '@/board/InteractiveBoard';
 import { PuzzleBar } from '@/puzzles/PuzzleBar';
 import { PuzzleBandPicker } from '@/puzzles/PuzzleBandPicker';
 import { usePuzzleFeedback } from '@/puzzles/usePuzzleFeedback';
@@ -279,7 +279,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
         </View>
       }
       board={
-        <PuzzleBoard
+        <InteractiveBoard
           game={game}
           // `board`, not `run.state`: after a wrong move the board runs on past
           // the line to play out the refutation, and the nav controls can walk

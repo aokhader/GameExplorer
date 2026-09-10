@@ -7,12 +7,13 @@ import {
   getCheckersPremoveDestinations,
   isCheckersPremoveLegal,
 } from '@gameexplorer/shared';
-import type { CheckersGameState, CheckersPremove } from '@gameexplorer/shared';
+import type { CheckersGameState, CheckersPremove, LessonMark } from '@gameexplorer/shared';
 // Deep import: the `@gameexplorer/client` barrel builds a Supabase client at
 // import time, which a board has no business needing.
 import { motionKey, useBoardMotion } from '@gameexplorer/client/hooks/useBoardMotion';
 import { CheckersPiece, CHECKERS_BOARD_COLORS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
+import { BoardMark, markMap } from '@/components/board/BoardMark';
 import { PieceSlot } from '@/components/board/PieceSlot';
 import { useBoardDrag } from '@/hooks/useBoardDrag';
 import { useGameSfx } from '@/hooks/useGameSfx';
@@ -69,6 +70,13 @@ interface CheckersBoardProps {
   orientation?: 'white' | 'black';
   showCoordinates?: boolean;
   arrows?: BoardArrow[];
+  /**
+   * Coached annotations, drawn per square — see `BoardMark`.
+   *
+   * Lessons need to point at several squares at once, which neither `arrows`
+   * nor a single hint square can express.
+   */
+  highlightSquares?: LessonMark[];
   /**
    * Let the player queue a move during the opponent's turn, played the moment
    * the turn comes back (dropped if the position made it illegal — in checkers
@@ -148,6 +156,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   orientation,
   showCoordinates = true,
   arrows,
+  highlightSquares,
   allowPremoves = false,
   interactive = true,
 }: CheckersBoardProps) {
@@ -366,6 +375,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   }, [allowPremoves, gameState.isGameOver]);
 
   const squares = [];
+  const marks = markMap(highlightSquares);
 
   for (let screenRow = 0; screenRow < 8; screenRow++) {
     for (let screenCol = 0; screenCol < 8; screenCol++) {
@@ -394,6 +404,8 @@ export const CheckersBoard = React.memo(function CheckersBoard({
       const showFile = coordsOn && screenRow === 7;
       const labelColor = dark ? SQUARE.light : SQUARE.dark;
 
+      const mark = marks.get(pos);
+
       squares.push(
         <div
           key={pos}
@@ -406,6 +418,8 @@ export const CheckersBoard = React.memo(function CheckersBoard({
           // pointer-events off, and the square knows what is standing on it.
           onPointerDown={dark && canGrab(piece) ? drag.start(pos) : undefined}
         >
+          {mark && <BoardMark mark={mark} />}
+
           {/* Rank label */}
           {showRank && (
             <span

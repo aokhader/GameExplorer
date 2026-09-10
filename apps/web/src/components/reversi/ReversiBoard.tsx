@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { ReversiEngine } from '@gameexplorer/shared';
-import type { ReversiGameState, ReversiColor } from '@gameexplorer/shared';
+import type { LessonMark, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 import { ReversiDisc, REVERSI_BOARD_COLORS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
+import { BoardMark, markMap } from '@/components/board/BoardMark';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
@@ -33,6 +34,13 @@ interface ReversiiBoardProps {
   /** Show a hint ring on this square */
   hintPos?: string | null;
   /**
+   * Coached annotations, drawn per point — see `BoardMark`.
+   *
+   * `highlightPos` and `hintPos` above are deliberately singular; a lesson
+   * about liberties or eye shape has to number several points at once.
+   */
+  highlightSquares?: LessonMark[];
+  /**
    * Board is inert — legal-move dots still show, but a tap does nothing.
    *
    * Real inertness, not a no-op `onMove`: the puzzle screens used to fake this
@@ -54,6 +62,7 @@ export const ReversiBoard = React.memo(function ReversiBoard({
   showCoordinates = true,
   highlightPos,
   hintPos,
+  highlightSquares,
   interactive = true,
 }: ReversiiBoardProps) {
   const [justFlipped, setJustFlipped] = useState<Set<string>>(new Set());
@@ -88,6 +97,7 @@ export const ReversiBoard = React.memo(function ReversiBoard({
   const isPlayerTurn = gameState.currentTurn === playerColor && !gameState.isGameOver;
 
   const squares = [];
+  const marks = markMap(highlightSquares);
 
   for (let screenRow = 0; screenRow < 8; screenRow++) {
     for (let screenCol = 0; screenCol < 8; screenCol++) {
@@ -129,6 +139,8 @@ export const ReversiBoard = React.memo(function ReversiBoard({
               {String.fromCharCode(97 + boardCol)}
             </span>
           )}
+
+          {marks.has(pos) && <BoardMark mark={marks.get(pos)!} round />}
 
           {/* Last-move ring on the most recently placed disc */}
           {isHighlighted && disc && (

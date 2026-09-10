@@ -15,7 +15,13 @@ import {
   getChessPremoveDestinations,
   isChessPremoveLegal,
 } from '@gameexplorer/shared';
-import type { ChessGameState, ChessPremove, Piece, PieceType } from '@gameexplorer/shared';
+import type {
+  ChessGameState,
+  ChessPremove,
+  LessonMark,
+  Piece,
+  PieceType,
+} from '@gameexplorer/shared';
 // Deep import: the `@gameexplorer/client` barrel builds a Supabase client at
 // import time, which a board has no business needing.
 import {
@@ -25,6 +31,7 @@ import {
 } from '@gameexplorer/client/hooks/useBoardMotion';
 import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
+import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
@@ -42,6 +49,13 @@ interface ChessBoardProps {
    * same treatment all three boards use.
    */
   hintMove?: { from: string; to: string } | null;
+  /**
+   * Coached annotations, drawn per square — see `BoardMark`.
+   *
+   * The hint props above name exactly one move or point; a lesson step marks
+   * several squares at once and says different things about them.
+   */
+  highlightSquares?: LessonMark[];
   /**
    * The side allowed to queue premoves — a move picked during the opponent's
    * turn and played the moment the turn comes back. Omit to switch premoves off
@@ -331,6 +345,7 @@ function ChessBoardInner({
   showCoordinates = true,
   interactive = true,
   hintMove,
+  highlightSquares,
   premoveColor,
   onSquarePress,
 }: ChessBoardProps) {
@@ -675,6 +690,10 @@ function ChessBoardInner({
       {(size) => {
         sizeRef.current = size;
         const sq = size / 8;
+        const marks = markMap(highlightSquares);
+        // Written marks are collected here and drawn after the pieces —
+        // inside the square they would sit under whatever is standing on it.
+        const markLabels: React.ReactNode[] = [];
 
         const squares: React.ReactNode[] = [];
         const pieces: React.ReactNode[] = [];
@@ -706,6 +725,18 @@ function ChessBoardInner({
             const showFile = coordsOn && screenRow === 7;
             const labelColor = dark ? BOARD_COLORS.lightSquare : BOARD_COLORS.darkSquare;
 
+            if (marks.get(pos)?.text) {
+              markLabels.push(
+                <BoardMarkLabel
+                  key={`ml-${pos}`}
+                  mark={marks.get(pos)!}
+                  size={sq}
+                  left={screenCol * sq}
+                  top={screenRow * sq}
+                />,
+              );
+            }
+
             squares.push(
               <View
                 key={pos}
@@ -721,6 +752,8 @@ function ChessBoardInner({
                   justifyContent: 'center',
                 }}
               >
+                {marks.has(pos) && <BoardMark mark={marks.get(pos)!} size={sq} />}
+
                 {showRank && (
                   <Text style={{ position: 'absolute', top: 2, left: 3, fontSize: 9, fontFamily: FONTS.bodyBold, color: labelColor, opacity: 0.75 }}>
                     {boardRow + 1}
@@ -894,6 +927,7 @@ function ChessBoardInner({
               {fading}
               {pieces}
               {floating}
+              {markLabels}
               {pending && (
                 <PromotionPicker
                   // The promoting pawn's own color — not `playerColor`, which in

@@ -40,6 +40,7 @@ import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
+import { LessonsCard } from '@/game/LessonsCard';
 import { AnalysisCard } from '@/game/AnalysisCard';
 import { MoveBand } from '@/game/MoveBand';
 import { GameBar } from '@/game/GameBar';
@@ -227,6 +228,7 @@ export function GoScreen() {
         <SetupHero game="go" />
 
         <LearnLink game="go" label="New to Go? How to play →" />
+        <LessonsCard game="go" />
 
         <OpponentPicker
           value={mode}

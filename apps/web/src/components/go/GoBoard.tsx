@@ -2,9 +2,10 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GoEngine } from '@gameexplorer/shared';
-import type { GoColor, GoGameState } from '@gameexplorer/shared';
+import type { GoColor, GoGameState, LessonMark } from '@gameexplorer/shared';
 import { GO_BOARD_COLORS, goStarPoints, GoStone } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
+import { BoardMark, markMap } from '@/components/board/BoardMark';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
@@ -46,6 +47,14 @@ export interface GoBoardProps {
   highlightPos?: string | null;
   /** Training hint — outlines the point the engine would play. */
   hintPos?: string | null;
+  /**
+   * Coached annotations, drawn per intersection — see `BoardMark`.
+   *
+   * `highlightPos` and `hintPos` above are singular; a lesson about liberties
+   * or eye shape has to number several points at once, which is exactly what
+   * the static `GoDiagram.labels` already does on the rules page.
+   */
+  highlightSquares?: LessonMark[];
   /**
    * Board is inert. Real inertness, not a swallowed `onMove`: an inert board
    * must not offer a ghost stone or a pointer cursor either.
@@ -98,6 +107,7 @@ export const GoBoard = React.memo(function GoBoard({
   showCoordinates = true,
   highlightPos,
   hintPos,
+  highlightSquares,
   interactive = true,
   deadStones,
   ownership,
@@ -181,6 +191,7 @@ export const GoBoard = React.memo(function GoBoard({
   }
 
   const points = [];
+  const marks = markMap(highlightSquares);
   for (let row = 0; row < size; row++) {
     for (let col = 0; col < size; col++) {
       // Row 0 is rank 1, which is drawn at the BOTTOM — so screen y inverts.
@@ -301,6 +312,8 @@ export const GoBoard = React.memo(function GoBoard({
               }}
             />
           )}
+
+          {marks.has(position) && <BoardMark mark={marks.get(position)!} round />}
 
           {hintPos === position && (
             <div

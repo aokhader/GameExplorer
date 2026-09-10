@@ -10,7 +10,7 @@ import type {
   PuzzleMove,
   ReversiGameState,
 } from '@gameexplorer/shared';
-import type { PieceType, Position } from '@gameexplorer/shared';
+import type { LessonMark, PieceType, Position } from '@gameexplorer/shared';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
@@ -24,7 +24,12 @@ import { GoBoard } from '@/components/go/GoBoard';
 // need no equivalent.
 import '@/components/chess/ChessBoard.css';
 
-export interface PuzzleBoardProps {
+export interface InteractiveBoardProps {
+  /**
+   * Which game's board to draw. `PuzzleGame` and `LessonGame` are the same
+   * union — the four games with a `PuzzleRules` binding — so one prop serves
+   * both modes.
+   */
   game: PuzzleGame;
   /** The run's state — typed opaquely here and narrowed per game below. */
   state: unknown;
@@ -43,6 +48,21 @@ export interface PuzzleBoardProps {
   refutation?: PuzzleMove | null;
   /** History or refutation branch is on screen — no input allowed. */
   interactive?: boolean;
+  /**
+   * Coached annotations for a lesson step: liberty counts, the square to play
+   * on, the square not to.
+   *
+   * Handed straight through to the board, which draws them through its own
+   * square-overlay layer. Puzzles never pass this.
+   */
+  marks?: LessonMark[];
+  /**
+   * How many moves the mode has rejected without moving the board.
+   *
+   * Only chess needs it — it is the one board that draws a move optimistically
+   * — but it is declared here so a lesson screen does not have to know that.
+   */
+  rejectedMoves?: number;
 }
 
 /** Amber, matching the hint ring the mobile boards and training mode use. */
@@ -50,15 +70,21 @@ const HINT_COLOR = 'rgba(251, 191, 36, 0.9)';
 const REFUTATION_COLOR = 'rgba(248, 113, 113, 0.9)';
 
 /**
- * The right board for the puzzle's game.
+ * The right board for the game, wired for a mode that plays moves on it.
  *
- * **No board component needed changing for this.** All three already take
- * everything a puzzle wants: chess and checkers draw `arrows`, reversi has
- * `hintPos`. The refutation reuses the same two channels, because it is drawn
- * on the position where the opponent's answer actually happens — the branch is
- * played out on the board rather than described beside it.
+ * Shared by puzzles and lessons rather than forked, because the per-game
+ * dispatch below is exactly the kind of hand-maintained list this repo has
+ * watched go stale six times — a fifth game would be added to one copy and not
+ * the other, and nothing would fail to compile.
+ *
+ * The puzzle half needed no board changes at all: chess and checkers draw
+ * `arrows`, reversi and Go have `hintPos`, and the refutation reuses those same
+ * channels because it is drawn on the position where the opponent's answer
+ * actually happens. The lesson half is what added `highlightSquares` to all
+ * four boards — a mark vocabulary is only worth having if `danger` means the
+ * same thing on a chess square and a Go intersection.
  */
-export function PuzzleBoard({
+export function InteractiveBoard({
   game,
   state,
   playerColor,
@@ -66,7 +92,9 @@ export function PuzzleBoard({
   hint,
   refutation,
   interactive = true,
-}: PuzzleBoardProps) {
+  marks,
+  rejectedMoves,
+}: InteractiveBoardProps) {
   // The boards gate input on `currentTurn` and the runtime answers stray moves
   // with `'ignored'`, but neither helps while a refutation is on screen: it is
   // the player's turn again in that branch, so without this the board would
@@ -105,6 +133,8 @@ export function PuzzleBoard({
         gameState={state as ChessGameState}
         playerColor={playerColor}
         arrows={arrows}
+        highlightSquares={marks}
+        rejectedMoves={rejectedMoves}
         interactive={interactive}
         onMove={onChessMove}
       />
@@ -123,6 +153,7 @@ export function PuzzleBoard({
         gameState={state as CheckersGameState}
         playerColor={playerColor}
         arrows={arrows}
+        highlightSquares={marks}
         onMove={onCheckersMove}
         interactive={interactive}
       />
@@ -139,6 +170,7 @@ export function PuzzleBoard({
         // in reversi.
         hintPos={hint?.to ?? null}
         highlightPos={refutation?.to ?? null}
+        highlightSquares={marks}
         onMove={onReversiMove}
         interactive={interactive}
       />
@@ -151,6 +183,7 @@ export function PuzzleBoard({
       playerColor={playerColor}
       hintPos={hint?.to ?? null}
       highlightPos={refutation?.to ?? null}
+      highlightSquares={marks}
       onMove={onReversiMove}
       interactive={interactive}
     />

@@ -13,10 +13,12 @@ import {
   isChessPremoveLegal,
   isChessPremovePromotion,
   type ChessPremove,
+  type LessonMark,
 } from '@gameexplorer/shared';
 import { motionKey, useBoardMotion } from '@gameexplorer/client/hooks/useBoardMotion';
 import { ChessPiece } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
+import { BoardMark, markMap } from '@/components/board/BoardMark';
 import { PieceSlot } from '@/components/board/PieceSlot';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
@@ -49,6 +51,25 @@ interface ChessBoardProps {
   compact?: boolean;
   /** Draw arrows as an SVG overlay (e.g. for best-move highlights) */
   arrows?: BoardArrow[];
+  /**
+   * Coached annotations, drawn per square.
+   *
+   * Added for lessons, which need to point at several squares at once — the
+   * `arrows` channel above can only draw a line between two, and `hintMove` on
+   * the mobile sibling only ever names one move.
+   */
+  highlightSquares?: LessonMark[];
+  /**
+   * Bumped by the parent when a move it was offered was **not** accepted.
+   *
+   * This board draws a move optimistically and discards the copy when a new
+   * `gameState` arrives. A mode that rejects a move without changing the
+   * position — a lesson, whose whole design is that a wrong answer never lands
+   * on the board — sends back the identical state object, so that effect never
+   * fires and the rejected move stays up. Counting rejections is the signal
+   * that the parent has looked at the move and said no.
+   */
+  rejectedMoves?: number;
   /** When true, clicks call onSquareClick instead of the normal move logic */
   editMode?: boolean;
   onSquareClick?: (position: Position) => void;
@@ -204,6 +225,8 @@ export const ChessBoard = React.memo(function ChessBoard({
   showCoordinates = true,
   compact = false,
   arrows,
+  highlightSquares,
+  rejectedMoves,
   editMode = false,
   onSquareClick,
   allowSelectAnyColor = false,
@@ -219,8 +242,9 @@ export const ChessBoard = React.memo(function ChessBoard({
   const [optimisticState, setOptimisticState] = useState<ChessGameState | null>(null);
   const effectiveState = optimisticState ?? gameState;
 
-  // Discard optimistic state once the parent confirms (new gameState prop).
-  useEffect(() => { setOptimisticState(null); }, [gameState]);
+  // Discard optimistic state once the parent confirms (new gameState prop)
+  // — or tells us the move was rejected, which leaves gameState untouched.
+  useEffect(() => { setOptimisticState(null); }, [gameState, rejectedMoves]);
 
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Position[]>([]);
@@ -615,6 +639,7 @@ export const ChessBoard = React.memo(function ChessBoard({
 
   const renderBoard = () => {
     const squares = [];
+    const marks = markMap(highlightSquares);
 
     for (let row = 7; row >= 0; row--) {
       for (let col = 0; col < 8; col++) {
@@ -660,6 +685,8 @@ export const ChessBoard = React.memo(function ChessBoard({
             {isValidMove && !premoveMode && (!editMode || allowSelectAnyColor) && (
               <div className={`move-indicator ${piece ? 'capture' : 'empty'}`} />
             )}
+
+            {marks.has(position) && <BoardMark mark={marks.get(position)!} />}
 
             {isCheckKing && <div className="check-ring" />}
             {captureFlash === position && <div className="capture-flash" />}

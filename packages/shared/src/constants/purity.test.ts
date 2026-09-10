@@ -39,6 +39,7 @@ const MIXED_MODULES: Record<string, () => Promise<Record<string, unknown>>> = {
 const DATA_ONLY_MODULES: Record<string, () => Promise<Record<string, unknown>>> = {
   'botTiers.ts': () => import('./botTiers'),
   'puzzles/index.ts': () => import('./puzzles'),
+  'lessons/index.ts': () => import('./lessons'),
   'tutorials/index.ts': () => import('./tutorials'),
 };
 

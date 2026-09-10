@@ -23,3 +23,5 @@ export type { PlacedToken, LiquidateWalk } from './liquidate/useLiquidateWalk';
 export type { SettingsStorage, UseSettingsStoreResult } from './hooks/useSettingsStore';
 export { usePuzzle } from './hooks/usePuzzle';
 export type { UsePuzzleOptions, UsePuzzleResult } from './hooks/usePuzzle';
+export { useLesson } from './hooks/useLesson';
+export type { UseLessonOptions, UseLessonResult } from './hooks/useLesson';
