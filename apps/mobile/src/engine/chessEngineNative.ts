@@ -4,7 +4,7 @@ import {
   parseUciBestMove,
   parseUciInfoScore,
   parseUciMoveString,
-  engineMoveTimeMs,
+  chessBotConfig,
   type ChessGameState,
   type UciBestMove,
 } from '@gameexplorer/shared';
@@ -28,13 +28,14 @@ import {
  * `setoption name NNUE File value <path>` → `isready` → `readyok` = ready.
  */
 
-// Arasan's UCI_Elo range (options.h MIN_RATING/MAX_RATING).
-const ARASAN_UCI_ELO_MIN = 1000;
-const ARASAN_UCI_ELO_MAX = 3450;
-// The shared move-time formula returns ~0ms below 1400 (it was written for the
-// 1400+ engine seam). Floor it so the low tiers still get a real, if short,
-// search instead of an empty one.
-const MIN_MOVE_TIME_MS = 120;
+// How a rating becomes engine options lives in `chessBotConfig` — see
+// packages/shared/src/game-logic/chess/strength.ts for the measurements behind
+// it. Nothing here may derive bot strength on its own.
+
+// Floor for the ANALYSIS path only, where a caller asks for a number of
+// milliseconds of full-strength thinking. Bot strength is budgeted by depth and
+// never by wall clock, so this must not leak back into `getEngineBestMove`.
+const MIN_EVAL_TIME_MS = 120;
 
 type EngineControls = {
   start: () => void;
@@ -87,6 +88,24 @@ type Pending =
     };
 
 let pending: Pending | null = null;
+// The wall-clock ceiling for the in-flight search, if it has one. Cleared
+// whenever `pending` is, so a settled search never leaves a timer behind — an
+// unreferenced one keeps Jest's event loop alive and, in the app, would fire a
+// stray `stop` into whatever search came next.
+let ceilingTimer: ReturnType<typeof setTimeout> | null = null;
+// Searches the engine still owes a `bestmove` for, though nobody is waiting on
+// them any more. Arasan answers a superseded search before it reads the next
+// `go`, so without this count that stale answer would resolve whichever
+// request came next.
+let orphanedSearches = 0;
+
+function clearPending(): void {
+  pending = null;
+  if (ceilingTimer !== null) {
+    clearTimeout(ceilingTimer);
+    ceilingTimer = null;
+  }
+}
 
 /**
  * Whether the native module is linked into this binary. False in a dev client
@@ -137,6 +156,36 @@ function setReady(next: boolean): void {
 export function subscribeEngineFailed(listener: () => void): () => void {
   failedListeners.add(listener);
   return () => failedListeners.delete(listener);
+}
+
+/**
+ * Resolves once the engine has finished its handshake — at once if it already
+ * has. Rejects if this binary has no engine, if the engine goes permanently
+ * unavailable while waiting, or if it is still not ready after `timeoutMs`.
+ *
+ * For a caller that must have the real engine and would rather wait for it than
+ * settle for anything weaker: a training hint tapped in the first seconds of a
+ * game, before the network has loaded.
+ */
+export function whenEngineReady(timeoutMs: number): Promise<void> {
+  if (!isEngineAvailable()) return Promise.reject(new Error('Engine unavailable'));
+  if (ready) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const settle = (err?: Error) => {
+      clearTimeout(timer);
+      offReady();
+      offFailed();
+      if (err) reject(err);
+      else resolve();
+    };
+    const offReady = subscribeEngineReady((isReady) => {
+      if (isReady) settle();
+    });
+    const offFailed = subscribeEngineFailed(() => settle(new Error('Engine unavailable')));
+    const timer = setTimeout(() => settle(new Error('Engine not ready')), timeoutMs);
+    // Node's timers have unref and React Native's do not; see the ceiling timer.
+    (timer as { unref?: () => void }).unref?.();
+  });
 }
 
 /**
@@ -206,8 +255,10 @@ export function handleEngineOutput(output: string): void {
     }
 
     // Score lines stream during the search; keep the deepest one for whoever
-    // asked for an evaluation, and ignore them entirely for a bot move.
-    if (pending?.kind === 'eval') {
+    // asked for an evaluation, and ignore them entirely for a bot move. While a
+    // cancelled search still owes its answer, the lines are that search's, not
+    // the live request's.
+    if (pending?.kind === 'eval' && orphanedSearches === 0) {
       const info = parseUciInfoScore(line);
       if (info && info.depth >= pending.latest.depth) {
         const pvMove = info.pv[0] ? parseUciMoveString(info.pv[0]) : null;
@@ -225,16 +276,28 @@ export function handleEngineOutput(output: string): void {
     // answers "bestmove (none)", which parses to null — an evaluation still
     // resolves (the score lines are the point), a move request cannot.
     if (line.startsWith('bestmove')) {
+      // Answers owed by cancelled searches arrive first, in order, and none of
+      // them belongs to the live request. See `orphanedSearches`.
+      if (orphanedSearches > 0) {
+        orphanedSearches -= 1;
+        continue;
+      }
       const move = parseUciBestMove(line);
       const request = pending;
       if (!request) continue;
 
       if (request.kind === 'eval') {
-        pending = null;
+        clearPending();
         request.resolve({ ...request.latest, bestMove: move ?? request.latest.bestMove });
       } else if (move) {
-        pending = null;
+        clearPending();
         request.resolve(move);
+      } else {
+        // Settle it rather than leave it pending. The engine has already
+        // answered, so a later cancel would count this search as still owing
+        // an answer and swallow the next real one.
+        clearPending();
+        request.reject(new Error('Engine has no move in this position'));
       }
     }
   }
@@ -250,11 +313,18 @@ export function handleEngineError(error: string): void {
  * Rejects with an `AbortError` — the DOM convention — because this is a normal
  * outcome (the game moved on), not a failure. Callers key off `err.name` to stay
  * quiet instead of logging it as a bot crash.
+ *
+ * The engine is told to `stop` too, and the answer it still owes is discarded
+ * when it lands. Arasan finishes the old search before it reads the next `go`,
+ * so without that its move, for a position that no longer exists, would settle
+ * whichever request replaced it.
  */
 export function cancelEngineSearch(reason = 'Search cancelled'): void {
   const request = pending;
   if (!request) return;
-  pending = null;
+  clearPending();
+  orphanedSearches += 1;
+  controls?.send('stop');
   const err = new Error(reason);
   err.name = 'AbortError';
   request.reject(err);
@@ -296,17 +366,45 @@ export function getEngineBestMove(
       reject(new Error('Engine not ready'));
       return;
     }
+    // Refuse before touching the channel. A rating the ladder hands to the
+    // in-house engine must not cancel a search that is legitimately in flight,
+    // nor leave `pending` pointing at a request that has already been rejected.
+    const config = chessBotConfig(targetElo);
+    if (config.engine !== 'arasan') {
+      reject(new Error(`ELO ${targetElo} is not served by the native engine`));
+      return;
+    }
+
     // A still-pending request means the previous search was abandoned (new game
     // mid-think, or a turn effect that fired twice) — drop it, since only one
     // bestmove line can be outstanding on the single UCI channel.
     cancelEngineSearch('Superseded by a newer search');
     pending = { kind: 'move', resolve, reject };
 
-    const elo = Math.max(ARASAN_UCI_ELO_MIN, Math.min(ARASAN_UCI_ELO_MAX, targetElo));
     controls.send('setoption name UCI_LimitStrength value true');
-    controls.send(`setoption name UCI_Elo value ${elo}`);
+    controls.send(`setoption name UCI_Elo value ${config.arasanUciElo}`);
     controls.send(positionCommand(gameState, startFen));
-    controls.send(`go movetime ${Math.max(MIN_MOVE_TIME_MS, engineMoveTimeMs(targetElo))}`);
+    // Depth is the budget, never movetime. Two reasons, both measured:
+    // budgeting by wall clock hands a slow handset a weaker bot than a fast one
+    // at the same advertised rating, and Arasan sleeps away whatever time is
+    // left once it reaches its strength depth cap, so the old movetime bought
+    // almost nothing.
+    controls.send(`go depth ${config.depth}`);
+
+    // The ceiling is a separate `stop`, NOT a second limit on the `go` line.
+    // Arasan's parser takes one search type and the last limit wins, so
+    // `go depth 4 movetime 4000` is a timed search that ignores the depth
+    // entirely (measured: it ran to depth 9 and used the full budget).
+    if (config.ceilingMs != null) {
+      const token = pending;
+      ceilingTimer = setTimeout(() => {
+        if (pending === token) controls?.send('stop');
+      }, config.ceilingMs);
+      // React Native's setTimeout returns a number and has no unref; Node's
+      // does. Under Jest an abandoned search would otherwise hold the event
+      // loop open for the full ceiling and trip the "did not exit" warning.
+      (ceilingTimer as { unref?: () => void }).unref?.();
+    }
   });
 }
 
@@ -340,6 +438,6 @@ export function getEngineEvaluation(
 
     controls.send('setoption name UCI_LimitStrength value false');
     controls.send(positionCommand(gameState, startFen));
-    controls.send(`go movetime ${Math.max(MIN_MOVE_TIME_MS, movetimeMs)}`);
+    controls.send(`go movetime ${Math.max(MIN_EVAL_TIME_MS, movetimeMs)}`);
   });
 }

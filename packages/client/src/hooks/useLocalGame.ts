@@ -46,15 +46,15 @@ export interface LocalGameAdapter<S> {
   /** Sync (in-house TS engine fallback) or async (native Arasan engine). */
   getBotMove(state: S, elo: number): LocalMove | Promise<LocalMove>;
   /**
-   * Training only — the strongest move this game can find, for the hint. Kept
-   * separate from `getBotMove`, which is deliberately weakened at low ratings
-   * (chess substitutes random moves below Arasan's floor): a hint that blunders
-   * is worse than no hint, and the player paid rating for it.
+   * Training only — the best move this game can find, for the hint. Kept
+   * separate from `getBotMove`, which is deliberately weakened to a rating: a
+   * hint that blunders is worse than no hint, and the player paid rating for it.
    */
   getHintMove?(state: S, elo: number): LocalMove | Promise<LocalMove>;
   /**
-   * Strength to ask a hint at, given the bot's rating. Chess asks a little above
-   * the player (good moves, not perfect); the other two just ask for the best.
+   * Rating handed to `getHintMove`, for engines that only take one. Checkers and
+   * reversi ask for their top band, which makes no deliberate errors. Chess and
+   * Go search at full strength and ignore it.
    */
   hintElo?(botElo: number): number;
   /** Padding delay (ms) so a bot reply doesn't feel instant. */

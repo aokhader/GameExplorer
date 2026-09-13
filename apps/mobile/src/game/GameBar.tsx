@@ -44,7 +44,10 @@ export interface GameBarProps {
    * modes and the button stays the disabled "coming soon" placeholder.
    */
   onHint?: () => void;
-  /** Not the player's live turn — a hint has nothing to answer right now. */
+  /**
+   * Nothing to hint right now: not the player's live turn, or no engine strong
+   * enough to answer.
+   */
   hintDisabled?: boolean;
   /** A hint search is in flight. */
   hintPending?: boolean;

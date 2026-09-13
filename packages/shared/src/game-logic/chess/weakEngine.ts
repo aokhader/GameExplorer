@@ -371,26 +371,55 @@ export function analyzeChessPosition(state: ChessGameState, depth = 4): ChessPos
  * Calibration bands for ELO-based play.
  * Each entry: [eloLo, eloHi, depth, blunderChanceLo, blunderChanceHi, noiseLo, noiseHi]
  *
- * Depth is the main lever for ELO jumps; blunderChance and evalNoise are
- * interpolated linearly within each band for smooth in-band scaling.
+ * **These are measured, not reasoned.** The previous table was written from
+ * intuition and its comment claimed blunderChance was "the single most effective
+ * lever for very-low ELOs". Measured by `scripts/bots/match.mjs`, it is close to
+ * inert *within* a band — moving a setting from one end of a band to the other
+ * changed strength by 35 to 70 Elo. Depth does essentially all the work, so this
+ * table is really a staircase with four steps and the bands choose which step.
  *
- * Calibration rationale:
- *   depth 1 (400–750)   — one-ply look-ahead, frequent hanging pieces     ≈ 400–700 ELO
- *   depth 2 (750–1050)  — two-ply, basic tactics spotted                  ≈ 750–1050 ELO
- *   depth 3 (1050–1280) — three-ply, consistent one-movers caught         ≈ 1050–1280 ELO
- *   depth 4 (1280–1400) — four-ply, most simple tactics handled           ≈ 1280–1399 ELO
+ * Chained from a 60-game anchor (the 1200 setting scored 26-34 against Stockfish
+ * 1320, so ~1273), the steps measure:
+ *
+ * | setting | measured | vs label |
+ * |---|---|---|
+ * | 400 | ~393 | -7 |
+ * | 600 | ~561 | -39 |
+ * | 900 | ~865 | -35 |
+ * | 1200 | ~1273 | +73 |
+ * | 1399 | ~1415 | +16 |
+ *
+ * Those come from a chain of 40-game matches between adjacent settings, because
+ * nothing external reaches this low: Stockfish refuses `UCI_Elo` below 1320, and
+ * its weakest handicap, `Skill Level 0`, measured ~1418. Keep the links close
+ * together — the first attempt chained 600 against 900 and 900 against 1200,
+ * both of which saturated at under 12% and gave gap estimates that were really
+ * only lower bounds.
+ *
+ * **Why the bottom band no longer blunders on purpose.** It used to play a
+ * uniformly random legal move on 42.6% of turns at the 600 setting, which
+ * measured ~318 (against ~561 now) — not a weak player, very nearly a random one, and the source of
+ * a 20% rate of dropping a queen outright. Removing it entirely puts that setting
+ * at ~561. The ordering is the argument: depth 2 crippled by a 45% blunder rate
+ * measured ~492, *weaker* than depth 1 playing cleanly. Random moves were the
+ * wrong lever. A one-ply search hangs plenty of pieces on its own, which is what
+ * a beginner actually looks like.
+ *
+ * The 400-600 band keeps a small blunder ramp because it is the only dial that
+ * reaches below a clean depth-1 search, and the custom picker goes to 400.
  */
 const ELO_BANDS: [number, number, number, number, number, number, number][] = [
   //  lo    hi   d  blunderLo  blunderHi  noiseLo  noiseHi
-  [  400,  750,  1,   0.70,      0.22,     280,      95  ],
+  [  400,  600,  1,   0.25,      0.00,     280,     150  ],
+  [  600,  750,  1,   0.00,      0.00,     150,     110  ],
   [  750, 1050,  2,   0.18,      0.05,      90,      38  ],
   [ 1050, 1280,  3,   0.04,      0.01,      32,      12  ],
   [ 1280, 1400,  4,   0.010,     0.004,     10,       4  ],
 ];
 
-interface EloConfig { depth: number; blunderChance: number; evalNoise: number }
+export interface EloConfig { depth: number; blunderChance: number; evalNoise: number }
 
-function eloToConfig(elo: number): EloConfig {
+export function eloToConfig(elo: number): EloConfig {
   const e = Math.max(400, Math.min(1399, elo));
   for (const [lo, hi, depth, blLo, blHi, nLo, nHi] of ELO_BANDS) {
     if (e >= lo && e < hi) {
@@ -414,7 +443,25 @@ export function getBestMoveElo(
   state: ChessGameState,
   targetElo: number,
 ): WeakEngineMove {
-  const config = eloToConfig(targetElo);
+  return getBestMoveWithProfile(state, eloToConfig(targetElo));
+}
+
+/**
+ * The same move selection, driven by an explicit profile instead of a rating.
+ *
+ * Split out so strength can be *measured* rather than asserted. `ELO_BANDS`
+ * above is policy — a claim that a given rating looks like some depth and
+ * blunder rate — and it was written from intuition and never checked. Measuring
+ * it needs a way to run a profile the bands do not currently produce, which is
+ * what `scripts/bots/` uses this for.
+ *
+ * `getBestMoveElo` is unchanged in behaviour: it looks up a profile and calls
+ * straight through.
+ */
+export function getBestMoveWithProfile(
+  state: ChessGameState,
+  config: EloConfig,
+): WeakEngineMove {
   const color: Color = state.currentTurn;
   const legalMoves = ChessEngine.getAllLegalMoves(state);
 

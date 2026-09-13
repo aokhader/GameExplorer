@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
 import {
   ENGINE_MIN_ELO,
+  chessBotConfig,
   summarizeMaterial,
   timelineToSan,
   type ChessGameState,
@@ -41,11 +42,10 @@ import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
 
 
-// The same six-preset ladder as web's chess/bot page. Every tier now plays
-// through the native Arasan service (see chessAdapter / chessEngineNative); the
-// two sub-1000 tiers are weakened with random moves since Arasan's UCI_Elo
-// floor is 1000. Tiles at 1400+ only show when the engine is linked into this
-// binary (isEngineAvailable); without it, the in-house engine covers <1400.
+// The same six-preset ladder as web's chess/bot page. Which engine plays each
+// tier is decided by `chessBotConfig` in packages/shared: the three below 1400
+// run the in-house engine, the three above it run native Arasan. Tiles at 1400+
+// only show when the engine is linked into this binary (isEngineAvailable).
 const DIFFICULTY_LEVELS = [
   { elo: 600, label: 'Beginner', description: 'Hangs pieces, random-looking play', icon: '🟢' },
   { elo: 900, label: 'Novice', description: 'Spots one-move threats, misses combos', icon: '🔵' },
@@ -56,10 +56,10 @@ const DIFFICULTY_LEVELS = [
 ] as const;
 
 /**
- * Bounds for the Custom tier. The floor is where random-move weakening bottoms
- * out (see chessAdapter's blunder ramp); the ceiling matches the Master preset,
- * and drops below `ENGINE_MIN_ELO` on a build without the native engine, where
- * only the in-house TS engine is available.
+ * Bounds for the Custom tier. The floor is the bottom of the in-house engine's
+ * measured bands; the ceiling matches the Master preset, and drops below
+ * `ENGINE_MIN_ELO` on a build without the native engine, where only the
+ * in-house TS engine is available.
  */
 const CUSTOM_ELO_MIN = 400;
 const CUSTOM_ELO_MAX = 2800;
@@ -77,9 +77,9 @@ function cap(color: string): string {
 /**
  * Chess vs bot or pass-and-play — the drag/tap board flow with a promotion picker
  * and check-ring. Setup (opponent + strength + color + rated) hands off to the
- * in-game shell driven by `useLocalGame`. Every bot tier plays through the native
- * Arasan engine (sub-1000 tiers weakened with random moves), reusing the same
- * shared rating math and `saveGame` writer so results match web. Pass-and-play
+ * in-game shell driven by `useLocalGame`. Bot tiers play through the ladder in
+ * `chessBotConfig` (the in-house engine below 1400, native Arasan above),
+ * reusing the same shared rating math and `saveGame` writer so results match web. Pass-and-play
  * (M4) runs the same loop with no bot and no save — two humans alternate on one
  * device, optionally flipping the board.
  */
@@ -320,9 +320,11 @@ export function ChessScreen() {
             )}
 
             <Text style={{ color: COLORS.fgSubtle, fontSize: 11, marginBottom: 24 }}>
-              {engine.isAvailable
-                ? 'Bots are powered by the Arasan engine.'
-                : 'Stronger bots (1400+ ELO) need an updated app build.'}
+              {!engine.isAvailable
+                ? 'Stronger bots (1400+ ELO) need an updated app build.'
+                : chessBotConfig(targetElo).engine === 'arasan'
+                  ? 'This bot is powered by the Arasan chess engine.'
+                  : 'This bot is powered by our own chess engine.'}
             </Text>
           </>
         )}
@@ -719,7 +721,9 @@ export function ChessScreen() {
             onResign={game.resign}
             gameOver={!!gameOverMsg}
             onHint={isTraining ? game.requestHint : undefined}
-            hintDisabled={!yourTurn}
+            // Hints come only from Arasan, at any rating. A binary without it, or
+            // an engine that failed to start, gets no hint rather than a weaker one.
+            hintDisabled={!yourTurn || !engine.isAvailable}
             hintPending={game.isHinting}
             hintsUsed={game.hintsUsed}
             // Gated on the game being over: mid-game this is an unlimited free

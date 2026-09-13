@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ChessEngine } from './engine';
 import { createInitialGameState, setPieceAt } from './utils';
 import { isSquareUnderAttack } from './moves';
-import type { Board, ChessGameState, Color, PieceType } from '../../types/chess.types';
+import type { Board, ChessGameState, Color, PieceType, Position } from '../../types/chess.types';
 
 /** Build an otherwise-empty board with both kings (so check detection works). */
 function emptyBoardWithKings(): Board {
@@ -331,5 +331,77 @@ describe('attack detection', () => {
     expect(moves.length).toBeGreaterThan(0);
     expect(moves.every((m) => m.from === 'e1')).toBe(true);
     expect(moves.some((m) => m.to === 'e2')).toBe(false); // still on the file
+  });
+});
+
+describe('castling rights when a rook is captured', () => {
+  /**
+   * A right is lost three ways: the king moves, the rook moves, or the rook is
+   * taken where it stands. The third was missing, and while it made nothing
+   * illegal playable — `validateCastling` checks a friendly rook is really on
+   * the corner — `stateToFen` exported the stale right, producing a position no
+   * engine should be handed. The one below segfaults Arasan.
+   */
+  function stateWith(pieces: [Position, PieceType, Color][]): ChessGameState {
+    let board = emptyBoardWithKings();
+    for (const [square, type, color] of pieces) {
+      board = setPieceAt(board, square, { type, color });
+    }
+    return {
+      ...createInitialGameState(),
+      board,
+      castlingRights: {
+        whiteKingSide: true,
+        whiteQueenSide: true,
+        blackKingSide: true,
+        blackQueenSide: true,
+      },
+    };
+  }
+
+  it('revokes the black queenside right when a1-side rook on a8 is captured', () => {
+    const state = stateWith([
+      ['a8', 'rook', 'black'],
+      ['a1', 'rook', 'white'],
+    ]);
+    const after = ChessEngine.executeMove(state, 'a1', 'a8', true);
+    expect(after.castlingRights.blackQueenSide).toBe(false);
+    // White's own queenside right goes too — its rook left a1.
+    expect(after.castlingRights.whiteQueenSide).toBe(false);
+    expect(after.castlingRights.blackKingSide).toBe(true);
+  });
+
+  it('revokes the black kingside right when the h8 rook is captured', () => {
+    const state = stateWith([
+      ['h8', 'rook', 'black'],
+      ['h1', 'rook', 'white'],
+    ]);
+    const after = ChessEngine.executeMove(state, 'h1', 'h8', true);
+    expect(after.castlingRights.blackKingSide).toBe(false);
+    expect(after.castlingRights.blackQueenSide).toBe(true);
+  });
+
+  it('revokes a white right when a black piece captures on h1', () => {
+    const state = stateWith([
+      ['h1', 'rook', 'white'],
+      ['h4', 'queen', 'black'],
+    ]);
+    const after = ChessEngine.executeMove(state, 'h4', 'h1', true);
+    expect(after.castlingRights.whiteKingSide).toBe(false);
+    expect(after.castlingRights.whiteQueenSide).toBe(true);
+  });
+
+  it('leaves rights alone for a capture anywhere else', () => {
+    const state = stateWith([
+      ['d4', 'rook', 'white'],
+      ['d5', 'knight', 'black'],
+    ]);
+    const after = ChessEngine.executeMove(state, 'd4', 'd5', true);
+    expect(after.castlingRights).toEqual({
+      whiteKingSide: true,
+      whiteQueenSide: true,
+      blackKingSide: true,
+      blackQueenSide: true,
+    });
   });
 });
