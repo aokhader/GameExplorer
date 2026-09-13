@@ -89,6 +89,25 @@ export class Stockfish {
   }
 
   /**
+   * Pin the engine to a `Skill Level` (0-20) instead of a `UCI_Elo`.
+   *
+   * The two are different mechanisms and must not be mixed: `UCI_Elo` claims a
+   * rating and refuses to go below 1320, while `Skill Level` is an uncalibrated
+   * handicap that reaches further down. That makes it the only Stockfish rung
+   * available for opponents weaker than 1320 — useful as a *relative* yardstick,
+   * never as an absolute anchor, because nothing maps a skill number to a rating.
+   *
+   * Additive: nothing in the puzzle pipeline calls this.
+   */
+  async setSkill(level) {
+    await this.#ready;
+    this.#send('setoption name UCI_LimitStrength value false');
+    this.#send(`setoption name Skill Level value ${Math.max(0, Math.min(20, level))}`);
+    this.#send('isready');
+    await this.#await((l) => l.startsWith('readyok'));
+  }
+
+  /**
    * Clear the hash. Call between PUZZLES, not between moves.
    *
    * Between puzzles it is necessary: otherwise a search carries a table built

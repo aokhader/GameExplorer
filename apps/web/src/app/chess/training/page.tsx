@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
+  CHESS_HINT_SEARCH_MS,
   ChessGameState,
   Position,
   PieceType,
@@ -99,8 +100,9 @@ export default function ChessTrainingPage() {
   const [gameSaved, setGameSaved] = useState(false);
 
   // Defer Stockfish (and its ~7 MB WASM download) until the game actually
-  // starts — no need to load the engine on the rating/setup screen. Bots
-  // below STOCKFISH_MIN_ELO never need it at all (they run in the engine worker).
+  // starts — no need to load the engine on the rating/setup screen. Bots below
+  // STOCKFISH_MIN_ELO run in the engine worker instead, but hints use Stockfish
+  // at every rating.
   const stockfish = useStockfish({ enabled: gameStarted });
 
   // Tracks whether a bot MAKE_MOVE is in flight so we clear isThinking only
@@ -187,13 +189,18 @@ export default function ChessTrainingPage() {
     // Weak bots (< STOCKFISH_MIN_ELO) run in the chess-engine worker and don't
     // need Stockfish; only wait on it when the matched ELO actually uses it.
     if (botElo >= STOCKFISH_MIN_ELO && !stockfish.isReady) return;
+    // A hint search can still be running if the player moved without waiting
+    // for it. Stockfish runs one search at a time and answers the older one
+    // first, so a bot that also plays through Stockfish would receive the hint's
+    // move for a position that is gone. The bot waits for the hint instead.
+    if (isHinting) return;
     if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd) return;
     const isBotTurn = liveState.currentTurn !== playerColor;
     if (isBotTurn && !isThinking) {
       makeBotMove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, botElo, manualEnd]);
+  }, [liveState, playerColor, gameStarted, isThinking, isHinting, stockfish.isReady, engineReady, botElo, manualEnd]);
 
   // ── Save game + update rating when game ends ──────────────────────────────
 
@@ -309,12 +316,15 @@ export default function ChessTrainingPage() {
 
     setIsHinting(true);
     try {
-      // Ask the engine at player's rating + 200 (good moves, not perfect).
-      // Weak strengths run in the chess engine worker; Stockfish covers 1400+.
-      const hintElo = Math.min(3000, botElo + 200);
-      const move = hintElo < STOCKFISH_MIN_ELO
-        ? await getBotMove(hintElo)
-        : await stockfish.getBestMove(liveState, hintElo);
+      // The best move in the position, from Stockfish at full strength, whatever
+      // the player's rating: the setup copy promises the best move, and the
+      // player pays rating for it. If the engine is still loading this waits for
+      // it rather than asking anything weaker.
+      const asked = liveState;
+      const move = await stockfish.getFullStrengthMove(asked, CHESS_HINT_SEARCH_MS);
+      // The player moved while the search ran. The answer is for a position
+      // that is gone, so it is neither shown nor billed.
+      if (liveStateRef.current !== asked) return;
       if (move) {
         setHintsUsed(n => n + 1);
         setHintArrow({ from: move.from as Position, to: move.to as Position });

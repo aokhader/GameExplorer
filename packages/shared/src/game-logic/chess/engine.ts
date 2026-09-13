@@ -376,6 +376,7 @@ export class ChessEngine {
     newState.castlingRights = this.updateCastlingRights(
       newState.castlingRights,
       from,
+      to,
       piece,
     );
 
@@ -461,9 +462,30 @@ export class ChessEngine {
     return !leavesKingInCheck(gameState.board, from, to, gameState.enPassantTarget, piece.color);
   }
 
+  /**
+   * Castling rights after a move.
+   *
+   * Three ways a right is lost, and the third is easy to miss: the king moves,
+   * the rook moves, or **the rook is captured where it stands**. Only the first
+   * two were handled here, so capturing a rook on its home square left the
+   * opponent still claiming that side.
+   *
+   * Nothing illegal became playable — `validateCastling` checks a friendly rook
+   * is actually on the corner — but `stateToFen` faithfully exported the stale
+   * right, producing positions no engine should be handed. One of them
+   * (`R1bqk1nr/1ppp1p1p/2n3p1/1p2p3/1P2P3/8/1PPPKPPP/1NBQ2NR b kq -`, where a
+   * white rook stands on a8 and Black still claims queenside) segfaults Arasan
+   * outright. On mobile that is unrecoverable for the session, because the
+   * engine is a singleton that cannot be restarted.
+   *
+   * The destination check needs no "was it a capture" test. If a piece lands on
+   * a1 then either the white rook left earlier — in which case the right is
+   * already false and clearing it again is a no-op — or it has just been taken.
+   */
   private static updateCastlingRights(
     rights: ChessGameState['castlingRights'],
     from: Position,
+    to: Position,
     piece: Piece,
   ): ChessGameState['castlingRights'] {
     const newRights = { ...rights };
@@ -478,11 +500,11 @@ export class ChessEngine {
       }
     }
 
-    if (piece.type === 'rook') {
-      if (from === 'a1') newRights.whiteQueenSide = false;
-      if (from === 'h1') newRights.whiteKingSide = false;
-      if (from === 'a8') newRights.blackQueenSide = false;
-      if (from === 'h8') newRights.blackKingSide = false;
+    for (const square of [from, to]) {
+      if (square === 'a1') newRights.whiteQueenSide = false;
+      if (square === 'h1') newRights.whiteKingSide = false;
+      if (square === 'a8') newRights.blackQueenSide = false;
+      if (square === 'h8') newRights.blackKingSide = false;
     }
 
     return newRights;

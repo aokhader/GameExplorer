@@ -37,6 +37,13 @@ export function thinkTimeForElo(elo: number): number {
 
 export type StockfishMove = UciBestMove;
 
+/**
+ * How long `getFullStrengthMove` waits for the engine to load. The worker is
+ * created when a game starts and downloads ~7 MB of WASM, so a hint asked in the
+ * first seconds of a game can arrive before the engine is up.
+ */
+const ENGINE_LOAD_WAIT_MS = 30_000;
+
 export interface UseStockfishOptions {
   /**
    * When false, the Stockfish worker is not created and its ~7 MB WASM is not
@@ -51,6 +58,10 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
   const workerRef = useRef<Worker | null>(null);
   const [isReady, setIsReady] = useState(false);
   const moveResolverRef = useRef<((move: StockfishMove) => void) | null>(null);
+  // `isReady` mirrored into a ref, plus whoever is waiting for it to turn true —
+  // for a caller that would rather wait for the engine than be refused.
+  const isReadyRef = useRef(false);
+  const readyWaitersRef = useRef(new Set<() => void>());
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -72,6 +83,9 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
 
       if (message === 'uciok') {
         setIsReady(true);
+        isReadyRef.current = true;
+        readyWaitersRef.current.forEach((wake) => wake());
+        readyWaitersRef.current.clear();
         workerRef.current?.postMessage('isready');
       }
 
@@ -86,6 +100,7 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
       workerRef.current?.terminate();
       workerRef.current = null;
       moveResolverRef.current = null;
+      isReadyRef.current = false;
       setIsReady(false);
     };
   }, [enabled]);
@@ -119,5 +134,48 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
     [isReady],
   );
 
-  return { isReady, getBestMove };
+  /** Resolves once the engine is up, waiting at most `timeoutMs` for it. */
+  const whenReady = useCallback((timeoutMs: number): Promise<void> => {
+    if (isReadyRef.current) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const wake = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(() => {
+        readyWaitersRef.current.delete(wake);
+        reject(new Error('Stockfish did not load in time'));
+      }, timeoutMs);
+      readyWaitersRef.current.add(wake);
+    });
+  }, []);
+
+  /**
+   * The engine's own best move, with strength limiting switched off — for a
+   * training hint, which is the best move whatever the player's rating. If the
+   * engine is still loading this waits for it rather than refusing, so an early
+   * hint still comes from Stockfish. The option is sticky on the worker. That is
+   * safe only because `getBestMove` sends it again before every bot move.
+   */
+  const getFullStrengthMove = useCallback(
+    async (gameState: ChessGameState, movetimeMs: number): Promise<StockfishMove> => {
+      await whenReady(ENGINE_LOAD_WAIT_MS);
+      return new Promise((resolve, reject) => {
+        const worker = workerRef.current;
+        if (!worker) {
+          reject(new Error('Stockfish is not running'));
+          return;
+        }
+
+        moveResolverRef.current = resolve;
+
+        worker.postMessage('setoption name UCI_LimitStrength value false');
+        worker.postMessage(buildUciPositionCommand(gameState.moveHistory));
+        worker.postMessage(`go movetime ${movetimeMs}`);
+      });
+    },
+    [whenReady],
+  );
+
+  return { isReady, getBestMove, getFullStrengthMove };
 }
