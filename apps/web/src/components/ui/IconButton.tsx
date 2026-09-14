@@ -24,7 +24,10 @@ const SIZES: Record<IconButtonSize, string> = {
   lg: 'h-11 w-11 rounded-lg', // 44px touch target
 };
 
-/** Square, icon-only button with an enforced accessible label. */
+/**
+ * Square, icon-only button with an enforced accessible label. Shares `Button`'s
+ * press and colour motion (motion-spec.md §5.1), without its hover lift.
+ */
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
   { variant = 'ghost', size = 'md', className, children, type = 'button', ...props },
   ref,
@@ -34,7 +37,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
       ref={ref}
       type={type}
       className={cn(
-        'inline-flex items-center justify-center transition-colors duration-150',
+        'inline-flex items-center justify-center motion-control motion-safe:active:scale-[0.98]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
         'disabled:opacity-50 disabled:pointer-events-none',
         SIZES[size],

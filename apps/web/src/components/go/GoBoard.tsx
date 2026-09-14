@@ -363,13 +363,13 @@ export const GoBoard = React.memo(function GoBoard({
               <React.Fragment key={`coord-${i}`}>
                 {/* Files along the bottom margin, ranks up the left one. */}
                 <span
-                  className="absolute -translate-x-1/2 text-[10px] font-semibold leading-none"
+                  className="absolute -translate-x-1/2 text-2xs font-semibold leading-none"
                   style={{ left: `${at(i)}%`, bottom: '1%', color: WOOD.coordinate }}
                 >
                   {LETTERS[i]}
                 </span>
                 <span
-                  className="absolute -translate-y-1/2 text-[10px] font-semibold leading-none"
+                  className="absolute -translate-y-1/2 text-2xs font-semibold leading-none"
                   style={{ top: `${at(size - 1 - i)}%`, left: '1%', color: WOOD.coordinate }}
                 >
                   {i + 1}

@@ -1,6 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { Pressable, View } from 'react-native';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { useGameSfx } from '@/audio/useGameSfx.native';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import type { GameAccent } from '@/game/GameScreenLayout';
 
 export interface PuzzleBarProps {
@@ -25,7 +26,7 @@ export interface PuzzleBarProps {
 /**
  * The pinned control bar for a puzzle run.
  *
- * Built as a trimmed `GameBar` rather than its own thing: same glyph buttons,
+ * Built as a trimmed `GameBar` rather than its own thing: same icon buttons,
  * same hairline splitting actions from history, same two-thirds/one-third feel,
  * so a player moving between a game and a puzzle finds the controls where they
  * left them. What is missing is what a puzzle has no use for — resign, agree a
@@ -34,8 +35,8 @@ export interface PuzzleBarProps {
  *
  * The history controls earn their place here for a reason they don't have in a
  * game: after a wrong move the board runs on to show the opponent's refutation,
- * and ◀ is how the player gets back to the position they misplayed to compare
- * the two.
+ * and "previous" is how the player gets back to the position they misplayed to
+ * compare the two.
  */
 export function PuzzleBar({
   accent,
@@ -67,7 +68,7 @@ export function PuzzleBar({
       style={{
         flexDirection: 'row',
         alignItems: 'stretch',
-        gap: 4,
+        gap: SPACING[1],
         paddingHorizontal: 8,
         paddingVertical: 8,
         borderTopWidth: 1,
@@ -76,7 +77,7 @@ export function PuzzleBar({
       }}
     >
       <BarButton
-        glyph="💡"
+        icon="lightbulb"
         label="Hint"
         hint="Shows the move you are looking for — a hinted solve does not extend your streak"
         onPress={onHint}
@@ -84,7 +85,7 @@ export function PuzzleBar({
         accent={accent}
       />
       <BarButton
-        glyph="↺"
+        icon="arrow-counter-clockwise"
         label={wrong ? 'Try again' : 'Retry'}
         hint="Put the pieces back and start the line over"
         onPress={onRetry}
@@ -93,7 +94,7 @@ export function PuzzleBar({
         accent={accent}
       />
       <BarButton
-        glyph="⏭"
+        icon="skip-forward"
         label="Next puzzle"
         hint="Skip to another puzzle"
         onPress={onNext}
@@ -106,14 +107,14 @@ export function PuzzleBar({
       <View style={{ width: 1, marginVertical: 6, backgroundColor: COLORS.border }} />
 
       <BarButton
-        glyph="◀"
+        icon="caret-left"
         label="Previous position"
         onPress={() => seek(viewIndex - 1)}
         disabled={viewIndex <= 0}
         accent={accent}
       />
       <BarButton
-        glyph="▶"
+        icon="caret-right"
         label="Next position"
         onPress={() => seek(viewIndex + 1)}
         disabled={viewIndex >= last}
@@ -124,7 +125,7 @@ export function PuzzleBar({
 }
 
 function BarButton({
-  glyph,
+  icon,
   label,
   hint,
   onPress,
@@ -132,7 +133,7 @@ function BarButton({
   primary = false,
   accent,
 }: {
-  glyph: string;
+  icon: IconName;
   label: string;
   hint?: string;
   onPress: () => void;
@@ -145,16 +146,15 @@ function BarButton({
   useThemeName();
 
   // The selected-tile treatment the setup screens use: accent border, accent
-  // glyph, accent *tint* behind it. Not a solid accent fill — `COLORS.onAccent`
+  // icon, accent *tint* behind it. Not a solid accent fill — `COLORS.onAccent`
   // is the ink for the brand gold/forest fill only, and it is near-black in one
   // theme, so painting it on a per-game accent (chess is blue) would be
   // unreadable in exactly one of the two themes and fine in the other.
   const { base: accentColor, tintBg } = GAME_ACCENTS[accent];
 
   // `style` stays a plain object and the pressed state is read from the children
-  // function: a function-form `style` is silently dropped on this app's
-  // Pressable (NativeWind wraps it), which shows up as buttons with no
-  // background and no width. Same reasoning as `GameBar`'s BarButton.
+  // function — the way every control in this app is written. Same pattern as
+  // `GameBar`'s BarButton.
   return (
     <Pressable
       onPress={onPress}
@@ -170,7 +170,7 @@ function BarButton({
           style={{
             flex: 1,
             minHeight: 46,
-            borderRadius: 12,
+            borderRadius: RADIUS.xl,
             borderWidth: primary ? 2 : 1,
             borderColor: primary ? accentColor : COLORS.border,
             backgroundColor: primary
@@ -183,7 +183,7 @@ function BarButton({
             opacity: disabled ? 0.35 : pressed ? 0.8 : 1,
           }}
         >
-          <Text style={{ color: primary ? accentColor : COLORS.fg, fontSize: 16 }}>{glyph}</Text>
+          <Icon name={icon} size={FONT_SIZES.xl} color={primary ? accentColor : COLORS.fg} />
         </View>
       )}
     </Pressable>

@@ -5,10 +5,18 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
 import type { FloatingReaction } from './useEmotes';
+import { easing, timing } from '@/theme/motion';
+
+/**
+ * How long a reaction takes to rise. Choreography rather than a MOTION duration:
+ * the bubble has to stay readable for its whole lift, which no chrome tempo is
+ * built for (project-docs/design/motion-spec.md §8).
+ */
+const EMOTE_FLOAT_MS = 2800;
 
 export interface EmoteOverlayProps {
   reactions: FloatingReaction[];
@@ -32,7 +40,7 @@ export function EmoteOverlay({ reactions }: EmoteOverlayProps) {
         position: 'absolute',
         right: 12,
         bottom: 96,
-        gap: 8,
+        gap: SPACING[2],
         alignItems: 'flex-end',
       }}
     >
@@ -55,11 +63,11 @@ function Bubble({ reaction }: { reaction: FloatingReaction }) {
     if (reducedMotion) {
       // Still fade — an emoji that pops in and vanishes with no transition
       // reads as a glitch — but skip the travel.
-      opacity.value = withTiming(1, { duration: 150 });
+      opacity.value = withTiming(1, timing('fast', 'out'));
       return;
     }
-    opacity.value = withTiming(1, { duration: 180 });
-    lift.value = withTiming(-24, { duration: 2800 });
+    opacity.value = withTiming(1, timing('fast', 'out'));
+    lift.value = withTiming(-24, { duration: EMOTE_FLOAT_MS, easing: easing('standard') });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reducedMotion]);
 
@@ -76,22 +84,22 @@ function Bubble({ reaction }: { reaction: FloatingReaction }) {
         {
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
+          gap: SPACING[2],
           alignSelf: reaction.mine ? 'flex-end' : 'flex-start',
         },
         style,
       ]}
     >
-      <Text style={{ fontSize: 34 }}>{reaction.emote}</Text>
+      <Text style={{ fontSize: FONT_SIZES['4xl'] }}>{reaction.emote}</Text>
       <Text
         style={{
           color: COLORS.fgMuted,
           fontFamily: FONTS.body,
-          fontSize: 11,
+          fontSize: FONT_SIZES.caption,
           backgroundColor: COLORS.surfaceAlt,
           borderWidth: 1,
           borderColor: COLORS.border,
-          borderRadius: 8,
+          borderRadius: RADIUS.lg,
           paddingHorizontal: 6,
           paddingVertical: 2,
           overflow: 'hidden',

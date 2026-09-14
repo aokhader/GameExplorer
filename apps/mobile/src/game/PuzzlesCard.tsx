@@ -3,9 +3,10 @@ import { Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { solvedCount, staticPuzzleSource } from '@gameexplorer/shared';
 import type { PuzzleGame } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { mobilePuzzleProgressStore } from '@/lib/puzzleProgress';
 import { FONTS } from '@/theme/typography';
+import { Icon } from '@/components/ui/Icon';
 
 interface Summary {
   solved: number;
@@ -58,31 +59,31 @@ export function PuzzlesCard({ game }: PuzzlesCardProps) {
   return (
     <View
       style={{
-        borderRadius: 14,
+        borderRadius: RADIUS['2xl'],
         borderWidth: 1,
         borderColor: COLORS.border,
         backgroundColor: COLORS.surfaceAlt,
         padding: 16,
         marginBottom: 24,
-        gap: 10,
+        gap: SPACING['2.5'],
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, flex: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
+        <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, flex: 1 }}>
           Puzzle set
         </Text>
         {summary && (
           <Text
             testID="puzzles-card-progress"
             accessibilityLabel={`${summary.solved} of ${summary.total} solved`}
-            style={{ color: accent.base, fontFamily: FONTS.bodyBold, fontSize: 13 }}
+            style={{ color: accent.base, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.label }}
           >
             {summary.solved} / {summary.total}
           </Text>
         )}
       </View>
 
-      <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 12, lineHeight: 18 }}>
+      <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, lineHeight: 18 }}>
         {done
           ? 'You have solved every one of these. Start the set again from the puzzle screen.'
           : 'Set positions with one right answer. Play the line out to the end — a wrong move shows you what your opponent does about it.'}
@@ -96,7 +97,7 @@ export function PuzzlesCard({ game }: PuzzlesCardProps) {
           importantForAccessibility="no-hide-descendants"
           style={{
             height: 6,
-            borderRadius: 3,
+            borderRadius: RADIUS.full,
             overflow: 'hidden',
             backgroundColor: COLORS.surfaceMuted,
           }}
@@ -112,9 +113,12 @@ export function PuzzlesCard({ game }: PuzzlesCardProps) {
       )}
 
       {summary && summary.streak > 0 && (
-        <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: 12 }}>
-          {`🔥 ${summary.streak} clean in a row`}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[1] }}>
+          <Icon name="fire" size={FONT_SIZES.sm} color={COLORS.warningHover} />
+          <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs }}>
+            {`${summary.streak} clean in a row`}
+          </Text>
+        </View>
       )}
     </View>
   );

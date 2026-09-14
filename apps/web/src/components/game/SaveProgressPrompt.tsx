@@ -76,7 +76,7 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
           consume();
           setPending(false);
         }}
-        className="mt-4 text-[13.5px] text-fg-muted hover:text-fg transition-colors"
+        className="mt-4 text-sm text-fg-muted hover:text-fg transition-colors"
       >
         Maybe later — <span className="font-semibold">keep playing as guest</span>
       </button>

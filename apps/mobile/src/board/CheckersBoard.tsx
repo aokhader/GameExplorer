@@ -9,7 +9,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import {
-  BOARD_ANIM_MS,
   CHECKERS_DIFF,
   CheckersEngine,
   getCheckersPremoveDestinations,
@@ -33,12 +32,23 @@ import {
   CHECKERS_BOARD_COLORS,
   COLORS,
   SHADOWS_NATIVE,
+  FONT_SIZES,
+  RADIUS,
 } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
+import { timing } from '@/theme/motion';
+
+// Board motion from MOTION — the same five configs as ChessBoard, for the same
+// reasons (see the note there and project-docs/design/motion-spec.md §5.12).
+const TRAVEL = timing('base', 'move');
+const CAPTURE_FADE = timing('base', 'linear');
+const LAND_POP = timing('micro', 'standard');
+const DRAG_LIFT = timing('micro', 'out');
+const DRAG_DROP = timing('micro', 'standard');
 
 interface CheckersBoardProps {
   gameState: CheckersGameState;
@@ -144,8 +154,8 @@ function BoardPiece({
 
   useEffect(() => {
     if (!offset || reduceMotion) return;
-    tx.value = withTiming(0, { duration: BOARD_ANIM_MS });
-    ty.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    tx.value = withTiming(0, TRAVEL);
+    ty.value = withTiming(0, TRAVEL);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -153,8 +163,8 @@ function BoardPiece({
     if (pop && !reduceMotion && !offset) {
       scale.value = 0.75;
       scale.value = withSequence(
-        withTiming(1.1, { duration: 130 }),
-        withTiming(1, { duration: 120 }),
+        withTiming(1.1, LAND_POP),
+        withTiming(1, LAND_POP),
       );
     }
     // Only re-run when the pop trigger flips on.
@@ -208,7 +218,7 @@ function FadingPiece({
   const opacity = useSharedValue(reduceMotion ? 0 : 1);
 
   useEffect(() => {
-    if (!reduceMotion) opacity.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    if (!reduceMotion) opacity.value = withTiming(0, CAPTURE_FADE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -484,7 +494,7 @@ function CheckersBoardInner({
       setDrag(pos);
       // Deliberately silent — see the matching note in ChessBoard.
       selectSquare(pos);
-      if (!reducedMotion) dragScale.value = withTiming(1.1, { duration: 90 });
+      if (!reducedMotion) dragScale.value = withTiming(1.1, DRAG_LIFT);
     }
   };
 
@@ -547,7 +557,7 @@ function CheckersBoardInner({
         'worklet';
         dragTX.value = 0;
         dragTY.value = 0;
-        dragScale.value = withTiming(1, { duration: 110 });
+        dragScale.value = withTiming(1, DRAG_DROP);
       });
 
     // A motionless touch → Tap wins; movement past 8px → Pan activates and wins.
@@ -642,7 +652,7 @@ function CheckersBoardInner({
                       position: 'absolute',
                       top: 2,
                       left: 3,
-                      fontSize: 9,
+                      fontSize: FONT_SIZES['3xs'],
                       fontFamily: FONTS.bodyBold,
                       color: labelColor,
                       opacity: 0.75,
@@ -657,7 +667,7 @@ function CheckersBoardInner({
                       position: 'absolute',
                       bottom: 2,
                       right: 3,
-                      fontSize: 9,
+                      fontSize: FONT_SIZES['3xs'],
                       fontFamily: FONTS.bodyBold,
                       color: labelColor,
                       opacity: 0.75,
@@ -799,7 +809,7 @@ function CheckersBoardInner({
                 {
                   width: size,
                   height: size,
-                  borderRadius: 10,
+                  borderRadius: RADIUS.xl,
                   overflow: 'hidden',
                   borderWidth: 2,
                   borderColor: COLORS.borderStrong,

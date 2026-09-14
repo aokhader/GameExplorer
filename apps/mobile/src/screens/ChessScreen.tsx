@@ -9,8 +9,9 @@ import {
   timelineToSan,
   type ChessGameState,
 } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, ChessPiece, useThemeName } from '@gameexplorer/ui';
-import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
+import { COLORS, GAME_ACCENTS, ChessPiece, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { Screen, BackHeader, Button, GlowBackdrop, Icon, Toggle } from '@/components/ui';
+import { DifficultyMeter } from '@/game/DifficultyMeter';
 import { ChessBoard } from '@/board/ChessBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
@@ -47,12 +48,12 @@ import { FONTS } from '@/theme/typography';
 // run the in-house engine, the three above it run native Arasan. Tiles at 1400+
 // only show when the engine is linked into this binary (isEngineAvailable).
 const DIFFICULTY_LEVELS = [
-  { elo: 600, label: 'Beginner', description: 'Hangs pieces, random-looking play', icon: '🟢' },
-  { elo: 900, label: 'Novice', description: 'Spots one-move threats, misses combos', icon: '🔵' },
-  { elo: 1200, label: 'Club', description: 'Consistent, beatable with tactics', icon: '🟡' },
-  { elo: 1500, label: 'Intermediate', description: 'Strong tactically, rarely blunders', icon: '🟠' },
-  { elo: 2000, label: 'Advanced', description: 'Finds deep combinations reliably', icon: '🔴' },
-  { elo: 2800, label: 'Master', description: 'Elite — extremely strong', icon: '🟣' },
+  { elo: 600, label: 'Beginner', description: 'Hangs pieces, random-looking play' },
+  { elo: 900, label: 'Novice', description: 'Spots one-move threats, misses combos' },
+  { elo: 1200, label: 'Club', description: 'Consistent, beatable with tactics' },
+  { elo: 1500, label: 'Intermediate', description: 'Strong tactically, rarely blunders' },
+  { elo: 2000, label: 'Advanced', description: 'Finds deep combinations reliably' },
+  { elo: 2800, label: 'Master', description: 'Elite — extremely strong' },
 ] as const;
 
 /**
@@ -245,12 +246,15 @@ export function ChessScreen() {
 
         {isBotSetup && (
           <>
-            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
               Bot strength
             </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING['2.5'], marginBottom: 10 }}>
               {levels.map((level) => {
                 const selected = !isCustomTier && targetElo === level.elo;
+                // Rank on the full ladder, not in `levels`: the Arasan tiers hide
+                // when the engine is absent, and Beginner is still one bar either way.
+                const rank = DIFFICULTY_LEVELS.findIndex((l) => l.elo === level.elo) + 1;
                 return (
                   <Pressable
                     key={level.elo}
@@ -264,18 +268,22 @@ export function ChessScreen() {
                     style={{
                       flexGrow: 1,
                       flexBasis: '47%',
-                      borderRadius: 14,
+                      borderRadius: RADIUS['2xl'],
                       borderWidth: 2,
                       padding: 12,
                       backgroundColor: selected ? GAME_ACCENTS.chess.tintBg : COLORS.surfaceAlt,
                       borderColor: selected ? GAME_ACCENTS.chess.base : COLORS.border,
                     }}
                   >
-                    <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
+                    <DifficultyMeter
+                      level={rank}
+                      of={DIFFICULTY_LEVELS.length}
+                      color={selected ? GAME_ACCENTS.chess.base : COLORS.fgMuted}
+                    />
+                    <Text style={{ color: selected ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>
                       {level.label} · {level.elo}
                     </Text>
-                    <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.caption, marginTop: 2 }}>
                       {level.description}
                     </Text>
                   </Pressable>
@@ -291,18 +299,23 @@ export function ChessScreen() {
                 style={{
                   flexGrow: 1,
                   flexBasis: '47%',
-                  borderRadius: 14,
+                  borderRadius: RADIUS['2xl'],
                   borderWidth: 2,
                   padding: 12,
                   backgroundColor: isCustomTier ? GAME_ACCENTS.chess.tintBg : COLORS.surfaceAlt,
                   borderColor: isCustomTier ? GAME_ACCENTS.chess.base : COLORS.border,
                 }}
               >
-                <Text style={{ fontSize: 20, marginBottom: 4 }}>🎚️</Text>
-                <Text style={{ color: isCustomTier ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
+                <Icon
+                  name="sliders-horizontal"
+                  size={FONT_SIZES.xl}
+                  color={isCustomTier ? GAME_ACCENTS.chess.base : COLORS.fgMuted}
+                  style={{ marginBottom: 2 }}
+                />
+                <Text style={{ color: isCustomTier ? GAME_ACCENTS.chess.base : COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>
                   Custom{isCustomTier ? ` · ${targetElo}` : ''}
                 </Text>
-                <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
+                <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.caption, marginTop: 2 }}>
                   {`Any rating from ${CUSTOM_ELO_MIN} to ${maxElo}`}
                 </Text>
               </Pressable>
@@ -319,7 +332,7 @@ export function ChessScreen() {
               />
             )}
 
-            <Text style={{ color: COLORS.fgSubtle, fontSize: 11, marginBottom: 24 }}>
+            <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.caption, marginBottom: 24 }}>
               {!engine.isAvailable
                 ? 'Stronger bots (1400+ ELO) need an updated app build.'
                 : chessBotConfig(targetElo).engine === 'arasan'
@@ -333,10 +346,10 @@ export function ChessScreen() {
             bot's strength. */}
         {picksColor && (
           <>
-            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
               Your color
             </Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', gap: SPACING[3], marginBottom: 24 }}>
               {(['white', 'black'] as const).map((color) => {
                 const selected = playerColor === color;
                 return (
@@ -348,7 +361,7 @@ export function ChessScreen() {
                     accessibilityState={{ selected }}
                     style={{
                       flex: 1,
-                      borderRadius: 14,
+                      borderRadius: RADIUS['2xl'],
                       borderWidth: 2,
                       padding: 16,
                       alignItems: 'center',
@@ -362,14 +375,14 @@ export function ChessScreen() {
                     <Text
                       style={{
                         color: selected ? GAME_ACCENTS.chess.base : COLORS.fg,
-                        fontSize: 15,
+                        fontSize: FONT_SIZES.body,
                         fontFamily: FONTS.bodyBold,
                         textTransform: 'capitalize',
                       }}
                     >
                       {color}
                     </Text>
-                    <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
                       {color === 'white' ? 'You move first' : 'Bot moves first'}
                     </Text>
                   </Pressable>
@@ -388,8 +401,8 @@ export function ChessScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
-              borderRadius: 14,
+              gap: SPACING[3],
+              borderRadius: RADIUS['2xl'],
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: COLORS.surfaceAlt,
@@ -398,8 +411,8 @@ export function ChessScreen() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
-              <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>Rated</Text>
+              <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
                 {!userId
                   ? 'Sign in to play rated games'
                   : !online
@@ -461,9 +474,9 @@ export function ChessScreen() {
     gameOverMsg = 'Draw by agreement';
   } else if (liveState.isCheckmate) {
     gameOverMsg = isPassAndPlay
-      ? `Checkmate — ${cap(winner!)} wins! 🎉`
+      ? `Checkmate — ${cap(winner!)} wins!`
       : winner === playerColor
-        ? 'Checkmate! You win 🎉'
+        ? 'Checkmate! You win'
         : 'Checkmate — bot wins';
   } else if (liveState.isStalemate) {
     gameOverMsg = 'Draw — stalemate';
@@ -673,7 +686,7 @@ export function ChessScreen() {
             {/* Info card */}
             <View
               style={{
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.border,
                 backgroundColor: COLORS.surfaceAlt,
@@ -775,9 +788,9 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
   useThemeName();
 
   return (
-    <View style={{ flexDirection: 'row', gap: 6, width: '50%', paddingVertical: 2 }}>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}:</Text>
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold, textTransform: capitalize ? 'capitalize' : 'none' }}>
+    <View style={{ flexDirection: 'row', gap: SPACING['1.5'], width: '50%', paddingVertical: 2 }}>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label }}>{label}:</Text>
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold, textTransform: capitalize ? 'capitalize' : 'none' }}>
         {value}
       </Text>
     </View>

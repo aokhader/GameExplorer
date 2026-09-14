@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 /**
@@ -30,7 +30,7 @@ export function ViewHeader({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: SPACING[3],
         paddingHorizontal: 18,
         paddingTop: 8,
         paddingBottom: 14,
@@ -44,7 +44,7 @@ export function ViewHeader({
         style={{
           width: 38,
           height: 38,
-          borderRadius: 12,
+          borderRadius: RADIUS.xl,
           borderWidth: 1,
           borderColor: P.line,
           backgroundColor: P.panel,
@@ -52,17 +52,17 @@ export function ViewHeader({
           justifyContent: 'center',
         }}
       >
-        <Text style={{ fontSize: 18, lineHeight: 22, color: P.ink }}>‹</Text>
+        <Text style={{ fontSize: FONT_SIZES.lg, lineHeight: 22, color: P.ink }}>‹</Text>
       </Pressable>
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontFamily: FONTS.display, fontSize: 16, color: P.ink }}>
+        <Text numberOfLines={1} style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.base, color: P.ink }}>
           {title}
         </Text>
         {sub && (
           <Text
             numberOfLines={1}
-            style={{ fontFamily: FONTS.bodySemi, fontSize: 10.5, color: P.soft, marginTop: 1 }}
+            style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.caption, color: P.soft, marginTop: 1 }}
           >
             {sub}
           </Text>
@@ -81,7 +81,7 @@ export function ViewSection({ children }: { children: string }) {
     <Text
       style={{
         fontFamily: FONTS.bodyBold,
-        fontSize: 10,
+        fontSize: FONT_SIZES['2xs'],
         letterSpacing: 1,
         color: LIQUIDATE_PANEL_COLORS.dim,
         marginHorizontal: 2,
@@ -103,8 +103,8 @@ export function ViewActionBar({ children }: { children: ReactNode }) {
         backgroundColor: P.panel2,
         borderTopWidth: 1,
         borderTopColor: P.line,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: RADIUS['3xl'],
+        borderTopRightRadius: RADIUS['3xl'],
         paddingHorizontal: 18,
         paddingTop: 14,
         paddingBottom: 22,
@@ -146,14 +146,14 @@ export function AccentButton({
         <View
           style={{
             paddingVertical: 14,
-            borderRadius: 14,
+            borderRadius: RADIUS['2xl'],
             alignItems: 'center',
             backgroundColor: P.accent,
             opacity: disabled ? 0.4 : pressed ? 0.85 : 1,
             boxShadow: disabled ? undefined : '0 8px 22px rgba(231,182,78,0.32)',
           }}
         >
-          <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 15, color: P.accentInk }}>
+          <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.body, color: P.accentInk }}>
             {label}
           </Text>
         </View>
@@ -195,14 +195,14 @@ export function GhostButton({
         <View
           style={{
             paddingVertical: 12,
-            borderRadius: 14,
+            borderRadius: RADIUS['2xl'],
             alignItems: 'center',
             borderWidth: 1,
             borderColor: danger ? 'rgba(239,95,107,0.4)' : P.line,
             opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
           }}
         >
-          <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 13, color: tint }}>{label}</Text>
+          <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.label, color: tint }}>{label}</Text>
         </View>
       )}
     </Pressable>

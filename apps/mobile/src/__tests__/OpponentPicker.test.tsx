@@ -3,6 +3,10 @@ import { GAME_ACCENTS } from '@gameexplorer/ui';
 import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 
+// Renders shared primitives, which animate with reanimated.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').mockReanimated());
+
 const accent = GAME_ACCENTS.chess.base;
 const tint = GAME_ACCENTS.chess.tintBg;
 

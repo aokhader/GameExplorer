@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
+import { Icon } from '@/components/ui/Icon';
 
 export interface ClockProps {
   ms: number;
@@ -36,10 +37,10 @@ export function Clock({ ms, active, format, lowClockMs }: ClockProps) {
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: SPACING[1],
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: 10,
+        borderRadius: RADIUS.xl,
         borderWidth: 1,
         borderColor: danger ? COLORS.danger : active ? COLORS.accent : COLORS.border,
         backgroundColor: danger
@@ -49,15 +50,15 @@ export function Clock({ ms, active, format, lowClockMs }: ClockProps) {
             : COLORS.surfaceMuted,
       }}
     >
-      {danger && <Text style={{ fontSize: 12 }}>⏰</Text>}
+      {danger && <Icon name="alarm" size={FONT_SIZES.base} color={COLORS.dangerHover} />}
       <Text
-        // The glyph above already carries the meaning for sighted users, and
+        // The icon above already carries the meaning for sighted users, and
         // the label on the wrapper carries it for everyone else.
         importantForAccessibility="no"
         style={{
           color: danger ? COLORS.dangerHover : active ? COLORS.accentHover : COLORS.fgMuted,
           fontFamily: FONTS.displaySemi,
-          fontSize: 18,
+          fontSize: FONT_SIZES.lg,
           // Keeps the digits from dancing as they count down.
           fontVariant: ['tabular-nums'],
         }}

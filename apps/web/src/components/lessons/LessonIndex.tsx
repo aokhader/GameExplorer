@@ -48,7 +48,7 @@ export function LessonIndex({ game }: { game: TutorialGame }) {
                   <LessonDoneBadge lessonId={lesson.id} />
                 </span>
                 <span className="mt-1 block text-sm text-fg-muted">{lesson.summary}</span>
-                <span className="mt-2 block text-[11px] text-fg-subtle">
+                <span className="mt-2 block text-caption text-fg-subtle">
                   {lesson.steps.length} steps · about {lesson.estimatedMinutes} min
                 </span>
               </span>

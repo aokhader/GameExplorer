@@ -12,7 +12,7 @@ import {
   type LiquidateGameState,
   type PrimaryAction,
 } from '@gameexplorer/shared';
-import { LIQUIDATE_DECK_STYLE, LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_DECK_STYLE, LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { tileAccent } from './lqTheme';
 import type { LqView } from './views/types';
@@ -120,8 +120,8 @@ export function HomeSheet({
         backgroundColor: P.panel2,
         borderTopWidth: 1,
         borderTopColor: P.line,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: RADIUS['3xl'],
+        borderTopRightRadius: RADIUS['3xl'],
         paddingHorizontal: 18,
         paddingTop: 11,
         paddingBottom: 22,
@@ -136,7 +136,7 @@ export function HomeSheet({
           alignSelf: 'center',
           width: 38,
           height: 4,
-          borderRadius: 2,
+          borderRadius: RADIUS.full,
           backgroundColor: P.line,
           marginBottom: 10,
         }}
@@ -156,16 +156,16 @@ export function HomeSheet({
           <CardBanner text={cardDraw.text} deck={cardDraw.deck} />
         ) : hideCard ? (
           <View style={{ flex: 1, justifyContent: 'center' }}>
-            <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 13, color: P.dim }}>Moving…</Text>
+            <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.label, color: P.dim }}>Moving…</Text>
           </View>
         ) : (
           <>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: SPACING[3] }}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text
                 style={{
                   fontFamily: FONTS.bodyBold,
-                  fontSize: 9,
+                  fontSize: FONT_SIZES['3xs'],
                   lineHeight: 12,
                   letterSpacing: 0.9,
                   color: P.accent,
@@ -177,7 +177,7 @@ export function HomeSheet({
                 numberOfLines={1}
                 style={{
                   fontFamily: FONTS.display,
-                  fontSize: 26,
+                  fontSize: FONT_SIZES.display,
                   // The design sets 26px/1 — the name is the sheet's tallest
                   // line, so its leading is where slack shows up first.
                   lineHeight: 26,
@@ -194,7 +194,7 @@ export function HomeSheet({
                 <Text
                   style={{
                     fontFamily: FONTS.bodySemi,
-                    fontSize: 9,
+                    fontSize: FONT_SIZES['3xs'],
                     lineHeight: 12,
                     letterSpacing: 0.5,
                     color: P.dim,
@@ -205,7 +205,7 @@ export function HomeSheet({
                 <Text
                   style={{
                     fontFamily: FONTS.display,
-                    fontSize: 24,
+                    fontSize: FONT_SIZES['2xl'],
                     lineHeight: 28,
                     color: P.ink,
                   }}
@@ -224,13 +224,13 @@ export function HomeSheet({
               tile is a separate fact and gets the other end of the row.
             */}
             <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 7 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['1.5'], marginTop: 7 }}
             >
               <View
-                style={{ width: 11, height: 11, borderRadius: 4, backgroundColor: accent }}
+                style={{ width: 11, height: 11, borderRadius: RADIUS.sm, backgroundColor: accent }}
               />
               <Text
-                style={{ fontFamily: FONTS.bodyBold, fontSize: 11, lineHeight: 14, color: P.ink }}
+                style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.caption, lineHeight: 14, color: P.ink }}
               >
                 {data.groupLabel || groupLabel(tile)}
               </Text>
@@ -253,7 +253,7 @@ export function HomeSheet({
                     flexShrink: 1,
                     textAlign: 'right',
                     fontFamily: FONTS.bodySemi,
-                    fontSize: 11,
+                    fontSize: FONT_SIZES.caption,
                     lineHeight: 14,
                     color: P.dim,
                   }}
@@ -298,10 +298,10 @@ export function HomeSheet({
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 8,
+              gap: SPACING[2],
               paddingHorizontal: 14,
               height: CTA_HEIGHT,
-              borderRadius: 15,
+              borderRadius: RADIUS['2xl'],
               backgroundColor: cta.tone === 'danger' ? P.danger : P.accent,
               boxShadow: cta.tone === 'danger' ? undefined : '0 8px 22px rgba(231,182,78,0.32)',
             }}
@@ -313,7 +313,7 @@ export function HomeSheet({
                     numberOfLines={1}
                     style={{
                       fontFamily: FONTS.bodyBold,
-                      fontSize: 15,
+                      fontSize: FONT_SIZES.body,
                       lineHeight: 16,
                       color: cta.tone === 'danger' ? '#fff' : P.accentInk,
                     }}
@@ -324,7 +324,7 @@ export function HomeSheet({
                     numberOfLines={1}
                     style={{
                       fontFamily: FONTS.bodySemi,
-                      fontSize: 10,
+                      fontSize: FONT_SIZES['2xs'],
                       lineHeight: 12,
                       marginTop: 2,
                       opacity: 0.72,
@@ -338,7 +338,7 @@ export function HomeSheet({
                   <Text
                     style={{
                       fontFamily: FONTS.display,
-                      fontSize: 16,
+                      fontSize: FONT_SIZES.base,
                       color: cta.tone === 'danger' ? '#fff' : P.accentInk,
                     }}
                   >
@@ -356,14 +356,14 @@ export function HomeSheet({
             accessibilityLiveRegion="polite"
             style={{
               height: CTA_HEIGHT,
-              borderRadius: 15,
+              borderRadius: RADIUS['2xl'],
               borderWidth: 1,
               borderColor: P.line,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 13, color: P.dim }}>
+            <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.label, color: P.dim }}>
               {waitingFor ?? 'Waiting…'}
             </Text>
           </View>
@@ -371,7 +371,7 @@ export function HomeSheet({
       </View>
 
       {/* The four shortcuts */}
-      <View style={{ flexDirection: 'row', gap: 9, marginTop: 9 }}>
+      <View style={{ flexDirection: 'row', gap: SPACING['2.5'], marginTop: 9 }}>
         {dock.map((slot) => {
           const meta = DOCK_META[slot.id];
           return (
@@ -388,20 +388,20 @@ export function HomeSheet({
                 <View
                   style={{
                     alignItems: 'center',
-                    gap: 4,
+                    gap: SPACING[1],
                     paddingVertical: 9,
                     paddingHorizontal: 4,
-                    borderRadius: 13,
+                    borderRadius: RADIUS.xl,
                     borderWidth: 1,
                     borderColor: P.line,
                     opacity: slot.enabled ? (pressed ? 0.6 : 1) : 0.38,
                   }}
                 >
-                  <Text style={{ fontSize: 16, lineHeight: 18, color: P.ink }}>{meta.glyph}</Text>
+                  <Text style={{ fontSize: FONT_SIZES.base, lineHeight: 18, color: P.ink }}>{meta.glyph}</Text>
                   <Text
                     style={{
                       fontFamily: FONTS.bodyBold,
-                      fontSize: 10,
+                      fontSize: FONT_SIZES['2xs'],
                       lineHeight: 12,
                       color: P.ink,
                     }}
@@ -466,7 +466,7 @@ function SetChip({
         flexShrink: 0,
         paddingHorizontal: 9,
         paddingVertical: 2,
-        borderRadius: 20,
+        borderRadius: RADIUS['3xl'],
         borderWidth: 1,
         borderColor: withAlpha(accent, 0.4),
         backgroundColor: withAlpha(accent, 0.16),
@@ -483,10 +483,10 @@ function SetChip({
       */}
       <Text
         numberOfLines={1}
-        style={{ fontFamily: FONTS.display, fontSize: 13, lineHeight: 16, color: accent }}
+        style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.label, lineHeight: 16, color: accent }}
       >
         {held}
-        <Text style={{ fontFamily: FONTS.display, fontSize: 10, color: P.dim }}>/{total}</Text>
+        <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES['2xs'], color: P.dim }}>/{total}</Text>
       </Text>
     </View>
   );
@@ -535,12 +535,12 @@ function LadderRow({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 9,
+        gap: SPACING['2.5'],
         marginTop: 11,
         backgroundColor: P.hint,
         borderWidth: 1,
         borderColor: P.hintLine,
-        borderRadius: 11,
+        borderRadius: RADIUS.xl,
         paddingHorizontal: 11,
         paddingVertical: 8,
       }}
@@ -550,17 +550,17 @@ function LadderRow({
           // One line, ellipsized, exactly as the design sets it. A second line
           // here would be a second height for the sheet, and so for the board.
           numberOfLines={1}
-          style={{ flex: 1, fontFamily: FONTS.bodySemi, fontSize: 11, lineHeight: 15, color: P.hintInk }}
+          style={{ flex: 1, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.caption, lineHeight: 15, color: P.hintInk }}
         >
           {text}
         </Text>
       )}
       {hasLadder && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[1], flexShrink: 0 }}>
           <Text
             style={{
               fontFamily: FONTS.bodySemi,
-              fontSize: 11,
+              fontSize: FONT_SIZES.caption,
               lineHeight: 15,
               opacity: 0.7,
               color: P.hintInk,
@@ -570,7 +570,7 @@ function LadderRow({
           </Text>
           {span && (
             <Text
-              style={{ fontFamily: FONTS.display, fontSize: 11, lineHeight: 15, color: P.hintInk }}
+              style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.caption, lineHeight: 15, color: P.hintInk }}
             >
               {span}
             </Text>
@@ -578,7 +578,7 @@ function LadderRow({
           <Text
             style={{
               fontFamily: FONTS.display,
-              fontSize: 11,
+              fontSize: FONT_SIZES.caption,
               lineHeight: 15,
               opacity: 0.7,
               color: P.hintInk,
@@ -635,7 +635,7 @@ function RentStrip({ rows }: { rows: { label: string; value: string; active: boo
   const shown = [...wanted].sort((a, b) => a - b).slice(0, 4).map((i) => rows[i]!);
 
   return (
-    <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
+    <View style={{ flexDirection: 'row', gap: SPACING['1.5'], marginTop: 8 }}>
       {shown.map((r) => (
         <View
           key={r.label}
@@ -644,7 +644,7 @@ function RentStrip({ rows }: { rows: { label: string; value: string; active: boo
             backgroundColor: P.panel,
             borderWidth: 1,
             borderColor: r.active ? P.hintLine : P.line,
-            borderRadius: 10,
+            borderRadius: RADIUS.xl,
             paddingVertical: 8,
             paddingHorizontal: 5,
             alignItems: 'center',
@@ -654,7 +654,7 @@ function RentStrip({ rows }: { rows: { label: string; value: string; active: boo
             numberOfLines={2}
             style={{
               fontFamily: FONTS.bodySemi,
-              fontSize: 8.5,
+              fontSize: FONT_SIZES['3xs'],
               lineHeight: 10,
               minHeight: 20,
               textAlign: 'center',
@@ -667,7 +667,7 @@ function RentStrip({ rows }: { rows: { label: string; value: string; active: boo
             numberOfLines={1}
             style={{
               fontFamily: FONTS.display,
-              fontSize: 13,
+              fontSize: FONT_SIZES.label,
               lineHeight: 15,
               marginTop: 3,
               color: r.active ? P.accent : P.ink,
@@ -700,20 +700,20 @@ function CardBanner({ text, deck }: { text: string; deck: 'anomaly' | 'federatio
       style={{
         flex: 1,
         justifyContent: 'center',
-        borderRadius: 14,
+        borderRadius: RADIUS['2xl'],
         borderWidth: 1,
         borderColor: style.base,
         backgroundColor: P.panel,
         padding: 14,
-        gap: 6,
+        gap: SPACING['1.5'],
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-        <Text style={{ fontSize: 15, color: style.base }}>{style.glyph}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
+        <Text style={{ fontSize: FONT_SIZES.body, color: style.base }}>{style.glyph}</Text>
         <Text
           style={{
             fontFamily: FONTS.bodyBold,
-            fontSize: 9,
+            fontSize: FONT_SIZES['3xs'],
             letterSpacing: 0.9,
             color: style.base,
           }}
@@ -725,7 +725,7 @@ function CardBanner({ text, deck }: { text: string; deck: 'anomaly' | 'federatio
           would grow the sheet, and the board would jump while a card is read. */}
       <Text
         numberOfLines={3}
-        style={{ fontFamily: FONTS.bodySemi, fontSize: 13.5, lineHeight: 19, color: P.ink }}
+        style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.sm, lineHeight: 19, color: P.ink }}
       >
         {text}
       </Text>

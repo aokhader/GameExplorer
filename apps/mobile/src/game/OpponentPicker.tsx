@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
-import { Toggle } from '@/components/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { Toggle, Icon, type IconName } from '@/components/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
 import type { LocalGameMode } from '@/engine/useLocalGame';
@@ -38,29 +38,29 @@ export interface OpponentPickerProps {
   modes?: readonly SetupMode[];
 }
 
-const OPTIONS: { mode: SetupMode; icon: string; label: string; description: string }[] = [
-  { mode: 'bot', icon: '🤖', label: 'vs Bot', description: 'Challenge the computer' },
+const OPTIONS: { mode: SetupMode; icon: IconName; label: string; description: string }[] = [
+  { mode: 'bot', icon: 'robot', label: 'vs Bot', description: 'Challenge the computer' },
   {
     mode: 'online',
-    icon: '🌐',
+    icon: 'globe',
     label: 'Online',
     description: 'Real opponent, live clock',
   },
   {
     mode: 'training',
-    icon: '🎯',
+    icon: 'target',
     label: 'Training',
     description: 'Rated, matched to you',
   },
   {
     mode: 'pass-and-play',
-    icon: '👥',
+    icon: 'users',
     label: 'Pass & Play',
     description: 'Two players, one device',
   },
   {
     mode: 'puzzles',
-    icon: '🧩',
+    icon: 'puzzle-piece',
     label: 'Puzzles',
     description: 'Set positions, one answer',
   },
@@ -87,10 +87,10 @@ export function OpponentPicker({ value, onChange, accent, tint, modes }: Opponen
 
   return (
     <>
-      <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+      <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
         Mode
       </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING['2.5'], marginBottom: 24 }}>
         {options.map((opt) => {
           const selected = value === opt.mode;
           return (
@@ -103,20 +103,25 @@ export function OpponentPicker({ value, onChange, accent, tint, modes }: Opponen
               style={{
                 flexGrow: 1,
                 flexBasis: '47%',
-                borderRadius: 14,
+                borderRadius: RADIUS['2xl'],
                 borderWidth: 2,
                 padding: 12,
                 backgroundColor: selected ? tint : COLORS.surfaceAlt,
                 borderColor: selected ? accent : COLORS.border,
               }}
             >
-              <Text style={{ fontSize: 20, marginBottom: 4 }}>{opt.icon}</Text>
+              <Icon
+                name={opt.icon}
+                size={FONT_SIZES.xl}
+                color={selected ? accent : COLORS.fgMuted}
+                style={{ marginBottom: 4 }}
+              />
               <Text
-                style={{ color: selected ? accent : COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 14 }}
+                style={{ color: selected ? accent : COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.sm }}
               >
                 {opt.label}
               </Text>
-              <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 11, marginTop: 2 }}>
+              <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.caption, marginTop: 2 }}>
                 {opt.description}
               </Text>
             </Pressable>
@@ -140,8 +145,8 @@ export function FlipBoardCard() {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 12,
-        borderRadius: 14,
+        gap: SPACING[3],
+        borderRadius: RADIUS['2xl'],
         borderWidth: 1,
         borderColor: COLORS.border,
         backgroundColor: COLORS.surfaceAlt,
@@ -150,10 +155,10 @@ export function FlipBoardCard() {
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>
+        <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>
           Flip board between turns
         </Text>
-        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 12, marginTop: 2 }}>
+        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
           {"Rotate the board to face whoever's turn it is."}
         </Text>
       </View>

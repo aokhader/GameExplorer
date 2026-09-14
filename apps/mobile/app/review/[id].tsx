@@ -22,7 +22,7 @@ import {
   type ReversiGameState,
 } from '@gameexplorer/shared';
 import { getGameById, type GameType, type SavedGame } from '@gameexplorer/db';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import { isReviewable } from '@/analysis/reviewable';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
@@ -167,9 +167,9 @@ export default function PastGameReviewScreen() {
   if (loading) {
     return (
       <Screen>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACING[3] }}>
           <ActivityIndicator color={COLORS.accent} />
-          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 14 }}>
+          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm }}>
             Loading game…
           </Text>
         </View>
@@ -182,7 +182,7 @@ export default function PastGameReviewScreen() {
       <Screen>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <Text
-            style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 15, textAlign: 'center' }}
+            style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.body, textAlign: 'center' }}
           >
             {loadError ??
               (!reviewSupported

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { DIFFICULTY_ELO, TOUR_GAMES, gameNameList, type OnboardingGame } from '@gameexplorer/shared';
 import { useAuth } from '@gameexplorer/client';
-import { Screen, Button } from '@/components/ui';
+import { Screen, Button, Icon, type IconName } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { markOnboarded, markSaveProgressPending } from '@/lib/onboarding';
 import { FONTS } from '@/theme/typography';
@@ -27,20 +27,20 @@ type Difficulty = 'relaxed' | 'balanced' | 'sharp';
  * are different intentions, and a player who only wants the first should not
  * have to guess that it lives behind a button labelled for the second.
  */
-const OPPONENTS: { id: Opponent; name: string; icon: string; tagline: string }[] = [
-  { id: 'bot', name: 'Practice vs the bot', icon: '🤖', tagline: 'Recommended for your first game' },
-  { id: 'friend', name: 'Invite a friend', icon: '🤝', tagline: 'Share a link, play together' },
-  { id: 'online', name: 'Match online', icon: '🌐', tagline: 'Find someone at your level' },
+const OPPONENTS: { id: Opponent; name: string; icon: IconName; tagline: string }[] = [
+  { id: 'bot', name: 'Practice vs the bot', icon: 'robot', tagline: 'Recommended for your first game' },
+  { id: 'friend', name: 'Invite a friend', icon: 'handshake', tagline: 'Share a link, play together' },
+  { id: 'online', name: 'Match online', icon: 'globe', tagline: 'Find someone at your level' },
 ];
 
 // Colors are looked up during render, never captured here — the token objects
 // are live views, so a module-scope read freezes them at import (see themeRuntime).
 const DIFFICULTIES: {
-  id: Difficulty; name: string; icon: string; tagline: string; accentKey: keyof typeof COLORS;
+  id: Difficulty; name: string; icon: IconName; tagline: string; accentKey: keyof typeof COLORS;
 }[] = [
-  { id: 'relaxed', name: 'Relaxed', icon: '😌', tagline: 'Forgiving — great to learn', accentKey: 'successHover' },
-  { id: 'balanced', name: 'Balanced', icon: '🙂', tagline: 'A fair fight', accentKey: 'info' },
-  { id: 'sharp', name: 'Sharp', icon: '🔥', tagline: 'Bring your A-game', accentKey: 'dangerHover' },
+  { id: 'relaxed', name: 'Relaxed', icon: 'plant', tagline: 'Forgiving — great to learn', accentKey: 'successHover' },
+  { id: 'balanced', name: 'Balanced', icon: 'scales', tagline: 'A fair fight', accentKey: 'info' },
+  { id: 'sharp', name: 'Sharp', icon: 'fire', tagline: 'Bring your A-game', accentKey: 'dangerHover' },
 ];
 
 function OptionRow({
@@ -51,7 +51,7 @@ function OptionRow({
   accent,
   onPress,
 }: {
-  /** An emoji string, or piece art for the game rows. */
+  /** An interface icon, or piece art for the game rows. */
   icon: ReactNode;
   name: string;
   tagline: string;
@@ -70,32 +70,32 @@ function OptionRow({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
+        gap: SPACING['3.5'],
         paddingHorizontal: 16,
         paddingVertical: 15,
-        borderRadius: 14,
+        borderRadius: RADIUS['2xl'],
         borderWidth: 1,
         borderColor: selected ? accent : COLORS.border,
         backgroundColor: selected ? COLORS.surfaceHover : COLORS.surfaceAlt,
       }}
     >
-      {typeof icon === 'string' ? <Text style={{ fontSize: 26 }}>{icon}</Text> : icon}
+      {icon}
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.bodyBold }}>{name}</Text>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{tagline}</Text>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.base, fontFamily: FONTS.bodyBold }}>{name}</Text>
+        <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label }}>{tagline}</Text>
       </View>
       {selected && (
         <View
           style={{
             width: 24,
             height: 24,
-            borderRadius: 12,
+            borderRadius: RADIUS.full,
             backgroundColor: accent,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Text style={{ color: COLORS.surface, fontSize: 13, fontWeight: '800' }}>✓</Text>
+          <Icon name="check" size={FONT_SIZES.sm} color={COLORS.surface} />
         </View>
       )}
     </Pressable>
@@ -182,14 +182,14 @@ export default function WelcomeScreen() {
   return (
     <Screen>
       {/* Progress dots */}
-      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 12, marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: SPACING['1.5'], marginTop: 12, marginBottom: 24 }}>
         {Array.from({ length: totalSteps }, (_, i) => (
           <View
             key={i}
             style={{
               height: 5,
               width: i === step ? 22 : 8,
-              borderRadius: 3,
+              borderRadius: RADIUS.full,
               backgroundColor: i === step ? COLORS.accent : COLORS.border,
             }}
           />
@@ -198,26 +198,29 @@ export default function WelcomeScreen() {
 
       {step > 0 && (
         <Pressable onPress={() => setStep((s) => s - 1)} hitSlop={10} style={{ marginBottom: 8 }}>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 15 }}>‹ Back</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[1] }}>
+            <Icon name="caret-left" size={FONT_SIZES.body} color={COLORS.fgMuted} />
+            <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.body }}>Back</Text>
+          </View>
         </Pressable>
       )}
 
       {step === 0 && (
-        <View style={{ alignItems: 'center', paddingTop: 24, gap: 14 }}>
-          <Text style={{ fontSize: 56 }}>♟️</Text>
-          <Text style={{ color: COLORS.fg, fontSize: 26, fontFamily: FONTS.display, textAlign: 'center' }}>
+        <View style={{ alignItems: 'center', paddingTop: 24, gap: SPACING['3.5'] }}>
+          <GamePieceIcon game="chess" size={FONT_SIZES['6xl']} />
+          <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.display, fontFamily: FONTS.display, textAlign: 'center' }}>
             Welcome to <Text style={{ color: COLORS.accent }}>GameExplorer</Text>
           </Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 15, textAlign: 'center', lineHeight: 22, maxWidth: 300 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.body, textAlign: 'center', lineHeight: 22, maxWidth: 300 }}>
             {gameNameList()} — ready in seconds.
           </Text>
-          <View style={{ width: '100%', gap: 12, marginTop: 16 }}>
+          <View style={{ width: '100%', gap: SPACING[3], marginTop: 16 }}>
             <Button label="Let's play →" onPress={advance} glow />
             <Pressable
               onPress={() => router.replace('/(auth)/sign-in' as never)}
               style={{ alignItems: 'center', paddingVertical: 8 }}
             >
-              <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>
+              <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm }}>
                 Already have an account? <Text style={{ color: COLORS.infoHover, fontFamily: FONTS.bodyBold }}>Sign in</Text>
               </Text>
             </Pressable>
@@ -227,13 +230,13 @@ export default function WelcomeScreen() {
 
       {step === 1 && (
         <>
-          <Text style={{ color: COLORS.fg, fontSize: 22, fontFamily: FONTS.display, textAlign: 'center' }}>
+          <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.display, textAlign: 'center' }}>
             What do you feel like playing?
           </Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
             You can switch anytime.
           </Text>
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: SPACING[3] }}>
             {TOUR_GAMES.map((g) => (
               <OptionRow
                 key={g.id}
@@ -252,19 +255,25 @@ export default function WelcomeScreen() {
 
       {step === 2 && (
         <>
-          <Text style={{ color: COLORS.fg, fontSize: 22, fontFamily: FONTS.display, textAlign: 'center' }}>
+          <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.display, textAlign: 'center' }}>
             Who&apos;s your first opponent?
           </Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
             {user
               ? 'Every mode is available from the game screen too.'
               : 'Online games need an account — we ask when you get there.'}
           </Text>
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: SPACING[3] }}>
             {OPPONENTS.map((o) => (
               <OptionRow
                 key={o.id}
-                icon={o.icon}
+                icon={
+                  <Icon
+                    name={o.icon}
+                    size={FONT_SIZES.display}
+                    color={opponent === o.id ? COLORS.accent : COLORS.fgMuted}
+                  />
+                }
                 name={o.name}
                 tagline={o.tagline}
                 selected={opponent === o.id}
@@ -284,17 +293,17 @@ export default function WelcomeScreen() {
 
       {step === 3 && (
         <>
-          <Text style={{ color: COLORS.fg, fontSize: 22, fontFamily: FONTS.display, textAlign: 'center' }}>
+          <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.display, textAlign: 'center' }}>
             How tough should the bot be?
           </Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
             The bot adapts as you improve.
           </Text>
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: SPACING[3] }}>
             {DIFFICULTIES.map((d) => (
               <OptionRow
                 key={d.id}
-                icon={d.icon}
+                icon={<Icon name={d.icon} size={FONT_SIZES.display} color={COLORS[d.accentKey]} />}
                 name={d.name}
                 tagline={d.tagline}
                 selected={difficulty === d.id}
@@ -308,7 +317,7 @@ export default function WelcomeScreen() {
       )}
 
       <Pressable onPress={() => router.replace('/' as never)} style={{ alignItems: 'center', marginTop: 20 }}>
-        <Text style={{ color: COLORS.fgSubtle, fontSize: 13 }}>Skip the tour — browse on my own</Text>
+        <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.label }}>Skip the tour — browse on my own</Text>
       </Pressable>
     </Screen>
   );

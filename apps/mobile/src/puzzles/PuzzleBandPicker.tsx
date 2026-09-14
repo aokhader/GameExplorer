@@ -1,7 +1,8 @@
 import { Pressable, Text, View } from 'react-native';
 import { PUZZLE_BANDS, type PuzzleBand, type PuzzleGame } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
+import { Icon } from '@/components/ui/Icon';
 
 /**
  * Choose which strength of puzzle to solve — the native twin of web's picker.
@@ -43,20 +44,20 @@ export function PuzzleBandPicker({
   return (
     <View
       style={{
-        borderRadius: 12,
+        borderRadius: RADIUS.xl,
         borderWidth: 1,
         borderColor: COLORS.border,
         backgroundColor: COLORS.surfaceAlt,
         padding: 12,
-        gap: 10,
+        gap: SPACING['2.5'],
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.displaySemi }}>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.displaySemi }}>
           Difficulty
         </Text>
         {typeof rating === 'number' && (
-          <Text style={{ color: COLORS.fgMuted, fontSize: 11 }}>your rating: {rating}</Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.caption }}>your rating: {rating}</Text>
         )}
       </View>
 
@@ -64,7 +65,7 @@ export function PuzzleBandPicker({
           `GameScreenLayout`'s own ScrollView collapses to zero height, and the
           whole card would silently render as nothing. */}
       <View
-        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}
+        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING['1.5'] }}
         accessibilityRole="radiogroup"
         accessibilityLabel="Puzzle difficulty band"
       >
@@ -85,13 +86,12 @@ export function PuzzleBandPicker({
                   : `${b.label}, around ${b.tierElo} rating, ${done} of ${count} solved`
               }
               onPress={() => onSelect(b.id)}
-              // A plain object, not the function form — `Pressable`'s
-              // function-form `style` is silently dropped in this app, which
-              // renders an unstyled tile with no error anywhere.
+              // A plain object, with the pressed state read from the children
+              // function — the way every control in this app is written.
               style={{
                 flexGrow: 1,
                 flexBasis: '30%',
-                borderRadius: 10,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: selected ? accent.base : COLORS.border,
                 backgroundColor: selected ? accent.tintBg : COLORS.surface,
@@ -99,19 +99,23 @@ export function PuzzleBandPicker({
                 paddingVertical: 6,
               }}
             >
-              <Text
-                style={{
-                  color: selected ? COLORS.fg : COLORS.fgMuted,
-                  fontSize: 11,
-                  fontFamily: FONTS.bodyBold,
-                }}
-              >
-                {b.label}
-                {complete ? ' ✓' : ''}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[1] }}>
+                <Text
+                  style={{
+                    color: selected ? COLORS.fg : COLORS.fgMuted,
+                    fontSize: FONT_SIZES.caption,
+                    fontFamily: FONTS.bodyBold,
+                  }}
+                >
+                  {b.label}
+                </Text>
+                {complete && (
+                  <Icon name="check" size={FONT_SIZES.xs} color={COLORS.successHover} label="Completed" />
+                )}
+              </View>
               <Text
                 testID={`puzzle-band-${b.id}-progress`}
-                style={{ color: COLORS.fgSubtle, fontSize: 10 }}
+                style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES['2xs'] }}
               >
                 {count === 0 ? `${b.tierElo} · —` : `${b.tierElo} · ${done}/${count}`}
               </Text>

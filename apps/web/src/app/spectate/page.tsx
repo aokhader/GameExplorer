@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/apiFetch';
-import { Skeleton } from '@/components/ui';
+import { EmptyState, ErrorState, Skeleton } from '@/components/ui';
 import { GameIcon } from '@/components/game/GameIcon';
+import { Icon } from '@gameexplorer/ui';
 
 interface LiveGame {
   gameId:      string;
@@ -21,15 +22,19 @@ export default function SpectateLobby() {
   const [gameId, setGameId] = useState('');
   const [games, setGames]   = useState<LiveGame[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
+  // The error clears on the next success rather than at the start of every
+  // attempt, so a list that keeps failing on its five-second refresh shows one
+  // steady error instead of replaying its entrance each time. It never shows the
+  // exception's own message, which named the code's problem, not the visitor's.
   const loadGames = useCallback(async () => {
-    setError(null);
     try {
       const data = await apiFetch<{ games: LiveGame[] }>('/games/live');
       setGames(data.games);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load games');
+      setFailed(false);
+    } catch {
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -45,7 +50,7 @@ export default function SpectateLobby() {
     <div className="relative min-h-screen text-fg pt-16 flex flex-col items-center px-4 py-8">
       <div className="w-full max-w-2xl">
         <div className="flex items-center justify-between mb-6 mt-6">
-          <h1 className="text-2xl font-bold">👁 Watch Live Games</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold"><Icon name="eye" className="text-fg-muted" /> Watch Live Games</h1>
           <Link href="/" className="text-fg-muted hover:text-fg text-sm">← Home</Link>
         </div>
 
@@ -53,7 +58,7 @@ export default function SpectateLobby() {
         <div className="bg-surface-alt rounded-2xl p-6 shadow-2xl mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">Live now {games.length > 0 && <span className="text-fg-muted">({games.length})</span>}</h2>
-            <button onClick={loadGames} className="text-sm text-fg-muted hover:text-fg">↻ Refresh</button>
+            <button onClick={loadGames} className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg"><Icon name="arrows-clockwise" /> Refresh</button>
           </div>
 
           {loading ? (
@@ -62,16 +67,25 @@ export default function SpectateLobby() {
                 <Skeleton key={i} className="h-[58px] w-full rounded-lg" />
               ))}
             </div>
-          ) : error ? (
-            <p className="text-sm text-danger-hover py-8 text-center">{error}</p>
+          ) : failed ? (
+            <ErrorState
+              title="Couldn't load live games"
+              body="The list tries again every few seconds."
+              onRetry={loadGames}
+              className="py-8"
+            />
           ) : games.length === 0 ? (
-            <div className="py-10 text-center">
-              <div className="text-4xl mb-3">🍿</div>
-              <p className="text-sm text-fg-muted">No live games right now.</p>
-              <Link href="/chess/play" className="mt-3 inline-block text-sm text-accent hover:underline">
-                Start one yourself
-              </Link>
-            </div>
+            <EmptyState
+              icon="popcorn"
+              title="No live games right now"
+              body="Online games show up here while they are being played."
+              className="py-8"
+              action={
+                <Link href="/chess/play" className="text-sm text-accent hover:underline">
+                  Start one yourself
+                </Link>
+              }
+            />
           ) : (
             <div className="space-y-2">
               {games.map(g => (

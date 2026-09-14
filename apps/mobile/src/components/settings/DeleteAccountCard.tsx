@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, apiFetch } from '@gameexplorer/client';
 import { supabase } from '@gameexplorer/db';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { Card, Button, TextField } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 
@@ -44,11 +44,11 @@ export function DeleteAccountCard() {
   }
 
   return (
-    <Card style={{ padding: 16, borderColor: COLORS.danger, marginTop: 8 }}>
+    <Card variant="danger" style={{ padding: 16, marginTop: 8 }}>
       <Text
         style={{
           color: COLORS.dangerHover,
-          fontSize: 12,
+          fontSize: FONT_SIZES.xs,
           fontFamily: FONTS.bodyBold,
           textTransform: 'uppercase',
           letterSpacing: 0.5,
@@ -59,25 +59,25 @@ export function DeleteAccountCard() {
       </Text>
 
       {!expanded ? (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: SPACING[3] }}>
           <View>
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold }}>Delete account</Text>
-            <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2 }}>
+            <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold }}>Delete account</Text>
+            <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 2 }}>
               Permanently remove your account and all associated data.
             </Text>
           </View>
           <Button label="Delete account…" variant="danger" onPress={() => setExpanded(true)} />
         </View>
       ) : (
-        <View style={{ gap: 12 }}>
-          <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
+        <View style={{ gap: SPACING[3] }}>
+          <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>
             This permanently deletes your account. It cannot be undone.
           </Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 13, lineHeight: 20 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, lineHeight: 20 }}>
             Erased across all games: your profile and sign-in; all ratings, stats, and saved games;
             friends, blocks, and reports.
           </Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label }}>
             Type <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodyBold }}>{CONFIRM_WORD}</Text> to confirm.
           </Text>
 
@@ -90,11 +90,12 @@ export function DeleteAccountCard() {
             invalid={confirmText.length > 0 && confirmText.trim() !== CONFIRM_WORD}
           />
 
-          {error && <Text style={{ color: COLORS.dangerHover, fontSize: 14 }}>{error}</Text>}
+          {error && <Text style={{ color: COLORS.dangerHover, fontSize: FONT_SIZES.sm }}>{error}</Text>}
 
           <Button
             label={busy ? 'Deleting…' : 'Permanently delete'}
             variant="danger"
+            haptic="warning"
             onPress={handleDelete}
             disabled={!canConfirm}
             loading={busy}

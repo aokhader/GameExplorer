@@ -3,6 +3,10 @@ import type { UserRating } from '@gameexplorer/db';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { eloLabel } from '@/game/eloLabel';
 
+// Renders shared primitives, which animate with reanimated.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').mockReanimated());
+
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 
 function ratingRow(overrides: Partial<UserRating> = {}): UserRating {

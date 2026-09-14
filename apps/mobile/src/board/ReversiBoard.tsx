@@ -8,14 +8,21 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { BOARD_ANIM_MS, ReversiEngine } from '@gameexplorer/shared';
+import { ReversiEngine } from '@gameexplorer/shared';
 import type { LessonMark, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
-import { ReversiDisc, REVERSI_BOARD_COLORS, SHADOWS_NATIVE } from '@gameexplorer/ui';
+import { ReversiDisc, REVERSI_BOARD_COLORS, SHADOWS_NATIVE, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
+import { timing } from '@/theme/motion';
+
+// Disc motion from MOTION (project-docs/design/motion-spec.md §5.12). The
+// placement pop is the same landing pop chess and checkers use — it used to run
+// 80ms longer here for no recorded reason — and the flip keeps the board tempo.
+const PLACE_POP = timing('micro', 'standard');
+const FLIP = timing('base', 'standard');
 
 interface ReversiBoardProps {
   gameState: ReversiGameState;
@@ -99,12 +106,12 @@ function DiscView({
     if (placed) {
       scale.value = 0.6;
       scale.value = withSequence(
-        withTiming(1.1, { duration: 150 }),
-        withTiming(1, { duration: 130 }),
+        withTiming(1.1, PLACE_POP),
+        withTiming(1, PLACE_POP),
       );
     } else if (flipped) {
       turn.value = 0;
-      turn.value = withTiming(1, { duration: BOARD_ANIM_MS });
+      turn.value = withTiming(1, FLIP);
     }
     // Re-run only when the move cue for this square changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -307,7 +314,7 @@ function ReversiBoardInner({
                       position: 'absolute',
                       top: 2,
                       left: 3,
-                      fontSize: 9,
+                      fontSize: FONT_SIZES['3xs'],
                       fontFamily: FONTS.bodyBold,
                       color: 'rgba(255,255,255,0.7)',
                     }}
@@ -321,7 +328,7 @@ function ReversiBoardInner({
                       position: 'absolute',
                       bottom: 2,
                       right: 3,
-                      fontSize: 9,
+                      fontSize: FONT_SIZES['3xs'],
                       fontFamily: FONTS.bodyBold,
                       color: 'rgba(255,255,255,0.7)',
                     }}
@@ -402,7 +409,7 @@ function ReversiBoardInner({
                 {
                   width: size,
                   height: size,
-                  borderRadius: 10,
+                  borderRadius: RADIUS.xl,
                   overflow: 'hidden',
                   borderWidth: 2,
                   borderColor: REVERSI_BOARD_COLORS.boardBorder,

@@ -11,6 +11,7 @@ import Animated, {
 import { LIQUIDATE_BOARD_COLORS, PlayerToken, useThemeName } from '@gameexplorer/ui';
 import { LIQUIDATE_TIMING, type LiquidatePlayer } from '@gameexplorer/shared';
 import { useSettings } from '@/providers/SettingsProvider';
+import { easing } from '@/theme/motion';
 import { seatColor } from './lqTheme';
 import type { RingGeometry } from './boardGeom';
 import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
@@ -115,9 +116,9 @@ function Ship({
       return;
     }
     const duration = spot.jumped ? LIQUIDATE_TIMING.jumpMs : LIQUIDATE_TIMING.stepMs;
-    const easing = spot.jumped ? Easing.bezier(0.4, 0, 0.2, 1) : Easing.linear;
-    tx.value = withTiming(targetX, { duration, easing });
-    ty.value = withTiming(targetY, { duration, easing });
+    const curve = spot.jumped ? easing('standard') : easing('linear');
+    tx.value = withTiming(targetX, { duration, easing: curve });
+    ty.value = withTiming(targetY, { duration, easing: curve });
   }, [targetX, targetY, spot.jumped, reducedMotion, tx, ty]);
 
   // A small lift on each walked step, so a multi-tile move reads as a series of

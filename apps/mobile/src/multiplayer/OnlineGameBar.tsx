@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, SPACING } from '@gameexplorer/ui';
 import { EMOTES, type Emote } from '@gameexplorer/shared';
 import { Sheet } from '@/components/ui/Sheet';
 import { BarButton, useTwoTapConfirm } from '@/game/BarButton';
@@ -76,7 +76,7 @@ export function OnlineGameBar({
         style={{
           flexDirection: 'row',
           alignItems: 'stretch',
-          gap: 4,
+          gap: SPACING[1],
           paddingHorizontal: 8,
           paddingVertical: 8,
           borderTopWidth: 1,
@@ -84,15 +84,15 @@ export function OnlineGameBar({
           backgroundColor: COLORS.surfaceAlt,
         }}
       >
-        <BarButton glyph="☰" label="Game menu" onPress={() => setMenuOpen(true)} />
+        <BarButton icon="list" label="Game menu" onPress={() => setMenuOpen(true)} />
         <BarButton
-          glyph="💬"
+          icon="chat-circle"
           label={unread > 0 ? `Chat — ${unread} unread` : 'Chat'}
           badge={unread > 0 ? String(unread) : undefined}
           onPress={onOpenChat}
         />
         <BarButton
-          glyph="😀"
+          icon="smiley"
           label="Send a reaction"
           onPress={() => setEmoteOpen(true)}
           disabled={!active}
@@ -102,7 +102,7 @@ export function OnlineGameBar({
         <View style={{ width: 1, marginVertical: 6, backgroundColor: COLORS.border }} />
 
         <BarButton
-          glyph="⚑"
+          icon="flag"
           label={confirming ? 'Confirm resign' : 'Resign'}
           hint={confirming ? undefined : 'Tap twice to resign the game'}
           onPress={handleResign}
@@ -113,11 +113,11 @@ export function OnlineGameBar({
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} closeLabel="Close menu">
         {onFlipBoard && (
-          <MenuRow glyph="🔄" label="Flip board" onPress={run(onFlipBoard)} accent={accentColor} />
+          <MenuRow icon="arrows-clockwise" label="Flip board" onPress={run(onFlipBoard)} accent={accentColor} />
         )}
         {onOfferDraw && (
           <MenuRow
-            glyph="🤝"
+            icon="handshake"
             label="Offer a draw"
             onPress={run(onOfferDraw)}
             disabled={!active}
@@ -126,7 +126,7 @@ export function OnlineGameBar({
         )}
         {onAbort && (
           <MenuRow
-            glyph="🛑"
+            icon="x-circle"
             label="Abort game"
             detail="No rating change — only in the first few moves"
             onPress={run(onAbort)}
@@ -136,7 +136,7 @@ export function OnlineGameBar({
         )}
         {onShareSpectate && (
           <MenuRow
-            glyph="📺"
+            icon="television"
             label="Share spectate link"
             detail="Let someone watch this game live"
             onPress={run(onShareSpectate)}
@@ -145,7 +145,7 @@ export function OnlineGameBar({
         )}
         {onOpponentMenu && (
           <MenuRow
-            glyph="🚩"
+            icon="warning"
             label="Block or report"
             danger
             onPress={run(onOpponentMenu)}
@@ -157,11 +157,11 @@ export function OnlineGameBar({
       <Sheet open={emoteOpen} onClose={() => setEmoteOpen(false)} closeLabel="Close reactions">
         {/* 4-up rather than one row of eight: `BarButton` splits its row evenly,
             and eight cells on a phone lands each one under the 44pt minimum. */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 8 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[2], paddingBottom: 8 }}>
           {EMOTES.map((e) => (
             <View key={e} style={{ flexBasis: '22%', flexGrow: 1, minHeight: 56 }}>
               <BarButton
-                glyph={e}
+                text={e}
                 label={`Send ${e}`}
                 onPress={() => {
                   setEmoteOpen(false);

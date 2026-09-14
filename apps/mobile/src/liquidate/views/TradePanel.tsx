@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import { formatCredits, groupLabel, type LiquidateTile } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { tileAccent } from '../lqTheme';
 
@@ -54,17 +54,17 @@ export function TradePanel({
         backgroundColor: P.panel,
         borderWidth: 1,
         borderColor: P.line,
-        borderRadius: 16,
+        borderRadius: RADIUS['2xl'],
         padding: 14,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 11 }}>
-        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: dotColor }} />
-        <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 12, color: P.ink }}>{title}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2], marginBottom: 11 }}>
+        <View style={{ width: 10, height: 10, borderRadius: RADIUS.full, backgroundColor: dotColor }} />
+        <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xs, color: P.ink }}>{title}</Text>
       </View>
 
       {rows.length === 0 ? (
-        <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 11.5, color: P.soft }}>{empty}</Text>
+        <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.xs, color: P.soft }}>{empty}</Text>
       ) : (
         rows.map((row) => (
           <View
@@ -72,30 +72,30 @@ export function TradePanel({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 9,
+              gap: SPACING['2.5'],
               paddingVertical: 8,
               borderTopWidth: 1,
               borderTopColor: P.line,
             }}
           >
             <View
-              style={{ width: 6, height: 26, borderRadius: 3, backgroundColor: row.accent }}
+              style={{ width: 6, height: 26, borderRadius: RADIUS.full, backgroundColor: row.accent }}
             />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text
                 numberOfLines={1}
-                style={{ fontFamily: FONTS.bodyBold, fontSize: 12.5, color: P.ink }}
+                style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.label, color: P.ink }}
               >
                 {row.name}
               </Text>
               <Text
                 numberOfLines={1}
-                style={{ fontFamily: FONTS.bodySemi, fontSize: 10, color: P.soft }}
+                style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES['2xs'], color: P.soft }}
               >
                 {row.sub}
               </Text>
             </View>
-            <Text style={{ fontFamily: FONTS.display, fontSize: 12, color: P.ink }}>
+            <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.xs, color: P.ink }}>
               {row.value}
             </Text>
           </View>

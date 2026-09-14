@@ -1,48 +1,47 @@
 /**
- * Shared motion language for GameExplorer (web).
+ * Framer Motion presets for GameExplorer (web), built on `MOTION` from
+ * `@gameexplorer/ui`.
  *
- * Single source for Framer Motion springs + variants so motion reads as one
- * choreographed system, not ad-hoc per-component tweaks. Keep durations short
- * and springs lively — this is a games app, motion should feel playful, not
- * sluggish.
+ * Nothing here owns a number. Durations, curves and springs come from the shared
+ * tokens, which mobile's Reanimated helpers read too, so a spring on the result
+ * screen settles the same way on both platforms. What belongs to an interaction
+ * — which token a press, an entrance or a celebration gets — is decided in
+ * `project-docs/design/motion-spec.md`, not here.
  *
  * Accessibility: continuous/ambient motion lives in CSS gated behind
- * prefers-reduced-motion. For Framer-driven entrances, pair these with the
- * `useReducedMotion()` hook (or the app's reduce-motion setting) and fall back
- * to opacity-only / instant transitions when motion is suppressed.
+ * prefers-reduced-motion. For Framer-driven entrances, read the composed
+ * `reducedMotion` from the settings provider (the in-app toggle OR the OS
+ * preference) and fall back to `fadeOnly`.
  */
 import type { Transition, Variants } from 'framer-motion';
+import { MOTION } from '@gameexplorer/ui';
+
+const { DURATION, EASING, SPRING_FRAMER, STAGGER } = MOTION;
+
+/** Framer Motion takes seconds; the tokens are milliseconds. */
+export const seconds = (ms: number): number => ms / 1000;
 
 // ── Spring + tween presets ───────────────────────────────────────────────────
 
-/** Gentle, settled spring — panels, cards, layout shifts. */
-export const springSoft: Transition = {
-  type: 'spring',
-  stiffness: 260,
-  damping: 28,
-  mass: 0.9,
-};
+/** Settled spring — panels, cards, sheets, layout shifts. */
+export const springSoft: Transition = SPRING_FRAMER.soft;
 
-/** Quick, snappy spring with a touch of overshoot — buttons, chips, pops. */
-export const springSnappy: Transition = {
-  type: 'spring',
-  stiffness: 520,
-  damping: 24,
-  mass: 0.7,
-};
+/** A hint of overshoot — press release, toggles, chips. */
+export const springSnappy: Transition = SPRING_FRAMER.snappy;
 
-/** Bouncy spring with visible overshoot — celebratory pops (trophy, badges). */
-export const springBouncy: Transition = {
-  type: 'spring',
-  stiffness: 420,
-  damping: 12,
-  mass: 0.8,
-};
+/** Visible overshoot — celebration only (trophy, badges). */
+export const springBouncy: Transition = SPRING_FRAMER.bouncy;
 
-/** Smooth ease for cross-fades and page transitions. */
+/** Entrances: a screen, a dialog, a card arriving. */
 export const easeOut: Transition = {
-  duration: 0.32,
-  ease: [0.22, 1, 0.36, 1],
+  duration: seconds(DURATION.moderate),
+  ease: EASING.out,
+};
+
+/** Exits: one step faster than the entrance, accelerating away. */
+export const easeIn: Transition = {
+  duration: seconds(DURATION.fast),
+  ease: EASING.in,
 };
 
 // ── Reusable variants ────────────────────────────────────────────────────────
@@ -51,20 +50,24 @@ export const easeOut: Transition = {
 export const popIn: Variants = {
   hidden: { opacity: 0, scale: 0.85, y: 8 },
   show: { opacity: 1, scale: 1, y: 0, transition: springSnappy },
-  exit: { opacity: 0, scale: 0.9, transition: easeOut },
+  exit: { opacity: 0, scale: 0.9, transition: easeIn },
 };
 
 /** Rise + fade — list items, sections entering. */
 export const riseIn: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: springSoft },
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: easeOut },
 };
 
-/** Container that staggers its children's entrances. */
+/**
+ * Container that staggers its children's entrances `MOTION.STAGGER.step` apart,
+ * per the spec's list rule. The `maxItems` cap is the caller's to apply, since
+ * only the caller knows the list.
+ */
 export const staggerChildren: Variants = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.07, delayChildren: 0.04 },
+    transition: { staggerChildren: seconds(STAGGER.step) },
   },
 };
 
@@ -72,7 +75,7 @@ export const staggerChildren: Variants = {
 export const pageFade: Variants = {
   hidden: { opacity: 0, y: 8 },
   show: { opacity: 1, y: 0, transition: easeOut },
-  exit: { opacity: 0, y: -8, transition: { duration: 0.18 } },
+  exit: { opacity: 0, transition: easeIn },
 };
 
 /** Celebratory trophy/crown entrance — overshoots then settles. */
@@ -82,11 +85,28 @@ export const celebratePop: Variants = {
 };
 
 /**
- * Reduced-motion fallbacks. When the user prefers reduced motion (or toggles
- * it in Settings), swap any of the above for an opacity-only instant variant.
+ * Reduced-motion fallback: no movement, an instant opacity change. Swap any of
+ * the above for this when `reducedMotion` is set.
  */
 export const fadeOnly: Variants = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.01 } },
-  exit: { opacity: 0, transition: { duration: 0.01 } },
+  show: { opacity: 1, transition: { duration: DURATION.instant } },
+  exit: { opacity: 0, transition: { duration: DURATION.instant } },
 };
+
+/**
+ * Whether motion is reduced right now: the OS preference, or Settings' toggle
+ * as mirrored onto `<html data-reduced-motion>`.
+ *
+ * For code outside render that has to decide whether to wait for an animation —
+ * `Modal` holding itself open for its exit — where the settings context is not
+ * the natural read. Inside a component, prefer `useSettings().reducedMotion`.
+ * On the server it answers false.
+ */
+export function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    document.documentElement.hasAttribute('data-reduced-motion') ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { DockSlot, LiquidateAction, LiquidateGameState } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { ViewHeader, GhostButton } from './ViewChrome';
 import type { LqView } from './types';
@@ -70,7 +70,7 @@ export function MenuView({ roundLabel, state, dock, onOpen, onSettings, onResign
         onBack={onBack}
       />
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 22, gap: 9 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 22, gap: SPACING['2.5'] }}>
         {ROWS.map((row) => {
           const enabled = enabledOf(row.slot);
           return (
@@ -87,9 +87,9 @@ export function MenuView({ roundLabel, state, dock, onOpen, onSettings, onResign
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 13,
+                    gap: SPACING['3.5'],
                     padding: 15,
-                    borderRadius: 15,
+                    borderRadius: RADIUS['2xl'],
                     borderWidth: 1,
                     borderColor: P.line,
                     backgroundColor: P.panel,
@@ -100,7 +100,7 @@ export function MenuView({ roundLabel, state, dock, onOpen, onSettings, onResign
                     style={{
                       width: 40,
                       height: 40,
-                      borderRadius: 12,
+                      borderRadius: RADIUS.xl,
                       borderWidth: 1,
                       borderColor: P.line,
                       backgroundColor: P.panel2,
@@ -108,20 +108,20 @@ export function MenuView({ roundLabel, state, dock, onOpen, onSettings, onResign
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 18, color: P.accent }}>{row.glyph}</Text>
+                    <Text style={{ fontSize: FONT_SIZES.lg, color: P.accent }}>{row.glyph}</Text>
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 14, color: P.ink }}>
+                    <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.sm, color: P.ink }}>
                       {row.label}
                     </Text>
                     <Text
                       numberOfLines={1}
-                      style={{ fontFamily: FONTS.bodySemi, fontSize: 10.5, color: P.soft, marginTop: 2 }}
+                      style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.caption, color: P.soft, marginTop: 2 }}
                     >
                       {row.sub}
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 18, color: P.dim }}>›</Text>
+                  <Text style={{ fontSize: FONT_SIZES.lg, color: P.dim }}>›</Text>
                 </View>
               )}
             </Pressable>
@@ -134,9 +134,9 @@ export function MenuView({ roundLabel, state, dock, onOpen, onSettings, onResign
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 13,
+                gap: SPACING['3.5'],
                 padding: 15,
-                borderRadius: 15,
+                borderRadius: RADIUS['2xl'],
                 borderWidth: 1,
                 borderColor: P.line,
                 backgroundColor: P.panel,
@@ -147,7 +147,7 @@ export function MenuView({ roundLabel, state, dock, onOpen, onSettings, onResign
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: 12,
+                  borderRadius: RADIUS.xl,
                   borderWidth: 1,
                   borderColor: P.line,
                   backgroundColor: P.panel2,
@@ -155,15 +155,15 @@ export function MenuView({ roundLabel, state, dock, onOpen, onSettings, onResign
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: 18, color: P.dim }}>⚙</Text>
+                <Text style={{ fontSize: FONT_SIZES.lg, color: P.dim }}>⚙</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 14, color: P.ink }}>Settings</Text>
-                <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 10.5, color: P.soft, marginTop: 2 }}>
+                <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.sm, color: P.ink }}>Settings</Text>
+                <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.caption, color: P.soft, marginTop: 2 }}>
                   Sound, animations, theme
                 </Text>
               </View>
-              <Text style={{ fontSize: 18, color: P.dim }}>›</Text>
+              <Text style={{ fontSize: FONT_SIZES.lg, color: P.dim }}>›</Text>
             </View>
           )}
         </Pressable>

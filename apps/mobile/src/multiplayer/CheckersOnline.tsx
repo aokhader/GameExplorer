@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { useGameSession } from '@gameexplorer/client';
 import { formatClockShort } from '@gameexplorer/shared';
 import type { CheckersGameState, TimeControl } from '@gameexplorer/shared';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES } from '@gameexplorer/ui';
 import { CheckersBoard } from '@/board/CheckersBoard';
 import { FONTS } from '@/theme/typography';
 import { OnlineGameLayout } from './OnlineGameLayout';
@@ -78,7 +78,7 @@ function CheckersMoveList({ state }: { state: CheckersGameState }) {
 
   if (state.moveHistory.length === 0) {
     return (
-      <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: 13 }}>
+      <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
         No moves yet.
       </Text>
     );
@@ -87,7 +87,7 @@ function CheckersMoveList({ state }: { state: CheckersGameState }) {
   return (
     <View>
       {state.moveHistory.map((m, i) => (
-        <Text key={i} style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13 }}>
+        <Text key={i} style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
           {i + 1}. {m.from}→{m.to}
           {m.captures.length > 0 ? ` ×${m.captures.length}` : ''}
         </Text>

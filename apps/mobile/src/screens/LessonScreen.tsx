@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 // be tested without standing up either.
 import { useLesson } from '@gameexplorer/client/hooks/useLesson';
 import type { LessonGame } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Button, Screen, BackHeader } from '@/components/ui';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { InteractiveBoard } from '@/board/InteractiveBoard';
@@ -69,7 +69,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
       <Screen scroll={false}>
         <BackHeader title="Lesson" fallbackHref={`/learn/${game}`} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 15 }}>Loading…</Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.body }}>Loading…</Text>
         </View>
       </Screen>
     );
@@ -80,9 +80,9 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
       <Screen scroll={false}>
         <BackHeader title="Lesson" fallbackHref={`/learn/${game}`} />
         <View
-          style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACING[4], padding: 24 }}
         >
-          <Text style={{ color: COLORS.fgMuted, fontSize: 15, textAlign: 'center' }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.body, textAlign: 'center' }}>
             {error ?? 'That lesson has been renamed or removed.'}
           </Text>
           <Button
@@ -108,7 +108,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
       backHref={`/learn/${game}`}
       title={lesson.title}
       headerActions={
-        <Text testID="lesson-progress" style={{ color: COLORS.fgMuted, fontSize: 13 }}>
+        <Text testID="lesson-progress" style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label }}>
           {Math.min(stepIndex + 1, stepCount)} / {stepCount}
         </Text>
       }
@@ -118,7 +118,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
       // line that wraps to four lines only makes the column taller — and what
       // you are being asked to do belongs above the thing you do it on.
       topCard={
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: SPACING[2] }}>
           <StepDots stepIndex={stepIndex} stepCount={stepCount} accentColor={accent.base} />
           <CoachCard
             game={game}
@@ -143,7 +143,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
       }
       sidebar={
         done ? (
-          <View style={{ gap: 8 }} testID="lesson-done">
+          <View style={{ gap: SPACING[2] }} testID="lesson-done">
             <Button
               label={nextLesson ? `Next: ${nextLesson.title}` : `${GAME_LABEL[game]} puzzles`}
               glow
@@ -162,7 +162,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
             />
           </View>
         ) : (
-          <Text style={{ color: COLORS.fgSubtle, fontSize: 12, fontFamily: FONTS.body }}>
+          <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs, fontFamily: FONTS.body }}>
             {lesson.summary}
           </Text>
         )
@@ -214,7 +214,7 @@ function StepDots({
       testID="lesson-rail"
       accessibilityRole="progressbar"
       accessibilityLabel={`${done} of ${stepCount} steps done`}
-      style={{ flexDirection: 'row', gap: 4 }}
+      style={{ flexDirection: 'row', gap: SPACING[1] }}
     >
       {Array.from({ length: stepCount }, (_, i) => (
         <View
@@ -222,7 +222,7 @@ function StepDots({
           style={{
             flex: 1,
             height: 4,
-            borderRadius: 2,
+            borderRadius: RADIUS.full,
             backgroundColor:
               i < done ? accentColor : i === done ? COLORS.fgSubtle : COLORS.surfaceMuted,
           }}

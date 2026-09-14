@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Button } from '@/components/ui';
 import { GameScreenLayout, type GameAccent } from '@/game/GameScreenLayout';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { MoveBand } from '@/game/MoveBand';
 import { EvalBar } from './EvalBar';
 import { GRADE_META, SUMMARY_ORDER } from './grades';
@@ -99,13 +100,13 @@ export function ReviewScreen<S>({
           style={{
             paddingHorizontal: 12,
             paddingVertical: 6,
-            borderRadius: 10,
+            borderRadius: RADIUS.xl,
             borderWidth: 1,
             borderColor: COLORS.border,
             backgroundColor: COLORS.surfaceMuted,
           }}
         >
-          <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: 13 }}>Done</Text>
+          <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.label }}>Done</Text>
         </Pressable>
       }
       topCard={<EvalBar share={share} label={label} busy={liveBusy} />}
@@ -115,21 +116,21 @@ export function ReviewScreen<S>({
           {/* What the engine thinks of the position on screen. */}
           <View
             style={{
-              borderRadius: 12,
+              borderRadius: RADIUS.xl,
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: COLORS.surfaceAlt,
               padding: 12,
-              gap: 4,
+              gap: SPACING[1],
             }}
           >
-            <Text style={{ color: COLORS.fgMuted, fontSize: 12, fontFamily: FONTS.displaySemi, letterSpacing: 0.8 }}>
+            <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, fontFamily: FONTS.displaySemi, letterSpacing: 0.8 }}>
               {viewIndex === 0 ? 'STARTING POSITION' : `AFTER MOVE ${viewIndex}`}
             </Text>
             {currentGrade ? (
               <MoveVerdict grade={currentGrade} formatMove={formatMove} />
             ) : (
-              <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13, lineHeight: 19 }}>
+              <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, lineHeight: 19 }}>
                 {viewIndex === 0
                   ? 'Step forward to walk through the game.'
                   : scanning
@@ -138,7 +139,7 @@ export function ReviewScreen<S>({
               </Text>
             )}
             {evaluation?.bestMove && (
-              <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13 }}>
+              <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
                 Engine plays{' '}
                 <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodyBold }}>
                   {formatMove(evaluation.bestMove)}
@@ -152,12 +153,12 @@ export function ReviewScreen<S>({
           {/* Scan control + per-side tallies. */}
           <View
             style={{
-              borderRadius: 12,
+              borderRadius: RADIUS.xl,
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: COLORS.surfaceAlt,
               padding: 12,
-              gap: 10,
+              gap: SPACING['2.5'],
             }}
           >
             {scanning ? (
@@ -184,7 +185,7 @@ export function ReviewScreen<S>({
               </>
             ) : (
               <>
-                <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13, lineHeight: 19 }}>
+                <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, lineHeight: 19 }}>
                   Score every move to find your blunders, mistakes, and best finds.
                 </Text>
                 <Button label="Review every move" onPress={onScan} />
@@ -194,7 +195,7 @@ export function ReviewScreen<S>({
             {error && (
               <Text
                 accessibilityLiveRegion="polite"
-                style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: 12 }}
+                style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs }}
               >
                 {error}
               </Text>
@@ -229,13 +230,13 @@ function MoveVerdict({
 
   const meta = GRADE_META[grade.grade];
   return (
-    <View style={{ gap: 2 }}>
-      <Text style={{ color: meta.color(), fontFamily: FONTS.displaySemi, fontSize: 16 }}>
+    <View style={{ gap: SPACING['0.5'] }}>
+      <Text style={{ color: meta.color(), fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.base }}>
         {meta.glyph ? `${meta.glyph} ` : ''}
         {meta.label}
       </Text>
       {grade.better && (
-        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13 }}>
+        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
           Better was{' '}
           <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodyBold }}>
             {formatMove(grade.better)}
@@ -252,14 +253,14 @@ function ScanProgressBar({ progress, accentColor }: { progress: ScanProgress; ac
 
   const pct = progress.total > 0 ? progress.done / progress.total : 0;
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: SPACING['1.5'] }}>
       <Text
         accessibilityLiveRegion="polite"
-        style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13 }}
+        style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}
       >
         Reviewing… {progress.done} of {progress.total} positions
       </Text>
-      <View style={{ height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: COLORS.surfaceMuted }}>
+      <View style={{ height: 6, borderRadius: RADIUS.full, overflow: 'hidden', backgroundColor: COLORS.surfaceMuted }}>
         <View style={{ height: '100%', width: `${pct * 100}%`, backgroundColor: accentColor }} />
       </View>
     </View>
@@ -271,21 +272,21 @@ function SummaryRow({ heading, counts }: { heading: string; counts: Record<MoveG
   useThemeName();
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-      <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 14, width: 52 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['2.5'], flexWrap: 'wrap' }}>
+      <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.sm, width: 52 }}>
         {heading}
       </Text>
       {SUMMARY_ORDER.map((grade) => {
         const meta = GRADE_META[grade];
         return (
-          <View key={grade} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View key={grade} style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[1] }}>
             <Text
               accessibilityLabel={`${counts[grade]} ${meta.label}`}
-              style={{ color: meta.color(), fontFamily: FONTS.bodyBold, fontSize: 14 }}
+              style={{ color: meta.color(), fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.sm }}
             >
               {counts[grade]}
             </Text>
-            <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 12 }}>
+            <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs }}>
               {meta.label.toLowerCase()}
             </Text>
           </View>
@@ -314,18 +315,18 @@ function ReviewBar({
   const last = total - 1;
   const seek = (index: number) => onSeek(Math.max(0, Math.min(last, index)));
 
-  const buttons: { glyph: string; label: string; to: number; disabled: boolean }[] = [
-    { glyph: '⇤', label: 'First move', to: 0, disabled: viewIndex <= 0 },
-    { glyph: '◀', label: 'Previous move', to: viewIndex - 1, disabled: viewIndex <= 0 },
-    { glyph: '▶', label: 'Next move', to: viewIndex + 1, disabled: viewIndex >= last },
-    { glyph: '⇥', label: 'Last move', to: last, disabled: viewIndex >= last },
+  const buttons: { icon: IconName; label: string; to: number; disabled: boolean }[] = [
+    { icon: 'arrow-line-left', label: 'First move', to: 0, disabled: viewIndex <= 0 },
+    { icon: 'caret-left', label: 'Previous move', to: viewIndex - 1, disabled: viewIndex <= 0 },
+    { icon: 'caret-right', label: 'Next move', to: viewIndex + 1, disabled: viewIndex >= last },
+    { icon: 'arrow-line-right', label: 'Last move', to: last, disabled: viewIndex >= last },
   ];
 
   return (
     <View
       style={{
         flexDirection: 'row',
-        gap: 6,
+        gap: SPACING['1.5'],
         paddingHorizontal: 8,
         paddingVertical: 8,
         borderTopWidth: 1,
@@ -347,7 +348,7 @@ function ReviewBar({
             <View
               style={{
                 minHeight: 46,
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.border,
                 backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceMuted,
@@ -356,7 +357,7 @@ function ReviewBar({
                 opacity: b.disabled ? 0.35 : 1,
               }}
             >
-              <Text style={{ color: COLORS.fg, fontSize: 16 }}>{b.glyph}</Text>
+              <Icon name={b.icon} size={FONT_SIZES.xl} color={COLORS.fg} />
             </View>
           )}
         </Pressable>

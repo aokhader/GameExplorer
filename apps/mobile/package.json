@@ -40,7 +40,6 @@
     "expo-status-bar": "~57.0.1",
     "expo-updates": "~57.0.15",
     "expo-web-browser": "~57.0.2",
-    "nativewind": "~4.2.6",
     "react": "19.2.3",
     "react-native": "0.86.2",
     "react-native-arasan": "link:./modules/react-native-arasan",
@@ -63,7 +62,6 @@
     "jest": "~29.7.0",
     "jest-expo": "~57.0.4",
     "react-test-renderer": "19.2.4",
-    "tailwindcss": "^3.4.17",
     "typescript": "~5.9.2"
   },
   "expo": {

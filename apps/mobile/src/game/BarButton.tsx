@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { FONTS } from '@/theme/typography';
 
-export interface BarButtonProps {
-  glyph: string;
+export type BarButtonProps = {
   label: string;
   hint?: string;
   /** Small counter in the corner (hints taken, unread messages). */
@@ -12,7 +12,12 @@ export interface BarButtonProps {
   onPress: () => void;
   disabled?: boolean;
   danger?: boolean;
-}
+} & (
+  /** An interface action, drawn as an icon. */
+  | { icon: IconName; text?: never }
+  /** Content rather than chrome — an emote the player is about to send. */
+  | { text: string; icon?: never }
+);
 
 /**
  * One cell of an in-game control bar — an icon button that splits the bar's
@@ -24,7 +29,8 @@ export interface BarButtonProps {
  * measure exactly like the single-player one it sits beside in the same app.
  */
 export function BarButton({
-  glyph,
+  icon,
+  text,
   label,
   hint,
   badge,
@@ -36,9 +42,9 @@ export function BarButton({
   useThemeName();
 
   // `style` stays a plain object and the pressed state is read from the children
-  // function, matching `Button`/`GameActions`. A function-form `style` is
-  // silently dropped on this app's Pressable (NativeWind wraps it), which shows
-  // up as buttons with no background and no width.
+  // function, matching `Button`/`GameActions`. This began as a workaround —
+  // NativeWind's Pressable wrapper dropped a function-form `style` — and stays
+  // as the one way controls in this app are written now that NativeWind is gone.
   return (
     <Pressable
       onPress={onPress}
@@ -54,7 +60,7 @@ export function BarButton({
           style={{
             flex: 1,
             minHeight: 46,
-            borderRadius: 12,
+            borderRadius: RADIUS.xl,
             borderWidth: 1,
             borderColor: danger ? COLORS.danger : COLORS.border,
             backgroundColor: danger
@@ -67,9 +73,14 @@ export function BarButton({
             opacity: disabled ? 0.35 : 1,
           }}
         >
-          <Text style={{ color: danger ? COLORS.dangerHover : COLORS.fg, fontSize: 16 }}>
-            {glyph}
-          </Text>
+          {/* Decorative either way: the button's accessibility label names it. */}
+          {icon ? (
+            <Icon name={icon} size={FONT_SIZES.xl} color={danger ? COLORS.dangerHover : COLORS.fg} />
+          ) : (
+            <Text importantForAccessibility="no" style={{ fontSize: FONT_SIZES.xl }}>
+              {text}
+            </Text>
+          )}
           {badge && (
             <Text
               // The count is already in the button's accessibility label; a
@@ -80,7 +91,7 @@ export function BarButton({
                 top: 4,
                 right: 6,
                 color: COLORS.warningHover,
-                fontSize: 10,
+                fontSize: FONT_SIZES['2xs'],
                 fontFamily: FONTS.bodyBold,
               }}
             >

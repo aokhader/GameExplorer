@@ -4,7 +4,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { GoEngine, confirmPlacementFor, goColumnLabel } from '@gameexplorer/shared';
 import type { GoColor, GoGameState, LessonMark } from '@gameexplorer/shared';
-import { GO_BOARD_COLORS, goStarPoints, GoStone } from '@gameexplorer/ui';
+import { GO_BOARD_COLORS, goStarPoints, GoStone, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
 import { placementOnRelease } from './goPlacement';
@@ -532,7 +532,7 @@ function GoBoardInner({
               style={{
                 width: px,
                 height: px,
-                borderRadius: 10,
+                borderRadius: RADIUS.xl,
                 overflow: 'hidden',
                 borderWidth: 2,
                 borderColor: GO_BOARD_COLORS.boardBorder,
@@ -567,7 +567,7 @@ function GoBoardInner({
                         bottom: 1,
                         width: cell,
                         textAlign: 'center',
-                        fontSize: 9,
+                        fontSize: FONT_SIZES['3xs'],
                         fontFamily: FONTS.bodyBold,
                         color: GO_BOARD_COLORS.coordinate,
                       }}
@@ -579,7 +579,7 @@ function GoBoardInner({
                         position: 'absolute',
                         top: at(size - 1 - i) - 6,
                         left: 2,
-                        fontSize: 9,
+                        fontSize: FONT_SIZES['3xs'],
                         fontFamily: FONTS.bodyBold,
                         color: GO_BOARD_COLORS.coordinate,
                       }}

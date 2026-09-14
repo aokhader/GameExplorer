@@ -24,10 +24,11 @@ jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').m
 const mockBoard: { move: string; props: Record<string, unknown> } = { move: 'e5', props: {} };
 
 /**
- * Declared out here and named `mock*` on purpose. A component written inline in
- * the `jest.mock` factory trips the out-of-scope guard: nativewind's babel
- * transform hoists a `_ReactNativeCSSInterop` helper to module scope, and the
- * factory would then be closing over it. Same shape as `PuzzleScreen.test.tsx`.
+ * Declared out here and named `mock*` on purpose: a `jest.mock` factory may only
+ * close over variables whose names start with `mock`. It was first forced by
+ * NativeWind's JSX transform, which hoisted a helper the inline component closed
+ * over; NativeWind is gone, and the shape stays because it is the safe one. Same
+ * shape as `PuzzleScreen.test.tsx`.
  */
 function mockGoBoardModule() {
   // eslint-disable-next-line @typescript-eslint/no-require-imports

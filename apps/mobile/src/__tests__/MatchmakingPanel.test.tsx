@@ -3,6 +3,10 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { MatchmakingPanel, type TimeControlOption } from '@/multiplayer/MatchmakingPanel';
 import { fakeSession } from './helpers/fakeSession';
 
+// Renders shared primitives, which animate with reanimated.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').mockReanimated());
+
 const TIME_CONTROLS: TimeControlOption[] = [
   { id: 'bullet', label: 'Bullet', desc: '1 min' },
   { id: 'blitz', label: 'Blitz', desc: '3 min +2s' },

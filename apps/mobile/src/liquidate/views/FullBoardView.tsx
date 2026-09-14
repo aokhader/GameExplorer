@@ -13,14 +13,21 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
 } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { LiquidateBoard, BoardWellCaption } from '../LiquidateBoard';
 import { seatColor, systemColor } from '../lqTheme';
 import type { PlacedToken } from '@gameexplorer/client/liquidate/useLiquidateWalk';
 import { ViewHeader, ViewSection } from './ViewChrome';
+import { timing } from '@/theme/motion';
 
 const MAX_ZOOM = 2.5;
+
+/**
+ * The snap back to 1× after a pinch-out. Built here because it runs inside the
+ * pinch worklet, which can capture a config but cannot call the helper.
+ */
+const ZOOM_RESET = timing('moderate', 'standard');
 
 export interface FullBoardViewProps {
   state: LiquidateGameState;
@@ -82,9 +89,9 @@ export function FullBoardView({
         'worklet';
         savedScale.value = scale.value;
         if (scale.value <= 1.01) {
-          scale.value = withTiming(1);
-          tx.value = withTiming(0);
-          ty.value = withTiming(0);
+          scale.value = withTiming(1, ZOOM_RESET);
+          tx.value = withTiming(0, ZOOM_RESET);
+          ty.value = withTiming(0, ZOOM_RESET);
           savedScale.value = 1;
           savedX.value = 0;
           savedY.value = 0;
@@ -152,7 +159,7 @@ export function FullBoardView({
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 22 }}>
         <ViewSection>System control</ViewSection>
-        <View style={{ gap: 9 }}>
+        <View style={{ gap: SPACING['2.5'] }}>
           {systems.map((system) => {
             const members = systemMembers(state.config.mode, system);
             const owners = members.map((id) => state.tiles[id]!.ownerId);
@@ -166,18 +173,18 @@ export function FullBoardView({
             const partial = claimed > 0 && !holder;
 
             return (
-              <View key={system} style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+              <View key={system} style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['2.5'] }}>
                 <View
                   style={{
                     width: 11,
                     height: 11,
-                    borderRadius: 3,
+                    borderRadius: RADIUS.sm,
                     backgroundColor: systemColor(system),
                   }}
                 />
                 <Text
                   numberOfLines={1}
-                  style={{ width: 62, fontFamily: FONTS.bodyBold, fontSize: 12, color: P.ink }}
+                  style={{ width: 62, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xs, color: P.ink }}
                 >
                   {system[0]!.toUpperCase() + system.slice(1)}
                 </Text>
@@ -185,7 +192,7 @@ export function FullBoardView({
                   style={{
                     flex: 1,
                     height: 8,
-                    borderRadius: 4,
+                    borderRadius: RADIUS.full,
                     overflow: 'hidden',
                     backgroundColor: P.track,
                   }}
@@ -194,7 +201,7 @@ export function FullBoardView({
                     style={{
                       width: `${Math.round((claimed / members.length) * 100)}%`,
                       height: '100%',
-                      borderRadius: 4,
+                      borderRadius: RADIUS.sm,
                       backgroundColor: systemColor(system),
                     }}
                   />
@@ -205,7 +212,7 @@ export function FullBoardView({
                     minWidth: 46,
                     textAlign: 'right',
                     fontFamily: FONTS.bodyBold,
-                    fontSize: 11,
+                    fontSize: FONT_SIZES.caption,
                     color: holder
                       ? seatColor(state.players.findIndex((p) => p.id === holder.id))
                       : partial

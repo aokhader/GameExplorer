@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LESSONS, isLessonCompleted } from '@gameexplorer/shared';
 import type { LessonGame } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { mobileLessonProgressStore } from '@/lib/lessonProgress';
 import { FONTS } from '@/theme/typography';
 
@@ -70,37 +70,37 @@ export function LessonsCard({ game }: LessonsCardProps) {
       // `push`, never `replace`: replacing the current route with a game screen
       // crashes Fabric on Android roughly two runs in three.
       onPress={() => router.push(`/lesson/${game}/${next.id}` as never)}
-      // A plain object, with the pressed state read from the children function.
-      // A function-form `style` is silently dropped on this app's Pressable.
+      // A plain object, with the pressed state read from the children function —
+      // the way every control in this app is written.
       style={{ marginBottom: 24 }}
     >
       {({ pressed }) => (
         <View
           style={{
-            borderRadius: 14,
+            borderRadius: RADIUS['2xl'],
             borderWidth: 1,
             borderColor: allDone ? accent.tintBorder : COLORS.border,
             backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceAlt,
             padding: 16,
-            gap: 10,
+            gap: SPACING['2.5'],
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
             <Text
-              style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, flex: 1 }}
+              style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, flex: 1 }}
             >
               Coached lessons
             </Text>
             <Text
               testID="lessons-card-progress"
-              style={{ color: accent.base, fontFamily: FONTS.bodyBold, fontSize: 13 }}
+              style={{ color: accent.base, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.label }}
             >
               {done} / {lessons.length}
             </Text>
           </View>
 
           <Text
-            style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 12, lineHeight: 18 }}
+            style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, lineHeight: 18 }}
           >
             {allDone
               ? 'You have finished every lesson. Tap to play one again.'
@@ -114,7 +114,7 @@ export function LessonsCard({ game }: LessonsCardProps) {
             importantForAccessibility="no-hide-descendants"
             style={{
               height: 6,
-              borderRadius: 3,
+              borderRadius: RADIUS.full,
               overflow: 'hidden',
               backgroundColor: COLORS.surfaceMuted,
             }}

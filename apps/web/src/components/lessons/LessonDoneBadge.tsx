@@ -29,7 +29,7 @@ export function LessonDoneBadge({ lessonId }: { lessonId: string }) {
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success-hover"
+      className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-2xs font-bold uppercase tracking-wide text-success-hover"
       data-testid="lesson-done-badge"
     >
       Done

@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { useGameSession } from '@gameexplorer/client';
 import { ReversiEngine, formatClockShort } from '@gameexplorer/shared';
 import type { ReversiGameState, TimeControl } from '@gameexplorer/shared';
-import { COLORS, REVERSI_DISC_COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, REVERSI_DISC_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { ReversiBoard } from '@/board/ReversiBoard';
 import { FONTS } from '@/theme/typography';
 import { OnlineGameLayout } from './OnlineGameLayout';
@@ -87,8 +87,8 @@ function DiscCountBar({ state }: { state: ReversiGameState }) {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 20,
-        borderRadius: 12,
+        gap: SPACING[5],
+        borderRadius: RADIUS.xl,
         borderWidth: 1,
         borderColor: COLORS.border,
         backgroundColor: COLORS.surfaceAlt,
@@ -101,7 +101,7 @@ function DiscCountBar({ state }: { state: ReversiGameState }) {
         count={counts.black}
         label="Black"
       />
-      <Text style={{ color: COLORS.fgMuted, fontSize: 12 }}>vs</Text>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs }}>vs</Text>
       <Disc
         color={REVERSI_DISC_COLORS.white.fill}
         border={REVERSI_DISC_COLORS.white.stroke}
@@ -129,19 +129,19 @@ function Disc({
   return (
     <View
       accessibilityLabel={`${label}: ${count} discs`}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['1.5'] }}
     >
       <View
         style={{
           width: 14,
           height: 14,
-          borderRadius: 7,
+          borderRadius: RADIUS.full,
           backgroundColor: color,
           borderWidth: 2,
           borderColor: border,
         }}
       />
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>{count}</Text>
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold }}>{count}</Text>
     </View>
   );
 }
@@ -152,7 +152,7 @@ function ReversiMoveList({ state }: { state: ReversiGameState }) {
 
   if (state.moveHistory.length === 0) {
     return (
-      <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: 13 }}>
+      <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
         No moves yet.
       </Text>
     );
@@ -161,7 +161,7 @@ function ReversiMoveList({ state }: { state: ReversiGameState }) {
   return (
     <View>
       {state.moveHistory.map((m, i) => (
-        <Text key={i} style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13 }}>
+        <Text key={i} style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
           {i + 1}. {m.color[0].toUpperCase()} {m.position ?? '(pass)'}
           {m.flipped.length > 0 ? ` +${m.flipped.length}` : ''}
         </Text>

@@ -21,7 +21,7 @@ export function DiscCountBar({ black, white }: DiscCountBarProps) {
 
   return (
     <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-      <span className="flex items-center gap-1.5 text-[15px] font-bold text-[var(--c-game-reversi-light)]">
+      <span className="flex items-center gap-1.5 text-body font-bold text-[var(--c-game-reversi-light)]">
         <span
           className="inline-flex rounded-full"
           style={{ boxShadow: '0 0 8px var(--c-game-reversi-glow)' }}
@@ -39,7 +39,7 @@ export function DiscCountBar({ black, white }: DiscCountBarProps) {
         />
         <div className="flex-1 bg-[var(--gx-board-dark,#2a3550)]" />
       </div>
-      <span className="flex items-center gap-1.5 text-[15px] font-bold text-fg-muted">
+      <span className="flex items-center gap-1.5 text-body font-bold text-fg-muted">
         {black}
         <span className="sr-only">black discs</span>
         <span className="inline-flex" aria-hidden="true">

@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { GradientText, Reveal } from '@/components/visual';
 import { GameIcon } from '@/components/game/GameIcon';
+import { Icon, type IconName } from '@gameexplorer/ui';
 
 type GameMode = {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  icon: IconName;
   href: string;
   gradient: string;
   available: boolean;
@@ -20,7 +21,7 @@ const gameModes: GameMode[] = [
     id: 'bot',
     title: 'Play vs Bots',
     description: 'Take on up to five AI barons, from cautious to ruthless',
-    icon: '🤖',
+    icon: 'robot',
     href: '/liquidate/bot',
     gradient: 'from-info to-info-hover',
     available: true,
@@ -29,7 +30,7 @@ const gameModes: GameMode[] = [
     id: 'local',
     title: 'Pass & Play',
     description: 'Two to six players sharing one device, taking turns',
-    icon: '👥',
+    icon: 'users',
     href: '/liquidate/local',
     gradient: 'from-accent to-accent-hover',
     available: true,
@@ -38,7 +39,7 @@ const gameModes: GameMode[] = [
     id: 'multiplayer',
     title: 'Online Multiplayer',
     description: 'Play against barons around the world',
-    icon: '🌐',
+    icon: 'globe',
     href: '/liquidate/play',
     gradient: 'from-accent to-info',
     available: false,
@@ -47,7 +48,7 @@ const gameModes: GameMode[] = [
     id: 'learn',
     title: 'How to Play',
     description: 'Rents, colonies, auctions and bankruptcy — the rules in two minutes',
-    icon: '🎓',
+    icon: 'graduation-cap',
     href: '/liquidate/learn',
     gradient: 'from-success to-success-hover',
     available: true,
@@ -108,7 +109,7 @@ export default function LiquidateLandingPage() {
                         <div
                           className={`mb-4 inline-flex h-16 w-16 items-center justify-center rounded-xl bg-linear-to-br ${mode.gradient} shadow-md transition-transform duration-300 group-hover:scale-110`}
                         >
-                          <span className="text-4xl">{mode.icon}</span>
+                          <Icon name={mode.icon} className="text-4xl text-white" />
                         </div>
                         <h2 className="mb-2 text-2xl font-bold text-fg transition-all group-hover:bg-linear-to-r group-hover:from-accent group-hover:to-accent-hover group-hover:bg-clip-text group-hover:text-transparent">
                           {mode.title}
@@ -136,7 +137,7 @@ export default function LiquidateLandingPage() {
                       <div
                         className={`mb-4 inline-flex h-16 w-16 items-center justify-center rounded-xl bg-linear-to-br ${mode.gradient} opacity-50`}
                       >
-                        <span className="text-4xl">{mode.icon}</span>
+                        <Icon name={mode.icon} className="text-4xl text-white" />
                       </div>
                       <h2 className="mb-2 text-2xl font-bold text-fg">{mode.title}</h2>
                       <p className="mb-4 text-fg-muted">{mode.description}</p>
@@ -158,21 +159,21 @@ export default function LiquidateLandingPage() {
           <h3 className="mb-4 text-center text-xl font-semibold text-fg">How It Works</h3>
           <div className="grid grid-cols-1 gap-6 text-center md:grid-cols-3">
             <div>
-              <div className="mb-2 text-2xl">🎲</div>
+              <div className="mb-2 text-2xl text-accent"><Icon name="dice-five" /></div>
               <div className="text-sm font-medium text-fg">Roll and Claim</div>
               <div className="mt-1 text-xs text-fg-muted">
                 Buy the planet you land on, or send it to auction
               </div>
             </div>
             <div>
-              <div className="mb-2 text-2xl">🏗️</div>
+              <div className="mb-2 text-2xl text-accent"><Icon name="buildings" /></div>
               <div className="text-sm font-medium text-fg">Corner a System</div>
               <div className="mt-1 text-xs text-fg-muted">
                 Hold every planet in a system to double rent and build colonies
               </div>
             </div>
             <div>
-              <div className="mb-2 text-2xl">💥</div>
+              <div className="mb-2 text-2xl text-accent"><Icon name="coins" /></div>
               <div className="text-sm font-medium text-fg">Last One Solvent</div>
               <div className="mt-1 text-xs text-fg-muted">
                 Mortgage, trade and squeeze until only one baron is left

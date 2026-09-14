@@ -16,7 +16,7 @@ import {
 import { puzzleCorpusUrl } from '@/config/corpus';
 import { mobilePuzzleChunkCache } from '@/lib/puzzleChunkCache';
 import type { PuzzleGame, PuzzlePhase } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button } from '@/components/ui';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { StatusBanner } from '@/game/StatusBanner';
@@ -202,7 +202,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
             : `That's all ${total} at ${band.label}. Try another band, or start this one again.`
         }
         action={
-          <View style={{ width: '100%', gap: 12 }}>
+          <View style={{ width: '100%', gap: SPACING[3] }}>
             <PuzzleBandPicker
               game={game}
               band={band}
@@ -228,7 +228,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
       backHref="/"
       title="Puzzles"
       headerActions={
-        <Text testID="puzzle-progress" style={{ color: COLORS.fgMuted, fontSize: 13 }}>
+        <Text testID="puzzle-progress" style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label }}>
           {solved} / {total}
           {progress.streak > 0 ? ` · streak ${progress.streak}` : ''}
         </Text>
@@ -241,38 +241,38 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
       topCard={
         <View
           style={{
-            borderRadius: 12,
+            borderRadius: RADIUS.xl,
             borderWidth: 1,
             borderColor: COLORS.border,
             backgroundColor: COLORS.surfaceAlt,
             padding: 12,
-            gap: 8,
+            gap: SPACING[2],
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
             <Text
               style={{
                 color: accent.base,
                 borderColor: accent.tintBorder,
                 backgroundColor: accent.tintBg,
                 borderWidth: 1,
-                borderRadius: 999,
+                borderRadius: RADIUS.full,
                 paddingHorizontal: 8,
                 paddingVertical: 2,
-                fontSize: 11,
+                fontSize: FONT_SIZES.caption,
                 fontFamily: FONTS.bodyBold,
                 textTransform: 'capitalize',
               }}
             >
               {puzzle.difficulty}
             </Text>
-            <Text style={{ color: COLORS.fgMuted, fontSize: 12, textTransform: 'capitalize' }}>
+            <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, textTransform: 'capitalize' }}>
               You play {puzzle.playerColor}
             </Text>
           </View>
           <Text
             testID="puzzle-prompt"
-            style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}
+            style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}
           >
             {puzzle.prompt}
           </Text>
@@ -310,7 +310,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
               is what makes it reachable without sight — same reasoning as the
               training screens' Hints cell. */}
           {hint && (
-            <Text style={{ color: COLORS.warningHover, fontSize: 13 }}>
+            <Text style={{ color: COLORS.warningHover, fontSize: FONT_SIZES.label }}>
               Play {hint.from === hint.to ? hint.to : `${hint.from} → ${hint.to}`}
             </Text>
           )}
@@ -318,18 +318,18 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
           {phase === 'solved' && (
             <View
               style={{
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.border,
                 backgroundColor: COLORS.surfaceAlt,
                 padding: 12,
-                gap: 6,
+                gap: SPACING['1.5'],
               }}
             >
               <Text
                 style={{
                   color: COLORS.fgMuted,
-                  fontSize: 11,
+                  fontSize: FONT_SIZES.caption,
                   fontFamily: FONTS.bodyBold,
                   letterSpacing: 0.6,
                 }}
@@ -338,12 +338,12 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
               </Text>
               <Text
                 testID="puzzle-explanation"
-                style={{ color: COLORS.fgMuted, fontSize: 14, lineHeight: 21 }}
+                style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, lineHeight: 21 }}
               >
                 {puzzle.explanation}
               </Text>
               {puzzle.source && (
-                <Text style={{ color: COLORS.fgSubtle, fontSize: 11, fontStyle: 'italic' }}>
+                <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.caption, fontStyle: 'italic' }}>
                   {puzzle.source}
                 </Text>
               )}
@@ -351,16 +351,16 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
           )}
 
           {puzzle.themes.length > 0 && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING['1.5'] }}>
               {puzzle.themes.map((theme) => (
                 <Text
                   key={theme}
                   style={{
                     color: COLORS.fgMuted,
-                    fontSize: 11,
+                    fontSize: FONT_SIZES.caption,
                     borderWidth: 1,
                     borderColor: COLORS.border,
-                    borderRadius: 999,
+                    borderRadius: RADIUS.full,
                     paddingHorizontal: 8,
                     paddingVertical: 2,
                   }}
@@ -412,12 +412,12 @@ function EmptyState({
   return (
     <Screen scroll={false}>
       <BackHeader title="Puzzles" fallbackHref="/" />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACING[3] }}>
         <Text
           style={{
             color: COLORS.fg,
             fontFamily: FONTS.displaySemi,
-            fontSize: 20,
+            fontSize: FONT_SIZES.xl,
             textAlign: 'center',
           }}
         >
@@ -426,7 +426,7 @@ function EmptyState({
         <Text
           style={{
             color: COLORS.fgMuted,
-            fontSize: 15,
+            fontSize: FONT_SIZES.body,
             textAlign: 'center',
             maxWidth: 300,
             lineHeight: 22,
@@ -434,7 +434,7 @@ function EmptyState({
         >
           {body}
         </Text>
-        <View style={{ alignSelf: 'stretch', gap: 10, marginTop: 8 }}>
+        <View style={{ alignSelf: 'stretch', gap: SPACING['2.5'], marginTop: 8 }}>
           {action}
           <BackToHomeButton />
         </View>

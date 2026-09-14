@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui';
 import { useToast } from '@/components/ui';
+import { Icon } from '@gameexplorer/ui';
 
 /**
  * Copies a /spectate/<gameId> link so the player can invite people to watch
@@ -26,8 +27,9 @@ export function SpectateLinkButton({ gameId }: { gameId: string }) {
       size="md"
       onClick={copy}
       title="Copy a link so others can watch this game"
+      leftIcon={<Icon name={copied ? 'check' : 'eye'} />}
     >
-      {copied ? '✓ Link copied' : '👁 Spectate link'}
+      {copied ? 'Link copied' : 'Spectate link'}
     </Button>
   );
 }

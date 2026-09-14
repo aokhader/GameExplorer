@@ -65,6 +65,13 @@ SOFTWARE.
   released into the public domain under CC0 1.0 Universal (no attribution required;
   recorded here as a courtesy). They carry GameExplorer's own metallic-gradient
   coloring at render time. CC0 is compatible with this repository's MIT license.
+- **Interface icons — Phosphor Icons (MIT).** The icon path data in
+  [`packages/ui/src/icons/paths.ts`](packages/ui/src/icons/paths.ts) is taken
+  unmodified from [`@phosphor-icons/core`](https://github.com/phosphor-icons/phosphor-core)
+  2.1.1 (Copyright (c) 2023 Phosphor Icons, MIT; full text at
+  [`LICENSES/phosphor-icons-MIT.txt`](LICENSES/phosphor-icons-MIT.txt)). The exact
+  tarball, its integrity hash and the extraction procedure are recorded in
+  [`packages/ui/src/icons/VENDORED.txt`](packages/ui/src/icons/VENDORED.txt).
 
 ## Contributions
 

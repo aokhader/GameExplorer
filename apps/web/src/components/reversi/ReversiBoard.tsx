@@ -130,12 +130,12 @@ export const ReversiBoard = React.memo(function ReversiBoard({
         >
           {/* Coordinate labels */}
           {showRank && (
-            <span className="absolute top-0.5 left-1 text-[10px] font-semibold leading-none select-none pointer-events-none z-10 text-white/70">
+            <span className="absolute top-0.5 left-1 text-2xs font-semibold leading-none select-none pointer-events-none z-10 text-white/70">
               {boardRow + 1}
             </span>
           )}
           {showFile && (
-            <span className="absolute bottom-0.5 right-1 text-[10px] font-semibold leading-none select-none pointer-events-none z-10 text-white/70">
+            <span className="absolute bottom-0.5 right-1 text-2xs font-semibold leading-none select-none pointer-events-none z-10 text-white/70">
               {String.fromCharCode(97 + boardCol)}
             </span>
           )}

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface CustomEloPickerProps {
@@ -90,21 +90,21 @@ export function CustomEloPicker({
   return (
     <View
       style={{
-        borderRadius: 14,
+        borderRadius: RADIUS['2xl'],
         borderWidth: 1,
         borderColor: COLORS.border,
         backgroundColor: tint,
         padding: 16,
-        gap: 14,
+        gap: SPACING['3.5'],
         marginBottom: 10,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <View style={{ flexShrink: 1 }}>
-          <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>
+          <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>
             Custom rating
           </Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
             {strengthBlurb(value)}
           </Text>
         </View>
@@ -123,7 +123,7 @@ export function CustomEloPicker({
             textAlign: 'right',
             color: accent,
             fontFamily: FONTS.displaySemi,
-            fontSize: 30,
+            fontSize: FONT_SIZES['3xl'],
             padding: 0,
           }}
         />
@@ -178,11 +178,11 @@ export function CustomEloPicker({
       </GestureDetector>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: COLORS.fgSubtle, fontSize: 11 }}>{min}</Text>
-        <Text style={{ color: COLORS.fgSubtle, fontSize: 11 }}>{max}</Text>
+        <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.caption }}>{min}</Text>
+        <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.caption }}>{max}</Text>
       </View>
 
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
         {STEPS.map((step) => {
           const next = clamp(value + step);
           const disabled = next === value;
@@ -197,7 +197,7 @@ export function CustomEloPicker({
               style={{
                 flex: 1,
                 minHeight: 40,
-                borderRadius: 10,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.border,
                 backgroundColor: COLORS.surfaceMuted,
@@ -206,7 +206,7 @@ export function CustomEloPicker({
                 opacity: disabled ? 0.35 : 1,
               }}
             >
-              <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>
+              <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold }}>
                 {step > 0 ? `+${step}` : step}
               </Text>
             </Pressable>

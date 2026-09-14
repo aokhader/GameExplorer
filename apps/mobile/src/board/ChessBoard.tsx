@@ -9,7 +9,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import {
-  BOARD_ANIM_MS,
   CHESS_DIFF,
   ChessEngine,
   getChessPremoveDestinations,
@@ -29,12 +28,25 @@ import {
   motionKey,
   useBoardMotion,
 } from '@gameexplorer/client/hooks/useBoardMotion';
-import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
+import { timing } from '@/theme/motion';
+
+// Board motion from MOTION (project-docs/design/motion-spec.md §5.12). `base` is
+// the board's own BOARD_ANIM_MS, held equal by a test in packages/ui; `move` is
+// the travel curve web's PieceSlot uses, so a piece now glides identically on
+// both platforms. Built once here because the drop runs inside a gesture
+// worklet, which can capture a config but cannot call the helper. MOTION is not
+// themed, so this is not the frozen-token trap.
+const TRAVEL = timing('base', 'move');
+const CAPTURE_FADE = timing('base', 'linear');
+const LAND_POP = timing('micro', 'standard');
+const DRAG_LIFT = timing('micro', 'out');
+const DRAG_DROP = timing('micro', 'standard');
 
 interface ChessBoardProps {
   gameState: ChessGameState;
@@ -171,8 +183,8 @@ function BoardPiece({
 
   useEffect(() => {
     if (!offset || reduceMotion) return;
-    tx.value = withTiming(0, { duration: BOARD_ANIM_MS });
-    ty.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    tx.value = withTiming(0, TRAVEL);
+    ty.value = withTiming(0, TRAVEL);
     // Mount-only: `offset` describes the arrival that created this instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -183,8 +195,8 @@ function BoardPiece({
     if (pop && !reduceMotion && !offset) {
       scale.value = 0.75;
       scale.value = withSequence(
-        withTiming(1.1, { duration: 130 }),
-        withTiming(1, { duration: 120 }),
+        withTiming(1.1, LAND_POP),
+        withTiming(1, LAND_POP),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,7 +251,7 @@ function FadingPiece({
   const opacity = useSharedValue(reduceMotion ? 0 : 1);
 
   useEffect(() => {
-    if (!reduceMotion) opacity.value = withTiming(0, { duration: BOARD_ANIM_MS });
+    if (!reduceMotion) opacity.value = withTiming(0, CAPTURE_FADE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -297,17 +309,17 @@ function PromotionPicker({
       <View
         style={{
           backgroundColor: COLORS.surfaceAlt,
-          borderRadius: 16,
+          borderRadius: RADIUS['2xl'],
           borderWidth: 1,
           borderColor: COLORS.border,
           padding: 14,
           alignItems: 'center',
         }}
       >
-        <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold, marginBottom: 10 }}>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold, marginBottom: 10 }}>
           Promote pawn to:
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
           {pieces.map((type) => (
             <Pressable
               key={type}
@@ -315,7 +327,7 @@ function PromotionPicker({
               style={{
                 width: 56,
                 height: 56,
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 backgroundColor: COLORS.surfaceMuted,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -610,7 +622,7 @@ function ChessBoardInner({
       // so only dragging made noise, and web stays quiet on pickup entirely —
       // the 'select' cue is reserved for queueing a premove (see commitMove).
       selectSquare(pos);
-      if (!reducedMotion) dragScale.value = withTiming(1.1, { duration: 90 });
+      if (!reducedMotion) dragScale.value = withTiming(1.1, DRAG_LIFT);
     }
   };
 
@@ -669,7 +681,7 @@ function ChessBoardInner({
         'worklet';
         dragTX.value = 0;
         dragTY.value = 0;
-        dragScale.value = withTiming(1, { duration: 110 });
+        dragScale.value = withTiming(1, DRAG_DROP);
       });
 
     return Gesture.Race(pan, tap);
@@ -755,12 +767,12 @@ function ChessBoardInner({
                 {marks.has(pos) && <BoardMark mark={marks.get(pos)!} size={sq} />}
 
                 {showRank && (
-                  <Text style={{ position: 'absolute', top: 2, left: 3, fontSize: 9, fontFamily: FONTS.bodyBold, color: labelColor, opacity: 0.75 }}>
+                  <Text style={{ position: 'absolute', top: 2, left: 3, fontSize: FONT_SIZES['3xs'], fontFamily: FONTS.bodyBold, color: labelColor, opacity: 0.75 }}>
                     {boardRow + 1}
                   </Text>
                 )}
                 {showFile && (
-                  <Text style={{ position: 'absolute', bottom: 2, right: 3, fontSize: 9, fontFamily: FONTS.bodyBold, color: labelColor, opacity: 0.75 }}>
+                  <Text style={{ position: 'absolute', bottom: 2, right: 3, fontSize: FONT_SIZES['3xs'], fontFamily: FONTS.bodyBold, color: labelColor, opacity: 0.75 }}>
                     {String.fromCharCode(97 + boardCol)}
                   </Text>
                 )}
@@ -914,7 +926,7 @@ function ChessBoardInner({
                 {
                   width: size,
                   height: size,
-                  borderRadius: 10,
+                  borderRadius: RADIUS.xl,
                   overflow: 'hidden',
                   borderWidth: 2,
                   borderColor: COLORS.borderStrong,

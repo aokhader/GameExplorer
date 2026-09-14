@@ -2,6 +2,7 @@
 
 import React, { useLayoutEffect, useState } from 'react';
 import { BOARD_ANIM_MS } from '@gameexplorer/shared';
+import { MOTION } from '@gameexplorer/ui';
 import type { PieceOffset } from '@gameexplorer/client/hooks/useBoardMotion';
 
 /**
@@ -94,7 +95,7 @@ export function PieceSlot({
         // nothing to transition from.
         transition:
           animates && settled
-            ? `transform ${BOARD_ANIM_MS}ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity ${BOARD_ANIM_MS}ms linear`
+            ? `transform ${BOARD_ANIM_MS}ms ${MOTION.EASING_CSS.move}, opacity ${BOARD_ANIM_MS}ms ${MOTION.EASING_CSS.linear}`
             : undefined,
       }}
     >

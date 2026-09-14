@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { getGames } from '@/lib/db';
 import type { GameListItem } from '@/lib/db';
 import { useAuth } from '@/hooks/useAuth';
+import { ChessPiece } from '@gameexplorer/ui';
+import { EmptyState, Skeleton } from '@/components/ui';
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -68,20 +70,24 @@ export default function ReplaysPage() {
         {loading ? (
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-20 rounded-xl bg-white/[0.04] border border-white/10 animate-pulse" />
+              <Skeleton key={i} className="h-20 rounded-xl" />
             ))}
           </div>
         ) : games.length === 0 ? (
-          <div className="text-center py-24">
-            <div className="text-5xl mb-4">♟</div>
-            <p className="text-fg-muted text-lg">No games yet</p>
-            <Link
-              href="/chess/bot"
-              className="mt-6 inline-block px-6 py-3 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-semibold [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
-            >
-              Play your first game
-            </Link>
-          </div>
+          <EmptyState
+            icon="film-strip"
+            title="No games yet"
+            body="Your finished chess games show up here, ready to replay move by move."
+            className="py-24"
+            action={
+              <Link
+                href="/chess/bot"
+                className="inline-block px-6 py-3 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-semibold [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
+              >
+                Play your first game
+              </Link>
+            }
+          />
         ) : (
           <div className="space-y-3">
             {games.map((game) => (
@@ -99,7 +105,7 @@ export default function ReplaysPage() {
                     ? 'bg-[var(--gx-chess-piece-white-1,#ffffff)] text-[var(--gx-chess-piece-black-2,#293350)]'
                     : 'bg-[var(--gx-chess-piece-black-2,#293350)] text-[var(--gx-chess-piece-white-1,#ffffff)]'
                 }`}>
-                  {game.player_color === 'white' ? '♔' : '♚'}
+                  <ChessPiece type="king" color={game.player_color === 'white' ? 'white' : 'black'} size={26} />
                 </div>
 
                 {/* Info */}

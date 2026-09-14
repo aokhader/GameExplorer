@@ -1,6 +1,10 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { GameBar } from '@/game/GameBar';
 import { SettingsProvider } from '@/providers/SettingsProvider';
+
+// The menu is a `Sheet`, which animates with reanimated.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').mockReanimated());
 
 /** A 10-state timeline = 9 moves played. */
 const TOTAL = 10;
@@ -197,7 +201,8 @@ describe('GameBar — menu', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Game menu' }));
     fireEvent.press(menuItem('Close menu'));
 
-    expect(menuItemCount('Flip board')).toBe(0);
+    // A backdrop tap slides the sheet away first, so it closes a beat later.
+    await waitFor(() => expect(menuItemCount('Flip board')).toBe(0));
     expect(onFlipBoard).not.toHaveBeenCalled();
     expect(onNewGame).not.toHaveBeenCalled();
   });

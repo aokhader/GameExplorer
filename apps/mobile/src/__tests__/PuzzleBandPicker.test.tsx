@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { PUZZLE_BANDS, bandById } from '@gameexplorer/shared';
 import { PuzzleBandPicker } from '@/puzzles/PuzzleBandPicker';
 import { SettingsProvider } from '@/providers/SettingsProvider';
@@ -56,15 +56,15 @@ describe('PuzzleBandPicker', () => {
 
   it('ticks a band that is fully solved', () => {
     renderPicker();
-    // Regex, not a string: RNTL's `toHaveTextContent` matches a string exactly,
-    // and the tile's full text is "Beginner ✓600 · 10/10".
-    expect(screen.getByTestId('puzzle-band-beginner')).toHaveTextContent(/Beginner ✓/);
-    expect(screen.getByTestId('puzzle-band-club')).not.toHaveTextContent(/✓/);
+    // The tick is an icon named for assistive tech, so look for its label inside
+    // each tile rather than for a glyph in the tile's text.
+    expect(within(screen.getByTestId('puzzle-band-beginner')).getByLabelText('Completed')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('puzzle-band-club')).queryByLabelText('Completed')).toBeNull();
   });
 
   it('does not tick an empty band — nothing was achieved', () => {
     renderPicker();
-    expect(screen.getByTestId('puzzle-band-master')).not.toHaveTextContent(/✓/);
+    expect(within(screen.getByTestId('puzzle-band-master')).queryByLabelText('Completed')).toBeNull();
   });
 
   it('reports the selected band to assistive tech', () => {

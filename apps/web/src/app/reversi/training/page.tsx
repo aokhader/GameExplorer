@@ -23,6 +23,7 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { StatusBanner } from '@/components/game/StatusBanner';
 import { Button } from '@/components/ui';
+import { Icon } from '@gameexplorer/ui';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -385,7 +386,7 @@ export default function ReversiTrainingPage() {
 
           {/* Hint penalty notice */}
           <div className="bg-warning/10 border border-warning/35 rounded-xl p-4 mb-6 text-sm text-warning-hover">
-            <div className="font-semibold mb-1">💡 Hints available — with a cost</div>
+            <div className="font-semibold mb-1 flex items-center gap-1.5"><Icon name="lightbulb" /> Hints available — with a cost</div>
             Each hint highlights the best square for 3 seconds but applies a <strong>−2 rating penalty</strong> to your result.
           </div>
 
@@ -441,7 +442,7 @@ export default function ReversiTrainingPage() {
     ? liveState.winner === null
       ? `Draw! ${counts.black}–${counts.white}`
       : liveState.winner === playerColor
-        ? `You win! ${counts[playerColor]}–${counts[playerColor === 'black' ? 'white' : 'black']} 🎉`
+        ? `You win! ${counts[playerColor]}–${counts[playerColor === 'black' ? 'white' : 'black']}`
         : `Bot wins. ${counts[playerColor === 'black' ? 'white' : 'black']}–${counts[playerColor]}`
     : null;
 
@@ -565,7 +566,7 @@ export default function ReversiTrainingPage() {
                       : 'bg-white/5 border-white/10 text-fg-subtle cursor-not-allowed'
                   }`}
                 >
-                  <span>💡</span>
+                  <Icon name="lightbulb" />
                   <span>{isHinting ? 'Thinking…' : 'Show Hint'}</span>
                   <span className="text-xs opacity-70">−2 pts</span>
                 </button>
@@ -623,7 +624,7 @@ export default function ReversiTrainingPage() {
                               <span className="mr-1 opacity-60">{colorDot}</span>
                               {formatMoveNotation(move)}
                               {move.flipped.length > 0 && (
-                                <span className="ml-1 opacity-50 text-[10px]">+{move.flipped.length}</span>
+                                <span className="ml-1 opacity-50 text-2xs">+{move.flipped.length}</span>
                               )}
                             </button>
                           </div>

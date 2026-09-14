@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { COLORS, ChessPiece, useThemeName } from '@gameexplorer/ui';
+import { COLORS, ChessPiece, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import type { PieceType } from '@gameexplorer/shared';
 import { FONTS } from '@/theme/typography';
 
@@ -41,7 +41,7 @@ export function CapturedTray({ pieces, color, advantage, ownerLabel }: CapturedT
     <View
       accessible
       accessibilityLabel={capturedLabel(pieces, advantage, ownerLabel)}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['1.5'], flexWrap: 'wrap' }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {pieces.map((type, i) => (
@@ -55,7 +55,7 @@ export function CapturedTray({ pieces, color, advantage, ownerLabel }: CapturedT
         ))}
       </View>
       {advantage > 0 && (
-        <Text style={{ color: COLORS.fgMuted, fontSize: 12, fontFamily: FONTS.bodyBold }}>
+        <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyBold }}>
           +{advantage}
         </Text>
       )}

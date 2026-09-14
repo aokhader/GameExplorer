@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { OAuthButtons } from '@/components/auth/OAuthButtons';
 import { consumeSaveProgressPending, isSaveProgressPending } from '@/lib/onboarding';
 import { FONTS } from '@/theme/typography';
@@ -52,10 +52,10 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
         borderTopWidth: 1,
         borderTopColor: COLORS.border,
         alignSelf: 'stretch',
-        gap: 12,
+        gap: SPACING[3],
       }}
     >
-      <Text style={{ color: COLORS.fgMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' }}>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, lineHeight: 20, textAlign: 'center' }}>
         Create a free account to save your rating, track your match history, and pick up right
         where you left off.
       </Text>
@@ -77,15 +77,15 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
         }}
         style={{ alignItems: 'center', paddingVertical: 10 }}
       >
-        <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>Sign up with email</Text>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>Sign up with email</Text>
       </Pressable>
 
       {error && (
-        <Text style={{ color: COLORS.dangerHover, fontSize: 13, textAlign: 'center' }}>{error}</Text>
+        <Text style={{ color: COLORS.dangerHover, fontSize: FONT_SIZES.label, textAlign: 'center' }}>{error}</Text>
       )}
 
       <Pressable accessibilityRole="button" onPress={dismiss} style={{ alignItems: 'center', paddingVertical: 6 }}>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>
+        <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label }}>
           Maybe later — <Text style={{ fontFamily: FONTS.bodyBold }}>keep playing as guest</Text>
         </Text>
       </Pressable>

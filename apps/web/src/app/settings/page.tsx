@@ -13,6 +13,7 @@ import { playSfx } from '@/lib/sound/synth';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
 import { SUPPORT_EMAIL } from '@/lib/support';
 import { cn } from '@/lib/utils';
+import { Icon } from '@gameexplorer/ui';
 
 // ── Setting row ───────────────────────────────────────────────────────────────
 /** Settings a Toggle can drive — the boolean ones. */
@@ -175,7 +176,7 @@ function ThemeCard({
           {option.name}
         </p>
         {selected && (
-          <span className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-accent text-on-accent">
+          <span className="shrink-0 text-caption font-bold px-2 py-0.5 rounded-full bg-accent text-on-accent">
             Active
           </span>
         )}
@@ -311,7 +312,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <span className="text-fg-subtle group-hover:text-fg transition-colors" aria-hidden>
-                ›
+                <Icon name="caret-right" />
               </span>
             </a>
             <Link
@@ -325,7 +326,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <span className="text-fg-subtle group-hover:text-fg transition-colors" aria-hidden>
-                ›
+                <Icon name="caret-right" />
               </span>
             </Link>
             <Link
@@ -337,7 +338,7 @@ export default function SettingsPage() {
                 <p className="text-sm text-fg-muted">How your data is handled, on web and mobile.</p>
               </div>
               <span className="text-fg-subtle group-hover:text-fg transition-colors" aria-hidden>
-                ›
+                <Icon name="caret-right" />
               </span>
             </Link>
             <Link
@@ -351,7 +352,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <span className="text-fg-subtle group-hover:text-fg transition-colors" aria-hidden>
-                ›
+                <Icon name="caret-right" />
               </span>
             </Link>
           </div>

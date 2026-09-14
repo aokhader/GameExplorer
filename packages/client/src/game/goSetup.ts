@@ -14,14 +14,19 @@
 
 import type { GoGameState, GoMove, GoScoring } from '@gameexplorer/shared';
 
-/** Bot tiers offered on the setup screens, matching the engine's ELO bands. */
+/**
+ * Bot tiers offered on the setup screens, matching the engine's ELO bands.
+ *
+ * Ordered weakest first: each platform's `DifficultyMeter` draws a tier's rank
+ * from its position here, so the order is the ladder.
+ */
 export const GO_DIFFICULTY_LEVELS = [
-  { elo: 500, label: 'Beginner', description: 'Plays nearly at random', icon: '🟢' },
-  { elo: 800, label: 'Casual', description: 'Takes what it can, misses shape', icon: '🔵' },
-  { elo: 1100, label: 'Club', description: 'Reads captures and simple life', icon: '🟡' },
-  { elo: 1400, label: 'Strong', description: 'Fights for territory and eyes', icon: '🟠' },
-  { elo: 1700, label: 'Expert', description: 'Consistent whole-board judgement', icon: '🔴' },
-  { elo: 2000, label: 'Master', description: 'The engine at full strength', icon: '⚫' },
+  { elo: 500, label: 'Beginner', description: 'Plays nearly at random' },
+  { elo: 800, label: 'Casual', description: 'Takes what it can, misses shape' },
+  { elo: 1100, label: 'Club', description: 'Reads captures and simple life' },
+  { elo: 1400, label: 'Strong', description: 'Fights for territory and eyes' },
+  { elo: 1700, label: 'Expert', description: 'Consistent whole-board judgement' },
+  { elo: 2000, label: 'Master', description: 'The engine at full strength' },
 ] as const;
 
 /** Range the rating-matched training bot is clamped into — the calibrated span. */

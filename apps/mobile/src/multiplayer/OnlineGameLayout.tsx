@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Share, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Button, Screen, BackHeader, GlowBackdrop } from '@/components/ui';
 import { GameScreenLayout, type GameAccent } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
@@ -114,13 +114,13 @@ export function OnlineGameLayout({
           style={{
             color: COLORS.fg,
             fontFamily: FONTS.display,
-            fontSize: 26,
+            fontSize: FONT_SIZES.display,
             marginBottom: 6,
           }}
         >
           {title}
         </Text>
-        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 14, marginBottom: 24 }}>
+        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, marginBottom: 24 }}>
           Play a real opponent on a server clock.
         </Text>
 
@@ -132,19 +132,19 @@ export function OnlineGameLayout({
         {!s.loading && !s.user ? (
           <View
             style={{
-              borderRadius: 16,
+              borderRadius: RADIUS['2xl'],
               borderWidth: 1,
               borderColor: COLORS.warning,
               backgroundColor: COLORS.surfaceMuted,
               padding: 20,
-              gap: 10,
+              gap: SPACING['2.5'],
             }}
           >
-            <Text style={{ color: COLORS.warningHover, fontFamily: FONTS.bodyBold, fontSize: 15 }}>
+            <Text style={{ color: COLORS.warningHover, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.body }}>
               Sign in to play online
             </Text>
             <Text
-              style={{ color: COLORS.warningHover, fontFamily: FONTS.body, fontSize: 13, lineHeight: 19 }}
+              style={{ color: COLORS.warningHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, lineHeight: 19 }}
             >
               Online games are matched on your rating and saved to your history,
               so they need an account.
@@ -160,11 +160,11 @@ export function OnlineGameLayout({
               screen sits on the matchmaking form and looks like the tap did
               nothing. */
         s.accepting ? (
-          <View style={{ alignItems: 'center', paddingVertical: 48, gap: 14 }}>
+          <View style={{ alignItems: 'center', paddingVertical: 48, gap: SPACING['3.5'] }}>
             <ActivityIndicator size="large" color={GAME_ACCENTS[accent].base} />
             <Text
               accessibilityLiveRegion="polite"
-              style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 18 }}
+              style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.lg }}
             >
               Joining game…
             </Text>
@@ -225,7 +225,7 @@ export function OnlineGameLayout({
               <View
                 accessibilityLiveRegion="assertive"
                 style={{
-                  borderRadius: 12,
+                  borderRadius: RADIUS.xl,
                   borderWidth: 1,
                   borderColor: COLORS.danger,
                   backgroundColor: COLORS.dangerMuted,
@@ -241,7 +241,7 @@ export function OnlineGameLayout({
                   style={{
                     color: COLORS.dangerHover,
                     fontFamily: FONTS.body,
-                    fontSize: 13,
+                    fontSize: FONT_SIZES.label,
                     textAlign: 'center',
                   }}
                 >
@@ -254,7 +254,7 @@ export function OnlineGameLayout({
               <View
                 accessibilityLiveRegion="polite"
                 style={{
-                  borderRadius: 12,
+                  borderRadius: RADIUS.xl,
                   borderWidth: 1,
                   // No warning-tint token exists (only danger has one), so this
                   // follows `TrainingSetup`: muted surface, warning border and
@@ -269,7 +269,7 @@ export function OnlineGameLayout({
                   style={{
                     color: COLORS.warningHover,
                     fontFamily: FONTS.body,
-                    fontSize: 13,
+                    fontSize: FONT_SIZES.label,
                     textAlign: 'center',
                   }}
                 >
@@ -305,18 +305,18 @@ export function OnlineGameLayout({
               <View
                 accessibilityLiveRegion="polite"
                 style={{
-                  borderRadius: 12,
+                  borderRadius: RADIUS.xl,
                   borderWidth: 1,
                   borderColor: COLORS.accent,
                   backgroundColor: COLORS.accentMuted,
                   padding: 12,
-                  gap: 10,
+                  gap: SPACING['2.5'],
                 }}
               >
-                <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>
+                <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>
                   Opponent offers a draw
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
                   <Button label="Accept" onPress={s.acceptDraw} style={{ flex: 1 }} />
                   <Button label="Decline" variant="danger" onPress={s.declineDraw} style={{ flex: 1 }} />
                 </View>
@@ -325,19 +325,19 @@ export function OnlineGameLayout({
 
             <View
               style={{
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.border,
                 backgroundColor: COLORS.surfaceAlt,
                 padding: 12,
-                gap: 6,
+                gap: SPACING['1.5'],
               }}
             >
               <Text
                 style={{
                   color: COLORS.fgMuted,
                   fontFamily: FONTS.displaySemi,
-                  fontSize: 12,
+                  fontSize: FONT_SIZES.xs,
                   letterSpacing: 0.6,
                 }}
               >

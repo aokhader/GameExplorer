@@ -218,7 +218,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
               the player chose — so it is the one that belongs beside the
               rating. */}
           <span
-            className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold ${
+            className={`text-caption px-2 py-0.5 rounded-full border font-semibold ${
               DIFFICULTY_STYLE[puzzle.difficulty] ?? DIFFICULTY_STYLE.medium
             }`}
             data-testid="puzzle-band-label"
@@ -299,7 +299,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
                 {puzzle.themes.map((theme) => (
                   <span
                     key={theme}
-                    className="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-fg-muted"
+                    className="text-caption px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-fg-muted"
                   >
                     {theme.replace(/-/g, ' ')}
                   </span>
@@ -343,7 +343,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
               </div>
               <p className="text-sm text-fg-muted leading-relaxed">{puzzle.explanation}</p>
               {puzzle.source && (
-                <p className="mt-3 text-[11px] text-fg-subtle italic">{puzzle.source}</p>
+                <p className="mt-3 text-caption text-fg-subtle italic">{puzzle.source}</p>
               )}
             </div>
           )}

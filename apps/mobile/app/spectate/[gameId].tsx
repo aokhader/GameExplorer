@@ -8,7 +8,7 @@ import type {
   CheckersGameState,
   ReversiGameState,
 } from '@gameexplorer/shared';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button } from '@/components/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { CheckersBoard } from '@/board/CheckersBoard';
@@ -85,7 +85,7 @@ export default function SpectateGame() {
     return (
       <Screen>
         <BackHeader title="Spectate" fallbackHref="/spectate" />
-        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 15, lineHeight: 22, marginBottom: 20 }}>
+        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.body, lineHeight: 22, marginBottom: 20 }}>
           Watching a live game runs over the same authenticated connection as
           playing, so it needs an account.
         </Text>
@@ -98,11 +98,11 @@ export default function SpectateGame() {
     return (
       <Screen>
         <BackHeader title="Spectate" fallbackHref="/spectate" />
-        <View style={{ paddingVertical: 60, alignItems: 'center', gap: 14 }}>
+        <View style={{ paddingVertical: 60, alignItems: 'center', gap: SPACING['3.5'] }}>
           <ActivityIndicator size="large" color={COLORS.accent} />
           <Text
             accessibilityLiveRegion="polite"
-            style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 15 }}
+            style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.body }}
           >
             {connected ? 'Loading game…' : 'Connecting…'}
           </Text>
@@ -192,16 +192,16 @@ export default function SpectateGame() {
           <View
             accessibilityLiveRegion="polite"
             style={{
-              borderRadius: 12,
+              borderRadius: RADIUS.xl,
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: COLORS.surfaceAlt,
               padding: 16,
               alignItems: 'center',
-              gap: 4,
+              gap: SPACING[1],
             }}
           >
-            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 18 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.lg }}>
               {endData.result === 'draw'
                 ? 'Draw'
                 : endData.result === 'white_wins'
@@ -212,7 +212,7 @@ export default function SpectateGame() {
               style={{
                 color: COLORS.fgMuted,
                 fontFamily: FONTS.body,
-                fontSize: 13,
+                fontSize: FONT_SIZES.label,
                 textTransform: 'capitalize',
               }}
             >

@@ -26,7 +26,7 @@ export function GoScoreBar({ score, captured }: GoScoreBarProps) {
 
   return (
     <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-      <span className="flex items-center gap-1.5 text-[15px] font-bold text-fg">
+      <span className="flex items-center gap-1.5 text-body font-bold text-fg">
         <span className="inline-flex" aria-hidden="true">
           <GoStone color="black" size={16} />
         </span>
@@ -45,7 +45,7 @@ export function GoScoreBar({ score, captured }: GoScoreBarProps) {
         <div className="flex-1 bg-[var(--gx-go-stone-white-2,#e8e2d6)]" />
       </div>
 
-      <span className="flex items-center gap-1.5 text-[15px] font-bold text-fg">
+      <span className="flex items-center gap-1.5 text-body font-bold text-fg">
         {captured.white > 0 && (
           <span className="text-xs font-medium text-fg-subtle">+{captured.white} taken</span>
         )}

@@ -93,6 +93,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
+  // Carry the in-app toggle into CSS. Components reading `reducedMotion` below
+  // already honour it, but everything animated from the stylesheet — the aurora
+  // drift, hover lift, `motion-safe:` utilities — reads only the OS media query,
+  // so a user who switched motion off in Settings still got a drifting backdrop.
+  // globals.css gates those rules on this attribute as well. Only the toggle is
+  // mirrored: the OS preference already reaches CSS through the media query.
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (settings.reduceMotion) root.dataset.reducedMotion = '';
+    else delete root.dataset.reducedMotion;
+  }, [settings.reduceMotion]);
+
   const value = React.useMemo<SettingsContextValue>(
     () => ({
       settings,

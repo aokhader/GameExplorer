@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { apiFetch } from '@gameexplorer/client';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 interface BlockedUser {
@@ -62,7 +62,7 @@ export function BlockedPlayers() {
     <View
       style={{
         marginTop: 24,
-        borderRadius: 16,
+        borderRadius: RADIUS['2xl'],
         borderWidth: 1,
         borderColor: COLORS.border,
         backgroundColor: COLORS.surfaceAlt,
@@ -73,7 +73,7 @@ export function BlockedPlayers() {
         style={{
           color: COLORS.fgMuted,
           fontFamily: FONTS.displaySemi,
-          fontSize: 12,
+          fontSize: FONT_SIZES.xs,
           letterSpacing: 0.8,
           marginBottom: 10,
         }}
@@ -82,7 +82,7 @@ export function BlockedPlayers() {
       </Text>
 
       {error ? (
-        <Text style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: 13 }}>
+        <Text style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
           {error}
         </Text>
       ) : (
@@ -93,7 +93,7 @@ export function BlockedPlayers() {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
+              gap: SPACING[3],
               minHeight: 48,
               borderTopWidth: i === 0 ? 0 : 1,
               borderTopColor: COLORS.border,
@@ -101,7 +101,7 @@ export function BlockedPlayers() {
           >
             <Text
               numberOfLines={1}
-              style={{ flex: 1, color: COLORS.fg, fontFamily: FONTS.body, fontSize: 14 }}
+              style={{ flex: 1, color: COLORS.fg, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm }}
             >
               {b.username ?? 'Unknown player'}
             </Text>
@@ -118,7 +118,7 @@ export function BlockedPlayers() {
                 style={{
                   color: COLORS.accentHover,
                   fontFamily: FONTS.bodySemi,
-                  fontSize: 14,
+                  fontSize: FONT_SIZES.sm,
                   opacity: busyId === b.blockedId ? 0.5 : 1,
                 }}
               >

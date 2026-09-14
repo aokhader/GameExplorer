@@ -2,8 +2,9 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
+import { Icon } from '@/components/ui/Icon';
 
 export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
@@ -81,18 +82,18 @@ export function GameScreenLayout({
           hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[1] }}
         >
-          <Text style={{ color: COLORS.fgMuted, fontSize: 22, lineHeight: 22 }}>‹</Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 15, fontFamily: FONTS.bodySemi }}>
+          <Icon name="caret-left" size={FONT_SIZES.lg} color={COLORS.fgMuted} />
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodySemi }}>
             {title ?? 'Back'}
           </Text>
         </Pressable>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>{headerActions}</View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>{headerActions}</View>
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28, gap: SPACING[3] }}
         keyboardShouldPersistTaps="handled"
       >
         {topCard}

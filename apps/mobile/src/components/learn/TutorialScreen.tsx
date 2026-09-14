@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { GameTutorial } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, Card, GlowBackdrop } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
@@ -59,7 +59,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
           style={{
             width: 80,
             height: 80,
-            borderRadius: 24,
+            borderRadius: RADIUS['3xl'],
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: accent.tintBg,
@@ -74,7 +74,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
         <Text
           style={{
             fontFamily: FONTS.display,
-            fontSize: 28,
+            fontSize: FONT_SIZES.display,
             color: COLORS.fg,
             textAlign: 'center',
           }}
@@ -84,7 +84,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
         <Text
           style={{
             fontFamily: FONTS.body,
-            fontSize: 15,
+            fontSize: FONT_SIZES.body,
             lineHeight: 22,
             color: COLORS.fgMuted,
             marginTop: 8,
@@ -106,7 +106,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
           <Text
             style={{
               fontFamily: FONTS.displaySemi,
-              fontSize: 18,
+              fontSize: FONT_SIZES.lg,
               color: COLORS.fg,
               marginBottom: 8,
             }}
@@ -118,7 +118,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
               key={i}
               style={{
                 fontFamily: FONTS.body,
-                fontSize: 15,
+                fontSize: FONT_SIZES.body,
                 lineHeight: 23,
                 color: COLORS.fgMuted,
                 marginBottom: 8,
@@ -138,21 +138,21 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
         <Text
           style={{
             fontFamily: FONTS.displaySemi,
-            fontSize: 17,
+            fontSize: FONT_SIZES.lg,
             color: COLORS.fg,
             marginBottom: 14,
           }}
         >
           Beginner tips
         </Text>
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: SPACING[3] }}>
           {tutorial.tips.map((tip, i) => (
-            <View key={i} style={{ flexDirection: 'row', gap: 10 }}>
+            <View key={i} style={{ flexDirection: 'row', gap: SPACING['2.5'] }}>
               <View
                 style={{
                   width: 22,
                   height: 22,
-                  borderRadius: 11,
+                  borderRadius: RADIUS.full,
                   backgroundColor: accent.tintBg,
                   borderWidth: 1,
                   borderColor: accent.tintBorder,
@@ -161,7 +161,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
                   marginTop: 1,
                 }}
               >
-                <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 11, color: accent.light }}>
+                <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.caption, color: accent.light }}>
                   {i + 1}
                 </Text>
               </View>
@@ -169,7 +169,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
                 style={{
                   flex: 1,
                   fontFamily: FONTS.body,
-                  fontSize: 14,
+                  fontSize: FONT_SIZES.sm,
                   lineHeight: 21,
                   color: COLORS.fgMuted,
                 }}
@@ -185,7 +185,7 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
       <Text
         style={{
           fontFamily: FONTS.body,
-          fontSize: 14,
+          fontSize: FONT_SIZES.sm,
           color: COLORS.fgMuted,
           textAlign: 'center',
           marginBottom: 12,

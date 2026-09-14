@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { LiquidateEngine, type LiquidateGameState } from '@gameexplorer/shared';
-import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_BOARD_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { LiquidateTileCell } from './LiquidateTile';
 import { BoardOverlay } from './BoardOverlay';
@@ -119,7 +119,7 @@ function LiquidateBoardInner({
       style={{
         width: size,
         height: size,
-        borderRadius: 12,
+        borderRadius: RADIUS.xl,
         backgroundColor: LIQUIDATE_BOARD_COLORS.frame,
       }}
     >
@@ -177,11 +177,11 @@ export function BoardWellCaption({
   useThemeName();
 
   return (
-    <View style={{ alignItems: 'center', gap: 5 }}>
+    <View style={{ alignItems: 'center', gap: SPACING['1.5'] }}>
       <Text
         style={{
           fontFamily: FONTS.bodyBold,
-          fontSize: 9,
+          fontSize: FONT_SIZES['3xs'],
           letterSpacing: 1.3,
           color: LIQUIDATE_BOARD_COLORS.tileFgMuted,
         }}
@@ -192,7 +192,7 @@ export function BoardWellCaption({
         numberOfLines={2}
         style={{
           fontFamily: FONTS.display,
-          fontSize: 20,
+          fontSize: FONT_SIZES.xl,
           textAlign: 'center',
           color: LIQUIDATE_BOARD_COLORS.tileFg,
         }}
@@ -203,7 +203,7 @@ export function BoardWellCaption({
         <Text
           style={{
             fontFamily: FONTS.bodySemi,
-            fontSize: 10,
+            fontSize: FONT_SIZES['2xs'],
             color: LIQUIDATE_BOARD_COLORS.tileFgMuted,
           }}
         >

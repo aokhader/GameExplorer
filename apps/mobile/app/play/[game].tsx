@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
-import { Screen, BackHeader } from '@/components/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { Screen, BackHeader, Icon } from '@/components/ui';
 import { isGameKey, setLastPlayed } from '@/lib/lastPlayed';
 import { CheckersScreen } from '@/screens/CheckersScreen';
 import { ReversiScreen } from '@/screens/ReversiScreen';
@@ -48,12 +48,12 @@ export default function GameScreen() {
   return (
     <Screen scroll={false}>
       <BackHeader title={label} fallbackHref="/" />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACING[3] }}>
         <View
           style={{
             width: 72,
             height: 72,
-            borderRadius: 20,
+            borderRadius: RADIUS['3xl'],
             backgroundColor: COLORS.surfaceAlt,
             borderWidth: 2,
             borderColor: accent,
@@ -61,15 +61,15 @@ export default function GameScreen() {
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 34 }}>{key === 'reversi' ? '⚫' : '♞'}</Text>
+          <Icon name="question" size={FONT_SIZES['4xl']} color={accent} />
         </View>
-        <Text style={{ color: COLORS.fg, fontSize: 20, fontFamily: FONTS.display }}>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.xl, fontFamily: FONTS.display }}>
           {label} is on the way
         </Text>
         <Text
           style={{
             color: COLORS.fgMuted,
-            fontSize: 15,
+            fontSize: FONT_SIZES.body,
             textAlign: 'center',
             maxWidth: 280,
             lineHeight: 22,

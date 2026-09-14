@@ -29,8 +29,9 @@ import {
   goTimelineRows,
   makeGoAdapter,
 } from '@gameexplorer/client/game/goAdapter';
-import { COLORS, GAME_ACCENTS, GO_STONE_STYLE, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, GO_STONE_STYLE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
+import { DifficultyMeter } from '@/game/DifficultyMeter';
 import { GoBoard } from '@/board/GoBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
@@ -64,12 +65,12 @@ function cap(color: string): string {
 
 function InfoCell({ label, value, capitalize }: { label: string; value: string; capitalize?: boolean }) {
   return (
-    <View style={{ width: '50%', flexDirection: 'row', gap: 6, paddingVertical: 3 }}>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 12 }}>{label}:</Text>
+    <View style={{ width: '50%', flexDirection: 'row', gap: SPACING['1.5'], paddingVertical: 3 }}>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs }}>{label}:</Text>
       <Text
         style={{
           color: COLORS.fg,
-          fontSize: 12,
+          fontSize: FONT_SIZES.xs,
           fontFamily: FONTS.bodyBold,
           textTransform: capitalize ? 'capitalize' : 'none',
         }}
@@ -249,7 +250,7 @@ export function GoScreen() {
         {isPuzzles ? (
           <PuzzlesCard game="go" />
         ) : (
-          <Text style={{ color: COLORS.fgSubtle, fontSize: 12, marginBottom: 20 }}>
+          <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs, marginBottom: 20 }}>
             {goRulesetSummary(size, komi, scoring)}
           </Text>
         )}
@@ -279,11 +280,11 @@ export function GoScreen() {
 
         {isBotSetup && (
           <>
-            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
               Bot strength
             </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
-              {GO_DIFFICULTY_LEVELS.map((level) => {
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING['2.5'], marginBottom: 24 }}>
+              {GO_DIFFICULTY_LEVELS.map((level, i) => {
                 const selected = targetElo === level.elo;
                 return (
                   <Pressable
@@ -295,18 +296,22 @@ export function GoScreen() {
                     style={{
                       flexGrow: 1,
                       flexBasis: '47%',
-                      borderRadius: 14,
+                      borderRadius: RADIUS['2xl'],
                       borderWidth: 2,
                       padding: 12,
                       backgroundColor: selected ? GAME_ACCENTS.go.tintBg : COLORS.surfaceAlt,
                       borderColor: selected ? GAME_ACCENTS.go.base : COLORS.border,
                     }}
                   >
-                    <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? GAME_ACCENTS.go.base : COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
+                    <DifficultyMeter
+                      level={i + 1}
+                      of={GO_DIFFICULTY_LEVELS.length}
+                      color={selected ? GAME_ACCENTS.go.base : COLORS.fgMuted}
+                    />
+                    <Text style={{ color: selected ? GAME_ACCENTS.go.base : COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>
                       {level.label}
                     </Text>
-                    <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.caption, marginTop: 2 }}>
                       {level.description}
                     </Text>
                   </Pressable>
@@ -318,10 +323,10 @@ export function GoScreen() {
 
         {picksColor && (
           <>
-            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
               Your color
             </Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', gap: SPACING[3], marginBottom: 24 }}>
               {(['black', 'white'] as const).map((color) => {
                 const selected = playerColor === color;
                 const stone = GO_STONE_STYLE[color];
@@ -334,7 +339,7 @@ export function GoScreen() {
                     accessibilityState={{ selected }}
                     style={{
                       flex: 1,
-                      borderRadius: 14,
+                      borderRadius: RADIUS['2xl'],
                       borderWidth: 2,
                       padding: 16,
                       alignItems: 'center',
@@ -346,7 +351,7 @@ export function GoScreen() {
                       style={{
                         width: 34,
                         height: 34,
-                        borderRadius: 17,
+                        borderRadius: RADIUS.full,
                         marginBottom: 8,
                         backgroundColor: stone.body[1].color,
                         borderWidth: 2,
@@ -356,14 +361,14 @@ export function GoScreen() {
                     <Text
                       style={{
                         color: selected ? GAME_ACCENTS.go.base : COLORS.fg,
-                        fontSize: 15,
+                        fontSize: FONT_SIZES.body,
                         fontFamily: FONTS.bodyBold,
                         textTransform: 'capitalize',
                       }}
                     >
                       {color}
                     </Text>
-                    <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
                       {color === 'black'
                         ? 'You move first'
                         : komi === 0
@@ -383,8 +388,8 @@ export function GoScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
-              borderRadius: 14,
+              gap: SPACING[3],
+              borderRadius: RADIUS['2xl'],
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: COLORS.surfaceAlt,
@@ -393,8 +398,8 @@ export function GoScreen() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
-              <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>Rated</Text>
+              <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
                 {!userId
                   ? 'Sign in to play rated games'
                   : !online
@@ -407,7 +412,7 @@ export function GoScreen() {
         )}
 
         {isPassAndPlay && (
-          <Text style={{ color: COLORS.fgSubtle, fontSize: 12, marginBottom: 24 }}>
+          <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs, marginBottom: 24 }}>
             Two players share this device — Black moves first, and the board stays put between
             turns.
           </Text>
@@ -446,7 +451,7 @@ export function GoScreen() {
     gameOverMsg = isPassAndPlay
       ? `${margin}${removedNote}`
       : liveState.winner === playerColor
-        ? `You win — ${margin} 🎉`
+        ? `You win — ${margin}`
         : liveState.winner === null
           ? `Level — ${margin}`
           : `Bot wins — ${margin}`;
@@ -571,12 +576,12 @@ export function GoScreen() {
 
             <View
               style={{
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.border,
                 backgroundColor: COLORS.surfaceAlt,
                 padding: 12,
-                gap: 8,
+                gap: SPACING[2],
               }}
             >
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -615,28 +620,28 @@ export function GoScreen() {
                 style={{
                   flexDirection: 'row',
                   justifyContent: 'center',
-                  gap: 16,
+                  gap: SPACING[4],
                   paddingTop: 8,
                   borderTopWidth: 1,
                   borderTopColor: COLORS.border,
                 }}
               >
-                <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>
+                <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold }}>
                   Black {score.black}
                 </Text>
-                <Text style={{ color: COLORS.fgMuted, fontSize: 12 }}>vs</Text>
-                <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>
+                <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs }}>vs</Text>
+                <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold }}>
                   White {score.white}
                 </Text>
               </View>
               {/* How many stones the number above assumes are gone — the player
                   is being asked to check the marks, so say how many there are. */}
               {awaitingReview && dead.length > 0 && (
-                <Text style={{ color: COLORS.fgMuted, fontSize: 11, textAlign: 'center' }}>
+                <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.caption, textAlign: 'center' }}>
                   {dead.length} stone{dead.length === 1 ? '' : 's'} removed
                 </Text>
               )}
-              <Text style={{ color: COLORS.fgSubtle, fontSize: 11, lineHeight: 15 }}>
+              <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.caption, lineHeight: 15 }}>
                 {awaitingReview
                   ? canMark
                     ? 'Both players passed. Tap a group to mark it dead or bring it back — groups with two eyes cannot be marked.'

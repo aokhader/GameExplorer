@@ -43,10 +43,11 @@ const spectral = Spectral({
 
 /**
  * Applied before first paint so a cozy-themed reload never flashes the dark
- * palette. Mirrors the storage key + shape of SettingsProvider; that provider
- * remains authoritative once React mounts.
+ * palette, and a reload with Settings' "Reduce motion" on never starts the
+ * ambient drift before React mounts. Mirrors the storage key + shape of
+ * SettingsProvider; that provider remains authoritative once React mounts.
  */
-const THEME_BOOTSTRAP = `try{var s=JSON.parse(localStorage.getItem('gx:settings')||'{}');if(s.theme==='cozy')document.documentElement.dataset.theme='cozy';}catch(e){}`;
+const THEME_BOOTSTRAP = `try{var s=JSON.parse(localStorage.getItem('gx:settings')||'{}'),r=document.documentElement;if(s.theme==='cozy')r.dataset.theme='cozy';if(s.reduceMotion)r.dataset.reducedMotion='';}catch(e){}`;
 
 // SITE_URL is the absolute base for OG/Twitter image URLs. Without it Next
 // emits relative `og:image` paths, which every scraper rejects — the card

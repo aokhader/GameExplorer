@@ -1,12 +1,18 @@
-import { ActivityIndicator, Pressable, Text, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
+import type { UiHaptic } from '@/audio/useUiHaptic';
 import { FONTS } from '@/theme/typography';
+import { PressableScale } from './PressableScale';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
-/** Shared by the fill and the glow-casting wrapper so the halo tracks the corners. */
-const RADIUS = 14;
+/**
+ * Shared by the fill and the glow-casting wrapper so the halo tracks the corners.
+ * Controls share one radius — `TextField` uses the same step — and cards sit one
+ * step rounder, which is what lets a button inside a card read as nested.
+ */
+const CORNER = RADIUS.xl;
 
 interface ButtonProps {
   label: string;
@@ -16,7 +22,14 @@ interface ButtonProps {
   loading?: boolean;
   /** Adds the neon glow halo (primary CTA emphasis). */
   glow?: boolean;
-  style?: ViewStyle;
+  /**
+   * Haptic on a completed press, when the player has haptics on. `primary` is a
+   * screen's main action and defaults to a light impact. Pass `warning` on the
+   * final confirmation of something irreversible, or `null` for none —
+   * `motion-spec.md` §7.
+   */
+  haptic?: UiHaptic | null;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -24,6 +37,10 @@ interface ButtonProps {
  * gradient (single source: GRADIENTS_NATIVE.accent); the others are flat
  * token-colored surfaces. All share the same size/typography so buttons line up
  * in a column.
+ *
+ * Press feedback follows `motion-spec.md` §5.1 through `PressableScale`: a slight
+ * shrink that springs back, plus a pressed colour. It never dims on press — half
+ * opacity is what disabled looks like.
  */
 export function Button({
   label,
@@ -32,12 +49,14 @@ export function Button({
   disabled = false,
   loading = false,
   glow = false,
+  haptic,
   style,
 }: ButtonProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
   const isDisabled = disabled || loading;
+  const feedback = haptic === undefined ? (variant === 'primary' ? 'impact' : undefined) : (haptic ?? undefined);
 
   const content = (
     <>
@@ -56,7 +75,7 @@ export function Button({
               : variant === 'danger'
                 ? COLORS.dangerHover
                 : COLORS.fg,
-          fontSize: 16,
+          fontSize: FONT_SIZES.base,
           fontFamily: FONTS.bodyBold,
         }}
       >
@@ -67,7 +86,7 @@ export function Button({
 
   const base: ViewStyle = {
     height: 52,
-    borderRadius: RADIUS,
+    borderRadius: CORNER,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -89,26 +108,47 @@ export function Button({
   const glowStyle: ViewStyle | undefined =
     glow && !isDisabled ? { boxShadow: GLOWS_NATIVE.glowAccent } : undefined;
 
-  if (variant === 'primary') {
-    return (
-      <Pressable
-        onPress={onPress}
-        disabled={isDisabled}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        accessibilityState={{ disabled: isDisabled, busy: loading }}
-        style={style}
-      >
-        {({ pressed }) => (
+  const flatSurface = (pressed: boolean): ViewStyle => {
+    switch (variant) {
+      case 'secondary':
+        return {
+          backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceMuted,
+          borderWidth: 1,
+          borderColor: COLORS.border,
+        };
+      case 'danger':
+        return {
+          backgroundColor: COLORS.dangerMuted,
+          borderWidth: 1,
+          borderColor: pressed ? COLORS.dangerHover : COLORS.danger,
+        };
+      default:
+        return { backgroundColor: pressed ? COLORS.surfaceMuted : 'transparent' };
+    }
+  };
+
+  return (
+    <PressableScale
+      onPress={onPress}
+      disabled={isDisabled}
+      haptic={feedback}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      style={style}
+    >
+      {({ pressed }) =>
+        variant === 'primary' ? (
           // Gold underlay: gives the shadow caster the opaque rounded rect it
-          // needs (the gradient covers it), and carries the press/disabled
-          // dimming so the glow fades with the fill rather than hanging at full
-          // strength behind a dimmed button.
+          // needs, and carries the disabled dimming so the glow fades with the
+          // fill. The gradient is its own layer so a press can thin it toward
+          // the flat gold underneath — a change of colour, where fading the
+          // button would have faded the label too.
           <View
             style={[
-              { borderRadius: RADIUS, backgroundColor: COLORS.accent },
+              { borderRadius: CORNER, backgroundColor: COLORS.accent },
               glowStyle,
-              { opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1 },
+              { opacity: isDisabled ? 0.5 : 1 },
             ]}
           >
             <LinearGradient
@@ -116,39 +156,24 @@ export function Button({
               locations={GRADIENTS_NATIVE.accent.locations}
               start={GRADIENTS_NATIVE.accent.start}
               end={GRADIENTS_NATIVE.accent.end}
-              style={base}
-            >
-              {content}
-            </LinearGradient>
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: CORNER,
+                opacity: pressed ? 0.6 : 1,
+              }}
+            />
+            <View style={base}>{content}</View>
           </View>
-        )}
-      </Pressable>
-    );
-  }
-
-  const surface: ViewStyle =
-    variant === 'secondary'
-      ? { backgroundColor: COLORS.surfaceMuted, borderWidth: 1, borderColor: COLORS.border }
-      : variant === 'danger'
-        ? { backgroundColor: COLORS.dangerMuted, borderWidth: 1, borderColor: COLORS.danger }
-        : { backgroundColor: 'transparent' };
-
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={isDisabled}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
-      style={style}
-    >
-      {({ pressed }) => (
-        <View
-          style={[base, surface, glowStyle, { opacity: isDisabled ? 0.5 : pressed ? 0.7 : 1 }]}
-        >
-          {content}
-        </View>
-      )}
-    </Pressable>
+        ) : (
+          <View style={[base, flatSurface(pressed), glowStyle, { opacity: isDisabled ? 0.5 : 1 }]}>
+            {content}
+          </View>
+        )
+      }
+    </PressableScale>
   );
 }

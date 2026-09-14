@@ -8,8 +8,9 @@ import {
   type ReversiGameState,
   type ReversiColor,
 } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, REVERSI_DISC_COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, REVERSI_DISC_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
+import { DifficultyMeter } from '@/game/DifficultyMeter';
 import { ReversiBoard } from '@/board/ReversiBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
@@ -37,12 +38,12 @@ import { FONTS } from '@/theme/typography';
 
 
 const DIFFICULTY_LEVELS = [
-  { elo: 500, label: 'Beginner', description: 'Plays randomly, ignores corners', icon: '🟢' },
-  { elo: 800, label: 'Casual', description: 'Spots basic flips, misses strategy', icon: '🔵' },
-  { elo: 1100, label: 'Club', description: 'Uses positional heuristics', icon: '🟡' },
-  { elo: 1400, label: 'Strong', description: 'Controls corners and mobility', icon: '🟠' },
-  { elo: 1700, label: 'Expert', description: 'Deep tactical and positional play', icon: '🔴' },
-  { elo: 2000, label: 'Master', description: 'Near-optimal — very hard to beat', icon: '⚫' },
+  { elo: 500, label: 'Beginner', description: 'Plays randomly, ignores corners' },
+  { elo: 800, label: 'Casual', description: 'Spots basic flips, misses strategy' },
+  { elo: 1100, label: 'Club', description: 'Uses positional heuristics' },
+  { elo: 1400, label: 'Strong', description: 'Controls corners and mobility' },
+  { elo: 1700, label: 'Expert', description: 'Deep tactical and positional play' },
+  { elo: 2000, label: 'Master', description: 'Near-optimal — very hard to beat' },
 ] as const;
 
 function labelForElo(elo: number): string {
@@ -199,11 +200,11 @@ export function ReversiScreen() {
 
         {isBotSetup && (
           <>
-            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
               Bot strength
             </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
-              {DIFFICULTY_LEVELS.map((level) => {
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING['2.5'], marginBottom: 24 }}>
+              {DIFFICULTY_LEVELS.map((level, i) => {
                 const selected = targetElo === level.elo;
                 return (
                   <Pressable
@@ -215,18 +216,22 @@ export function ReversiScreen() {
                     style={{
                       flexGrow: 1,
                       flexBasis: '47%',
-                      borderRadius: 14,
+                      borderRadius: RADIUS['2xl'],
                       borderWidth: 2,
                       padding: 12,
                       backgroundColor: selected ? GAME_ACCENTS.reversi.tintBg : COLORS.surfaceAlt,
                       borderColor: selected ? GAME_ACCENTS.reversi.base : COLORS.border,
                     }}
                   >
-                    <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? GAME_ACCENTS.reversi.base : COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
+                    <DifficultyMeter
+                      level={i + 1}
+                      of={DIFFICULTY_LEVELS.length}
+                      color={selected ? GAME_ACCENTS.reversi.base : COLORS.fgMuted}
+                    />
+                    <Text style={{ color: selected ? GAME_ACCENTS.reversi.base : COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>
                       {level.label}
                     </Text>
-                    <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.caption, marginTop: 2 }}>
                       {level.description}
                     </Text>
                   </Pressable>
@@ -240,10 +245,10 @@ export function ReversiScreen() {
             bot's strength. */}
         {picksColor && (
           <>
-            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
               Your color
             </Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', gap: SPACING[3], marginBottom: 24 }}>
               {(['black', 'white'] as const).map((color) => {
                 const selected = playerColor === color;
                 const disc = REVERSI_DISC_COLORS[color];
@@ -256,7 +261,7 @@ export function ReversiScreen() {
                     accessibilityState={{ selected }}
                     style={{
                       flex: 1,
-                      borderRadius: 14,
+                      borderRadius: RADIUS['2xl'],
                       borderWidth: 2,
                       padding: 16,
                       alignItems: 'center',
@@ -268,7 +273,7 @@ export function ReversiScreen() {
                       style={{
                         width: 34,
                         height: 34,
-                        borderRadius: 17,
+                        borderRadius: RADIUS.full,
                         marginBottom: 8,
                         backgroundColor: disc.fill,
                         borderWidth: 2,
@@ -278,14 +283,14 @@ export function ReversiScreen() {
                     <Text
                       style={{
                         color: selected ? GAME_ACCENTS.reversi.base : COLORS.fg,
-                        fontSize: 15,
+                        fontSize: FONT_SIZES.body,
                         fontFamily: FONTS.bodyBold,
                         textTransform: 'capitalize',
                       }}
                     >
                       {color}
                     </Text>
-                    <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
                       {color === 'black' ? 'You move first' : 'Bot moves first'}
                     </Text>
                   </Pressable>
@@ -303,8 +308,8 @@ export function ReversiScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
-              borderRadius: 14,
+              gap: SPACING[3],
+              borderRadius: RADIUS['2xl'],
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: COLORS.surfaceAlt,
@@ -313,8 +318,8 @@ export function ReversiScreen() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
-              <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>Rated</Text>
+              <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
                 {!userId
                   ? 'Sign in to play rated games'
                   : !online
@@ -329,7 +334,7 @@ export function ReversiScreen() {
         {/* Pass-and-play is casual (no rating); the reversi board never flips, so
             there's no flip toggle either — black plays first, as always. */}
         {isPassAndPlay && (
-          <Text style={{ color: COLORS.fgSubtle, fontSize: 12, marginBottom: 24 }}>
+          <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs, marginBottom: 24 }}>
             Two players share this device — Black moves first, and the board stays put between
             turns.
           </Text>
@@ -375,9 +380,9 @@ export function ReversiScreen() {
       liveState.winner === null
         ? `Draw ${counts.black}–${counts.white}`
         : isPassAndPlay
-          ? `${cap(liveState.winner)} wins ${counts[liveState.winner]}–${counts[liveState.winner === 'black' ? 'white' : 'black']}! 🎉`
+          ? `${cap(liveState.winner)} wins ${counts[liveState.winner]}–${counts[liveState.winner === 'black' ? 'white' : 'black']}!`
           : liveState.winner === playerColor
-            ? `You win! ${counts[playerColor]}–${counts[otherColor]} 🎉`
+            ? `You win! ${counts[playerColor]}–${counts[otherColor]}`
             : `Bot wins ${counts[otherColor]}–${counts[playerColor]}`;
   }
 
@@ -517,12 +522,12 @@ export function ReversiScreen() {
             {/* Info card */}
             <View
               style={{
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.border,
                 backgroundColor: COLORS.surfaceAlt,
                 padding: 12,
-                gap: 8,
+                gap: SPACING[2],
               }}
             >
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -553,14 +558,14 @@ export function ReversiScreen() {
                 style={{
                   flexDirection: 'row',
                   justifyContent: 'center',
-                  gap: 20,
+                  gap: SPACING[5],
                   paddingTop: 8,
                   borderTopWidth: 1,
                   borderTopColor: COLORS.border,
                 }}
               >
                 <DiscCount color={REVERSI_DISC_COLORS.black.fill} border={REVERSI_DISC_COLORS.black.stroke} count={counts.black} />
-                <Text style={{ color: COLORS.fgMuted, fontSize: 12 }}>vs</Text>
+                <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs }}>vs</Text>
                 <DiscCount color={REVERSI_DISC_COLORS.white.fill} border={REVERSI_DISC_COLORS.white.stroke} count={counts.white} />
               </View>
             </View>
@@ -625,9 +630,9 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
   useThemeName();
 
   return (
-    <View style={{ flexDirection: 'row', gap: 6, width: '50%', paddingVertical: 2 }}>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}:</Text>
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold, textTransform: capitalize ? 'capitalize' : 'none' }}>
+    <View style={{ flexDirection: 'row', gap: SPACING['1.5'], width: '50%', paddingVertical: 2 }}>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label }}>{label}:</Text>
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold, textTransform: capitalize ? 'capitalize' : 'none' }}>
         {value}
       </Text>
     </View>
@@ -639,9 +644,9 @@ function DiscCount({ color, border, count }: { color: string; border: string; co
   useThemeName();
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: color, borderWidth: 2, borderColor: border }} />
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>{count}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['1.5'] }}>
+      <View style={{ width: 14, height: 14, borderRadius: RADIUS.full, backgroundColor: color, borderWidth: 2, borderColor: border }} />
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold }}>{count}</Text>
     </View>
   );
 }

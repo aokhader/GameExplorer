@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Button } from '@/components/ui';
 
+// The press response animates with reanimated.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+jest.mock('react-native-reanimated', () => require('./helpers/reanimatedMock').mockReanimated());
+
 describe('Button', () => {
   it('fires onPress and exposes the label to accessibility', () => {
     const onPress = jest.fn();

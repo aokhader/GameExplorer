@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Polygon } from 'react-native-svg';
 import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@gameexplorer/shared';
-import { ChessPiece, CheckersPiece, ReversiDisc, GoStone, BOARD_COLORS, CHECKERS_BOARD_COLORS, REVERSI_BOARD_COLORS, GO_BOARD_COLORS, GO_STAR_POINTS_9, COLORS, useThemeName } from '@gameexplorer/ui';
+import { ChessPiece, CheckersPiece, ReversiDisc, GoStone, BOARD_COLORS, CHECKERS_BOARD_COLORS, REVERSI_BOARD_COLORS, GO_BOARD_COLORS, GO_STAR_POINTS_9, COLORS, useThemeName, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/board/BoardFrame';
 import { FONTS } from '@/theme/typography';
 
@@ -236,7 +236,7 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
               style={{
                 width: px,
                 height: px,
-                borderRadius: 10,
+                borderRadius: RADIUS.xl,
                 overflow: 'hidden',
                 borderWidth: 2,
                 borderColor: GO_BOARD_COLORS.boardBorder,
@@ -267,7 +267,7 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
                         top: px - 12,
                         width: cell,
                         textAlign: 'center',
-                        fontSize: 8,
+                        fontSize: FONT_SIZES['3xs'],
                         fontFamily: FONTS.bodyBold,
                         color: GO_BOARD_COLORS.coordinate,
                       }}
@@ -279,7 +279,7 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
                         position: 'absolute',
                         top: at(size - 1 - i) - 5,
                         left: 2,
-                        fontSize: 8,
+                        fontSize: FONT_SIZES['3xs'],
                         fontFamily: FONTS.bodyBold,
                         color: GO_BOARD_COLORS.coordinate,
                       }}
@@ -297,7 +297,7 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
       <Text
         style={{
           fontFamily: FONTS.body,
-          fontSize: 13,
+          fontSize: FONT_SIZES.label,
           lineHeight: 19,
           color: COLORS.fgMuted,
           textAlign: 'center',
@@ -379,7 +379,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
                         top: 1,
                         left: 3,
                         fontFamily: FONTS.bodySemi,
-                        fontSize: 9,
+                        fontSize: FONT_SIZES['3xs'],
                         color: labelColor,
                         opacity: 0.75,
                       }}
@@ -394,7 +394,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
                         bottom: 1,
                         right: 3,
                         fontFamily: FONTS.bodySemi,
-                        fontSize: 9,
+                        fontSize: FONT_SIZES['3xs'],
                         color: labelColor,
                         opacity: 0.75,
                       }}
@@ -464,7 +464,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
             <View
               style={{
                 flex: 1,
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 overflow: 'hidden',
                 ...(isReversi && { borderWidth: 2, borderColor: REVERSI_BOARD_COLORS.boardBorder }),
               }}
@@ -491,7 +491,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
       <Text
         style={{
           fontFamily: FONTS.body,
-          fontSize: 13,
+          fontSize: FONT_SIZES.label,
           lineHeight: 19,
           color: COLORS.fgMuted,
           textAlign: 'center',

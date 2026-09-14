@@ -7,7 +7,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, SPACING } from '@gameexplorer/ui';
 import { LIQUIDATE_TIMING } from '@gameexplorer/shared';
 import { useSettings } from '@/providers/SettingsProvider';
 
@@ -80,7 +80,7 @@ export function Dice({ dice, size = 26 }: DiceProps) {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: settle.value }] }));
 
   return (
-    <Animated.View style={[{ flexDirection: 'row', gap: 5 }, style]}>
+    <Animated.View style={[{ flexDirection: 'row', gap: SPACING['1.5'] }, style]}>
       {shown.map((value, i) => (
         <Face key={i} value={value} size={size} />
       ))}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/apiFetch';
 import { Button, IconButton, Modal, Select, useToast } from '@/components/ui';
+import { Icon } from '@gameexplorer/ui';
 
 const REPORT_REASONS = [
   { value: 'harassment',         label: 'Harassment' },
@@ -91,14 +92,14 @@ export function OpponentMenu({ opponentId, opponentName, gameId }: OpponentMenuP
             onClick={() => { setShowReport(true); setOpen(false); }}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-surface-hover transition-colors"
           >
-            🚩 Report player
+            <Icon name="warning" className="mr-2" />Report player
           </button>
           <button
             onClick={handleBlock}
             disabled={busy}
             className="w-full text-left px-4 py-2.5 text-sm text-danger-hover hover:bg-surface-hover disabled:opacity-50 transition-colors"
           >
-            🚫 Block player
+            <Icon name="prohibit" className="mr-2" />Block player
           </button>
         </div>
       )}

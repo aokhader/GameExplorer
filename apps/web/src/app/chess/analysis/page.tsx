@@ -430,7 +430,7 @@ function AnalysisPageInner() {
                           : 'border-white/10 text-fg-muted hover:border-danger/40 hover:text-danger-hover'
                       }`}
                     >
-                      {eraserMode ? '✕ Cancel Eraser' : '⌫ Eraser'}
+                      {eraserMode ? 'Cancel Eraser' : 'Eraser'}
                     </button>
                   </div>
 
@@ -450,7 +450,7 @@ function AnalysisPageInner() {
                               : 'border-white/10 text-fg-muted hover:border-border-strong'
                           }`}
                         >
-                          {c === 'white' ? '⬜ White' : '⬛ Black'}
+                          {c === 'white' ? 'White' : 'Black'}
                         </button>
                       ))}
                     </div>
@@ -517,7 +517,7 @@ function AnalysisPageInner() {
                                 ? 'bg-accent-muted text-accent'
                                 : 'bg-success/15 text-success-hover'
                         }`}>
-                          {!stockfish.isReady ? 'loading' : !analysisEnabled ? 'off' : stockfish.isAnalyzing ? (depth > 0 ? `depth ${depth}` : '…') : `d${depth} ✓`}
+                          {!stockfish.isReady ? 'loading' : !analysisEnabled ? 'off' : stockfish.isAnalyzing ? (depth > 0 ? `depth ${depth}` : '…') : `d${depth}`}
                         </span>
                         {/* Toggle switch */}
                         <button
@@ -573,7 +573,7 @@ function AnalysisPageInner() {
                         onClick={handleCopyFen}
                         className="text-xs px-2 py-0.5 rounded bg-white/5 border border-white/10 text-fg-muted hover:text-fg transition-colors"
                       >
-                        {copied ? '✓ Copied' : 'Copy'}
+                        {copied ? 'Copied' : 'Copy'}
                       </button>
                     </div>
                     <p className="text-xs font-mono text-fg-muted break-all select-all leading-relaxed">

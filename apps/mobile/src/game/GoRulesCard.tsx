@@ -6,7 +6,7 @@ import {
   GO_SCORING_OPTIONS,
   goRatedEligibility,
 } from '@gameexplorer/client/game/goSetup';
-import { COLORS, GAME_ACCENTS } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface GoRulesCardProps {
@@ -23,7 +23,7 @@ export interface GoRulesCardProps {
   showRatedNote?: boolean;
 }
 
-/** One segmented option. Plain object style — see `project_pressable_style_nativewind`. */
+/** One segmented option. Plain object style, pressed state from the children function. */
 function Chip({
   label,
   selected,
@@ -42,7 +42,7 @@ function Chip({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected }}
       style={{
-        borderRadius: 12,
+        borderRadius: RADIUS.xl,
         borderWidth: 2,
         paddingVertical: 8,
         paddingHorizontal: 14,
@@ -53,7 +53,7 @@ function Chip({
       <Text
         style={{
           color: selected ? GAME_ACCENTS.go.base : COLORS.fg,
-          fontSize: 14,
+          fontSize: FONT_SIZES.sm,
           fontFamily: FONTS.bodyBold,
         }}
       >
@@ -83,11 +83,11 @@ function Choice<T extends string | number>({
   return (
     <View>
       <Text
-        style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 8 }}
+        style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 8 }}
       >
         {label}
       </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[2] }}>
         {options.map((option) => (
           <Chip
             key={String(option.value)}
@@ -98,7 +98,7 @@ function Choice<T extends string | number>({
           />
         ))}
       </View>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 8, lineHeight: 16 }}>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 8, lineHeight: 16 }}>
         {selected?.description}
       </Text>
     </View>
@@ -132,13 +132,13 @@ export function GoRulesCard({
   return (
     <View
       style={{
-        borderRadius: 14,
+        borderRadius: RADIUS['2xl'],
         borderWidth: 1,
         borderColor: COLORS.border,
         backgroundColor: COLORS.surfaceAlt,
         padding: 16,
         marginBottom: 24,
-        gap: 16,
+        gap: SPACING[4],
       }}
     >
       <Choice
@@ -166,7 +166,7 @@ export function GoRulesCard({
       {showRatedNote && !eligibility.rated && (
         <Text
           accessibilityRole="text"
-          style={{ color: COLORS.warning, fontSize: 12, lineHeight: 16 }}
+          style={{ color: COLORS.warning, fontSize: FONT_SIZES.xs, lineHeight: 16 }}
         >
           {eligibility.reason}
         </Text>

@@ -13,16 +13,19 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   leftIcon?: React.ReactNode;
 }
 
+/** The 2px hover lift from motion-spec.md §5.2. Ghost buttons sit inline among text and stay put. */
+const LIFT = 'motion-safe:hover:-translate-y-0.5';
+
 const VARIANTS: Record<ButtonVariant, string> = {
   // Gold — the single primary action per screen. Gradient fill + glow-on-hover
   // + a small lift give it real presence (the flat pass had none).
   primary:
-    'text-on-accent bg-accent [background-image:var(--gradient-accent)] shadow-sm ' +
-    'hover:[box-shadow:var(--shadow-glow-accent)] motion-safe:hover:-translate-y-0.5 ' +
+    `text-on-accent bg-accent [background-image:var(--gradient-accent)] shadow-sm ` +
+    `hover:[box-shadow:var(--shadow-glow-accent)] ${LIFT} ` +
     'focus-visible:ring-focus',
   // Steel-blue, tonal — secondary actions.
   secondary:
-    'bg-info-muted text-info-hover border border-info/30 hover:bg-info/25 ' +
+    `bg-info-muted text-info-hover border border-info/30 hover:bg-info/25 ${LIFT} ` +
     'focus-visible:ring-info',
   // Quiet — tertiary / inline actions.
   ghost:
@@ -30,7 +33,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
     'focus-visible:ring-focus',
   // Destructive — resign, abort, block, delete.
   danger:
-    'bg-danger text-white hover:bg-danger-hover ' +
+    `bg-danger text-white hover:bg-danger-hover ${LIFT} ` +
     'focus-visible:ring-danger',
 };
 
@@ -43,6 +46,10 @@ const SIZES: Record<ButtonSize, string> = {
 /**
  * The single button system for the app. Built-in focus ring, hover/active and
  * disabled/loading feedback (UX: consistency + feedback + visible focus).
+ *
+ * Motion is motion-spec.md §5.1–5.3 through the `motion-control` utility: colour
+ * over `fast`, the lift over `base`, a press to 98% over `micro`, and a focus
+ * ring that appears at once. Under reduced motion only the colour moves.
  */
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
@@ -67,8 +74,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       aria-busy={loading || undefined}
       className={cn(
         'inline-flex items-center justify-center font-semibold select-none',
-        'transition-[transform,box-shadow,background-color,border-color] duration-200',
-        'motion-safe:active:scale-[0.98]',
+        'motion-control motion-safe:active:scale-[0.98]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
         'disabled:opacity-50 disabled:pointer-events-none',
         fullWidth && 'w-full',

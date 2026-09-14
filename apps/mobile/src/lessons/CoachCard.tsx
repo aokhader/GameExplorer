@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import type { LessonGame, LessonSayKind, LessonStep } from '@gameexplorer/shared';
 import { FONTS } from '@/theme/typography';
 
@@ -71,19 +71,19 @@ export function CoachCard({
       testID="coach-card"
       accessibilityLiveRegion="polite"
       style={{
-        borderRadius: 12,
+        borderRadius: RADIUS.xl,
         borderWidth: 1,
         borderColor: shade.border,
         backgroundColor: shade.bg,
         padding: 12,
-        gap: 8,
+        gap: SPACING[2],
       }}
     >
       {shade.label ? (
         <Text
           style={{
             color: shade.ink,
-            fontSize: 11,
+            fontSize: FONT_SIZES.caption,
             fontFamily: FONTS.bodyBold,
             textTransform: 'uppercase',
             letterSpacing: 0.6,
@@ -93,13 +93,13 @@ export function CoachCard({
         </Text>
       ) : null}
 
-      <Text testID="coach-say" style={{ color: COLORS.fg, fontSize: 15, lineHeight: 21 }}>
+      <Text testID="coach-say" style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, lineHeight: 21 }}>
         {say}
       </Text>
 
       {showTask ? (
-        <Text testID="coach-task" style={{ color: COLORS.fgMuted, fontSize: 14, lineHeight: 20 }}>
-          <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.bodyBold, fontSize: 11 }}>
+        <Text testID="coach-task" style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, lineHeight: 20 }}>
+          <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.caption }}>
             {'TASK  '}
           </Text>
           {step.instruction}
@@ -109,7 +109,7 @@ export function CoachCard({
       {hintShown && hintText ? (
         <Text
           testID="coach-hint"
-          style={{ color: accent.base, fontSize: 14, fontStyle: 'italic', lineHeight: 20 }}
+          style={{ color: accent.base, fontSize: FONT_SIZES.sm, fontStyle: 'italic', lineHeight: 20 }}
         >
           {hintText}
         </Text>

@@ -35,12 +35,20 @@ test('chess pass-and-play lets both colours move and never answers back', async 
 
   // White: e2–e4. The board starts white-side-down, so index = (8 - rank) * 8 + file.
   const e2 = squares.nth((8 - 2) * 8 + 4);
+  const e4 = squares.nth((8 - 4) * 8 + 4);
   await e2.click();
-  // Wait for the selection to commit rather than sleeping: click-to-move needs a
-  // render between the two clicks, and under parallel load the second one
-  // otherwise lands before the first has taken effect.
-  await expect(e2).toHaveClass(/selected/, { timeout: 15000 });
-  await squares.nth((8 - 4) * 8 + 4).click();
+  // Wait for e4 to be offered as a destination, not merely for e2 to look
+  // selected. Legal moves come from the engine worker, and until its first
+  // update the board holds an empty move map: e2 still takes the `selected`
+  // class, but with no destinations, so a click on e4 would be ignored.
+  //
+  // Against `next dev` this test can still fail under a parallel suite, for a
+  // different reason: other workers' on-demand route compiles push Fast Refresh
+  // updates into this page, Fast Refresh re-runs the engine hook's mount effect,
+  // and the fresh worker's first update resets the game. Production builds have
+  // no Fast Refresh, which is why CI runs this suite against one.
+  await expect(e4).toHaveClass(/valid-move/, { timeout: 15000 });
+  await e4.click();
 
   // A bot would have replied by now; in pass-and-play the move list must still
   // hold exactly one move and it must be Black's turn.

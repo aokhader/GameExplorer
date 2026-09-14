@@ -8,10 +8,18 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   hint?: string;
 }
 
+/**
+ * The field surface, shared with `Select`.
+ *
+ * Focus uses `focus-visible:`, the one focus idiom motion-spec.md §5.3 settles
+ * on. On a text field it matches every focus, pointer or keyboard, so nothing is
+ * lost against `focus:`. The ring is a box-shadow, which `transition-colors`
+ * does not list, so it appears at once — focus is never animated.
+ */
 const fieldBase =
   'w-full h-10 px-3 rounded-lg bg-surface-muted text-fg placeholder:text-fg-subtle ' +
   'border border-border transition-colors ' +
-  'focus:outline-none focus:ring-2 focus:ring-focus focus:border-transparent ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:border-transparent ' +
   'disabled:opacity-50 disabled:pointer-events-none';
 
 let idCounter = 0;
@@ -39,11 +47,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
         id={fieldId}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedById}
-        className={cn(fieldBase, error && 'border-danger focus:ring-danger', className)}
+        className={cn(fieldBase, error && 'border-danger focus-visible:ring-danger', className)}
         {...props}
       />
       {error ? (
-        <p id={`${fieldId}-error`} className="text-xs text-danger-hover">
+        // Keyed on the message so a new error replays its entrance. Errors enter
+        // like content and never shake — motion-spec.md §5.14.
+        <p key={error} id={`${fieldId}-error`} className="text-xs text-danger-hover motion-safe:animate-enter">
           {error}
         </p>
       ) : hint ? (

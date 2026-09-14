@@ -1,0 +1,34 @@
+Phosphor Icons — vendored interface icon path data
+===================================================
+
+Package      @phosphor-icons/core 2.1.1 (npm)
+Vendored     2026-09-13
+Tarball      https://registry.npmjs.org/@phosphor-icons/core/-/core-2.1.1.tgz
+Integrity    sha512-v4ARvrip4qBCImOE5rmPUylOEK4iiED9ZyKjcvzuezqMaiRASCHKcRIuvvxL/twvLpkfnEODCOJp5dM4eZilxQ==
+Shasum       62a4cfbec9772f1a613a647da214fbb96f3ad39d
+Repository   https://github.com/phosphor-icons/phosphor-core
+
+The published package carries no gitHead, so no upstream commit can be named
+from it. The tarball integrity above is the pinned identity of what was read;
+fetch that exact tarball to reproduce or audit the data.
+
+Licence
+-------
+MIT. Copyright (c) 2023 Phosphor Icons. The package's LICENSE file is copied
+verbatim to LICENSES/phosphor-icons-MIT.txt at the repository root, and the
+asset is listed under "Third-party assets" in the root LICENSE.md.
+
+What was taken
+--------------
+For each name in paths.ts: the `d` attribute of the single <path> in
+package/assets/regular/<name>.svg, or package/assets/fill/<name>.svg for a
+name ending in `-fill`. Every such file is one path on a 0 0 256 256 viewBox.
+The SVG wrapper is not kept; the path data is not modified.
+
+How to add an icon
+------------------
+1. npm pack @phosphor-icons/core@2.1.1 into a scratch directory and extract it.
+2. Confirm the SVG still holds exactly one <path> on the 256 viewBox.
+3. Add the name to both `IconName` and `ICON_PATHS` in paths.ts, keeping the
+   list sorted, with the path copied verbatim.
+A new package version means updating every field above, not just the path.

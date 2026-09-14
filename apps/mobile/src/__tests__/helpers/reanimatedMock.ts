@@ -35,11 +35,26 @@ export function mockReanimated() {
       ScrollView: RN.ScrollView,
       createAnimatedComponent: (component: unknown) => component,
     },
-    useSharedValue: (initial: unknown) => ({ value: initial }),
+    // `get`/`set` are reanimated's lint-safe accessors, which `PressableScale` writes through.
+    useSharedValue: (initial: unknown) => {
+      const shared = {
+        value: initial,
+        get: () => shared.value,
+        set: (next: unknown) => {
+          shared.value = typeof next === 'function' ? (next as (v: unknown) => unknown)(shared.value) : next;
+        },
+      };
+      return shared;
+    },
     // Styles are computed once at render — there are no animation frames here.
     useAnimatedStyle: (factory: () => unknown) => factory(),
     useAnimatedRef: () => ({ current: null }),
     useDerivedValue: (factory: () => unknown) => ({ value: factory() }),
+    // Gesture-handler's `GestureDetector` calls this whenever it finds reanimated
+    // installed, which a mock looks like. With `runOnJS(true)` gestures — the
+    // only kind this app writes — nothing ever reads the handler it returns, so
+    // a `Sheet`'s drag strip can mount under the mock.
+    useEvent: () => undefined,
     withTiming: passthrough,
     withSpring: passthrough,
     withDelay: (_delay: number, animation: unknown) => animation,
@@ -52,6 +67,11 @@ export function mockReanimated() {
     Easing: {
       linear: (t: number) => t,
       ease: (t: number) => t,
+      quad: (t: number) => t,
+      // `src/theme/motion.ts` builds every token curve with this, often at module
+      // scope in a board file — so a mock without it fails at import, in every
+      // suite that renders anything animated.
+      bezier: () => (t: number) => t,
       in: (fn: unknown) => fn,
       out: (fn: unknown) => fn,
       inOut: (fn: unknown) => fn,

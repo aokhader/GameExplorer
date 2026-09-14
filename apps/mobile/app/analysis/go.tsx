@@ -10,7 +10,7 @@ import {
   type GoGameState,
 } from '@gameexplorer/shared';
 import { goRulesetSummary } from '@gameexplorer/client/game/goSetup';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
 import { GoBoard } from '@/board/GoBoard';
@@ -56,11 +56,11 @@ export default function GoAnalysisScreen() {
   if (!timeline) {
     return (
       <Screen>
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-          <Text style={{ color: COLORS.fg, fontFamily: FONTS.display, fontSize: 26 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: SPACING[4] }}>
+          <Text style={{ color: COLORS.fg, fontFamily: FONTS.display, fontSize: FONT_SIZES.display }}>
             Go analysis
           </Text>
-          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 14, lineHeight: 20 }}>
+          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: 20 }}>
             Paste a game from any Go program — OGS, Sabaki, KaTrain, a tsumego
             app. The board size, komi and scoring rule come from the file, and
             every move gets graded by the engine.
@@ -80,7 +80,7 @@ export default function GoAnalysisScreen() {
           {error && (
             <Text
               accessibilityLiveRegion="polite"
-              style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: 13 }}
+              style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}
             >
               {error}
             </Text>

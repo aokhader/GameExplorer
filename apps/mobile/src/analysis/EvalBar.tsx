@@ -1,13 +1,10 @@
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
+import { timeTo } from '@/theme/motion';
 
 export interface EvalBarProps {
   /** White's share of the bar, 0–1. */
@@ -37,20 +34,20 @@ export function EvalBar({ share, label, busy = false }: EvalBarProps) {
   const width = useSharedValue(share);
 
   useEffect(() => {
-    width.value = reducedMotion ? share : withTiming(share, { duration: 380 });
+    width.value = timeTo(share, 'slow', 'out', reducedMotion);
   }, [share, reducedMotion, width]);
 
   const fill = useAnimatedStyle(() => ({ width: `${width.value * 100}%` }));
 
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: SPACING['1.5'] }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.displaySemi, fontSize: 12, letterSpacing: 0.8 }}>
+        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.xs, letterSpacing: 0.8 }}>
           EVALUATION
         </Text>
         <Text
           accessibilityLabel={`Evaluation ${label}`}
-          style={{ color: COLORS.fg, fontFamily: FONTS.bodyBold, fontSize: 16 }}
+          style={{ color: COLORS.fg, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.base }}
         >
           {busy && !label ? '…' : label}
         </Text>
@@ -60,7 +57,7 @@ export function EvalBar({ share, label, busy = false }: EvalBarProps) {
         accessibilityLabel={`White holds ${Math.round(share * 100)} percent of the evaluation bar`}
         style={{
           height: 12,
-          borderRadius: 6,
+          borderRadius: RADIUS.full,
           overflow: 'hidden',
           borderWidth: 1,
           borderColor: COLORS.border,

@@ -62,6 +62,24 @@ export function useSettings(): SettingsContextValue {
   return ctx;
 }
 
+/**
+ * Motion and haptic preferences, for the shared primitives in `components/ui`.
+ *
+ * Unlike `useSettings`, this does not throw outside a provider. A primitive
+ * renders in places with nothing above it — most component tests — and a button
+ * that crashed there for want of a preference it only uses to decide how far to
+ * shrink would be the wrong trade. Outside a provider it reports a fresh
+ * install's defaults: full motion, haptics off. The app root always has the
+ * provider, so the app itself always reads the real values.
+ */
+export function useFeedbackPrefs(): { reducedMotion: boolean; haptics: boolean } {
+  const ctx = React.useContext(SettingsContext);
+  return {
+    reducedMotion: ctx?.reducedMotion ?? false,
+    haptics: ctx?.settings.haptics ?? false,
+  };
+}
+
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { settings, setSetting, hydrated } = useSettingsStore({
     storage: nativeStorage,

@@ -3,9 +3,10 @@ import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LESSONS, isLessonCompleted } from '@gameexplorer/shared';
 import type { LessonGame, TutorialGame } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { mobileLessonProgressStore } from '@/lib/lessonProgress';
 import { FONTS } from '@/theme/typography';
+import { Icon } from '@/components/ui/Icon';
 
 /**
  * The lesson strip — the native twin of web's `LessonIndex`.
@@ -53,17 +54,17 @@ export function LessonList({ game }: { game: TutorialGame }) {
       <View
         style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}
       >
-        <Text style={{ fontFamily: FONTS.displaySemi, fontSize: 18, color: COLORS.fg }}>
+        <Text style={{ fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.lg, color: COLORS.fg }}>
           Coached lessons
         </Text>
-        <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: COLORS.fgMuted }}>
+        <Text style={{ fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.fgMuted }}>
           {doneCount} / {lessons.length} done
         </Text>
       </View>
       <Text
         style={{
           fontFamily: FONTS.body,
-          fontSize: 14,
+          fontSize: FONT_SIZES.sm,
           lineHeight: 21,
           color: COLORS.fgMuted,
           marginTop: 4,
@@ -73,7 +74,7 @@ export function LessonList({ game }: { game: TutorialGame }) {
         Short lessons on a live board. The coach checks every move and explains the ones that miss.
       </Text>
 
-      <View style={{ gap: 8 }}>
+      <View style={{ gap: SPACING[2] }}>
         {lessons.map((lesson, index) => (
           <Pressable
             key={lesson.id}
@@ -86,17 +87,16 @@ export function LessonList({ game }: { game: TutorialGame }) {
             // this list is reached from a screen worth going back to anyway.
             onPress={() => router.push(`/lesson/${game}/${lesson.id}` as never)}
             // A plain object, with the pressed state read from the children
-            // function — a function-form `style` is silently dropped on this
-            // app's Pressable, which shows up as a card with no background.
-            style={{ borderRadius: 12 }}
+            // function — the way every control in this app is written.
+            style={{ borderRadius: RADIUS.xl }}
           >
             {({ pressed }) => (
               <View
                 style={{
                   flexDirection: 'row',
-                  gap: 10,
+                  gap: SPACING['2.5'],
                   padding: 12,
-                  borderRadius: 12,
+                  borderRadius: RADIUS.xl,
                   borderWidth: 1,
                   borderColor: completed.has(lesson.id) ? accent.tintBorder : COLORS.border,
                   backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceAlt,
@@ -106,7 +106,7 @@ export function LessonList({ game }: { game: TutorialGame }) {
                   style={{
                     width: 24,
                     height: 24,
-                    borderRadius: 12,
+                    borderRadius: RADIUS.full,
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: completed.has(lesson.id) ? accent.tintBg : COLORS.surfaceMuted,
@@ -115,24 +115,22 @@ export function LessonList({ game }: { game: TutorialGame }) {
                     marginTop: 1,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontFamily: FONTS.bodyBold,
-                      fontSize: 11,
-                      color: completed.has(lesson.id) ? accent.light : COLORS.fg,
-                    }}
-                  >
-                    {completed.has(lesson.id) ? '✓' : index + 1}
-                  </Text>
+                  {completed.has(lesson.id) ? (
+                    <Icon name="check" size={FONT_SIZES.xs} color={accent.light} label="Completed" />
+                  ) : (
+                    <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.caption, color: COLORS.fg }}>
+                      {index + 1}
+                    </Text>
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 15, color: COLORS.fg }}>
+                  <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.body, color: COLORS.fg }}>
                     {lesson.title}
                   </Text>
                   <Text
                     style={{
                       fontFamily: FONTS.body,
-                      fontSize: 13,
+                      fontSize: FONT_SIZES.label,
                       lineHeight: 19,
                       color: COLORS.fgMuted,
                       marginTop: 2,
@@ -143,7 +141,7 @@ export function LessonList({ game }: { game: TutorialGame }) {
                   <Text
                     style={{
                       fontFamily: FONTS.body,
-                      fontSize: 11,
+                      fontSize: FONT_SIZES.caption,
                       color: COLORS.fgSubtle,
                       marginTop: 4,
                     }}

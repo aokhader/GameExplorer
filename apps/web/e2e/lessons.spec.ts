@@ -143,6 +143,12 @@ test('every game with lessons serves its first one', async ({ page }) => {
   for (const [game, set] of Object.entries(LESSONS)) {
     const first = set.lessons[0];
     await page.goto(`/${game}/learn/${first.id}`);
-    await expect(page.getByTestId('coach-say')).toHaveText(first.steps[0].instruction);
+    // Generous, like the other load-sensitive waits in this suite: the lesson
+    // screen shows a skeleton until `useLesson` resolves, and each game's first
+    // lesson is a route the dev server may be compiling for the first time while
+    // the rest of the suite runs in parallel. Five seconds was not always enough.
+    await expect(page.getByTestId('coach-say')).toHaveText(first.steps[0].instruction, {
+      timeout: 15000,
+    });
   }
 });

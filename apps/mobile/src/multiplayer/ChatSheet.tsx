@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Sheet } from '@/components/ui/Sheet';
 import { TextField } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
@@ -64,7 +64,7 @@ export function ChatSheet({
         style={{
           color: COLORS.fgMuted,
           fontFamily: FONTS.displaySemi,
-          fontSize: 13,
+          fontSize: FONT_SIZES.label,
           letterSpacing: 0.6,
           marginBottom: 8,
         }}
@@ -75,11 +75,11 @@ export function ChatSheet({
       <ScrollView
         ref={scrollRef}
         style={{ maxHeight: 220 }}
-        contentContainerStyle={{ gap: 6, paddingBottom: 8 }}
+        contentContainerStyle={{ gap: SPACING['1.5'], paddingBottom: 8 }}
         keyboardShouldPersistTaps="handled"
       >
         {log.length === 0 ? (
-          <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: 13 }}>
+          <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
             No messages yet — say hello.
           </Text>
         ) : (
@@ -88,7 +88,7 @@ export function ChatSheet({
             return (
               <Text
                 key={i}
-                style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 14, lineHeight: 20 }}
+                style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: 20 }}
               >
                 <Text style={{ color: mine ? COLORS.accentHover : COLORS.fg, fontFamily: FONTS.bodyBold }}>
                   {m.username}:{' '}
@@ -100,7 +100,7 @@ export function ChatSheet({
         )}
       </ScrollView>
 
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: SPACING[2], marginTop: 4 }}>
         <View style={{ flex: 1 }}>
           <TextField
             value={text}
@@ -127,14 +127,14 @@ export function ChatSheet({
               style={{
                 height: 48,
                 paddingHorizontal: 18,
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: COLORS.accent,
                 opacity: !canSend || !text.trim() ? 0.4 : pressed ? 0.8 : 1,
               }}
             >
-              <Text style={{ color: COLORS.onAccent, fontSize: 15, fontFamily: FONTS.bodyBold }}>Send</Text>
+              <Text style={{ color: COLORS.onAccent, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold }}>Send</Text>
             </View>
           )}
         </Pressable>

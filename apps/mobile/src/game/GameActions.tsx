@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View, type ViewStyle } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface GameActionsProps {
@@ -66,7 +66,7 @@ export function GameActions({
   const buttonBase: ViewStyle = {
     flex: 1,
     minHeight: 44,
-    borderRadius: 12,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
     paddingHorizontal: 12,
     alignItems: 'center',
@@ -75,7 +75,7 @@ export function GameActions({
   };
 
   return (
-    <View style={[{ flexDirection: 'row', gap: 10 }, style]}>
+    <View style={[{ flexDirection: 'row', gap: SPACING['2.5'] }, style]}>
       {onDraw && (
         <Pressable
           onPress={onDraw}
@@ -88,7 +88,7 @@ export function GameActions({
             { backgroundColor: COLORS.surfaceMuted, borderColor: COLORS.border },
           ]}
         >
-          <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.bodyBold }}>{drawLabel}</Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>{drawLabel}</Text>
         </Pressable>
       )}
       {onResign && (
@@ -109,7 +109,7 @@ export function GameActions({
           <Text
             style={{
               color: confirming ? '#fff' : COLORS.dangerHover,
-              fontSize: 14,
+              fontSize: FONT_SIZES.sm,
               fontFamily: FONTS.bodyBold,
             }}
           >

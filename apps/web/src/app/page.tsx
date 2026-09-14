@@ -9,6 +9,7 @@ import { ONBOARDED_KEY } from '@/lib/onboarding';
 import { SUPPORT_EMAIL } from '@/lib/support';
 import { GAME_LIST, gameCountWord, type GameCatalogEntry, type GameId } from '@gameexplorer/shared';
 import { GameIcon } from '@/components/game/GameIcon';
+import { Icon, type IconName } from '@gameexplorer/ui';
 
 const GAME_CARD_GLOW: Record<GameId, string> = {
   chess: 'group-hover:[box-shadow:var(--shadow-glow-chess)]',
@@ -103,14 +104,14 @@ export default function HomePage() {
           </Reveal>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: '🎮', title: 'Play vs AI', description: 'Challenge our adaptive bot across a wide range of difficulty levels' },
-              { icon: '🌐', title: 'Online Multiplayer', description: 'Match with players worldwide or invite a friend by link — live and real-time' },
-              { icon: '📱', title: 'Mobile Friendly', description: 'Play seamlessly on any device — desktop, tablet, or phone' },
-              { icon: '📊', title: 'Track Progress', description: 'Per-game ratings, full match history, and stats on your profile' },
-              { icon: '🎓', title: 'Training Mode', description: 'Rated games against a bot matched to your skill, with in-game hints' },
-              { icon: '🎨', title: 'Built to Delight', description: 'A clean, vibrant interface with satisfying, responsive feedback' },
-            ].map((f, i) => (
+            {([
+              { icon: 'game-controller', title: 'Play vs AI', description: 'Challenge our adaptive bot across a wide range of difficulty levels' },
+              { icon: 'globe', title: 'Online Multiplayer', description: 'Match with players worldwide or invite a friend by link — live and real-time' },
+              { icon: 'device-mobile', title: 'Mobile Friendly', description: 'Play seamlessly on any device — desktop, tablet, or phone' },
+              { icon: 'chart-bar', title: 'Track Progress', description: 'Per-game ratings, full match history, and stats on your profile' },
+              { icon: 'graduation-cap', title: 'Training Mode', description: 'Rated games against a bot matched to your skill, with in-game hints' },
+              { icon: 'palette', title: 'Built to Delight', description: 'A clean, vibrant interface with satisfying, responsive feedback' },
+            ] as const).map((f, i) => (
               <Reveal key={f.title} delay={i * 70}>
                 <FeatureCard {...f} />
               </Reveal>
@@ -213,14 +214,14 @@ function FeatureCard({
   description,
   comingSoon = false,
 }: {
-  icon: string;
+  icon: IconName;
   title: string;
   description: string;
   comingSoon?: boolean;
 }) {
   return (
     <div className="h-full glass rounded-2xl p-6 hover-lift hover:border-white/15">
-      <div className="text-4xl mb-4">{icon}</div>
+      <div className="text-4xl mb-4 text-accent"><Icon name={icon} /></div>
       <h3 className="text-xl font-semibold text-fg mb-2">
         {title}
         {comingSoon && (

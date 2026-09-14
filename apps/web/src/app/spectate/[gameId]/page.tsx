@@ -12,6 +12,17 @@ import { useAuth }       from '@/hooks/useAuth';
 import { useGameStore }  from '@/stores/gameStore';
 import { useSocketStore } from '@/stores/socketStore';
 import type { ChessGameState, CheckersGameState, ReversiGameState, ReversiColor, ClockSnapshot } from '@gameexplorer/shared';
+import { Icon } from '@gameexplorer/ui';
+
+/** Which side a player has — a plain swatch, not a font glyph that draws differently per platform. */
+function SideDot({ color }: { color: 'black' | 'white' }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-block size-3 rounded-full border border-border ${color === 'black' ? 'bg-black' : 'bg-white'}`}
+    />
+  );
+}
 
 function formatMs(ms: number) {
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -110,7 +121,7 @@ export default function SpectatePage() {
     <div className="relative min-h-screen text-fg flex flex-col items-center px-4 py-6">
       <div className="w-full max-w-2xl">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold">👁 Spectating</h1>
+          <h1 className="flex items-center gap-2 text-xl font-bold"><Icon name="eye" className="text-fg-muted" /> Spectating</h1>
           <Link href="/spectate" className="text-fg-muted hover:text-fg text-sm">← Leave</Link>
         </div>
 
@@ -122,7 +133,7 @@ export default function SpectatePage() {
           <div className="flex flex-col gap-2">
             {/* Black player (top) */}
             <div className="flex items-center justify-between bg-surface-alt rounded-lg px-4 py-2">
-              <span className="font-semibold">⚫ {opponent?.username ?? 'Black'} ({opponent?.rating ?? '—'})</span>
+              <span className="flex items-center gap-2 font-semibold"><SideDot color="black" />{opponent?.username ?? 'Black'} ({opponent?.rating ?? '—'})</span>
               <ClockBadge key={`black-${clockSyncedAt}`} color="black" clocks={clocks} clockSyncedAt={clockSyncedAt} running={gameStatus === 'active'} />
             </div>
 
@@ -135,7 +146,7 @@ export default function SpectatePage() {
 
             {/* White player (bottom) */}
             <div className="flex items-center justify-between bg-surface-alt rounded-lg px-4 py-2">
-              <span className="font-semibold">⚪ White</span>
+              <span className="flex items-center gap-2 font-semibold"><SideDot color="white" />White</span>
               <ClockBadge key={`white-${clockSyncedAt}`} color="white" clocks={clocks} clockSyncedAt={clockSyncedAt} running={gameStatus === 'active'} />
             </div>
           </div>
@@ -144,7 +155,7 @@ export default function SpectatePage() {
         {ended && endData && (
           <div className="mt-4 bg-surface-alt rounded-xl p-4 text-center">
             <p className="text-lg font-semibold">
-              {endData.result === 'draw' ? 'Draw' : endData.result === 'white_wins' ? '⚪ White wins' : '⚫ Black wins'}
+              {endData.result === 'draw' ? 'Draw' : endData.result === 'white_wins' ? 'White wins' : 'Black wins'}
             </p>
             <p className="text-sm text-fg-muted capitalize">{endData.reason.replace(/_/g, ' ')}</p>
           </div>

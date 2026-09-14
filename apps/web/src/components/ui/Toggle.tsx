@@ -18,6 +18,11 @@ export interface ToggleProps {
  * The app's switch. Lives here rather than inside a page because Settings and
  * the three bot setup screens all need the same control, and the mobile app
  * shows one switch shape everywhere too.
+ *
+ * Motion per motion-spec.md §5.4. The knob travels over `base` on the overshoot
+ * curve — CSS has no spring, and that curve is the spec's stand-in for mobile's
+ * `snappy` — while the track's colour changes over `fast`. Under reduced motion
+ * the knob jumps and the colour still fades.
  */
 export function Toggle({ checked, onChange, label, disabled = false }: ToggleProps) {
   return (
@@ -37,7 +42,8 @@ export function Toggle({ checked, onChange, label, disabled = false }: TogglePro
     >
       <div
         className={cn(
-          'w-5 h-5 bg-white rounded-full shadow mx-1 transition-transform',
+          'w-5 h-5 bg-white rounded-full shadow mx-1',
+          'transition-[translate] duration-(--duration-base) ease-overshoot motion-reduce:transition-none',
           checked && 'translate-x-5',
         )}
       />

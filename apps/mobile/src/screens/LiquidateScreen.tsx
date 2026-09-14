@@ -12,8 +12,8 @@ import {
   type LiquidateBotLevel,
   type LiquidateSeat,
 } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
-import { Screen, BackHeader, Button, GlowBackdrop } from '@/components/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { Screen, BackHeader, Button, GlowBackdrop, Icon, type IconName } from '@/components/ui';
 import { SetupHero } from '@/game/SetupHero';
 import { useLiquidateGame } from '@/liquidate/useLiquidateGame';
 import { LiquidateGame } from '@/liquidate/LiquidateGame';
@@ -26,13 +26,13 @@ import { FONTS } from '@/theme/typography';
 const MODES = [
   {
     key: 'bot' as const,
-    glyph: '🤖',
+    icon: 'robot' as const,
     label: 'Vs bots',
     sub: 'You against 1–5 rivals',
   },
   {
     key: 'local' as const,
-    glyph: '👥',
+    icon: 'users' as const,
     label: 'Pass & play',
     sub: 'Everyone on this device',
   },
@@ -118,7 +118,7 @@ export function LiquidateScreen() {
         hitSlop={8}
         style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
       >
-        <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: accent.base }}>
+        <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.sm, color: accent.base }}>
           New to Liquidate? How to play →
         </Text>
       </Pressable>
@@ -128,7 +128,7 @@ export function LiquidateScreen() {
       {game.hydrated && game.savedGame && (
         <View
           style={{
-            borderRadius: 16,
+            borderRadius: RADIUS['2xl'],
             borderWidth: 1,
             padding: 16,
             marginBottom: 24,
@@ -136,13 +136,13 @@ export function LiquidateScreen() {
             borderColor: accent.tintBorder,
           }}
         >
-          <Text style={{ fontFamily: FONTS.displaySemi, fontSize: 15, color: COLORS.fg }}>
+          <Text style={{ fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, color: COLORS.fg }}>
             Match in progress
           </Text>
           <Text
             style={{
               fontFamily: FONTS.body,
-              fontSize: 13,
+              fontSize: FONT_SIZES.label,
               color: COLORS.fgMuted,
               marginTop: 4,
               marginBottom: 14,
@@ -151,7 +151,7 @@ export function LiquidateScreen() {
             {game.savedGame.state.players.length} players · round {game.savedGame.state.round} ·{' '}
             {game.savedGame.state.config.mode === 'quick' ? 'Quick' : 'Full'} board
           </Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: SPACING['2.5'] }}>
             <Button label="Resume" onPress={game.resume} glow style={{ flex: 1 }} />
             <Button
               label="Discard"
@@ -164,7 +164,7 @@ export function LiquidateScreen() {
       )}
 
       <SectionLabel>Opponents</SectionLabel>
-      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', gap: SPACING['2.5'], marginBottom: 24 }}>
         {MODES.map((m) => (
           <SelectTile
             key={m.key}
@@ -172,14 +172,14 @@ export function LiquidateScreen() {
             onPress={() => setMode(m.key)}
             label={m.label}
             sub={m.sub}
-            glyph={m.glyph}
+            icon={m.icon}
             accessibilityLabel={`${m.label} — ${m.sub}`}
           />
         ))}
       </View>
 
       <SectionLabel>Players</SectionLabel>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[2], marginBottom: 24 }}>
         {counts.map((n) => {
           const selected = playerCount === n;
           return (
@@ -193,7 +193,7 @@ export function LiquidateScreen() {
                 flexGrow: 1,
                 flexBasis: '14%',
                 minWidth: 46,
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 2,
                 paddingVertical: 12,
                 alignItems: 'center',
@@ -204,7 +204,7 @@ export function LiquidateScreen() {
               <Text
                 style={{
                   fontFamily: FONTS.display,
-                  fontSize: 17,
+                  fontSize: FONT_SIZES.lg,
                   color: selected ? accent.base : COLORS.fg,
                 }}
               >
@@ -216,7 +216,7 @@ export function LiquidateScreen() {
       </View>
 
       <SectionLabel>Board</SectionLabel>
-      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
+      <View style={{ flexDirection: 'row', gap: SPACING['2.5'], marginBottom: 8 }}>
         {BOARD_MODES.map((b) => (
           <SelectTile
             key={b.key}
@@ -231,7 +231,7 @@ export function LiquidateScreen() {
       <Text
         style={{
           fontFamily: FONTS.body,
-          fontSize: 12,
+          fontSize: FONT_SIZES.xs,
           color: COLORS.fgMuted,
           marginBottom: 24,
         }}
@@ -243,7 +243,7 @@ export function LiquidateScreen() {
       {mode === 'bot' && (
         <>
           <SectionLabel>Bot temperament</SectionLabel>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING['2.5'], marginBottom: 24 }}>
             {LIQUIDATE_BOT_LEVELS.map((level) => (
               <SelectTile
                 key={level}
@@ -260,7 +260,7 @@ export function LiquidateScreen() {
       )}
 
       <SectionLabel>Going broke</SectionLabel>
-      <View style={{ gap: 10, marginBottom: 28 }}>
+      <View style={{ gap: SPACING['2.5'], marginBottom: 28 }}>
         {DEBT_RULES.map((r) => (
           <SelectTile
             key={r.key}
@@ -295,7 +295,7 @@ function SectionLabel({ children }: { children: string }) {
       style={{
         color: COLORS.fg,
         fontFamily: FONTS.displaySemi,
-        fontSize: 15,
+        fontSize: FONT_SIZES.body,
         marginBottom: 10,
       }}
     >
@@ -309,7 +309,7 @@ function SelectTile({
   onPress,
   label,
   sub,
-  glyph,
+  icon,
   basis = '47%',
   accessibilityLabel,
 }: {
@@ -317,7 +317,7 @@ function SelectTile({
   onPress: () => void;
   label: string;
   sub: string;
-  glyph?: string;
+  icon?: IconName;
   basis?: `${number}%`;
   accessibilityLabel: string;
 }) {
@@ -334,19 +334,26 @@ function SelectTile({
       style={{
         flexGrow: 1,
         flexBasis: basis,
-        borderRadius: 14,
+        borderRadius: RADIUS['2xl'],
         borderWidth: 2,
         padding: 12,
         backgroundColor: selected ? accent.tintBg : COLORS.surfaceAlt,
         borderColor: selected ? accent.base : COLORS.border,
       }}
     >
-      {glyph && <Text style={{ fontSize: 20, marginBottom: 4 }}>{glyph}</Text>}
+      {icon && (
+        <Icon
+          name={icon}
+          size={FONT_SIZES.xl}
+          color={selected ? accent.base : COLORS.fgMuted}
+          style={{ marginBottom: 4 }}
+        />
+      )}
       <Text
         style={{
           color: selected ? accent.base : COLORS.fg,
           fontFamily: FONTS.bodyBold,
-          fontSize: 14,
+          fontSize: FONT_SIZES.sm,
         }}
       >
         {label}
@@ -355,7 +362,7 @@ function SelectTile({
         style={{
           color: COLORS.fgMuted,
           fontFamily: FONTS.body,
-          fontSize: 11,
+          fontSize: FONT_SIZES.caption,
           marginTop: 2,
         }}
       >

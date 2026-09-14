@@ -1,6 +1,7 @@
 'use client';
 
 import { PUZZLE_BANDS, type PuzzleBand, type PuzzleGame } from '@gameexplorer/shared';
+import { Icon } from '@gameexplorer/ui';
 
 /**
  * Choose which strength of puzzle to solve.
@@ -77,15 +78,15 @@ export function PuzzleBandPicker({
                   : 'border-white/10 bg-white/[0.04] text-fg-muted hover:bg-white/[0.08]'
               }`}
             >
-              <span className="block text-[11px] font-semibold leading-tight">
+              <span className="block text-caption font-semibold leading-tight">
                 {b.label}
-                {complete && <span className="ml-1 text-success">✓</span>}
+                {complete && <Icon name="check" label="Completed" className="ml-1 text-success" />}
               </span>
               {/* Progress through the band, not how many exist. "3 / 8" is the
                   number a player is actually tracking; a bare count told them
                   nothing about what they had done. */}
               <span
-                className="block text-[10px] tabular-nums opacity-70"
+                className="block text-2xs tabular-nums opacity-70"
                 data-testid={`puzzle-band-${b.id}-progress`}
               >
                 {count === 0 ? `${b.tierElo} · —` : `${b.tierElo} · ${done}/${count}`}

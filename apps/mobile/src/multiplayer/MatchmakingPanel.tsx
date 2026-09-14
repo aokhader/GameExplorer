@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, Share, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import type { TimeControl } from '@gameexplorer/shared';
 import { Button, Toggle } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
@@ -49,15 +49,15 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
   // ── Queued ────────────────────────────────────────────────────────────────
   if (s.status === 'queued') {
     return (
-      <View style={{ alignItems: 'center', paddingVertical: 48, gap: 8 }}>
+      <View style={{ alignItems: 'center', paddingVertical: 48, gap: SPACING[2] }}>
         <ActivityIndicator size="large" color={accentColor} />
         <Text
           accessibilityLiveRegion="polite"
-          style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 18, marginTop: 12 }}
+          style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.lg, marginTop: 12 }}
         >
           Finding opponent…
         </Text>
-        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13, marginBottom: 20 }}>
+        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, marginBottom: 20 }}>
           The rating window widens every 15s
         </Text>
         <Button label="Cancel" variant="secondary" onPress={s.cancelQueue} style={{ alignSelf: 'stretch' }} />
@@ -68,10 +68,10 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
   // ── Idle ──────────────────────────────────────────────────────────────────
   return (
     <>
-      <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+      <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
         Time control
       </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING['2.5'], marginBottom: 24 }}>
         {timeControls.map((tc) => {
           const selected = s.timeControl === tc.id;
           return (
@@ -84,7 +84,7 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
               style={{
                 flexGrow: 1,
                 flexBasis: '47%',
-                borderRadius: 14,
+                borderRadius: RADIUS['2xl'],
                 borderWidth: 2,
                 padding: 12,
                 backgroundColor: selected ? tint : COLORS.surfaceAlt,
@@ -95,12 +95,12 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
                 style={{
                   color: selected ? accentColor : COLORS.fg,
                   fontFamily: FONTS.displaySemi,
-                  fontSize: 14,
+                  fontSize: FONT_SIZES.sm,
                 }}
               >
                 {tc.label}
               </Text>
-              <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 11, marginTop: 2 }}>
+              <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.caption, marginTop: 2 }}>
                 {tc.desc}
               </Text>
             </Pressable>
@@ -115,8 +115,8 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 12,
-          borderRadius: 14,
+          gap: SPACING[3],
+          borderRadius: RADIUS['2xl'],
           borderWidth: 1,
           borderColor: COLORS.border,
           backgroundColor: COLORS.surfaceAlt,
@@ -125,8 +125,8 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
         }}
       >
         <View style={{ flex: 1 }}>
-          <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
-          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 12, marginTop: 2 }}>
+          <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>Rated</Text>
+          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
             {s.rated ? 'Updates both players’ ratings' : 'Casual — no rating change'}
           </Text>
         </View>
@@ -146,7 +146,7 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
           style={{
             color: COLORS.dangerHover,
             fontFamily: FONTS.body,
-            fontSize: 13,
+            fontSize: FONT_SIZES.label,
             textAlign: 'center',
             marginTop: 12,
           }}
@@ -162,7 +162,7 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
           paddingTop: 24,
           borderTopWidth: 1,
           borderTopColor: COLORS.border,
-          gap: 10,
+          gap: SPACING['2.5'],
         }}
       >
         {!s.inviteUrl ? (
@@ -175,12 +175,12 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
           />
         ) : (
           <>
-            <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13 }}>
+            <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
               Send this link to a friend:
             </Text>
             <View
               style={{
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.border,
                 backgroundColor: COLORS.surfaceMuted,
@@ -193,13 +193,13 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
                 // sheet is unavailable (some managed devices disable it).
                 selectable
                 numberOfLines={2}
-                style={{ color: COLORS.fg, fontFamily: FONTS.body, fontSize: 12 }}
+                style={{ color: COLORS.fg, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs }}
               >
                 {s.inviteUrl}
               </Text>
             </View>
             <Button label="Share link" onPress={shareInvite} />
-            <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: 12 }}>
+            <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs }}>
               Waiting for your friend to join — the link expires in 10 minutes.
             </Text>
           </>
@@ -208,7 +208,7 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
         {s.inviteError && (
           <Text
             accessibilityLiveRegion="polite"
-            style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: 13, textAlign: 'center' }}
+            style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, textAlign: 'center' }}
           >
             {s.inviteError}
           </Text>
@@ -225,7 +225,7 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
           style={{
             color: COLORS.fgMuted,
             fontFamily: FONTS.body,
-            fontSize: 14,
+            fontSize: FONT_SIZES.sm,
             textAlign: 'center',
           }}
         >

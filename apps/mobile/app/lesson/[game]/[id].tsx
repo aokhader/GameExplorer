@@ -1,9 +1,7 @@
-import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { LESSONS } from '@gameexplorer/shared';
 import type { LessonGame } from '@gameexplorer/shared';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
-import { Screen, BackHeader } from '@/components/ui';
+import { Screen, BackHeader, EmptyState } from '@/components/ui';
 import { LessonScreen } from '@/screens/LessonScreen';
 
 /**
@@ -20,9 +18,6 @@ import { LessonScreen } from '@/screens/LessonScreen';
  * hit six times.
  */
 export default function LessonRoute() {
-  // Repaint when the theme changes; the tokens below are live views.
-  useThemeName();
-
   const { game, id } = useLocalSearchParams<{ game: string; id: string }>();
   const key = (game ?? '').toLowerCase();
   const known = Object.prototype.hasOwnProperty.call(LESSONS, key);
@@ -34,11 +29,7 @@ export default function LessonRoute() {
   return (
     <Screen scroll={false}>
       <BackHeader title="Lesson" fallbackHref="/" />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 15, textAlign: 'center' }}>
-          No lessons for this game yet.
-        </Text>
-      </View>
+      <EmptyState fill icon="graduation-cap" title="No lessons for this game yet" />
     </Screen>
   );
 }

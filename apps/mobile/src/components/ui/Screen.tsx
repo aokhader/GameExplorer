@@ -2,14 +2,22 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Keyboard, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
+import { Entrance } from './Entrance';
+import { Icon } from './Icon';
 
 interface ScreenProps {
   children: ReactNode;
   /** Wrap content in a ScrollView (default true). Set false for full-bleed screens. */
   scroll?: boolean;
   edges?: Edge[];
+  /**
+   * How the content arrives — `motion-spec.md` §5.5. `rise` for content screens;
+   * `fade`, opacity only, for a screen centred on a board, so the board lands
+   * where the eye expects it; `none` where something inside owns its entrance.
+   */
+  entrance?: 'rise' | 'fade' | 'none';
 }
 
 /**
@@ -49,9 +57,10 @@ function useKeyboardHeight(): number {
  * Page shell: safe-area inset + surface background, optional scroll. Content is
  * capped at a phone-ish column width and centered so tablets don't stretch
  * cards edge-to-edge (no effect on phones). Scrolling screens stay usable with
- * the keyboard open — see `useKeyboardHeight`.
+ * the keyboard open — see `useKeyboardHeight`. The content enters on mount, as
+ * `entrance` says.
  */
-export function Screen({ children, scroll = true, edges = ['top', 'bottom'] }: ScreenProps) {
+export function Screen({ children, scroll = true, edges = ['top', 'bottom'], entrance = 'rise' }: ScreenProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
@@ -68,10 +77,15 @@ export function Screen({ children, scroll = true, edges = ['top', 'bottom'] }: S
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          {children}
+          {entrance === 'none' ? children : <Entrance variant={entrance}>{children}</Entrance>}
         </ScrollView>
-      ) : (
+      ) : entrance === 'none' ? (
         <View style={[{ flex: 1, paddingHorizontal: 20, paddingTop: 8 }, column]}>{children}</View>
+      ) : (
+        // The entrance is the column itself here, so children that take `flex: 1` still fill it.
+        <Entrance variant={entrance} style={[{ flex: 1, paddingHorizontal: 20, paddingTop: 8 }, column]}>
+          {children}
+        </Entrance>
       )}
     </SafeAreaView>
   );
@@ -93,7 +107,7 @@ export function BackHeader({ title, fallbackHref }: { title?: string; fallbackHr
   };
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2], marginBottom: 16 }}>
       <Pressable
         onPress={goBack}
         accessibilityRole="button"
@@ -102,15 +116,15 @@ export function BackHeader({ title, fallbackHref }: { title?: string; fallbackHr
         style={{
           width: 36,
           height: 36,
-          borderRadius: 18,
+          borderRadius: RADIUS.full,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Text style={{ color: COLORS.fgMuted, fontSize: 24, lineHeight: 24 }}>‹</Text>
+        <Icon name="caret-left" size={FONT_SIZES.xl} color={COLORS.fgMuted} />
       </Pressable>
       {title && (
-        <Text style={{ color: COLORS.fg, fontSize: 18, fontFamily: FONTS.display }}>{title}</Text>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.lg, fontFamily: FONTS.display }}>{title}</Text>
       )}
     </View>
   );

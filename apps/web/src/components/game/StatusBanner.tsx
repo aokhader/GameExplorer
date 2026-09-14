@@ -42,7 +42,7 @@ export function StatusBanner({ accent, title, description, className }: StatusBa
       role="status"
     >
       <div data-title className="text-sm font-bold">{title}</div>
-      {description && <div className="mt-1 text-[13px] text-fg-muted">{description}</div>}
+      {description && <div className="mt-1 text-label text-fg-muted">{description}</div>}
     </div>
   );
 }

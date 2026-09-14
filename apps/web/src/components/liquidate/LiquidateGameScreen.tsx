@@ -28,7 +28,7 @@ import { TurnRail, railPanel } from './TurnRail';
 import { LQ } from './theme';
 
 /** Section heading shared by the rail's cards. */
-const RAIL_HEADING = 'mb-2.5 text-[10px] font-bold uppercase tracking-[0.1em]';
+const RAIL_HEADING = 'mb-2.5 text-2xs font-bold uppercase tracking-[0.1em]';
 
 const GameResultScreen = dynamic(
   () => import('@/components/game/GameResultScreen').then((m) => m.GameResultScreen),

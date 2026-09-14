@@ -223,7 +223,7 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
               empty point where there is only wood underneath. */}
           {label && (
             <span
-              className="absolute text-[9px] font-bold leading-none select-none"
+              className="absolute text-3xs font-bold leading-none select-none"
               style={{
                 color: stone
                   ? stone.color === 'black'
@@ -272,13 +272,13 @@ function GoTutorialBoard({ diagram }: { diagram: Extract<TutorialDiagram, { game
           Array.from({ length: size }, (_, i) => (
             <span key={`coord-${i}`}>
               <span
-                className="absolute -translate-x-1/2 text-[9px] font-semibold leading-none select-none"
+                className="absolute -translate-x-1/2 text-3xs font-semibold leading-none select-none"
                 style={{ left: `${at(i)}%`, bottom: '1%', color: coordColor }}
               >
                 {GO_FILE_LETTERS[i]}
               </span>
               <span
-                className="absolute -translate-y-1/2 text-[9px] font-semibold leading-none select-none"
+                className="absolute -translate-y-1/2 text-3xs font-semibold leading-none select-none"
                 style={{ top: `${at(size - 1 - i)}%`, left: '1%', color: coordColor }}
               >
                 {i + 1}
@@ -342,7 +342,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
         >
           {showRank && (
             <span
-              className="absolute top-0.5 left-1 text-[10px] font-semibold leading-none select-none z-10"
+              className="absolute top-0.5 left-1 text-2xs font-semibold leading-none select-none z-10"
               style={{ color: labelColor, opacity: 0.75 }}
             >
               {row + 1}
@@ -350,7 +350,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
           )}
           {showFile && (
             <span
-              className="absolute bottom-0.5 right-1 text-[10px] font-semibold leading-none select-none z-10"
+              className="absolute bottom-0.5 right-1 text-2xs font-semibold leading-none select-none z-10"
               style={{ color: labelColor, opacity: 0.75 }}
             >
               {String.fromCharCode(97 + col)}

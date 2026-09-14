@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { signInWithAppleNative, signInWithOAuthNative } from '@/lib/oauth';
 import { FONTS } from '@/theme/typography';
 
@@ -74,7 +74,7 @@ export function OAuthButtons({
   };
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: SPACING[3] }}>
       {/* Sign in with Apple — iOS only, shown first with equal prominence
           (App Store Guideline 4.8 requires it alongside Google/Facebook). */}
       {Platform.OS === 'ios' && (
@@ -87,21 +87,21 @@ export function OAuthButtons({
         />
       )}
 
-      {/* Box styles live on an inner View (the Button.tsx pattern), NOT on the
-          Pressable's function-form `style` prop — that form gets dropped on the
-          production iOS build (buttons rendered unstyled), while plain object
-          styles render fine everywhere. */}
+      {/* Box styles live on an inner View (the Button.tsx pattern), the way every
+          control in this app is written. It began as a workaround: NativeWind,
+          since removed, dropped a function-form `style` on Pressable, which left
+          these buttons unstyled on the production iOS build. */}
       <Pressable onPress={() => run('google')} disabled={busy !== null}>
         {({ pressed }) => (
           <View
             style={{
               width: '100%',
               height: 48,
-              borderRadius: 12,
+              borderRadius: RADIUS.xl,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 10,
+              gap: SPACING['2.5'],
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: COLORS.surfaceMuted,
@@ -109,7 +109,7 @@ export function OAuthButtons({
             }}
           >
             {busy === 'google' ? <ActivityIndicator size="small" color={COLORS.fg} /> : <GoogleIcon />}
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodySemi }}>
+            <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodySemi }}>
               Continue with Google
             </Text>
           </View>
@@ -122,17 +122,17 @@ export function OAuthButtons({
             style={{
               width: '100%',
               height: 48,
-              borderRadius: 12,
+              borderRadius: RADIUS.xl,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 10,
+              gap: SPACING['2.5'],
               backgroundColor: '#1877F2',
               opacity: busy !== null ? 0.6 : pressed ? 0.85 : 1,
             }}
           >
             {busy === 'facebook' ? <ActivityIndicator size="small" color="#fff" /> : <FacebookIcon />}
-            <Text style={{ color: '#ffffff', fontSize: 15, fontFamily: FONTS.bodySemi }}>
+            <Text style={{ color: '#ffffff', fontSize: FONT_SIZES.body, fontFamily: FONTS.bodySemi }}>
               Continue with Facebook
             </Text>
           </View>
@@ -148,9 +148,9 @@ export function OrDivider() {
   useThemeName();
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 4 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[3], marginVertical: 4 }}>
       <View style={{ flex: 1, height: 1, backgroundColor: COLORS.border }} />
-      <Text style={{ color: COLORS.fgSubtle, fontSize: 12 }}>or</Text>
+      <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs }}>or</Text>
       <View style={{ flex: 1, height: 1, backgroundColor: COLORS.border }} />
     </View>
   );

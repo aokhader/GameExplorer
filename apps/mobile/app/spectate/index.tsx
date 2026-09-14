@@ -3,8 +3,8 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { apiFetch, useAuth } from '@gameexplorer/client';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
-import { Button, BackHeader } from '@/components/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { Button, BackHeader, Icon } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
 
@@ -70,7 +70,7 @@ export default function SpectateLobby() {
       <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.surface }} edges={['top', 'bottom']}>
         <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
           <BackHeader title="Watch Live" fallbackHref="/" />
-          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 15, lineHeight: 22, marginBottom: 20 }}>
+          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.body, lineHeight: 22, marginBottom: 20 }}>
             Spectating runs over the same authenticated connection as playing, so
             it needs an account.
           </Text>
@@ -95,25 +95,25 @@ export default function SpectateLobby() {
             <ActivityIndicator size="large" color={COLORS.accent} />
           </View>
         ) : error ? (
-          <View style={{ paddingVertical: 40, gap: 14, alignItems: 'center' }}>
+          <View style={{ paddingVertical: 40, gap: SPACING['3.5'], alignItems: 'center' }}>
             <Text
-              style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: 14, textAlign: 'center' }}
+              style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, textAlign: 'center' }}
             >
               {error}
             </Text>
             <Button label="Try again" variant="secondary" onPress={() => void load()} />
           </View>
         ) : games.length === 0 ? (
-          <View style={{ paddingVertical: 50, alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 40 }}>🍿</Text>
-            <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 15 }}>
+          <View style={{ paddingVertical: 50, alignItems: 'center', gap: SPACING[2] }}>
+            <Icon name="popcorn" size={FONT_SIZES['4xl']} color={COLORS.fgSubtle} />
+            <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.body }}>
               No live games right now.
             </Text>
             <Text
               style={{
                 color: COLORS.fgSubtle,
                 fontFamily: FONTS.body,
-                fontSize: 13,
+                fontSize: FONT_SIZES.label,
                 textAlign: 'center',
                 marginTop: 2,
               }}
@@ -122,10 +122,10 @@ export default function SpectateLobby() {
             </Text>
           </View>
         ) : (
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: SPACING['2.5'] }}>
             <Text
               accessibilityLiveRegion="polite"
-              style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13 }}
+              style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}
             >
               {games.length} live {games.length === 1 ? 'game' : 'games'}
             </Text>
@@ -172,9 +172,9 @@ function LiveGameRow({ game, onPress }: { game: LiveGame; onPress: () => void })
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 12,
+            gap: SPACING[3],
             minHeight: 64,
-            borderRadius: 14,
+            borderRadius: RADIUS['2xl'],
             borderWidth: 1,
             borderColor: COLORS.border,
             backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceAlt,
@@ -184,18 +184,18 @@ function LiveGameRow({ game, onPress }: { game: LiveGame; onPress: () => void })
         >
           <GamePieceIcon game={game.gameType} size={28} />
           <View style={{ flex: 1 }}>
-            <Text numberOfLines={1} style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: 15 }}>
+            <Text numberOfLines={1} style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.body }}>
               {game.white.username} ({game.white.rating})
               <Text style={{ color: COLORS.fgMuted }}> vs </Text>
               {game.black.username} ({game.black.rating})
             </Text>
             <Text
-              style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 12, marginTop: 2 }}
+              style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, marginTop: 2 }}
             >
               {game.timeControl} · {game.moveCount} {game.moveCount === 1 ? 'move' : 'moves'}
             </Text>
           </View>
-          <Text style={{ color: accent, fontFamily: FONTS.bodySemi, fontSize: 14 }}>Watch</Text>
+          <Text style={{ color: accent, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.sm }}>Watch</Text>
         </View>
       )}
     </Pressable>

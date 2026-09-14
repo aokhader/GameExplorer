@@ -5,7 +5,7 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
 } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { HoldingsView } from './HoldingsView';
 import { ViewActionBar, GhostButton } from './ViewChrome';
@@ -48,7 +48,7 @@ export function DebtView({ state, youId, deviceIds, dispatch, onBack }: DebtView
           accessible
           accessibilityLiveRegion="polite"
           style={{
-            borderRadius: 14,
+            borderRadius: RADIUS['2xl'],
             borderWidth: 1,
             borderColor: 'rgba(239,95,107,0.4)',
             backgroundColor: 'rgba(239,95,107,0.12)',
@@ -56,15 +56,15 @@ export function DebtView({ state, youId, deviceIds, dispatch, onBack }: DebtView
           }}
         >
           <Text
-            style={{ fontFamily: FONTS.bodyBold, fontSize: 9, letterSpacing: 0.9, color: LIQUIDATE_PANEL_COLORS.danger }}
+            style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES['3xs'], letterSpacing: 0.9, color: LIQUIDATE_PANEL_COLORS.danger }}
           >
             PAYMENT DUE
           </Text>
-          <Text style={{ fontFamily: FONTS.display, fontSize: 24, color: P.ink, marginTop: 4 }}>
+          <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES['2xl'], color: P.ink, marginTop: 4 }}>
             You owe {formatCredits(owed)}
           </Text>
           <Text
-            style={{ fontFamily: FONTS.bodySemi, fontSize: 12, color: P.dim, marginTop: 4 }}
+            style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.xs, color: P.dim, marginTop: 4 }}
           >
             {creditor ? `to ${creditor.name}` : 'to the bank'} · you can raise{' '}
             {formatCredits(raisable)} from what you hold
@@ -92,7 +92,7 @@ export function DebtView({ state, youId, deviceIds, dispatch, onBack }: DebtView
           <Text
             style={{
               fontFamily: FONTS.bodySemi,
-              fontSize: 11,
+              fontSize: FONT_SIZES.caption,
               color: P.dim,
               textAlign: 'center',
               marginTop: 8,

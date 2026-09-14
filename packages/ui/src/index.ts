@@ -13,11 +13,17 @@ export {
   SHADOWS_NATIVE,
   GLOWS_NATIVE,
   Z_INDEX,
+  MOTION,
 } from './tokens';
 export type { Theme, GameAccent, NativeShadow, NativeGradient } from './tokens';
 export { setActiveTheme, getActiveTheme, subscribeTheme, liveView } from './themeRuntime';
 export type { ThemeName } from './themeRuntime';
 export { useThemeName } from './useThemeName';
+
+export { Icon } from './icons/Icon';
+export type { IconProps } from './icons/Icon';
+export { ICON_PATHS, ICON_VIEWBOX } from './icons/paths';
+export type { IconName } from './icons/paths';
 
 export { ChessPiece } from './chess/ChessPiece';
 export type { ChessPieceProps, PieceType, PieceColor } from './chess/ChessPiece';

@@ -23,6 +23,10 @@ import {
   LIQUIDATE_BOARD_COLORS,
   LIQUIDATE_PANEL_COLORS,
   useThemeName,
+  FONT_SIZES,
+  MOTION,
+  RADIUS,
+  SPACING,
 } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
@@ -280,7 +284,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
   return (
     <Shell>
       <Animated.View
-        entering={reducedMotion ? undefined : FadeIn.duration(220)}
+        entering={reducedMotion ? undefined : FadeIn.duration(MOTION.DURATION.base)}
         style={{ flex: 1, minHeight: 0 }}
       >
         {/* Header */}
@@ -290,7 +294,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 10,
+              gap: SPACING['2.5'],
             }}
           >
             <View
@@ -299,40 +303,40 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
               accessibilityLabel={
                 deviceActs ? `Your turn. ${roundLabel}` : `${acting?.name} is playing. ${roundLabel}`
               }
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1, minWidth: 0 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['2.5'], flex: 1, minWidth: 0 }}
             >
               <View
                 style={{
                   width: 12,
                   height: 12,
-                  borderRadius: 6,
+                  borderRadius: RADIUS.full,
                   backgroundColor: seatColor(
                     state.players.findIndex((p) => p.id === (actingId ?? youId)),
                   ),
                 }}
               />
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text numberOfLines={1} style={{ fontFamily: FONTS.display, fontSize: 15, color: P.ink }}>
+                <Text numberOfLines={1} style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.body, color: P.ink }}>
                   {deviceActs ? 'Your turn' : `${acting?.name ?? '—'} is playing`}
                 </Text>
                 <Text
                   numberOfLines={1}
-                  style={{ fontFamily: FONTS.bodySemi, fontSize: 10.5, color: P.soft, marginTop: 2 }}
+                  style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.caption, color: P.soft, marginTop: 2 }}
                 >
                   {you?.name ?? '—'} · {roundLabel}
                 </Text>
               </View>
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
               <View
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: SPACING['1.5'],
                   paddingHorizontal: 12,
                   paddingVertical: 7,
-                  borderRadius: 12,
+                  borderRadius: RADIUS.xl,
                   borderWidth: 1,
                   // Debt is allowed to go below zero under one rule set, and a
                   // negative balance has to be impossible to miss.
@@ -343,7 +347,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
                 <Text
                   style={{
                     fontFamily: FONTS.bodySemi,
-                    fontSize: 9,
+                    fontSize: FONT_SIZES['3xs'],
                     letterSpacing: 0.6,
                     color: P.soft,
                   }}
@@ -353,7 +357,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
                 <Text
                   style={{
                     fontFamily: FONTS.display,
-                    fontSize: 16,
+                    fontSize: FONT_SIZES.base,
                     color: (you?.credits ?? 0) < 0 ? P.danger : P.ink,
                   }}
                 >
@@ -368,7 +372,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
                 style={{
                   width: 38,
                   height: 38,
-                  borderRadius: 12,
+                  borderRadius: RADIUS.xl,
                   borderWidth: 1,
                   borderColor: P.line,
                   backgroundColor: P.panel,
@@ -376,7 +380,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: 17, lineHeight: 20, color: P.ink }}>⋯</Text>
+                <Text style={{ fontSize: FONT_SIZES.lg, lineHeight: 20, color: P.ink }}>⋯</Text>
               </Pressable>
             </View>
           </View>
@@ -386,7 +390,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6, marginTop: 12 }}
+            contentContainerStyle={{ gap: SPACING['1.5'], marginTop: 12 }}
           >
             {state.players
               .filter((p) => p.id !== youId)
@@ -398,10 +402,10 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
-                      gap: 6,
+                      gap: SPACING['1.5'],
                       paddingHorizontal: 9,
                       paddingVertical: 7,
-                      borderRadius: 11,
+                      borderRadius: RADIUS.xl,
                       borderWidth: 1,
                       borderColor: p.id === actingId ? P.accent : P.line,
                       backgroundColor: P.panel2,
@@ -413,18 +417,18 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
                       style={{
                         width: 9,
                         height: 9,
-                        borderRadius: 4.5,
+                        borderRadius: RADIUS.full,
                         backgroundColor: seatColor(seat),
                       }}
                     />
                     <View style={{ minWidth: 0 }}>
                       <Text
                         numberOfLines={1}
-                        style={{ fontFamily: FONTS.bodyBold, fontSize: 10, color: P.ink }}
+                        style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES['2xs'], color: P.ink }}
                       >
                         {p.name}
                       </Text>
-                      <Text style={{ fontFamily: FONTS.display, fontSize: 9, color: P.dim }}>
+                      <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES['3xs'], color: P.dim }}>
                         {p.bankrupt ? 'folded' : formatCredits(p.credits)}
                       </Text>
                     </View>
@@ -435,7 +439,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
         </View>
 
         {/* Board */}
-        <View style={{ flex: 1, minHeight: 0, paddingHorizontal: 18, gap: 10 }}>
+        <View style={{ flex: 1, minHeight: 0, paddingHorizontal: 18, gap: SPACING['2.5'] }}>
           <View
             style={{
               flexDirection: 'row',
@@ -447,7 +451,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
             <Text
               style={{
                 fontFamily: FONTS.bodyBold,
-                fontSize: 10,
+                fontSize: FONT_SIZES['2xs'],
                 letterSpacing: 1,
                 color: P.dim,
               }}
@@ -460,7 +464,7 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
               accessibilityLabel="Open the full board"
               hitSlop={8}
             >
-              <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 10, color: P.accent }}>
+              <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES['2xs'], color: P.accent }}>
                 tap to zoom ⤢
               </Text>
             </Pressable>
@@ -572,18 +576,18 @@ function BoardLegend({ state, youId }: { state: LiquidateGameState; youId: strin
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',
-        columnGap: 12,
-        rowGap: 5,
+        columnGap: SPACING[3],
+        rowGap: SPACING['1.5'],
         paddingHorizontal: 2,
       }}
     >
       {chips.map((c) => (
-        <View key={c.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+        <View key={c.key} style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['1.5'] }}>
           <View
-            style={{ width: 11, height: 11, borderRadius: 3, backgroundColor: c.color }}
+            style={{ width: 11, height: 11, borderRadius: RADIUS.sm, backgroundColor: c.color }}
           />
           <Text
-            style={{ fontFamily: FONTS.bodySemi, fontSize: 10, lineHeight: 13, color: P.soft }}
+            style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES['2xs'], lineHeight: 13, color: P.soft }}
           >
             {c.label}
           </Text>

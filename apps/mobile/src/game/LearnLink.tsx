@@ -1,7 +1,7 @@
 import { Pressable, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { TutorialGame } from '@gameexplorer/shared';
-import { GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { GAME_ACCENTS, useThemeName, FONT_SIZES } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface LearnLinkProps {
@@ -36,7 +36,7 @@ export function LearnLink({ game, label }: LearnLinkProps) {
       hitSlop={8}
       style={{ alignSelf: 'center', marginTop: -12, marginBottom: 22 }}
     >
-      <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: GAME_ACCENTS[game].base }}>
+      <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.sm, color: GAME_ACCENTS[game].base }}>
         {label}
       </Text>
     </Pressable>

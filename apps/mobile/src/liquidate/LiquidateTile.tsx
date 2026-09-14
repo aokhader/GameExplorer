@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_BOARD_COLORS, useThemeName, RADIUS, SPACING } from '@gameexplorer/ui';
 import {
   MAX_COLONY_LEVEL,
   type LiquidateTile as Tile,
@@ -84,7 +84,7 @@ function LiquidateTileCellInner({
             left: 2,
             right: 2,
             flexDirection: 'row',
-            gap: 1,
+            gap: SPACING['0.5'],
           }}
         >
           {Array.from({ length: owned.level }, (_, i) => (
@@ -93,7 +93,7 @@ function LiquidateTileCellInner({
               style={{
                 width: 3,
                 height: 3,
-                borderRadius: 1.5,
+                borderRadius: RADIUS.full,
                 backgroundColor:
                   owned.level === MAX_COLONY_LEVEL
                     ? LIQUIDATE_BOARD_COLORS.activeRing

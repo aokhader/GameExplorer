@@ -7,8 +7,9 @@ import {
   moveHistoryToPdn,
   type CheckersGameState,
 } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
+import { DifficultyMeter } from '@/game/DifficultyMeter';
 import { CheckersBoard } from '@/board/CheckersBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
@@ -37,12 +38,12 @@ import { FONTS } from '@/theme/typography';
 
 
 const DIFFICULTY_LEVELS = [
-  { elo: 500, label: 'Beginner', description: 'Misses captures, blunders pieces', icon: '🟢' },
-  { elo: 800, label: 'Casual', description: 'Somewhat random, misses jump chains', icon: '🔵' },
-  { elo: 1100, label: 'Club', description: 'Consistent, catches forced captures', icon: '🟡' },
-  { elo: 1400, label: 'Strong', description: 'Strong tactically', icon: '🟠' },
-  { elo: 1700, label: 'Expert', description: 'Very difficult to beat', icon: '🔴' },
-  { elo: 2000, label: 'Master', description: 'Near-optimal play', icon: '⚫' },
+  { elo: 500, label: 'Beginner', description: 'Misses captures, blunders pieces' },
+  { elo: 800, label: 'Casual', description: 'Somewhat random, misses jump chains' },
+  { elo: 1100, label: 'Club', description: 'Consistent, catches forced captures' },
+  { elo: 1400, label: 'Strong', description: 'Strong tactically' },
+  { elo: 1700, label: 'Expert', description: 'Very difficult to beat' },
+  { elo: 2000, label: 'Master', description: 'Near-optimal play' },
 ] as const;
 
 function labelForElo(elo: number): string {
@@ -199,11 +200,11 @@ export function CheckersScreen() {
 
         {isBotSetup && (
           <>
-            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
               Bot strength
             </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
-              {DIFFICULTY_LEVELS.map((level) => {
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING['2.5'], marginBottom: 24 }}>
+              {DIFFICULTY_LEVELS.map((level, i) => {
                 const selected = targetElo === level.elo;
                 return (
                   <Pressable
@@ -215,18 +216,22 @@ export function CheckersScreen() {
                     style={{
                       flexGrow: 1,
                       flexBasis: '47%',
-                      borderRadius: 14,
+                      borderRadius: RADIUS['2xl'],
                       borderWidth: 2,
                       padding: 12,
                       backgroundColor: selected ? GAME_ACCENTS.checkers.tintBg : COLORS.surfaceAlt,
                       borderColor: selected ? GAME_ACCENTS.checkers.base : COLORS.border,
                     }}
                   >
-                    <Text style={{ fontSize: 20, marginBottom: 4 }}>{level.icon}</Text>
-                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold }}>
+                    <DifficultyMeter
+                      level={i + 1}
+                      of={DIFFICULTY_LEVELS.length}
+                      color={selected ? GAME_ACCENTS.checkers.base : COLORS.fgMuted}
+                    />
+                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>
                       {level.label}
                     </Text>
-                    <Text style={{ color: COLORS.fgMuted, fontSize: 11, marginTop: 2 }}>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.caption, marginTop: 2 }}>
                       {level.description}
                     </Text>
                   </Pressable>
@@ -240,10 +245,10 @@ export function CheckersScreen() {
             bot's strength. */}
         {picksColor && (
           <>
-            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body, marginBottom: 10 }}>
               Your color
             </Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', gap: SPACING[3], marginBottom: 24 }}>
               {(['white', 'black'] as const).map((color) => {
                 const selected = playerColor === color;
                 return (
@@ -255,7 +260,7 @@ export function CheckersScreen() {
                     accessibilityState={{ selected }}
                     style={{
                       flex: 1,
-                      borderRadius: 14,
+                      borderRadius: RADIUS['2xl'],
                       borderWidth: 2,
                       padding: 16,
                       alignItems: 'center',
@@ -267,17 +272,17 @@ export function CheckersScreen() {
                       style={{
                         width: 34,
                         height: 34,
-                        borderRadius: 17,
+                        borderRadius: RADIUS.full,
                         marginBottom: 8,
                         backgroundColor: color === 'white' ? '#f4d270' : '#3b82f6',
                         borderWidth: 2,
                         borderColor: color === 'white' ? '#8a6a1f' : '#1e40af',
                       }}
                     />
-                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold, textTransform: 'capitalize' }}>
+                    <Text style={{ color: selected ? GAME_ACCENTS.checkers.base : COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold, textTransform: 'capitalize' }}>
                       {color}
                     </Text>
-                    <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+                    <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
                       {color === 'white' ? 'You move first' : 'Bot moves first'}
                     </Text>
                   </Pressable>
@@ -295,8 +300,8 @@ export function CheckersScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
-              borderRadius: 14,
+              gap: SPACING[3],
+              borderRadius: RADIUS['2xl'],
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: COLORS.surfaceAlt,
@@ -305,8 +310,8 @@ export function CheckersScreen() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>Rated</Text>
-              <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>Rated</Text>
+              <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
                 {!userId
                   ? 'Sign in to play rated games'
                   : !online
@@ -365,9 +370,9 @@ export function CheckersScreen() {
       liveState.winner === null
         ? 'Draw — 40 moves without capture'
         : isPassAndPlay
-          ? `${cap(liveState.winner)} wins! 🎉`
+          ? `${cap(liveState.winner)} wins!`
           : liveState.winner === playerColor
-            ? 'You win! 🎉'
+            ? 'You win!'
             : 'Bot wins';
   }
 
@@ -517,12 +522,12 @@ export function CheckersScreen() {
             {/* Info card */}
             <View
               style={{
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.border,
                 backgroundColor: COLORS.surfaceAlt,
                 padding: 12,
-                gap: 8,
+                gap: SPACING[2],
               }}
             >
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -554,14 +559,14 @@ export function CheckersScreen() {
                 style={{
                   flexDirection: 'row',
                   justifyContent: 'center',
-                  gap: 20,
+                  gap: SPACING[5],
                   paddingTop: 8,
                   borderTopWidth: 1,
                   borderTopColor: COLORS.border,
                 }}
               >
                 <PieceCount color="#f4d270" border="#8a6a1f" count={counts.white} />
-                <Text style={{ color: COLORS.fgMuted, fontSize: 12 }}>vs</Text>
+                <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs }}>vs</Text>
                 <PieceCount color="#3b82f6" border="#1e40af" count={counts.black} />
               </View>
             </View>
@@ -632,9 +637,9 @@ function InfoCell({ label, value, capitalize }: { label: string; value: string; 
   useThemeName();
 
   return (
-    <View style={{ flexDirection: 'row', gap: 6, width: '50%', paddingVertical: 2 }}>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 13 }}>{label}:</Text>
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold, textTransform: capitalize ? 'capitalize' : 'none' }}>
+    <View style={{ flexDirection: 'row', gap: SPACING['1.5'], width: '50%', paddingVertical: 2 }}>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label }}>{label}:</Text>
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold, textTransform: capitalize ? 'capitalize' : 'none' }}>
         {value}
       </Text>
     </View>
@@ -646,9 +651,9 @@ function PieceCount({ color, border, count }: { color: string; border: string; c
   useThemeName();
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: color, borderWidth: 2, borderColor: border }} />
-      <Text style={{ color: COLORS.fg, fontSize: 13, fontFamily: FONTS.bodyBold }}>{count}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['1.5'] }}>
+      <View style={{ width: 14, height: 14, borderRadius: RADIUS.full, backgroundColor: color, borderWidth: 2, borderColor: border }} />
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold }}>{count}</Text>
     </View>
   );
 }

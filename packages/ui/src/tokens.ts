@@ -322,33 +322,83 @@ export const GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'go' | 'liq
 
 export type { ThemeName } from './themeRuntime';
 
+/**
+ * Spacing, on Tailwind v4's 4px scale and under Tailwind's own names, so
+ * `SPACING[3]` here and `gap-3` on web are the same 12px.
+ *
+ * Keyed by Tailwind's multiplier rather than t-shirt sizes because that is the
+ * vocabulary web already writes hundreds of times — a second set of names for the
+ * same numbers is how the two platforms drifted. The half steps exist because
+ * mobile genuinely lays out on 6, 10 and 14px gaps, which Tailwind spells `1.5`,
+ * `2.5` and `3.5`.
+ *
+ * Mobile source may not write a raw numeric `gap`; lint enforces it.
+ */
 export const SPACING = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  '2xl': 32,
-  '3xl': 48,
+  '0.5': 2,
+  1: 4,
+  '1.5': 6,
+  2: 8,
+  '2.5': 10,
+  3: 12,
+  '3.5': 14,
+  4: 16,
+  5: 20,
+  6: 24,
+  8: 32,
+  10: 40,
+  12: 48,
 } as const;
 
+/**
+ * Corner radii — Tailwind v4's scale under Tailwind v4's names, so
+ * `RADIUS['2xl']` and `rounded-2xl` are the same 16px.
+ *
+ * These keys used to sit one step off Tailwind's (`RADIUS.lg` was `rounded-xl`),
+ * and Tailwind v4 then shifted its own names again. With two adopters it was
+ * cheaper to re-key than to annotate a three-way mapping forever.
+ *
+ * Circles and pills use `full`. React Native clamps an oversized radius the way
+ * CSS does, which the app already relied on before this scale existed.
+ */
 export const RADIUS = {
-  sm: 6,    // rounded-md
-  md: 8,    // rounded-lg
-  lg: 12,   // rounded-xl
-  xl: 16,   // rounded-2xl
+  xs: 2,
+  sm: 4,
+  md: 6,
+  lg: 8,
+  xl: 12,
+  '2xl': 16,
+  '3xl': 24,
+  '4xl': 32,
   full: 9999,
 } as const;
 
+/**
+ * The type scale. Steps Tailwind has keep Tailwind's names, so web's `text-sm`
+ * and `FONT_SIZES.sm` agree. Steps Tailwind lacks carry role names, and web gets
+ * them as `text-caption`, `text-label` and so on from `globals.css`.
+ *
+ * The role steps are the point, not decoration: 11, 13 and 15px are the mobile
+ * app's working sizes, together more than two hundred call sites. A scale without
+ * them was a scale nobody could adopt, which is why the old one had no adopters.
+ */
 export const FONT_SIZES = {
+  '3xs': 9,     // board coordinates, dense badges
+  '2xs': 10,    // chip counters, micro labels
+  caption: 11,  // tab labels, metadata, eyebrows
   xs: 12,
+  label: 13,    // secondary text, field labels
   sm: 14,
+  body: 15,     // mobile body copy
   base: 16,
   lg: 18,
   xl: 20,
   '2xl': 24,
+  display: 28,  // screen titles
   '3xl': 30,
+  '4xl': 36,
   '5xl': 48,
+  '6xl': 60,
 } as const;
 
 export const FONT_WEIGHTS = {
@@ -544,4 +594,96 @@ export const Z_INDEX = {
   overlay: 50,
   modal: 60,
   toast: 70,
+} as const;
+
+/**
+ * Motion — every duration, curve and spring the product uses. Which of these an
+ * interaction gets is decided in `project-docs/design/motion-spec.md`; read it
+ * before adding a value, because a new value is how the old thirteen unrelated
+ * durations happened.
+ *
+ * Theme-independent, so these are plain constants and NOT live views. Capturing
+ * one at module scope is safe, which is why none of them is in the frozen-token
+ * guard's list.
+ *
+ * Nothing here is invented. `DURATION.base` is the board's `BOARD_ANIM_MS`
+ * (`packages/shared` cannot import this package, so a test holds the two
+ * together), the curves are the ones web's CSS and `PieceSlot` already used, and
+ * the springs are web's former `springSoft` / `springSnappy` / `springBouncy`.
+ */
+type Bezier = readonly [number, number, number, number];
+
+/** Milliseconds. Framer Motion wants seconds; its helper divides. */
+const DURATION = {
+  instant: 0,
+  micro: 100,
+  fast: 150,
+  base: 200,
+  moderate: 300,
+  slow: 400,
+  slower: 600,
+} as const;
+
+/** Cubic-bézier control points: Framer's `ease`, or spread into Reanimated's `Easing.bezier`. */
+const EASING = {
+  /** Starts and ends on screen — colour, size, reposition. Tailwind's default curve. */
+  standard: [0.4, 0, 0.2, 1],
+  /** Entrances. Anything arriving decelerates. */
+  out: [0.22, 1, 0.36, 1],
+  /** Exits. Anything leaving accelerates away. */
+  in: [0.4, 0, 1, 1],
+  /** Board piece travel only — softer at the end than `out`, so a piece settles instead of snapping. */
+  move: [0.22, 0.61, 0.36, 1],
+  /** A small pop where no spring is available, which in practice means CSS. */
+  overshoot: [0.34, 1.56, 0.64, 1],
+  linear: [0, 0, 1, 1],
+} as const satisfies Record<string, Bezier>;
+
+/**
+ * Springs. Framer Motion and Reanimated integrate the same damped-spring
+ * equation, so identical numbers move identically on both platforms.
+ *
+ * All three numbers, always. Reanimated 4 defaults to stiffness 900, damping 120
+ * and mass 4, and a partial config silently inherits them: `{ damping: 14,
+ * stiffness: 160 }` runs at mass 4 with a damping ratio of 0.28, not the 0.55 its
+ * author read off the numbers.
+ */
+const SPRING = {
+  /** Damping ratio ≈0.92, settles in ≈250ms. Panels, cards, sheets — no visible overshoot. */
+  soft: { stiffness: 260, damping: 28, mass: 0.9 },
+  /** Damping ratio ≈0.63, settles in ≈230ms. Press release, toggles, indicators. */
+  snappy: { stiffness: 520, damping: 24, mass: 0.7 },
+  /** Damping ratio ≈0.33, settles in ≈520ms. Celebration only. */
+  bouncy: { stiffness: 420, damping: 12, mass: 0.8 },
+} as const;
+
+type EasingName = keyof typeof EASING;
+type SpringName = keyof typeof SPRING;
+
+const EASING_CSS = Object.fromEntries(
+  Object.entries(EASING).map(([name, [x1, y1, x2, y2]]) => [name, `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`]),
+) as Record<EasingName, string>;
+
+const SPRING_FRAMER = Object.fromEntries(
+  Object.entries(SPRING).map(([name, spring]) => [name, { type: 'spring', ...spring }]),
+) as { [K in SpringName]: (typeof SPRING)[K] & { type: 'spring' } };
+
+/**
+ * List entrances. Items arrive `step` ms apart, and every item from the
+ * `maxItems`-th on arrives with that one, so a long list never makes its last
+ * row wait — the rule in `motion-spec.md` §5.7.
+ */
+const STAGGER = { step: 40, maxItems: 6 } as const;
+
+export const MOTION = {
+  DURATION,
+  EASING,
+  /** List stagger: web's former 40ms `staggerChildren`, now read by both platforms. */
+  STAGGER,
+  /** The same curves as CSS strings, mirrored as `--ease-*` in `apps/web/src/app/globals.css`. */
+  EASING_CSS,
+  /** Reanimated's `withSpring` shape. */
+  SPRING,
+  /** Framer Motion's transition shape — the same numbers plus `type: 'spring'`. */
+  SPRING_FRAMER,
 } as const;

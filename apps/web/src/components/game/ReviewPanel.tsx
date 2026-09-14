@@ -10,6 +10,7 @@ import {
   type PositionEval,
 } from '@gameexplorer/shared';
 import type { GradedMove, ScanProgress } from '@gameexplorer/client/hooks/useGameAnalysis';
+import { Icon } from '@gameexplorer/ui';
 
 /**
  * Grade colour for web. Mobile resolves the same grades through live-view token
@@ -370,19 +371,19 @@ function ReviewBar({
   return (
     <div className="flex items-center justify-center gap-2">
       <NavButton label="First" onClick={() => onSeek(0)} disabled={viewIndex === 0}>
-        ⏮
+        <Icon name="arrow-line-left" />
       </NavButton>
       <NavButton label="Previous move" onClick={() => step(-1)} disabled={viewIndex === 0}>
-        ◀
+        <Icon name="caret-left" />
       </NavButton>
       <span className="min-w-[6rem] text-center text-sm tabular-nums text-fg-muted">
         {viewIndex} / {last}
       </span>
       <NavButton label="Next move" onClick={() => step(1)} disabled={viewIndex >= last}>
-        ▶
+        <Icon name="caret-right" />
       </NavButton>
       <NavButton label="Last" onClick={() => onSeek(last)} disabled={viewIndex >= last}>
-        ⏭
+        <Icon name="arrow-line-right" />
       </NavButton>
     </div>
   );

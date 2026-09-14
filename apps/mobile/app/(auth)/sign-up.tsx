@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { supabase } from '@gameexplorer/db';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
@@ -25,20 +25,20 @@ function openLegal(url: string) {
  * OAuth options above create accounts too and the notice has to cover them.
  */
 function LegalNotice() {
-  const link = { color: COLORS.fgMuted, fontSize: 12, textDecorationLine: 'underline' } as const;
+  const link = { color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, textDecorationLine: 'underline' } as const;
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
-      <Text style={{ color: COLORS.fgSubtle, fontSize: 12 }}>
+      <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs }}>
         By creating an account you agree to our{' '}
       </Text>
       <Pressable onPress={() => openLegal(TERMS_URL)} accessibilityRole="link">
         <Text style={link}>Terms of Service</Text>
       </Pressable>
-      <Text style={{ color: COLORS.fgSubtle, fontSize: 12 }}> and </Text>
+      <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs }}> and </Text>
       <Pressable onPress={() => openLegal(PRIVACY_URL)} accessibilityRole="link">
         <Text style={link}>Privacy Policy</Text>
       </Pressable>
-      <Text style={{ color: COLORS.fgSubtle, fontSize: 12 }}>.</Text>
+      <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs }}>.</Text>
     </View>
   );
 }
@@ -98,11 +98,11 @@ export default function SignUpScreen() {
   return (
     <Screen>
       <BackHeader fallbackHref="/" />
-      <Text style={{ color: COLORS.fg, fontSize: 28, fontFamily: FONTS.display, marginBottom: 24 }}>
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.display, fontFamily: FONTS.display, marginBottom: 24 }}>
         Create account
       </Text>
 
-      <View style={{ gap: 16 }}>
+      <View style={{ gap: SPACING[4] }}>
         <OAuthButtons onSuccess={done} onError={(m) => setError(m || null)} />
         <OrDivider />
 
@@ -144,12 +144,12 @@ export default function SignUpScreen() {
         />
 
         {confirmSent && (
-          <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm }}>
             Check {email.trim()} for a confirmation link, then sign in.
           </Text>
         )}
 
-        {error && <Text style={{ color: COLORS.dangerHover, fontSize: 14 }}>{error}</Text>}
+        {error && <Text style={{ color: COLORS.dangerHover, fontSize: FONT_SIZES.sm }}>{error}</Text>}
 
         <Button
           label="Create account"
@@ -161,10 +161,10 @@ export default function SignUpScreen() {
 
         <LegalNotice />
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 4 }}>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 14 }}>Already have an account?</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: SPACING['1.5'], marginTop: 4 }}>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm }}>Already have an account?</Text>
           <Pressable onPress={() => router.replace('/(auth)/sign-in' as never)}>
-            <Text style={{ color: COLORS.accent, fontSize: 14, fontFamily: FONTS.bodySemi }}>Sign in</Text>
+            <Text style={{ color: COLORS.accent, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodySemi }}>Sign in</Text>
           </Pressable>
         </View>
       </View>

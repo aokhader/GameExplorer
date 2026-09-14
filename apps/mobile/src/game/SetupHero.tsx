@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, useThemeName, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
 
@@ -32,7 +32,7 @@ export function SetupHero({ game }: { game: SetupHeroGame }) {
         style={{
           width: 80,
           height: 80,
-          borderRadius: 24,
+          borderRadius: RADIUS['3xl'],
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: accent.tintBg,
@@ -44,10 +44,10 @@ export function SetupHero({ game }: { game: SetupHeroGame }) {
       >
         <GamePieceIcon game={game} size={48} />
       </View>
-      <Text style={{ fontFamily: FONTS.display, fontSize: 32, color: COLORS.fg }}>
+      <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES['3xl'], color: COLORS.fg }}>
         Play <Text style={{ color: accent.light }}>{meta.name}</Text>
       </Text>
-      <Text style={{ fontFamily: FONTS.body, fontSize: 15, color: COLORS.fgMuted, marginTop: 6 }}>
+      <Text style={{ fontFamily: FONTS.body, fontSize: FONT_SIZES.body, color: COLORS.fgMuted, marginTop: 6 }}>
         Pick a mode and jump in.
       </Text>
     </View>

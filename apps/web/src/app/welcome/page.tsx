@@ -8,6 +8,7 @@ import { DIFFICULTY_ELO, TOUR_GAMES, gameNameList, type OnboardingGame } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { ONBOARDED_KEY, SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
 import { GameIcon } from '@/components/game/GameIcon';
+import { Icon, type IconName } from '@gameexplorer/ui';
 
 // The tour's games are the rated ones (see TOUR_GAMES) — the last step picks a
 // bot difficulty on a game's own ELO ladder, which only means something for a
@@ -17,16 +18,16 @@ type GameId = OnboardingGame;
 type Opponent = 'bot' | 'friend' | 'online';
 type Difficulty = 'relaxed' | 'balanced' | 'sharp';
 
-const OPPONENTS: { id: Opponent; name: string; icon: string; tagline: string; taglineSelected?: string }[] = [
-  { id: 'bot',    name: 'Practice vs the bot', icon: '🤖', tagline: 'Recommended for your first game' },
-  { id: 'friend', name: 'Invite a friend',     icon: '🤝', tagline: 'Share a link, play together' },
-  { id: 'online', name: 'Match online',        icon: '🌐', tagline: 'Find someone at your level' },
+const OPPONENTS: { id: Opponent; name: string; icon: IconName; tagline: string; taglineSelected?: string }[] = [
+  { id: 'bot',    name: 'Practice vs the bot', icon: 'robot', tagline: 'Recommended for your first game' },
+  { id: 'friend', name: 'Invite a friend',     icon: 'handshake', tagline: 'Share a link, play together' },
+  { id: 'online', name: 'Match online',        icon: 'globe', tagline: 'Find someone at your level' },
 ];
 
-const DIFFICULTIES: { id: Difficulty; name: string; icon: string; tagline: string }[] = [
-  { id: 'relaxed',  name: 'Relaxed',  icon: '😌', tagline: 'Forgiving — great to learn' },
-  { id: 'balanced', name: 'Balanced', icon: '🙂', tagline: 'A fair fight' },
-  { id: 'sharp',    name: 'Sharp',    icon: '🔥', tagline: 'Bring your A-game' },
+const DIFFICULTIES: { id: Difficulty; name: string; icon: IconName; tagline: string }[] = [
+  { id: 'relaxed',  name: 'Relaxed',  icon: 'plant', tagline: 'Forgiving — great to learn' },
+  { id: 'balanced', name: 'Balanced', icon: 'scales', tagline: 'A fair fight' },
+  { id: 'sharp',    name: 'Sharp',    icon: 'fire', tagline: 'Bring your A-game' },
 ];
 
 // DIFFICULTY_ELO now lives in @gameexplorer/shared — mobile's tour reads the
@@ -99,7 +100,7 @@ export default function WelcomePage() {
         <div
           key={step}
           data-animate={navigated ? '' : undefined}
-          className="page-enter relative rounded-[20px] border border-white/10 bg-surface-alt surface-raised-lg p-8 sm:p-9 flex flex-col"
+          className="page-enter relative rounded-3xl border border-white/10 bg-surface-alt surface-raised-lg p-8 sm:p-9 flex flex-col"
           style={
             step === 0
               ? {
@@ -139,11 +140,11 @@ export default function WelcomePage() {
           {step === 0 && (
             <>
               <div className="text-center">
-                <div className="text-[52px] leading-none mb-3.5">♟️</div>
-                <h1 className="text-[27px] font-bold mb-2.5">
+                <div className="text-5xl leading-none mb-3.5 flex justify-center"><GameIcon game="chess" /></div>
+                <h1 className="text-display font-bold mb-2.5">
                   Welcome to <span className="text-accent">GameExplorer</span>
                 </h1>
-                <p className="text-[15px] text-fg-muted leading-relaxed mb-7">
+                <p className="text-body text-fg-muted leading-relaxed mb-7">
                   {gameNameList()} — ready in seconds.
                   No download, no sign-up to start.
                 </p>
@@ -151,11 +152,11 @@ export default function WelcomePage() {
               <div className="mt-auto flex flex-col gap-3">
                 <button
                   onClick={advance}
-                  className="w-full py-3.5 rounded-[14px] bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-base [box-shadow:var(--c-accent-bloom)] hover:brightness-110 transition-all"
+                  className="w-full py-3.5 rounded-2xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-base [box-shadow:var(--c-accent-bloom)] hover:brightness-110 transition-all"
                 >
                   Let&rsquo;s play →
                 </button>
-                <p className="text-[13.5px] text-fg-muted text-center">
+                <p className="text-sm text-fg-muted text-center">
                   Already have an account?{' '}
                   <Link href="/auth/signin" className="text-info-hover font-semibold hover:underline">
                     Sign in
@@ -167,7 +168,7 @@ export default function WelcomePage() {
 
           {step === 1 && (
             <>
-              <h1 className="text-[23px] font-bold text-center mb-1.5">What do you feel like playing?</h1>
+              <h1 className="text-2xl font-bold text-center mb-1.5">What do you feel like playing?</h1>
               <p className="text-sm text-fg-muted text-center mb-5">You can switch anytime.</p>
               <div className="flex flex-col gap-3">
                 {TOUR_GAMES.map(g => (
@@ -189,13 +190,13 @@ export default function WelcomePage() {
 
           {step === 2 && (
             <>
-              <h1 className="text-[23px] font-bold text-center mb-1.5">Who&rsquo;s your first opponent?</h1>
+              <h1 className="text-2xl font-bold text-center mb-1.5">Who&rsquo;s your first opponent?</h1>
               <p className="text-sm text-fg-muted text-center mb-5">No pressure — it&rsquo;s just for fun.</p>
               <div className="flex flex-col gap-3">
                 {OPPONENTS.map(o => (
                   <OptionRow
                     key={o.id}
-                    icon={o.icon}
+                    icon={<Icon name={o.icon} />}
                     iconSize={28}
                     name={o.name}
                     tagline={o.tagline}
@@ -213,13 +214,13 @@ export default function WelcomePage() {
 
           {step === 3 && (
             <>
-              <h1 className="text-[23px] font-bold text-center mb-1.5">How tough should the bot be?</h1>
+              <h1 className="text-2xl font-bold text-center mb-1.5">How tough should the bot be?</h1>
               <p className="text-sm text-fg-muted text-center mb-5">The bot adapts as you improve.</p>
               <div className="flex flex-col gap-3">
                 {DIFFICULTIES.map(d => (
                   <OptionRow
                     key={d.id}
-                    icon={d.icon}
+                    icon={<Icon name={d.icon} />}
                     iconSize={26}
                     name={d.name}
                     tagline={d.tagline}
@@ -238,7 +239,7 @@ export default function WelcomePage() {
 
         {/* Every step is skippable */}
         <p className="text-center mt-5">
-          <Link href="/" className="text-[13.5px] text-fg-subtle hover:text-fg-muted transition-colors">
+          <Link href="/" className="text-sm text-fg-subtle hover:text-fg-muted transition-colors">
             Skip the tour — browse on my own
           </Link>
         </p>
@@ -268,7 +269,7 @@ function OptionRow({
     <button
       onClick={onSelect}
       aria-pressed={selected}
-      className="flex items-center gap-3.5 px-4 py-[15px] rounded-[14px] border text-left transition-all"
+      className="flex items-center gap-3.5 px-4 py-[15px] rounded-2xl border text-left transition-all"
       style={
         selected
           ? {
@@ -287,14 +288,14 @@ function OptionRow({
       </span>
       <span className="flex-1 min-w-0">
         <span className="block font-bold text-base text-fg">{name}</span>
-        <span className="block text-[12.5px] text-fg-muted">{tagline}</span>
+        <span className="block text-label text-fg-muted">{tagline}</span>
       </span>
       {selected && (
         <span
-          className="w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
+          className="w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-label font-bold text-white"
           style={{ background: accent.color, color: accent.color === 'var(--c-accent)' ? 'var(--c-on-accent)' : '#fff' }}
         >
-          ✓
+          <Icon name="check" />
         </span>
       )}
     </button>
@@ -313,7 +314,7 @@ function ContinueButton({
   return (
     <button
       onClick={onClick}
-      className="mt-5 w-full py-3.5 rounded-[14px] bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-base hover:brightness-110 transition-all"
+      className="mt-5 w-full py-3.5 rounded-2xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-base hover:brightness-110 transition-all"
       style={glow ? { boxShadow: 'var(--c-accent-bloom)' } : undefined}
     >
       {children}

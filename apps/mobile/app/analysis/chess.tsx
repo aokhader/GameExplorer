@@ -8,7 +8,7 @@ import {
   type Color,
   type PieceType,
 } from '@gameexplorer/shared';
-import { COLORS, ChessPiece, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, ChessPiece, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { EvalBar } from '@/analysis/EvalBar';
 import { chessPositionAnalysis } from '@/analysis/adapters';
@@ -221,13 +221,13 @@ export default function AnalysisScreen() {
           style={{
             paddingHorizontal: 12,
             paddingVertical: 6,
-            borderRadius: 10,
+            borderRadius: RADIUS.xl,
             borderWidth: 1,
             borderColor: COLORS.border,
             backgroundColor: COLORS.surfaceMuted,
           }}
         >
-          <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: 13 }}>Flip</Text>
+          <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.label }}>Flip</Text>
         </Pressable>
       }
       topCard={
@@ -328,10 +328,10 @@ function EditPanel({
   useThemeName();
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: SPACING[3] }}>
       <Section title="PIECES">
         {(['white', 'black'] as const).map((color) => (
-          <View key={color} style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+          <View key={color} style={{ flexDirection: 'row', gap: SPACING['1.5'], marginTop: 6 }}>
             {PALETTE.map((type) => {
               const active =
                 tool?.kind === 'place' && tool.piece.type === type && tool.piece.color === color;
@@ -347,7 +347,7 @@ function EditPanel({
                     aspectRatio: 1,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: 8,
+                    borderRadius: RADIUS.lg,
                     borderWidth: 1,
                     borderColor: active ? COLORS.accent : COLORS.border,
                     backgroundColor: active ? COLORS.accentMuted : COLORS.surfaceMuted,
@@ -368,13 +368,13 @@ function EditPanel({
             marginTop: 8,
             paddingVertical: 8,
             alignItems: 'center',
-            borderRadius: 8,
+            borderRadius: RADIUS.lg,
             borderWidth: 1,
             borderColor: tool?.kind === 'erase' ? COLORS.accent : COLORS.border,
             backgroundColor: tool?.kind === 'erase' ? COLORS.accentMuted : COLORS.surfaceMuted,
           }}
         >
-          <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: 13 }}>
+          <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.label }}>
             Eraser
           </Text>
         </Pressable>
@@ -382,7 +382,7 @@ function EditPanel({
           style={{
             color: COLORS.fgMuted,
             fontFamily: FONTS.body,
-            fontSize: 12,
+            fontSize: FONT_SIZES.xs,
             marginTop: 6,
             lineHeight: 17,
           }}
@@ -394,7 +394,7 @@ function EditPanel({
       </Section>
 
       <Section title="SIDE TO MOVE">
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+        <View style={{ flexDirection: 'row', gap: SPACING[2], marginTop: 6 }}>
           {(['white', 'black'] as const).map((color) => (
             <Pressable
               key={color}
@@ -405,14 +405,14 @@ function EditPanel({
                 flex: 1,
                 paddingVertical: 8,
                 alignItems: 'center',
-                borderRadius: 8,
+                borderRadius: RADIUS.lg,
                 borderWidth: 1,
                 borderColor: sideToMove === color ? COLORS.accent : COLORS.border,
                 backgroundColor: sideToMove === color ? COLORS.accentMuted : COLORS.surfaceMuted,
               }}
             >
               <Text
-                style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: 13, textTransform: 'capitalize' }}
+                style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.label, textTransform: 'capitalize' }}
               >
                 {color}
               </Text>
@@ -432,14 +432,14 @@ function EditPanel({
         {fenError && (
           <Text
             accessibilityLiveRegion="polite"
-            style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: 12, marginTop: 4 }}
+            style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, marginTop: 4 }}
           >
             {fenError}
           </Text>
         )}
       </Section>
 
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
         <View style={{ flex: 1 }}>
           <Button label="Start position" variant="secondary" onPress={onReset} />
         </View>
@@ -449,7 +449,7 @@ function EditPanel({
       </View>
 
       {!positionUsable && (
-        <Text style={{ color: COLORS.warningHover, fontFamily: FONTS.body, fontSize: 12, lineHeight: 17 }}>
+        <Text style={{ color: COLORS.warningHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, lineHeight: 17 }}>
           {kingCount.white === 0 || kingCount.black === 0
             ? 'Both sides need a king before this is a chess position.'
             : 'Each side may have only one king.'}
@@ -480,17 +480,17 @@ function AnalyzePanel({
   useThemeName();
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: SPACING[3] }}>
       <Section title="ENGINE">
         {evaluation?.bestMove ? (
-          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13, marginTop: 4 }}>
+          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, marginTop: 4 }}>
             Best move{' '}
             <Text style={{ color: accent, fontFamily: FONTS.bodyBold }}>
               {evaluation.bestMove.from}→{evaluation.bestMove.to}
             </Text>
           </Text>
         ) : (
-          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13, marginTop: 4 }}>
+          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, marginTop: 4 }}>
             {busy
               ? 'Thinking…'
               : evaluation?.terminal
@@ -498,13 +498,13 @@ function AnalyzePanel({
                 : 'No move to suggest.'}
           </Text>
         )}
-        <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: 12, marginTop: 8, lineHeight: 17 }}>
+        <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, marginTop: 8, lineHeight: 17 }}>
           Play moves on the board to walk a line; each one is scored as you go.
         </Text>
         {error && (
           <Text
             accessibilityLiveRegion="polite"
-            style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: 12, marginTop: 8 }}
+            style={{ color: COLORS.dangerHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, marginTop: 8 }}
           >
             {error}
           </Text>
@@ -514,7 +514,7 @@ function AnalyzePanel({
       <Section title="POSITION">
         <Text
           selectable
-          style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 11, marginTop: 4, lineHeight: 16 }}
+          style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.caption, marginTop: 4, lineHeight: 16 }}
         >
           {fen}
         </Text>
@@ -530,7 +530,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <View
       style={{
-        borderRadius: 12,
+        borderRadius: RADIUS.xl,
         borderWidth: 1,
         borderColor: COLORS.border,
         backgroundColor: COLORS.surfaceAlt,
@@ -538,7 +538,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       }}
     >
       <Text
-        style={{ color: COLORS.fgMuted, fontSize: 12, fontFamily: FONTS.displaySemi, letterSpacing: 0.8 }}
+        style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, fontFamily: FONTS.displaySemi, letterSpacing: 0.8 }}
       >
         {title}
       </Text>

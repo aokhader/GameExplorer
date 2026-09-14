@@ -40,7 +40,7 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
     if (entry.isDirectory()) {
       if (['node_modules', '__tests__', '.expo', 'android', 'ios'].includes(entry.name)) continue;
       sourceFiles(full, out);
-    } else if (/\.tsx?$/.test(entry.name) && !entry.name.includes('tailwind.config')) {
+    } else if (/\.tsx?$/.test(entry.name)) {
       out.push(full);
     }
   }

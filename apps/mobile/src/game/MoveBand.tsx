@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import type { GameAccent } from '@/game/GameScreenLayout';
 import { GRADE_META } from '@/analysis/grades';
 import type { MoveGrade } from '@/analysis/types';
@@ -87,7 +87,7 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades, positi
   if (san.length === 0) {
     return (
       <View style={bandStyle()}>
-        <Text style={{ color: COLORS.fgSubtle, fontSize: 13, paddingHorizontal: 10 }}>
+        <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.label, paddingHorizontal: 10 }}>
           No moves yet — make your first move
         </Text>
       </View>
@@ -100,7 +100,7 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades, positi
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 10, gap: 2 }}
+        contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 10, gap: SPACING['0.5'] }}
         accessibilityLabel="Moves played"
         // Fires once the appended chips have been laid out, so the tail is fully
         // measured before we chase it — see scrollToActive.
@@ -127,7 +127,7 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades, positi
               style={{ flexDirection: 'row', alignItems: 'center' }}
             >
               {startsPair && (
-                <Text style={{ color: COLORS.fgSubtle, fontSize: 13, marginLeft: i === 0 ? 0 : 8 }}>
+                <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.label, marginLeft: i === 0 ? 0 : 8 }}>
                   {i / 2 + 1}.
                 </Text>
               )}
@@ -144,24 +144,24 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades, positi
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 3,
+                    gap: SPACING[1],
                     paddingHorizontal: 8,
                     paddingVertical: 5,
-                    borderRadius: 8,
+                    borderRadius: RADIUS.lg,
                     backgroundColor: isActive ? GAME_ACCENTS[accent].tintBg : 'transparent',
                   }}
                 >
                   <Text
                     style={{
                       color: isActive ? accentColor : marked ? meta!.color() : COLORS.fg,
-                      fontSize: 14,
+                      fontSize: FONT_SIZES.sm,
                       fontFamily: isActive ? FONTS.bodyBold : FONTS.bodySemi,
                     }}
                   >
                     {text}
                   </Text>
                   {marked && (
-                    <Text style={{ color: meta!.color(), fontSize: 12, fontFamily: FONTS.bodyBold }}>
+                    <Text style={{ color: meta!.color(), fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyBold }}>
                       {meta!.glyph}
                     </Text>
                   )}
@@ -181,7 +181,7 @@ const bandStyle = () =>
   ({
     height: 44,
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surfaceAlt,

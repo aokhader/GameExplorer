@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, SPACING } from '@gameexplorer/ui';
 import { Sheet } from '@/components/ui/Sheet';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { BarButton, useTwoTapConfirm } from '@/game/BarButton';
@@ -120,7 +120,7 @@ export function GameBar({
         style={{
           flexDirection: 'row',
           alignItems: 'stretch',
-          gap: 4,
+          gap: SPACING[1],
           paddingHorizontal: 8,
           paddingVertical: 8,
           borderTopWidth: 1,
@@ -128,9 +128,9 @@ export function GameBar({
           backgroundColor: COLORS.surfaceAlt,
         }}
       >
-        <BarButton glyph="☰" label="Game menu" onPress={() => setMenuOpen(true)} />
+        <BarButton icon="list" label="Game menu" onPress={() => setMenuOpen(true)} />
         <BarButton
-          glyph="⚑"
+          icon="flag"
           label={confirming ? 'Confirm resign' : 'Resign'}
           hint={confirming ? undefined : 'Tap twice to resign the game'}
           onPress={handleResign}
@@ -139,7 +139,7 @@ export function GameBar({
         />
         {onPass && (
           <BarButton
-            glyph="⇥"
+            icon="arrow-line-right"
             label="Pass"
             hint="Hand the turn over — two passes in a row end the game"
             onPress={onPass}
@@ -148,7 +148,7 @@ export function GameBar({
         )}
         {onHint ? (
           <BarButton
-            glyph={hintPending ? '⏳' : '💡'}
+            icon={hintPending ? 'hourglass' : 'lightbulb'}
             label={hintsUsed > 0 ? `Hint — ${hintsUsed} used` : 'Hint'}
             hint="Shows the best move — costs 2 rating points"
             badge={hintsUsed > 0 ? String(hintsUsed) : undefined}
@@ -156,20 +156,20 @@ export function GameBar({
             disabled={gameOver || hintDisabled || hintPending}
           />
         ) : (
-          <BarButton glyph="💡" label="Hint (coming soon)" onPress={() => {}} disabled />
+          <BarButton icon="lightbulb" label="Hint (coming soon)" onPress={() => {}} disabled />
         )}
 
         {/* Hairline between the game actions and the history controls. */}
         <View style={{ width: 1, marginVertical: 6, backgroundColor: COLORS.border }} />
 
         <BarButton
-          glyph="◀"
+          icon="caret-left"
           label="Previous move"
           onPress={() => seek(viewIndex - 1)}
           disabled={!canGoBack}
         />
         <BarButton
-          glyph="▶"
+          icon="caret-right"
           label="Next move"
           onPress={() => seek(viewIndex + 1)}
           disabled={!canGoForward}
@@ -227,11 +227,11 @@ function GameMenu({
   return (
     <Sheet open={open} onClose={onClose} closeLabel="Close menu">
       {onFlipBoard && (
-        <MenuRow glyph="🔄" label="Flip board" onPress={run(onFlipBoard)} accent={accentColor} />
+        <MenuRow icon="arrows-clockwise" label="Flip board" onPress={run(onFlipBoard)} accent={accentColor} />
       )}
       {onAgreeDraw && (
         <MenuRow
-          glyph="🤝"
+          icon="handshake"
           label="Agree to a draw"
           onPress={run(onAgreeDraw)}
           disabled={gameOver}
@@ -239,11 +239,11 @@ function GameMenu({
         />
       )}
       {onAnalysis ? (
-        <MenuRow glyph="📈" label="Review game" onPress={run(onAnalysis)} accent={accentColor} />
+        <MenuRow icon="chart-line-up" label="Review game" onPress={run(onAnalysis)} accent={accentColor} />
       ) : (
-        <MenuRow glyph="📈" label="Analysis" soon accent={accentColor} />
+        <MenuRow icon="chart-line-up" label="Analysis" soon accent={accentColor} />
       )}
-      <MenuRow glyph="♟️" label="New game" onPress={run(onNewGame)} accent={accentColor} />
+      <MenuRow icon="plus-circle" label="New game" onPress={run(onNewGame)} accent={accentColor} />
     </Sheet>
   );
 }

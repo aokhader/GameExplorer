@@ -10,7 +10,7 @@ import {
   type LiquidateTile,
   type OwnableTile,
 } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { seatColor, tileAccent } from '../lqTheme';
 import { ViewHeader, ViewSection, ViewActionBar, AccentButton, GhostButton } from './ViewChrome';
@@ -93,11 +93,11 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
     <View style={{ flex: 1 }}>
       <ViewHeader title="Propose trade" sub={`with ${to.name}`} onBack={onBack} />
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 18, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 18, gap: SPACING[3] }}>
         {partners.length > 1 && (
           <View>
             <ViewSection>Partner</ViewSection>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[2] }}>
               {partners.map((p) => {
                 const selected = p.id === toId;
                 const seat = state.players.findIndex((q) => q.id === p.id);
@@ -115,10 +115,10 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
-                      gap: 7,
+                      gap: SPACING[2],
                       paddingHorizontal: 12,
                       paddingVertical: 9,
-                      borderRadius: 11,
+                      borderRadius: RADIUS.xl,
                       borderWidth: selected ? 2 : 1,
                       borderColor: selected ? P.accent : P.line,
                       backgroundColor: selected ? P.hint : P.panel2,
@@ -128,11 +128,11 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
                       style={{
                         width: 9,
                         height: 9,
-                        borderRadius: 4.5,
+                        borderRadius: RADIUS.full,
                         backgroundColor: seatColor(seat),
                       }}
                     />
-                    <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 12, color: P.ink }}>
+                    <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xs, color: P.ink }}>
                       {p.name}
                     </Text>
                   </Pressable>
@@ -154,13 +154,13 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
           creditsLabel="from your reserve"
         />
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
           <View style={{ flex: 1, height: 1, backgroundColor: P.line }} />
           <View
             style={{
               width: 30,
               height: 30,
-              borderRadius: 15,
+              borderRadius: RADIUS.full,
               borderWidth: 1,
               borderColor: P.line,
               backgroundColor: P.panel,
@@ -168,7 +168,7 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 14, color: P.accent }}>⇅</Text>
+            <Text style={{ fontSize: FONT_SIZES.sm, color: P.accent }}>⇅</Text>
           </View>
           <View style={{ flex: 1, height: 1, backgroundColor: P.line }} />
         </View>
@@ -192,16 +192,16 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
             justifyContent: 'space-between',
             paddingHorizontal: 13,
             paddingVertical: 11,
-            borderRadius: 12,
+            borderRadius: RADIUS.xl,
             borderWidth: 1,
             borderColor: P.hintLine,
             backgroundColor: P.hint,
           }}
         >
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 11.5, color: P.hintInk }}>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.xs, color: P.hintInk }}>
             Net to you
           </Text>
-          <Text style={{ fontFamily: FONTS.display, fontSize: 15, color: P.hintInk }}>
+          <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.body, color: P.hintInk }}>
             {net >= 0 ? '+' : ''}
             {formatCredits(net)}
           </Text>
@@ -211,7 +211,7 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
           <Text
             style={{
               fontFamily: FONTS.bodySemi,
-              fontSize: 11.5,
+              fontSize: FONT_SIZES.xs,
               color: LIQUIDATE_PANEL_COLORS.danger,
               textAlign: 'center',
             }}
@@ -222,7 +222,7 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
       </ScrollView>
 
       <ViewActionBar>
-        <View style={{ flexDirection: 'row', gap: 9 }}>
+        <View style={{ flexDirection: 'row', gap: SPACING['2.5'] }}>
           <GhostButton label="Cancel" onPress={onBack} style={{ width: 96 }} />
           <AccentButton
             label={`Send offer to ${to.name}`}
@@ -275,17 +275,17 @@ function TileChooser({
         backgroundColor: P.panel,
         borderWidth: 1,
         borderColor: P.line,
-        borderRadius: 16,
+        borderRadius: RADIUS['2xl'],
         padding: 14,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 11 }}>
-        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: dotColor }} />
-        <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 12, color: P.ink }}>{title}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2], marginBottom: 11 }}>
+        <View style={{ width: 10, height: 10, borderRadius: RADIUS.full, backgroundColor: dotColor }} />
+        <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xs, color: P.ink }}>{title}</Text>
       </View>
 
       {tiles.length === 0 ? (
-        <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 11.5, color: P.soft }}>
+        <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.xs, color: P.soft }}>
           No holdings to offer.
         </Text>
       ) : (
@@ -304,7 +304,7 @@ function TileChooser({
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 9,
+                    gap: SPACING['2.5'],
                     paddingVertical: 8,
                     borderTopWidth: 1,
                     borderTopColor: P.line,
@@ -315,7 +315,7 @@ function TileChooser({
                     style={{
                       width: 6,
                       height: 26,
-                      borderRadius: 3,
+                      borderRadius: RADIUS.full,
                       backgroundColor: tileAccent(tile),
                     }}
                   />
@@ -324,7 +324,7 @@ function TileChooser({
                       numberOfLines={1}
                       style={{
                         fontFamily: FONTS.bodyBold,
-                        fontSize: 12.5,
+                        fontSize: FONT_SIZES.label,
                         color: on ? P.accent : P.ink,
                       }}
                     >
@@ -332,19 +332,19 @@ function TileChooser({
                     </Text>
                     <Text
                       numberOfLines={1}
-                      style={{ fontFamily: FONTS.bodySemi, fontSize: 10, color: P.soft }}
+                      style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES['2xs'], color: P.soft }}
                     >
                       {groupLabel(tile)}
                     </Text>
                   </View>
-                  <Text style={{ fontFamily: FONTS.display, fontSize: 12, color: P.ink }}>
+                  <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.xs, color: P.ink }}>
                     {formatCredits(tile.price)}
                   </Text>
                   <View
                     style={{
                       width: 18,
                       height: 18,
-                      borderRadius: 5,
+                      borderRadius: RADIUS.md,
                       borderWidth: on ? 0 : 1,
                       borderColor: P.line,
                       backgroundColor: on ? P.accent : 'transparent',
@@ -353,7 +353,7 @@ function TileChooser({
                     }}
                   >
                     {on && (
-                      <Text style={{ fontSize: 11, color: P.accentInk }}>✓</Text>
+                      <Text style={{ fontSize: FONT_SIZES.caption, color: P.accentInk }}>✓</Text>
                     )}
                   </View>
                 </View>
@@ -367,7 +367,7 @@ function TileChooser({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
+          gap: SPACING[2],
           marginTop: 12,
           paddingTop: 12,
           borderTopWidth: 1,
@@ -375,10 +375,10 @@ function TileChooser({
         }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 12, color: P.ink }}>
+          <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xs, color: P.ink }}>
             {formatCredits(credits)}
           </Text>
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 10, color: P.soft }}>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES['2xs'], color: P.soft }}>
             {creditsLabel}
           </Text>
         </View>

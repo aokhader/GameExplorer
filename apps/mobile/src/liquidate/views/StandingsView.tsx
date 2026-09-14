@@ -7,7 +7,7 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
 } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { seatColor } from '../lqTheme';
 import { ViewHeader, ViewSection } from './ViewChrome';
@@ -64,7 +64,7 @@ export function StandingsView({ state, youId, roundLabel, onBack }: StandingsVie
         onBack={onBack}
       />
 
-      <View style={{ paddingHorizontal: 18, paddingBottom: 6, gap: 8 }}>
+      <View style={{ paddingHorizontal: 18, paddingBottom: 6, gap: SPACING[2] }}>
         {ranked.map((row, i) => {
           const isYou = row.player.id === youId;
           return (
@@ -75,10 +75,10 @@ export function StandingsView({ state, youId, roundLabel, onBack }: StandingsVie
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 11,
+                gap: SPACING[3],
                 paddingHorizontal: 13,
                 paddingVertical: 12,
-                borderRadius: 14,
+                borderRadius: RADIUS['2xl'],
                 borderWidth: 1,
                 borderColor: isYou ? P.you : P.line,
                 backgroundColor: P.panel,
@@ -90,7 +90,7 @@ export function StandingsView({ state, youId, roundLabel, onBack }: StandingsVie
                   width: 22,
                   textAlign: 'center',
                   fontFamily: FONTS.display,
-                  fontSize: 15,
+                  fontSize: FONT_SIZES.body,
                   color: P.dim,
                 }}
               >
@@ -100,21 +100,21 @@ export function StandingsView({ state, youId, roundLabel, onBack }: StandingsVie
                 style={{
                   width: 12,
                   height: 12,
-                  borderRadius: 6,
+                  borderRadius: RADIUS.full,
                   backgroundColor: seatColor(row.seat),
                 }}
               />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
                   numberOfLines={1}
-                  style={{ fontFamily: FONTS.bodyBold, fontSize: 14, color: P.ink }}
+                  style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.sm, color: P.ink }}
                 >
                   {row.player.name}
                   {isYou ? ' · you' : ''}
                 </Text>
                 <Text
                   numberOfLines={1}
-                  style={{ fontFamily: FONTS.bodySemi, fontSize: 10.5, color: P.soft, marginTop: 1 }}
+                  style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.caption, color: P.soft, marginTop: 1 }}
                 >
                   {row.player.bankrupt
                     ? 'folded'
@@ -122,13 +122,13 @@ export function StandingsView({ state, youId, roundLabel, onBack }: StandingsVie
                 </Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontFamily: FONTS.display, fontSize: 15, color: P.ink }}>
+                <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.body, color: P.ink }}>
                   {formatCredits(row.worth)}
                 </Text>
                 <Text
                   style={{
                     fontFamily: FONTS.bodySemi,
-                    fontSize: 9,
+                    fontSize: FONT_SIZES['3xs'],
                     letterSpacing: 0.5,
                     color: P.dim,
                   }}
@@ -147,13 +147,13 @@ export function StandingsView({ state, youId, roundLabel, onBack }: StandingsVie
           {log.map((entry, i) => {
             const seat = state.players.findIndex((p) => p.id === entry.playerId);
             return (
-              <View key={`${i}-${entry.message}`} style={{ flexDirection: 'row', gap: 11, paddingBottom: 14 }}>
+              <View key={`${i}-${entry.message}`} style={{ flexDirection: 'row', gap: SPACING[3], paddingBottom: 14 }}>
                 <View style={{ alignItems: 'center' }}>
                   <View
                     style={{
                       width: 9,
                       height: 9,
-                      borderRadius: 4.5,
+                      borderRadius: RADIUS.full,
                       marginTop: 3,
                       backgroundColor: seat >= 0 ? seatColor(seat) : P.soft,
                     }}
@@ -164,13 +164,13 @@ export function StandingsView({ state, youId, roundLabel, onBack }: StandingsVie
                 </View>
                 <View style={{ flex: 1, paddingBottom: 2 }}>
                   <Text
-                    style={{ fontFamily: FONTS.bodySemi, fontSize: 12.5, lineHeight: 18, color: P.ink }}
+                    style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.label, lineHeight: 18, color: P.ink }}
                   >
                     {entry.message}
                   </Text>
                   {/* The engine's log has no clock — only the round it happened in. */}
                   <Text
-                    style={{ fontFamily: FONTS.bodySemi, fontSize: 10, color: P.soft, marginTop: 2 }}
+                    style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES['2xs'], color: P.soft, marginTop: 2 }}
                   >
                     Round {entry.round}
                   </Text>

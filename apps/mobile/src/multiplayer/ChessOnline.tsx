@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { useGameSession } from '@gameexplorer/client';
 import { formatClockLong, replayChessMoves, timelineToSan } from '@gameexplorer/shared';
 import type { ChessGameState, PieceType, TimeControl } from '@gameexplorer/shared';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES } from '@gameexplorer/ui';
 import { ChessBoard } from '@/board/ChessBoard';
 import { FONTS } from '@/theme/typography';
 import { OnlineGameLayout } from './OnlineGameLayout';
@@ -100,7 +100,7 @@ function ChessMoveList({ state }: { state: ChessGameState }) {
 
   if (san.length === 0) {
     return (
-      <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: 13 }}>
+      <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
         No moves yet.
       </Text>
     );
@@ -114,7 +114,7 @@ function ChessMoveList({ state }: { state: ChessGameState }) {
           style={{
             color: i % 2 === 0 ? COLORS.fg : COLORS.fgMuted,
             fontFamily: FONTS.body,
-            fontSize: 13,
+            fontSize: FONT_SIZES.label,
             marginRight: 8,
           }}
         >

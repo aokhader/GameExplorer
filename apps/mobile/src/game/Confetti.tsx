@@ -8,7 +8,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, RADIUS } from '@gameexplorer/ui';
 
 /** How many pieces fall. Enough to read as a burst, few enough to stay smooth. */
 const PIECE_COUNT = 28;
@@ -76,7 +76,7 @@ function ConfettiPiece({ spec, height }: { spec: PieceSpec; height: number }) {
           width: spec.size,
           height: spec.size * 0.6,
           backgroundColor: spec.color,
-          borderRadius: 1,
+          borderRadius: RADIUS.xs,
         },
         style,
       ]}

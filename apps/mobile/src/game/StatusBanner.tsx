@@ -1,5 +1,5 @@
 import { Text, View, type ViewStyle } from 'react-native';
-import { COLORS, useThemeName, type ThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, type ThemeName, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import type { GameAccent } from '@/game/GameScreenLayout';
 import { FONTS } from '@/theme/typography';
 
@@ -66,7 +66,7 @@ export function StatusBanner({ accent, title, description, style }: StatusBanner
       style={[
         {
           minHeight: 66,
-          borderRadius: 12,
+          borderRadius: RADIUS.xl,
           borderWidth: 1,
           paddingHorizontal: 16,
           paddingVertical: 12,
@@ -77,9 +77,9 @@ export function StatusBanner({ accent, title, description, style }: StatusBanner
         style,
       ]}
     >
-      <Text style={{ color: c.title, fontSize: 14, fontFamily: FONTS.bodyBold }}>{title}</Text>
+      <Text style={{ color: c.title, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>{title}</Text>
       {description && (
-        <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 4 }}>{description}</Text>
+        <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 4 }}>{description}</Text>
       )}
     </View>
   );

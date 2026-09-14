@@ -1,9 +1,10 @@
 import { Pressable, Text, View } from 'react-native';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { FONTS } from '@/theme/typography';
 
 export interface MenuRowProps {
-  glyph: string;
+  icon: IconName;
   label: string;
   onPress?: () => void;
   /** Placeholder entry — rendered, disabled, and badged so it reads as unbuilt. */
@@ -25,7 +26,7 @@ export interface MenuRowProps {
  * costs the label a wrapper `View` but renders identically without it.
  */
 export function MenuRow({
-  glyph,
+  icon,
   label,
   onPress,
   soon = false,
@@ -52,21 +53,23 @@ export function MenuRow({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 14,
+            gap: SPACING['3.5'],
             minHeight: 52,
             paddingHorizontal: 12,
-            borderRadius: 12,
+            borderRadius: RADIUS.xl,
             backgroundColor: pressed && !inactive ? COLORS.surfaceHover : 'transparent',
             opacity: inactive ? 0.45 : 1,
           }}
         >
-          <Text style={{ fontSize: 20 }}>{glyph}</Text>
+          {/* The game's accent carries identity into the menu; a destructive row
+              takes the danger colour instead, like its label. */}
+          <Icon name={icon} size={FONT_SIZES.xl} color={danger ? COLORS.dangerHover : accent} />
           <View style={{ flex: 1 }}>
             <Text
               style={{
                 color: danger ? COLORS.dangerHover : COLORS.fg,
                 fontFamily: FONTS.displaySemi,
-                fontSize: 16,
+                fontSize: FONT_SIZES.base,
               }}
             >
               {label}
@@ -75,7 +78,7 @@ export function MenuRow({
               <Text
                 // Already on the row's accessibility hint.
                 importantForAccessibility="no"
-                style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 12, marginTop: 1 }}
+                style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, marginTop: 1 }}
               >
                 {detail}
               </Text>
@@ -85,12 +88,12 @@ export function MenuRow({
             <Text
               style={{
                 color: accent,
-                fontSize: 11,
+                fontSize: FONT_SIZES.caption,
                 fontFamily: FONTS.bodyBold,
                 letterSpacing: 0.5,
                 borderWidth: 1,
                 borderColor: accent,
-                borderRadius: 999,
+                borderRadius: RADIUS.full,
                 paddingHorizontal: 8,
                 paddingVertical: 2,
               }}

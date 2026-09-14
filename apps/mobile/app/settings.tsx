@@ -1,8 +1,8 @@
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
-import { COLORS, RADIUS, type ThemeName, useThemeName } from '@gameexplorer/ui';
-import { Screen, BackHeader, Card, Toggle } from '@/components/ui';
+import { COLORS, RADIUS, type ThemeName, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
+import { Screen, BackHeader, Card, Toggle, Icon } from '@/components/ui';
 import { useSettings, type Settings } from '@/providers/SettingsProvider';
 import { playSfx } from '@/audio/sfxPlayer';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
@@ -40,15 +40,15 @@ function SettingRow({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        gap: SPACING[4],
         paddingVertical: 16,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: COLORS.border,
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold }}>{title}</Text>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2 }}>{description}</Text>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold }}>{title}</Text>
+        <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 2 }}>{description}</Text>
       </View>
       <Toggle
         value={settings[settingKey]}
@@ -82,22 +82,22 @@ function LinkRow({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
-      // Static style object — the function form renders unstyled here (matches
-      // the SettingRow pattern used everywhere else in the app).
+      // Static style object, matching the SettingRow pattern used everywhere
+      // else in the app.
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        gap: SPACING[4],
         paddingVertical: 16,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: COLORS.border,
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold }}>{title}</Text>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2 }}>{description}</Text>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold }}>{title}</Text>
+        <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 2 }}>{description}</Text>
       </View>
-      <Text style={{ color: COLORS.fgSubtle, fontSize: 20, fontWeight: '700' }}>›</Text>
+      <Icon name="caret-right" size={FONT_SIZES.lg} color={COLORS.fgSubtle} />
     </Pressable>
   );
 }
@@ -167,7 +167,7 @@ function ThemeCard({ option, selected, onSelect }: {
       accessibilityLabel={`${option.name}. ${option.tagline}`}
       style={{
         flex: 1,
-        borderRadius: RADIUS.lg,
+        borderRadius: RADIUS.xl,
         padding: 10,
         borderWidth: selected ? 2 : 1,
         borderColor: selected ? COLORS.accent : COLORS.border,
@@ -177,14 +177,14 @@ function ThemeCard({ option, selected, onSelect }: {
       {/* Miniature of the theme: a board corner, a card, an action pill. */}
       <View
         style={{
-          borderRadius: RADIUS.md,
+          borderRadius: RADIUS.lg,
           overflow: 'hidden',
           borderWidth: 1,
           borderColor: option.border,
           backgroundColor: option.surface,
           padding: 8,
           flexDirection: 'row',
-          gap: 8,
+          gap: SPACING[2],
           marginBottom: 10,
         }}
       >
@@ -204,7 +204,7 @@ function ThemeCard({ option, selected, onSelect }: {
         <View
           style={{
             flex: 1,
-            borderRadius: RADIUS.sm,
+            borderRadius: RADIUS.md,
             backgroundColor: option.surfaceAlt,
             borderWidth: 1,
             borderColor: option.border,
@@ -212,16 +212,16 @@ function ThemeCard({ option, selected, onSelect }: {
             justifyContent: 'space-between',
           }}
         >
-          <View style={{ gap: 3 }}>
-            <View style={{ height: 4, width: '62%', borderRadius: 2, backgroundColor: option.fg }} />
-            <View style={{ height: 3, width: '86%', borderRadius: 2, backgroundColor: option.fgMuted }} />
+          <View style={{ gap: SPACING[1] }}>
+            <View style={{ height: 4, width: '62%', borderRadius: RADIUS.full, backgroundColor: option.fg }} />
+            <View style={{ height: 3, width: '86%', borderRadius: RADIUS.full, backgroundColor: option.fgMuted }} />
           </View>
-          <View style={{ height: 9, width: 34, borderRadius: 3, backgroundColor: option.accent }} />
+          <View style={{ height: 9, width: 34, borderRadius: RADIUS.sm, backgroundColor: option.accent }} />
         </View>
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodyBold, flexShrink: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['1.5'] }}>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold, flexShrink: 1 }}>
           {option.name}
         </Text>
         {selected && (
@@ -229,11 +229,11 @@ function ThemeCard({ option, selected, onSelect }: {
             style={{
               color: COLORS.onAccent,
               backgroundColor: COLORS.accent,
-              fontSize: 10,
+              fontSize: FONT_SIZES['2xs'],
               fontFamily: FONTS.bodyBold,
               paddingHorizontal: 6,
               paddingVertical: 1,
-              borderRadius: 999,
+              borderRadius: RADIUS.full,
               overflow: 'hidden',
             }}
           >
@@ -241,7 +241,7 @@ function ThemeCard({ option, selected, onSelect }: {
           </Text>
         )}
       </View>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 12, marginTop: 2 }}>{option.tagline}</Text>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>{option.tagline}</Text>
     </Pressable>
   );
 }
@@ -252,7 +252,7 @@ function ThemePicker() {
     <View
       accessibilityRole="radiogroup"
       accessibilityLabel="Theme"
-      style={{ flexDirection: 'row', gap: 10, paddingVertical: 4 }}
+      style={{ flexDirection: 'row', gap: SPACING['2.5'], paddingVertical: 4 }}
     >
       {THEME_OPTIONS.map((option) => (
         <ThemeCard
@@ -274,7 +274,7 @@ function SectionLabel({ children }: { children: string }) {
     <Text
       style={{
         color: COLORS.fgMuted,
-        fontSize: 12,
+        fontSize: FONT_SIZES.xs,
         fontFamily: FONTS.bodyBold,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -299,13 +299,13 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <BackHeader fallbackHref="/" />
-      <Text style={{ color: COLORS.fg, fontSize: 28, fontFamily: FONTS.display }}>Settings</Text>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 14, marginTop: 4, marginBottom: 20 }}>
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.display, fontFamily: FONTS.display }}>Settings</Text>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, marginTop: 4, marginBottom: 20 }}>
         Preferences are saved on this device.
       </Text>
 
       <SectionLabel>Appearance</SectionLabel>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginBottom: 10 }}>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginBottom: 10 }}>
         Applies everywhere — screens, boards and pieces.
       </Text>
       <View style={{ marginBottom: 20 }}>

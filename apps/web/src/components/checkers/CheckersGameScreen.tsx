@@ -17,6 +17,7 @@ import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
 import { useSettings } from '@/components/providers/SettingsProvider';
 import { Button } from '@/components/ui';
+import { DifficultyMeter } from '@/components/game/DifficultyMeter';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -44,42 +45,36 @@ const DIFFICULTY_LEVELS = [
     label: 'Beginner',
     description: 'Frequently misses captures and blunders pieces',
     depth: 1,
-    icon: '🟢',
   },
   {
     elo: 800,
     label: 'Casual',
     description: 'Misses multi-jump chains, plays somewhat randomly',
     depth: 2,
-    icon: '🔵',
   },
   {
     elo: 1100,
     label: 'Club',
     description: 'Consistent play, catches most forced captures',
     depth: 3,
-    icon: '🟡',
   },
   {
     elo: 1400,
     label: 'Strong',
     description: 'Strong tactically, handles most positions well',
     depth: 4,
-    icon: '🟠',
   },
   {
     elo: 1700,
     label: 'Expert',
     description: 'Very difficult to beat, deep tactical vision',
     depth: 5,
-    icon: '🔴',
   },
   {
     elo: 2000,
     label: 'Master',
     description: 'Near-optimal play — essentially a computer',
     depth: 5,
-    icon: '⚫',
   },
 ] as const;
 
@@ -371,7 +366,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
           <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
             <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {DIFFICULTY_LEVELS.map((level) => {
+              {DIFFICULTY_LEVELS.map((level, i) => {
                 const selected = targetElo === level.elo;
                 return (
                   <button
@@ -383,7 +378,11 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
                         : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                     }`}
                   >
-                    <div className="text-2xl mb-2">{level.icon}</div>
+                    <DifficultyMeter
+                      level={i + 1}
+                      of={DIFFICULTY_LEVELS.length}
+                      className={`mb-2 ${selected ? 'text-accent' : 'text-fg-muted'}`}
+                    />
                     <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent' : 'text-fg'}`}>
                       {level.label}
                     </div>
@@ -463,7 +462,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
       : isLocal
         ? `${capitalize(liveState.winner)} wins`
         : liveState.winner === playerColor
-          ? 'You win! 🎉'
+          ? 'You win!'
           : 'Bot wins'
     : null;
 

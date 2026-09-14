@@ -55,7 +55,7 @@ export function CapturedTray({ pieces, color, advantage, ownerLabel }: CapturedT
         ))}
       </div>
       {advantage > 0 && (
-        <span className="text-[11px] font-bold text-fg-muted tabular-nums shrink-0">
+        <span className="text-caption font-bold text-fg-muted tabular-nums shrink-0">
           +{advantage}
         </span>
       )}

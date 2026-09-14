@@ -17,6 +17,7 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
 import { Button } from '@/components/ui';
+import { DifficultyMeter } from '@/components/game/DifficultyMeter';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -36,12 +37,12 @@ const ReviewPanel = dynamic(
 // ── Difficulty levels ─────────────────────────────────────────────────────────
 
 const DIFFICULTY_LEVELS = [
-  { elo: 500,  label: 'Beginner', description: 'Plays randomly, ignores corners',          depth: 1, icon: '🟢' },
-  { elo: 800,  label: 'Casual',   description: 'Spots basic flips, misses strategy',        depth: 2, icon: '🔵' },
-  { elo: 1100, label: 'Club',     description: 'Uses positional heuristics consistently',   depth: 3, icon: '🟡' },
-  { elo: 1400, label: 'Strong',   description: 'Controls corners and mobility well',        depth: 4, icon: '🟠' },
-  { elo: 1700, label: 'Expert',   description: 'Deep tactical and positional play',         depth: 5, icon: '🔴' },
-  { elo: 2000, label: 'Master',   description: 'Near-optimal — very hard to beat',          depth: 5, icon: '⚫' },
+  { elo: 500,  label: 'Beginner', description: 'Plays randomly, ignores corners',          depth: 1 },
+  { elo: 800,  label: 'Casual',   description: 'Spots basic flips, misses strategy',        depth: 2 },
+  { elo: 1100, label: 'Club',     description: 'Uses positional heuristics consistently',   depth: 3 },
+  { elo: 1400, label: 'Strong',   description: 'Controls corners and mobility well',        depth: 4 },
+  { elo: 1700, label: 'Expert',   description: 'Deep tactical and positional play',         depth: 5 },
+  { elo: 2000, label: 'Master',   description: 'Near-optimal — very hard to beat',          depth: 5 },
 ] as const;
 
 function thinkTimeForElo(elo: number): number {
@@ -321,7 +322,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
           <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
             <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {DIFFICULTY_LEVELS.map((level) => {
+              {DIFFICULTY_LEVELS.map((level, i) => {
                 const selected = targetElo === level.elo;
                 return (
                   <button
@@ -333,7 +334,11 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
                         : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                     }`}
                   >
-                    <div className="text-2xl mb-2">{level.icon}</div>
+                    <DifficultyMeter
+                      level={i + 1}
+                      of={DIFFICULTY_LEVELS.length}
+                      className={`mb-2 ${selected ? 'text-accent' : 'text-fg-muted'}`}
+                    />
                     <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent' : 'text-fg'}`}>
                       {level.label}
                     </div>
@@ -408,7 +413,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
       : isLocal
         ? `${capitalize(liveState.winner)} wins ${counts[liveState.winner]}–${counts[liveState.winner === 'black' ? 'white' : 'black']}`
       : liveState.winner === playerColor
-        ? `You win! ${counts[playerColor]}–${counts[playerColor === 'black' ? 'white' : 'black']} 🎉`
+        ? `You win! ${counts[playerColor]}–${counts[playerColor === 'black' ? 'white' : 'black']}`
         : `Bot wins. ${counts[playerColor === 'black' ? 'white' : 'black']}–${counts[playerColor]}`
     : null;
 
@@ -579,7 +584,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
                               <span className="mr-1 opacity-60">{colorDot}</span>
                               {formatMoveNotation(move)}
                               {move.flipped.length > 0 && (
-                                <span className="ml-1 opacity-50 text-[10px]">+{move.flipped.length}</span>
+                                <span className="ml-1 opacity-50 text-2xs">+{move.flipped.length}</span>
                               )}
                             </button>
                           </div>

@@ -1,6 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { Pressable, View } from 'react-native';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { useGameSfx } from '@/audio/useGameSfx.native';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import type { GameAccent } from '@/game/GameScreenLayout';
 
 export interface LessonBarProps {
@@ -22,15 +23,15 @@ export interface LessonBarProps {
 /**
  * The pinned control bar for a lesson, mirroring `PuzzleBar`.
  *
- * Same glyph buttons and the same "the action this phase is asking for takes
+ * Same icon buttons and the same "the action this phase is asking for takes
  * the accent" rule, so a learner moving between a lesson and a puzzle finds the
  * controls where they left them.
  *
- * What is missing is the history pair. A puzzle earns ◀ and ▶ because a wrong
- * move runs the board on to show a refutation and the player needs to walk back
- * to compare. A lesson never does that — a miss leaves the board exactly where
- * it was — so there is no history to step through and two dead buttons would
- * only crowd the row.
+ * What is missing is the history pair. A puzzle earns previous and next because
+ * a wrong move runs the board on to show a refutation and the player needs to
+ * walk back to compare. A lesson never does that — a miss leaves the board
+ * exactly where it was — so there is no history to step through and two dead
+ * buttons would only crowd the row.
  */
 export function LessonBar({
   accent,
@@ -52,7 +53,7 @@ export function LessonBar({
       style={{
         flexDirection: 'row',
         alignItems: 'stretch',
-        gap: 4,
+        gap: SPACING[1],
         paddingHorizontal: 8,
         paddingVertical: 8,
         borderTopWidth: 1,
@@ -61,7 +62,7 @@ export function LessonBar({
       }}
     >
       <BarButton
-        glyph="💡"
+        icon="lightbulb"
         label={hintShown ? 'Hint shown' : 'Hint'}
         hint="Marks the move the step is looking for"
         onPress={onHint}
@@ -70,7 +71,7 @@ export function LessonBar({
         testID="lesson-hint"
       />
       <BarButton
-        glyph="↺"
+        icon="arrow-counter-clockwise"
         label={missed ? 'Try again' : 'Reset step'}
         hint="Put the board back to the start of this step"
         onPress={onRetry}
@@ -81,7 +82,7 @@ export function LessonBar({
       />
       {done ? (
         <BarButton
-          glyph="⏭"
+          icon="skip-forward"
           label="Next lesson"
           hint="Move on to the next lesson"
           onPress={onNext}
@@ -91,7 +92,7 @@ export function LessonBar({
         />
       ) : (
         <BarButton
-          glyph="→"
+          icon="arrow-right"
           label="Continue"
           hint="Move on to the next step"
           onPress={onAdvance}
@@ -106,7 +107,7 @@ export function LessonBar({
 }
 
 function BarButton({
-  glyph,
+  icon,
   label,
   hint,
   onPress,
@@ -115,7 +116,7 @@ function BarButton({
   accent,
   testID,
 }: {
-  glyph: string;
+  icon: IconName;
   label: string;
   hint?: string;
   onPress: () => void;
@@ -132,9 +133,8 @@ function BarButton({
   const { base: accentColor, tintBg } = GAME_ACCENTS[accent];
 
   // `style` stays a plain object and the pressed state is read from the children
-  // function: a function-form `style` is silently dropped on this app's
-  // Pressable (NativeWind wraps it), which shows up as buttons with no
-  // background and no width.
+  // function — the way every control in this app is written. Same pattern as
+  // `GameBar`'s BarButton.
   return (
     <Pressable
       onPress={() => {
@@ -154,7 +154,7 @@ function BarButton({
           style={{
             flex: 1,
             minHeight: 46,
-            borderRadius: 12,
+            borderRadius: RADIUS.xl,
             borderWidth: primary ? 2 : 1,
             borderColor: primary ? accentColor : COLORS.border,
             backgroundColor: primary
@@ -167,7 +167,7 @@ function BarButton({
             opacity: disabled ? 0.35 : pressed ? 0.8 : 1,
           }}
         >
-          <Text style={{ color: primary ? accentColor : COLORS.fg, fontSize: 16 }}>{glyph}</Text>
+          <Icon name={icon} size={FONT_SIZES.xl} color={primary ? accentColor : COLORS.fg} />
         </View>
       )}
     </Pressable>

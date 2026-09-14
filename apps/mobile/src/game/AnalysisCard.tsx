@@ -1,7 +1,8 @@
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
+import { Icon } from '@/components/ui/Icon';
 
 /** The two games with an engine to ask. The other three have nothing to analyse. */
 const ENTRIES = {
@@ -46,8 +47,8 @@ export function AnalysisCard({ game }: { game: keyof typeof ENTRIES }) {
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        borderRadius: 14,
+        gap: SPACING[3],
+        borderRadius: RADIUS['2xl'],
         borderWidth: 2,
         borderColor: COLORS.border,
         backgroundColor: COLORS.surfaceAlt,
@@ -55,17 +56,17 @@ export function AnalysisCard({ game }: { game: keyof typeof ENTRIES }) {
         marginBottom: 24,
       }}
     >
-      <Text style={{ fontSize: 20 }}>🔍</Text>
+      <Icon name="magnifying-glass" size={FONT_SIZES.xl} color={COLORS.fgMuted} />
       <View style={{ flex: 1 }}>
-        <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 14 }}>
+        <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.sm }}>
           {title}
         </Text>
-        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 11, marginTop: 2 }}>
+        <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.caption, marginTop: 2 }}>
           {description}
         </Text>
       </View>
       {/* The one thing a mode tile never has: it goes somewhere. */}
-      <Text style={{ color: accent, fontFamily: FONTS.bodySemi, fontSize: 16 }}>→</Text>
+      <Text style={{ color: accent, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.base }}>→</Text>
     </Pressable>
   );
 }

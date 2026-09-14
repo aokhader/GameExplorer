@@ -254,7 +254,7 @@ export default function ProfilePage() {
             </h1>
             <p className="text-sm text-fg-muted">
               Member since {formatDate(profile.created_at)}
-              {currentStreak >= 2 && ` · 🔥 ${currentStreak}-game win streak`}
+              {currentStreak >= 2 && ` · ${currentStreak}-game win streak`}
             </p>
           </div>
           <Link
@@ -296,7 +296,7 @@ export default function ProfilePage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-[13px] text-fg-muted mt-1.5">
+                    <div className="text-label text-fg-muted mt-1.5">
                       {rating.games_played} game{rating.games_played !== 1 ? 's' : ''} · {rating.wins}W / {rating.losses}L / {rating.draws}D
                     </div>
                     <div className="text-xs text-fg-subtle mt-0.5">
@@ -312,7 +312,7 @@ export default function ProfilePage() {
                         the signature color belongs to a rating that exists. (A 50%
                         game hue also fell far under AA on the light theme's card.) */}
                     <div className="font-display text-3xl font-bold text-fg-muted">—</div>
-                    <div className="text-[13px] text-fg-muted mt-1.5">No rated games yet</div>
+                    <div className="text-label text-fg-muted mt-1.5">No rated games yet</div>
                     <Link href={`/${type}/training`} className={`text-xs hover:underline ${meta.text}`}>
                       Play training →
                     </Link>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { MOTION } from '@gameexplorer/ui';
 import { cn } from '@/lib/utils';
 
 export type ToastVariant = 'neutral' | 'success' | 'danger' | 'info';
@@ -10,6 +11,8 @@ interface ToastItem {
   id: number;
   message: string;
   variant: ToastVariant;
+  /** Playing its exit; removed once that finishes. */
+  leaving: boolean;
 }
 
 interface ToastContextValue {
@@ -33,11 +36,18 @@ const VARIANTS: Record<ToastVariant, string> = {
   info:    'bg-surface-alt border-info/40 text-info-hover',
 };
 
+/** How long a toast stays up before it starts to leave. */
+const VISIBLE_MS = 3000;
+
 let nextId = 0;
 
 /**
  * App-wide toast host. Mount once near the root; call `useToast().toast(...)`
  * from anywhere (copy-link feedback, action confirmations).
+ *
+ * Motion per motion-spec.md §5.11: a toast rises 12px from the bottom edge as
+ * it fades in over `base`, and fades out over `fast`. Under reduced motion it
+ * still fades both ways, because a toast's arrival is the feedback.
  */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<ToastItem[]>([]);
@@ -47,10 +57,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const toast = React.useCallback((message: string, variant: ToastVariant = 'neutral') => {
     const id = ++nextId;
-    setItems((prev) => [...prev, { id, message, variant }]);
+    setItems((prev) => [...prev, { id, message, variant, leaving: false }]);
     setTimeout(() => {
-      setItems((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+      setItems((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
+      setTimeout(() => {
+        setItems((prev) => prev.filter((t) => t.id !== id));
+      }, MOTION.DURATION.fast);
+    }, VISIBLE_MS);
   }, []);
 
   const value = React.useMemo(() => ({ toast }), [toast]);
@@ -71,8 +84,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 key={t.id}
                 role="status"
                 className={cn(
-                  'animate-fade-in rounded-lg border px-4 py-2.5 text-sm font-medium shadow-lg',
+                  'rounded-lg border px-4 py-2.5 text-sm font-medium shadow-lg',
                   'max-w-[calc(100vw-2rem)]',
+                  t.leaving ? 'animate-fade-out' : 'motion-safe:animate-toast-in motion-reduce:animate-appear',
                   VARIANTS[t.variant],
                 )}
               >

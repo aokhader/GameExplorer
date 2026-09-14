@@ -11,9 +11,9 @@ import Svg, {
   TSpan,
 } from 'react-native-svg';
 import { useAuth } from '@gameexplorer/client';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 
-import { GlowBackdrop } from '@/components/ui';
+import { GlowBackdrop, Icon, PressableScale } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { getLastPlayed } from '@/lib/lastPlayed';
 import { hasOnboarded } from '@/lib/onboarding';
@@ -28,9 +28,9 @@ import { FONTS } from '@/theme/typography';
 // surface having to wear the other's voice.
 
 const FEATURES = [
-  { icon: '⚡', label: 'Instant play' },
-  { icon: '🤝', label: 'Play a friend' },
-  { icon: '📈', label: 'Climb ranks' },
+  { icon: 'lightning', label: 'Instant play' },
+  { icon: 'handshake', label: 'Play a friend' },
+  { icon: 'trend-up', label: 'Climb ranks' },
 ] as const;
 
 /**
@@ -85,7 +85,7 @@ export default function HomeScreen() {
           borderBottomColor: COLORS.border,
         }}
       >
-        <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: COLORS.fg }}>
+        <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.fg }}>
           Game
           <Text style={{ color: COLORS.accent }}>Explorer</Text>
         </Text>
@@ -102,12 +102,12 @@ export default function HomeScreen() {
               style={{
                 width: 34,
                 height: 34,
-                borderRadius: 17,
+                borderRadius: RADIUS.full,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontFamily: FONTS.bodyBold, color: COLORS.onAccent, fontSize: 14 }}>
+              <Text style={{ fontFamily: FONTS.bodyBold, color: COLORS.onAccent, fontSize: FONT_SIZES.sm }}>
                 {initial}
               </Text>
             </LinearGradient>
@@ -118,7 +118,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             style={{
               height: 34,
-              borderRadius: 17,
+              borderRadius: RADIUS.full,
               paddingHorizontal: 14,
               alignItems: 'center',
               justifyContent: 'center',
@@ -127,7 +127,7 @@ export default function HomeScreen() {
               borderColor: COLORS.border,
             }}
           >
-            <Text style={{ fontFamily: FONTS.bodyBold, color: COLORS.fg, fontSize: 13 }}>
+            <Text style={{ fontFamily: FONTS.bodyBold, color: COLORS.fg, fontSize: FONT_SIZES.label }}>
               Sign in
             </Text>
           </Pressable>
@@ -167,7 +167,7 @@ export default function HomeScreen() {
           <Text
             style={{
               fontFamily: FONTS.body,
-              fontSize: 15,
+              fontSize: FONT_SIZES.body,
               lineHeight: 23,
               color: COLORS.fgMuted,
               marginTop: 12,
@@ -179,32 +179,32 @@ export default function HomeScreen() {
           </Text>
 
           {/* Primary CTA */}
-          <Pressable
+          <PressableScale
             onPress={openPlay}
             accessibilityRole="button"
             accessibilityLabel="Play now"
-            style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+            haptic="impact"
           >
             <LinearGradient
               {...GRADIENTS_NATIVE.accent}
               style={{
-                borderRadius: 16,
+                borderRadius: RADIUS['2xl'],
                 paddingVertical: 16,
                 alignItems: 'center',
                 boxShadow: GLOWS_NATIVE.glowAccent,
               }}
             >
-              <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 17, color: COLORS.onAccent }}>
+              <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: COLORS.onAccent }}>
                 Play now →
               </Text>
             </LinearGradient>
-          </Pressable>
+          </PressableScale>
           <Pressable
             onPress={() => router.push('/welcome' as never)}
             accessibilityRole="button"
             style={{ alignItems: 'center', paddingVertical: 12, marginBottom: 16 }}
           >
-            <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 14, color: COLORS.fgMuted }}>
+            <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.sm, color: COLORS.fgMuted }}>
               Take a quick tour
             </Text>
           </Pressable>
@@ -213,7 +213,7 @@ export default function HomeScreen() {
           <Text
             style={{
               fontFamily: FONTS.displaySemi,
-              fontSize: 13,
+              fontSize: FONT_SIZES.label,
               letterSpacing: 0.8,
               color: COLORS.fgSubtle,
               marginBottom: 14,
@@ -221,16 +221,15 @@ export default function HomeScreen() {
           >
             CHOOSE YOUR GAME
           </Text>
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: SPACING[3] }}>
             {GAME_LIST.map((g) => (
-              <Pressable
+              <PressableScale
                 key={g.id}
                 onPress={() =>
                   router.push({ pathname: '/play/[game]', params: { game: g.id } } as never)
                 }
                 accessibilityRole="button"
                 accessibilityLabel={`Play ${g.name}`}
-                style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
               >
                 <LinearGradient
                   colors={[GAME_ACCENTS[g.id].tintBg, GAME_ACCENTS[g.id].tintBgSoft]}
@@ -239,9 +238,9 @@ export default function HomeScreen() {
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 15,
+                    gap: SPACING[4],
                     padding: 16,
-                    borderRadius: 18,
+                    borderRadius: RADIUS['2xl'],
                     borderWidth: 1,
                     borderColor: GAME_ACCENTS[g.id].tintBorder,
                     // The design's per-card bloom — tighter than GLOWS_NATIVE's
@@ -253,7 +252,7 @@ export default function HomeScreen() {
                     style={{
                       width: 54,
                       height: 54,
-                      borderRadius: 15,
+                      borderRadius: RADIUS['2xl'],
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: GAME_ACCENTS[g.id].tintBg,
@@ -265,13 +264,13 @@ export default function HomeScreen() {
                     <GamePieceIcon game={g.id} size={34} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontFamily: FONTS.display, fontSize: 19, color: COLORS.fg }}>
+                    <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.fg }}>
                       {g.name}
                     </Text>
                     <Text
                       style={{
                         fontFamily: FONTS.body,
-                        fontSize: 13,
+                        fontSize: FONT_SIZES.label,
                         lineHeight: 18,
                         color: COLORS.fgMuted,
                         marginTop: 2,
@@ -280,17 +279,15 @@ export default function HomeScreen() {
                       {g.hook}
                     </Text>
                   </View>
-                  <Text style={{ color: GAME_ACCENTS[g.id].light, fontSize: 24, fontFamily: FONTS.bodyBold }}>
-                    ›
-                  </Text>
+                  <Icon name="caret-right" size={FONT_SIZES.xl} color={GAME_ACCENTS[g.id].light} />
                 </LinearGradient>
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
 
           {/* Watch live games — the only way into the spectate lobby, which
               otherwise has no entry point outside a shared link. */}
-          <Pressable
+          <PressableScale
             onPress={() => router.push('/spectate' as never)}
             accessibilityRole="button"
             accessibilityLabel="Watch live games"
@@ -302,31 +299,31 @@ export default function HomeScreen() {
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 12,
+                  gap: SPACING[3],
                   minHeight: 56,
                   paddingHorizontal: 16,
-                  borderRadius: 14,
+                  borderRadius: RADIUS['2xl'],
                   borderWidth: 1,
                   borderColor: COLORS.border,
                   backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceAlt,
                 }}
               >
-                <Text style={{ fontSize: 20 }}>👁</Text>
+                <Icon name="eye" size={FONT_SIZES.xl} color={COLORS.fgMuted} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 15, color: COLORS.fg }}>
+                  <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.body, color: COLORS.fg }}>
                     Watch live games
                   </Text>
-                  <Text style={{ fontFamily: FONTS.body, fontSize: 12, color: COLORS.fgMuted }}>
+                  <Text style={{ fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.fgMuted }}>
                     See what other players are up to
                   </Text>
                 </View>
-                <Text style={{ color: COLORS.fgMuted, fontSize: 20 }}>›</Text>
+                <Icon name="caret-right" size={FONT_SIZES.lg} color={COLORS.fgMuted} />
               </View>
             )}
-          </Pressable>
+          </PressableScale>
 
           {/* Feature tiles */}
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 22 }}>
+          <View style={{ flexDirection: 'row', gap: SPACING['2.5'], marginTop: 22 }}>
             {FEATURES.map((f) => (
               <View
                 key={f.label}
@@ -335,14 +332,14 @@ export default function HomeScreen() {
                   alignItems: 'center',
                   paddingVertical: 14,
                   paddingHorizontal: 8,
-                  borderRadius: 14,
+                  borderRadius: RADIUS['2xl'],
                   backgroundColor: COLORS.surfaceAlt,
                   borderWidth: 1,
                   borderColor: COLORS.border,
                 }}
               >
-                <Text style={{ fontSize: 20, marginBottom: 6 }}>{f.icon}</Text>
-                <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 12, color: COLORS.fg }}>
+                <Icon name={f.icon} size={FONT_SIZES.xl} color={COLORS.accent} style={{ marginBottom: 6 }} />
+                <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xs, color: COLORS.fg }}>
                   {f.label}
                 </Text>
               </View>

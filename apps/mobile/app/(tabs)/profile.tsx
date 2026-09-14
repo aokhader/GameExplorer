@@ -13,8 +13,8 @@ import {
 } from '@gameexplorer/db';
 import { endReasonLabel } from '@gameexplorer/shared';
 import { useAuth } from '@gameexplorer/client';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
-import { Screen, Card, Button } from '@/components/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { Screen, Card, Button, Icon } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { BlockedPlayers } from '@/multiplayer/BlockedPlayers';
 import { FONTS } from '@/theme/typography';
@@ -73,15 +73,15 @@ function StatTile({ label, value, valueColor }: { label: string; value: string |
       style={{
         flexGrow: 1,
         flexBasis: '47%',
-        borderRadius: 16,
+        borderRadius: RADIUS['2xl'],
         borderWidth: 1,
         borderColor: COLORS.border,
         backgroundColor: COLORS.surfaceAlt,
         padding: 16,
       }}
     >
-      <Text style={{ color: valueColor ?? COLORS.fg, fontSize: 26, fontFamily: FONTS.display }}>{value}</Text>
-      <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2, fontFamily: FONTS.body }}>{label}</Text>
+      <Text style={{ color: valueColor ?? COLORS.fg, fontSize: FONT_SIZES.display, fontFamily: FONTS.display }}>{value}</Text>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 2, fontFamily: FONTS.body }}>{label}</Text>
     </View>
   );
 }
@@ -101,7 +101,7 @@ function YouHeader({ onSettings }: { onSettings: () => void }) {
         marginBottom: 20,
       }}
     >
-      <Text style={{ color: COLORS.fg, fontSize: 24, fontFamily: FONTS.display }}>You</Text>
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.display }}>You</Text>
       <Pressable
         onPress={onSettings}
         accessibilityRole="button"
@@ -110,7 +110,7 @@ function YouHeader({ onSettings }: { onSettings: () => void }) {
         style={{
           width: 38,
           height: 38,
-          borderRadius: 19,
+          borderRadius: RADIUS.full,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 1,
@@ -118,7 +118,7 @@ function YouHeader({ onSettings }: { onSettings: () => void }) {
           backgroundColor: COLORS.surfaceMuted,
         }}
       >
-        <Text style={{ fontSize: 17 }}>⚙️</Text>
+        <Icon name="gear" size={FONT_SIZES.lg} color={COLORS.fgMuted} />
       </Pressable>
     </View>
   );
@@ -183,12 +183,12 @@ export default function YouScreen() {
     return (
       <Screen scroll={false}>
         <YouHeader onSettings={goSettings} />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingBottom: 60 }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACING[3], paddingBottom: 60 }}>
           <View
             style={{
               width: 72,
               height: 72,
-              borderRadius: 24,
+              borderRadius: RADIUS['3xl'],
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: COLORS.surfaceAlt,
@@ -196,15 +196,15 @@ export default function YouScreen() {
               borderColor: COLORS.border,
             }}
           >
-            <Text style={{ fontSize: 32 }}>👤</Text>
+            <Icon name="user" size={FONT_SIZES['3xl']} color={COLORS.fgMuted} />
           </View>
-          <Text style={{ color: COLORS.fg, fontSize: 22, fontFamily: FONTS.display }}>
+          <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.display }}>
             Playing as guest
           </Text>
           <Text
             style={{
               color: COLORS.fgMuted,
-              fontSize: 15,
+              fontSize: FONT_SIZES.body,
               fontFamily: FONTS.body,
               textAlign: 'center',
               lineHeight: 22,
@@ -214,7 +214,7 @@ export default function YouScreen() {
           >
             Sign in to save your games, climb the ratings, and carry your streaks across devices.
           </Text>
-          <View style={{ alignSelf: 'stretch', gap: 10 }}>
+          <View style={{ alignSelf: 'stretch', gap: SPACING['2.5'] }}>
             <Button label="Sign in" onPress={() => router.push('/(auth)/sign-in?next=/profile' as never)} />
             <Button
               label="Create account"
@@ -274,32 +274,32 @@ export default function YouScreen() {
       <YouHeader onSettings={goSettings} />
 
       {/* Identity */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[4], marginBottom: 24 }}>
         <View
           style={{
             width: 72,
             height: 72,
-            borderRadius: 24,
+            borderRadius: RADIUS['3xl'],
             backgroundColor: COLORS.accent,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Text style={{ color: COLORS.onAccent, fontSize: 34, fontFamily: FONTS.display }}>
+          <Text style={{ color: COLORS.onAccent, fontSize: FONT_SIZES['4xl'], fontFamily: FONTS.display }}>
             {profile.username[0]?.toUpperCase() ?? '?'}
           </Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: COLORS.fg, fontSize: 24, fontFamily: FONTS.display }}>{profile.username}</Text>
-          <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 2, fontFamily: FONTS.body }}>
+          <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.display }}>{profile.username}</Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 2, fontFamily: FONTS.body }}>
             Member since {formatDate(profile.created_at)}
-            {currentStreak >= 2 ? ` · 🔥 ${currentStreak}-game streak` : ''}
+            {currentStreak >= 2 ? ` · ${currentStreak}-game streak` : ''}
           </Text>
         </View>
       </View>
 
       {/* Summary stats */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[3], marginBottom: 20 }}>
         <StatTile label="Games played" value={games.length} />
         <StatTile label="Win rate" value={`${winRate}%`} valueColor={COLORS.successHover} />
         <StatTile label="Best streak" value={bestStreak} />
@@ -307,26 +307,26 @@ export default function YouScreen() {
       </View>
 
       {/* Per-game ratings */}
-      <View style={{ gap: 12, marginBottom: 20 }}>
+      <View style={{ gap: SPACING[3], marginBottom: 20 }}>
         {orderedRatings.map(({ type, rating }) => {
           const meta = GAME_META[type];
           const delta = deltaFor(type);
           const rated = rating.games_played > 0;
           return (
             <Card key={type} style={{ padding: 16, borderLeftColor: GAME_ACCENTS[type].base, borderLeftWidth: 4 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['2.5'], marginBottom: 8 }}>
                 <GamePieceIcon game={type} size={26} />
-                <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.displaySemi }}>{meta.label}</Text>
+                <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.base, fontFamily: FONTS.displaySemi }}>{meta.label}</Text>
               </View>
               {rated ? (
                 <>
-                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-                    <Text style={{ color: GAME_ACCENTS[type].base, fontSize: 28, fontFamily: FONTS.display }}>{rating.rating}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SPACING[2] }}>
+                    <Text style={{ color: GAME_ACCENTS[type].base, fontSize: FONT_SIZES.display, fontFamily: FONTS.display }}>{rating.rating}</Text>
                     {delta !== null && delta !== 0 && (
                       <Text
                         style={{
                           color: delta > 0 ? COLORS.successHover : COLORS.dangerHover,
-                          fontSize: 14,
+                          fontSize: FONT_SIZES.sm,
                           fontFamily: FONTS.bodyBold,
                         }}
                       >
@@ -334,18 +334,18 @@ export default function YouScreen() {
                       </Text>
                     )}
                   </View>
-                  <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 4, fontFamily: FONTS.body }}>
+                  <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 4, fontFamily: FONTS.body }}>
                     {rating.games_played} game{rating.games_played !== 1 ? 's' : ''} · {rating.wins}W / {rating.losses}L / {rating.draws}D
                   </Text>
-                  <Text style={{ color: COLORS.fgSubtle, fontSize: 12, marginTop: 2, fontFamily: FONTS.body }}>
+                  <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs, marginTop: 2, fontFamily: FONTS.body }}>
                     Peak {rating.peak_rating}
                     {rating.games_played < 30 ? ` · Provisional (${30 - rating.games_played} left)` : ''}
                   </Text>
                 </>
               ) : (
                 <>
-                  <Text style={{ color: GAME_ACCENTS[type].base, fontSize: 28, fontFamily: FONTS.display, opacity: 0.5 }}>—</Text>
-                  <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginTop: 4, fontFamily: FONTS.body }}>No rated games yet</Text>
+                  <Text style={{ color: GAME_ACCENTS[type].base, fontSize: FONT_SIZES.display, fontFamily: FONTS.display, opacity: 0.5 }}>—</Text>
+                  <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 4, fontFamily: FONTS.body }}>No rated games yet</Text>
                 </>
               )}
             </Card>
@@ -355,9 +355,9 @@ export default function YouScreen() {
 
       {/* Recent games */}
       <Card style={{ padding: 16, marginBottom: 20 }}>
-        <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.displaySemi, marginBottom: 8 }}>Recent games</Text>
+        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.base, fontFamily: FONTS.displaySemi, marginBottom: 8 }}>Recent games</Text>
 
-        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', gap: SPACING['1.5'], marginBottom: 4, flexWrap: 'wrap' }}>
           {TABS.map((t) => {
             const selected = tab === t.id;
             return (
@@ -370,7 +370,7 @@ export default function YouScreen() {
                 style={{
                   paddingHorizontal: 12,
                   paddingVertical: 6,
-                  borderRadius: 999,
+                  borderRadius: RADIUS.full,
                   borderWidth: 1,
                   borderColor: selected ? COLORS.accent : COLORS.border,
                   backgroundColor: selected ? COLORS.accentMuted : COLORS.surfaceMuted,
@@ -382,7 +382,7 @@ export default function YouScreen() {
                     // colour is tuned for buttons rather than small text — the
                     // same reason web's player card uses its accent-text slot.
                     color: selected ? COLORS.accentHover : COLORS.fgMuted,
-                    fontSize: 12,
+                    fontSize: FONT_SIZES.xs,
                     fontFamily: selected ? FONTS.bodyBold : FONTS.body,
                   }}
                 >
@@ -396,10 +396,10 @@ export default function YouScreen() {
         {recent.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 24 }}>
             <GamePieceIcon game={tab === 'all' ? 'chess' : tab} size={32} />
-            <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.body }}>
+            <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body }}>
               {tab === 'all' ? 'No games played yet' : `No ${GAME_META[tab].label.toLowerCase()} games yet`}
             </Text>
-            <Text style={{ color: COLORS.fgSubtle, fontSize: 13, fontFamily: FONTS.body, marginTop: 2 }}>
+            <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.label, fontFamily: FONTS.body, marginTop: 2 }}>
               Win a rated bot game and it lands here.
             </Text>
           </View>
@@ -433,7 +433,7 @@ export default function YouScreen() {
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 12,
+                  gap: SPACING[3],
                   paddingVertical: 12,
                   borderTopWidth: i === 0 ? 0 : 1,
                   borderTopColor: COLORS.border,
@@ -442,20 +442,20 @@ export default function YouScreen() {
                 <View
                   style={{
                     width: 52,
-                    borderRadius: 8,
+                    borderRadius: RADIUS.lg,
                     paddingVertical: 4,
                     alignItems: 'center',
                     backgroundColor: COLORS.surfaceMuted,
                   }}
                 >
-                  <Text style={{ color, fontSize: 11, fontFamily: FONTS.bodyBold, textTransform: 'uppercase' }}>{label}</Text>
+                  <Text style={{ color, fontSize: FONT_SIZES.caption, fontFamily: FONTS.bodyBold, textTransform: 'uppercase' }}>{label}</Text>
                 </View>
                 <GamePieceIcon game={type} size={22} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: COLORS.fg, fontSize: 14, fontFamily: FONTS.bodySemi }} numberOfLines={1}>
+                  <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodySemi }} numberOfLines={1}>
                     vs {game.opponent}
                   </Text>
-                  <Text style={{ color: COLORS.fgMuted, fontSize: 12, fontFamily: FONTS.body }} numberOfLines={1}>
+                  <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, fontFamily: FONTS.body }} numberOfLines={1}>
                     {meta.label}
                     {game.difficulty ? ` · ${game.difficulty}` : ''} · as {game.player_color === 'white' ? 'White' : 'Black'}
                     {endReasonLabel(game.end_reason) ? ` · ${endReasonLabel(game.end_reason)}` : ''}
@@ -465,14 +465,14 @@ export default function YouScreen() {
                   <Text
                     style={{
                       color: delta > 0 ? COLORS.successHover : COLORS.dangerHover,
-                      fontSize: 13,
+                      fontSize: FONT_SIZES.label,
                       fontFamily: FONTS.bodyBold,
                     }}
                   >
                     {delta > 0 ? '+' : '−'}{Math.abs(delta)}
                   </Text>
                 )}
-                <Text style={{ color: COLORS.fgSubtle, fontSize: 11, fontFamily: FONTS.body }}>{relativeTime(game.created_at)}</Text>
+                <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.caption, fontFamily: FONTS.body }}>{relativeTime(game.created_at)}</Text>
               </Pressable>
             );
           })
@@ -483,7 +483,7 @@ export default function YouScreen() {
       <BlockedPlayers />
 
       <Pressable onPress={signOut} accessibilityRole="button" style={{ alignItems: 'center', paddingVertical: 12 }}>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 14, fontFamily: FONTS.bodySemi }}>Sign out</Text>
+        <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodySemi }}>Sign out</Text>
       </Pressable>
     </Screen>
   );

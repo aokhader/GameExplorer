@@ -96,7 +96,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
       headerCenter={
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-fg">Lesson</span>
-          <span className="text-[11px] px-2 py-0.5 rounded-full border border-accent/40 bg-accent/15 text-accent font-semibold">
+          <span className="text-caption px-2 py-0.5 rounded-full border border-accent/40 bg-accent/15 text-accent font-semibold">
             {lesson.title}
           </span>
         </div>
@@ -183,7 +183,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
 
           <div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-4">
             <p className="text-sm text-fg-muted leading-relaxed">{lesson.summary}</p>
-            <p className="mt-2 text-[11px] text-fg-subtle">
+            <p className="mt-2 text-caption text-fg-subtle">
               About {lesson.estimatedMinutes} minutes · playing {lesson.learnerColor}
             </p>
           </div>

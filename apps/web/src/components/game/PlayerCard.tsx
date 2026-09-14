@@ -62,7 +62,7 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
           {/* `accent-text`, not `accent`: this is 11px, and the accent fill color
               is tuned for buttons rather than small type. */}
           {subline && (
-            <div className={cn('text-[11px] leading-tight truncate', isYou ? 'text-[var(--c-accent-text)]' : 'text-fg-muted')}>
+            <div className={cn('text-caption leading-tight truncate', isYou ? 'text-[var(--c-accent-text)]' : 'text-fg-muted')}>
               {subline}
             </div>
           )}

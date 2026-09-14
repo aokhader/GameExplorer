@@ -5,7 +5,7 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
 } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { ViewHeader, ViewActionBar, AccentButton, GhostButton } from './ViewChrome';
 import { TradePanel } from './TradePanel';
@@ -57,7 +57,7 @@ export function TradeReviewView({ state, dispatch, onBack }: TradeReviewViewProp
     <View style={{ flex: 1 }}>
       <ViewHeader title="Incoming offer" sub={`from ${from.name}`} onBack={onBack} />
 
-      <View style={{ flex: 1, paddingHorizontal: 18, gap: 12 }}>
+      <View style={{ flex: 1, paddingHorizontal: 18, gap: SPACING[3] }}>
         <TradePanel
           title="You get"
           dotColor={P.you}
@@ -66,13 +66,13 @@ export function TradeReviewView({ state, dispatch, onBack }: TradeReviewViewProp
           creditsLabel={`from ${from.name}'s reserve`}
         />
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
           <View style={{ flex: 1, height: 1, backgroundColor: P.line }} />
           <View
             style={{
               width: 30,
               height: 30,
-              borderRadius: 15,
+              borderRadius: RADIUS.full,
               borderWidth: 1,
               borderColor: P.line,
               backgroundColor: P.panel,
@@ -80,7 +80,7 @@ export function TradeReviewView({ state, dispatch, onBack }: TradeReviewViewProp
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 14, color: P.accent }}>⇅</Text>
+            <Text style={{ fontSize: FONT_SIZES.sm, color: P.accent }}>⇅</Text>
           </View>
           <View style={{ flex: 1, height: 1, backgroundColor: P.line }} />
         </View>
@@ -100,16 +100,16 @@ export function TradeReviewView({ state, dispatch, onBack }: TradeReviewViewProp
             justifyContent: 'space-between',
             paddingHorizontal: 13,
             paddingVertical: 11,
-            borderRadius: 12,
+            borderRadius: RADIUS.xl,
             borderWidth: 1,
             borderColor: P.hintLine,
             backgroundColor: P.hint,
           }}
         >
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 11.5, color: P.hintInk }}>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.xs, color: P.hintInk }}>
             Net to you
           </Text>
-          <Text style={{ fontFamily: FONTS.display, fontSize: 15, color: P.hintInk }}>
+          <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.body, color: P.hintInk }}>
             {net >= 0 ? '+' : ''}
             {formatCredits(net)}
           </Text>
@@ -117,7 +117,7 @@ export function TradeReviewView({ state, dispatch, onBack }: TradeReviewViewProp
       </View>
 
       <ViewActionBar>
-        <View style={{ flexDirection: 'row', gap: 9 }}>
+        <View style={{ flexDirection: 'row', gap: SPACING['2.5'] }}>
           <GhostButton
             label="Decline"
             onPress={() => dispatch({ type: 'respond-trade', accept: false })}

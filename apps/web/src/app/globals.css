@@ -6,6 +6,28 @@
  * back to a class/attribute strategy and fills the [data-theme] token block. */
 @custom-variant dark (&);
 
+/* Reduced motion is the OS preference OR Settings' "Reduce motion" toggle, which
+ * SettingsProvider (and the bootstrap script in layout.tsx, before first paint)
+ * mirrors onto <html data-reduced-motion>. Tailwind's own `motion-safe:` and
+ * `motion-reduce:` variants read only the media query, so a user who turned
+ * motion off in Settings still saw every `motion-safe:` animation. These
+ * redefinitions make both variants honour the toggle too. */
+@custom-variant motion-safe {
+  @media (prefers-reduced-motion: no-preference) {
+    &:where(:root:not([data-reduced-motion]) *) {
+      @slot;
+    }
+  }
+}
+@custom-variant motion-reduce {
+  @media (prefers-reduced-motion: reduce) {
+    @slot;
+  }
+  &:where([data-reduced-motion] *) {
+    @slot;
+  }
+}
+
 /* ────────────────────────────────────────────────────────────────────────────
  * Design tokens — GameExplorer "Arcade Glow" identity (neon on near-black + gold).
  *
@@ -55,6 +77,113 @@
   --color-fg-inverse:     var(--c-fg-inverse);
 
   --color-focus:          var(--c-focus-ring);
+
+  /* Type steps Tailwind lacks, from FONT_SIZES in tokens.ts — `text-caption` and
+     friends. Tailwind's own steps (xs…6xl) already equal the tokens by name. The
+     sizes are a PAIR with tokens.ts and a test in packages/ui holds them there;
+     the line heights are web's own, on Tailwind's pattern. */
+  --text-3xs:                  0.5625rem;
+  --text-3xs--line-height:     0.75rem;
+  --text-2xs:                  0.625rem;
+  --text-2xs--line-height:     0.875rem;
+  --text-caption:              0.6875rem;
+  --text-caption--line-height: 1rem;
+  --text-label:                0.8125rem;
+  --text-label--line-height:   1.125rem;
+  --text-body:                 0.9375rem;
+  --text-body--line-height:    1.375rem;
+  --text-display:              1.75rem;
+  --text-display--line-height: 2.125rem;
+
+  /* Tailwind's bare `transition-*` utilities: already MOTION's fast + standard,
+     pinned here so a Tailwind upgrade cannot move them. */
+  --default-transition-duration:        150ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Curves from MOTION.EASING — `ease-out`, `ease-move`… Overrides Tailwind's
+   `--ease-out`, which was a different curve from the one every entrance here
+   already used. `--ease-in` is unchanged; `standard` equals Tailwind's in-out.
+
+   `static` because Tailwind otherwise emits a theme variable only once something
+   in the CSS or a class uses it. A curve read from an inline style or a future
+   `var(--ease-move)` would silently resolve to nothing — which is exactly what
+   `--ease-move` did before this block was marked static. */
+@theme static {
+  --ease-standard:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:       cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in:        cubic-bezier(0.4, 0, 1, 1);
+  --ease-move:      cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Durations from MOTION.DURATION, for CSS rules and `duration-(--duration-base)`.
+   Plain custom properties rather than @theme entries: Tailwind has no duration
+   namespace to map them onto. See project-docs/design/motion-spec.md. */
+:root {
+  --duration-instant:  0ms;
+  --duration-micro:    100ms;
+  --duration-fast:     150ms;
+  --duration-base:     200ms;
+  --duration-moderate: 300ms;
+  --duration-slow:     400ms;
+  --duration-slower:   600ms;
+
+  /* Restated from the static theme block below. Tailwind's default theme already
+     owns these two names, and `@theme static` did not force them out: measured,
+     `--ease-in` resolved to nothing while `--ease-move` resolved. Plain CSS always
+     ships, and the values are identical, so the two declarations cannot disagree. */
+  --ease-in:  cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Interface motion — the CSS half of motion-spec.md §5, so a primitive names an
+   interaction rather than its numbers.
+
+   `motion-control` is the transition every control shares (§5.1, §5.2): colour
+   over `fast`, lift and press over `base` on the overshoot curve (CSS's stand-in
+   for a spring), and everything at `micro` while pressed so a press lands at
+   once. Tailwind v4's `scale-*` and `translate-*` utilities set the standalone
+   `scale` and `translate` properties, not `transform`, so all three are listed.
+   A transition naming only `transform`, which is what the buttons had, let the
+   press scale and the hover lift jump. */
+@utility motion-control {
+  transition-property: color, background-color, border-color, box-shadow, transform, translate, scale;
+  transition-duration: var(--duration-fast), var(--duration-fast), var(--duration-fast),
+                       var(--duration-base), var(--duration-base), var(--duration-base), var(--duration-base);
+  transition-timing-function: var(--ease-standard), var(--ease-standard), var(--ease-standard),
+                              var(--ease-standard), var(--ease-overshoot), var(--ease-overshoot), var(--ease-overshoot);
+  &:active {
+    transition-duration: var(--duration-micro);
+  }
+}
+
+/* Entrances, exits and the skeleton pulse as `animate-*` utilities. Put them
+   behind `motion-safe:`, because reduced motion is instant (§6) — except where
+   the opacity change is itself the feedback: a toast arriving, anything leaving. */
+@theme {
+  --animate-enter:     page-enter var(--duration-moderate) var(--ease-out) both;
+  --animate-appear:    page-enter-fade var(--duration-fast) var(--ease-standard) both;
+  --animate-dialog-in: dialog-in var(--duration-moderate) var(--ease-out) both;
+  --animate-toast-in:  toast-in var(--duration-base) var(--ease-out) both;
+  --animate-fade-out:  fade-out var(--duration-fast) var(--ease-in) both;
+  --animate-skeleton:  skeleton-pulse var(--duration-slower) var(--ease-standard) infinite alternate;
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes skeleton-pulse {
+  from { opacity: 1; }
+  to   { opacity: 0.5; }
 }
 
 /* Active theme: dark (Arcade Glow — neon on near-black + gold). Values pair with THEMES.dark in tokens.ts. */
@@ -864,12 +993,17 @@ html {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Hover-lift — a small spring on interactive cards (motion-safe only). */
+/* Hover-lift — a small spring on interactive cards (motion-safe only). `scale`
+   is listed because `Card`'s press uses Tailwind's `scale-*`, a property of its
+   own; while pressed everything runs at `micro`, per motion-spec.md §5.1. */
 .hover-lift {
-  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 250ms ease, border-color 250ms ease;
+  transition: transform var(--duration-base) var(--ease-overshoot),
+              scale var(--duration-base) var(--ease-overshoot),
+              box-shadow var(--duration-base) var(--ease-standard),
+              border-color var(--duration-base) var(--ease-standard);
   will-change: transform;
 }
+.hover-lift:active { transition-duration: var(--duration-micro); }
 
 /* ── Keyframes ───────────────────────────────────────────────────────────── */
 @keyframes aurora-drift {
@@ -961,22 +1095,28 @@ html {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-[data-animate].reveal-up,       [data-animate] .reveal-up       { animation: reveal-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-[data-animate].page-enter,      [data-animate] .page-enter      { animation: page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
-[data-animate].page-enter-fade, [data-animate] .page-enter-fade { animation: page-enter-fade 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+[data-animate].reveal-up,       [data-animate] .reveal-up       { animation: reveal-up var(--duration-slower) var(--ease-out) both; }
+[data-animate].page-enter,      [data-animate] .page-enter      { animation: page-enter var(--duration-moderate) var(--ease-out) both; }
+[data-animate].page-enter-fade, [data-animate] .page-enter-fade { animation: page-enter-fade var(--duration-moderate) var(--ease-out) both; }
 
+/* Ambient and decorative motion runs only when neither the OS nor Settings' own
+   "Reduce motion" asks for less. The attribute is stamped on <html> by the
+   bootstrap script and SettingsProvider; the media query alone ignored the
+   in-app toggle, so the aurora kept drifting for a user who had turned it off. */
 @media (prefers-reduced-motion: no-preference) {
-  .hover-lift:hover    { transform: translateY(-4px); }
-  .animate-aurora      { animation: aurora-drift 18s ease-in-out infinite; }
-  .animate-glow-pulse  { animation: glow-pulse 4s ease-in-out infinite; }
-  .animate-float       { animation: float 6s ease-in-out infinite; }
-  .lq-you-ring         { animation: lq-pulse 1.8s ease-in-out infinite; }
-  .lq-hop              { animation: lq-hop var(--lq-step, 150ms) ease-in-out infinite; }
-  .lq-dice-tumble      { animation: lq-dice-tumble 260ms ease-in-out infinite; }
-  .lq-pip-pop          { animation: lq-pip-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-  .lq-build-flash      { animation: lq-build-flash 900ms ease-out; }
+  :root:not([data-reduced-motion]) .hover-lift:hover    { transform: translateY(-4px); }
+  :root:not([data-reduced-motion]) .animate-aurora      { animation: aurora-drift 18s ease-in-out infinite; }
+  :root:not([data-reduced-motion]) .animate-glow-pulse  { animation: glow-pulse 4s ease-in-out infinite; }
+  :root:not([data-reduced-motion]) .animate-float       { animation: float 6s ease-in-out infinite; }
+  :root:not([data-reduced-motion]) .lq-you-ring         { animation: lq-pulse 1.8s ease-in-out infinite; }
+  :root:not([data-reduced-motion]) .lq-hop              { animation: lq-hop var(--lq-step, 150ms) ease-in-out infinite; }
+  :root:not([data-reduced-motion]) .lq-dice-tumble      { animation: lq-dice-tumble 260ms ease-in-out infinite; }
+  :root:not([data-reduced-motion]) .lq-pip-pop          { animation: lq-pip-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  :root:not([data-reduced-motion]) .lq-build-flash      { animation: lq-build-flash 900ms ease-out; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   [data-animate].reveal-up, [data-animate] .reveal-up { animation-duration: 0.01ms; }
 }
+[data-reduced-motion] [data-animate].reveal-up,
+[data-reduced-motion] [data-animate] .reveal-up { animation-duration: 0.01ms; }

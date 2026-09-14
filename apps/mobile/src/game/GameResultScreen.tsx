@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { COLORS } from '@gameexplorer/ui';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { COLORS, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { HINT_PENALTY } from '@/engine/trainingRules';
@@ -15,6 +9,8 @@ import { Confetti } from './Confetti';
 import { ResultDismissContext, type DismissThen } from './resultDismiss';
 import { SaveProgressPrompt } from './SaveProgressPrompt';
 import { FONTS } from '@/theme/typography';
+import { springTo, timing } from '@/theme/motion';
+import { Icon, type IconName } from '@/components/ui/Icon';
 
 export type GameResult = 'win' | 'loss' | 'draw' | 'aborted';
 
@@ -47,11 +43,11 @@ export interface GameResultScreenProps {
 
 // Colors are looked up during render, never captured here — the token objects
 // are live views, so a module-scope read freezes them at import (see themeRuntime).
-const COPY: Record<GameResult, { emoji: string; heading: string; accentHeading?: true }> = {
-  win: { emoji: '🏆', heading: 'You Won!', accentHeading: true },
-  loss: { emoji: '💪', heading: 'Good Game' },
-  draw: { emoji: '🤝', heading: 'Draw' },
-  aborted: { emoji: '🛑', heading: 'Game Aborted' },
+const COPY: Record<GameResult, { icon: IconName; heading: string; accentHeading?: true }> = {
+  win: { icon: 'trophy', heading: 'You Won!', accentHeading: true },
+  loss: { icon: 'hand-fist', heading: 'Good Game' },
+  draw: { icon: 'handshake', heading: 'Draw' },
+  aborted: { icon: 'x-circle', heading: 'Game Aborted' },
 };
 
 /** Animate an integer from `from` to `to` while `active` (rAF-based). */
@@ -152,9 +148,9 @@ export function GameResultScreen({
   const animateCount = visible && !reducedMotion;
   const ratingValue = useCountUp(rating?.before ?? 0, rating?.after ?? 0, animateCount);
 
-  const cardScale = useSharedValue(reducedMotion ? 1 : 0.9);
+  const cardScale = useSharedValue(reducedMotion ? 1 : 0.92);
   const cardOpacity = useSharedValue(0);
-  const emojiScale = useSharedValue(reducedMotion ? 1 : 0.5);
+  const emojiScale = useSharedValue(reducedMotion ? 1 : 0.4);
 
   // Fire the chime/haptic + entrance animation once per open.
   const wasOpen = useRef(false);
@@ -162,22 +158,23 @@ export function GameResultScreen({
     if (visible && !wasOpen.current) {
       wasOpen.current = true;
       if (result !== 'aborted') sfx.play(result);
-      cardOpacity.value = withTiming(1, { duration: 180 });
+      cardOpacity.value = withTiming(1, timing('moderate', 'out'));
       if (reducedMotion) {
         cardScale.value = 1;
         emojiScale.value = 1;
       } else {
-        cardScale.value = withSpring(1, { damping: 14, stiffness: 160 });
-        emojiScale.value = withSequence(
-          withTiming(1.25, { duration: 180 }),
-          withSpring(1, { damping: 8 }),
-        );
+        // Token springs with all three physical values. The partial configs
+        // these replaced inherited Reanimated 4's mass-4 defaults, so the card
+        // wobbled slowly (damping ratio 0.28) and the emoji rang at 0.07. The
+        // bouncy spring's own overshoot now does what the 1.25 keyframe faked.
+        cardScale.value = springTo(1, 'soft', false);
+        emojiScale.value = springTo(1, 'bouncy', false);
       }
     } else if (!visible) {
       wasOpen.current = false;
       cardOpacity.value = 0;
-      cardScale.value = reducedMotion ? 1 : 0.9;
-      emojiScale.value = reducedMotion ? 1 : 0.5;
+      cardScale.value = reducedMotion ? 1 : 0.92;
+      emojiScale.value = reducedMotion ? 1 : 0.4;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, result, reducedMotion]);
@@ -208,7 +205,7 @@ export function GameResultScreen({
             {
               width: '100%',
               maxWidth: 360,
-              borderRadius: 20,
+              borderRadius: RADIUS['3xl'],
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: COLORS.surfaceAlt,
@@ -218,15 +215,19 @@ export function GameResultScreen({
             cardStyle,
           ]}
         >
-          <Animated.Text style={[{ fontSize: 60, marginBottom: 8 }, emojiStyle]}>
-            {copy.emoji}
-          </Animated.Text>
+          <Animated.View style={[{ marginBottom: 8 }, emojiStyle]}>
+            <Icon
+              name={copy.icon}
+              size={FONT_SIZES['6xl']}
+              color={copy.accentHeading ? COLORS.accentHover : COLORS.fgMuted}
+            />
+          </Animated.View>
 
-          <Text style={{ color: copy.accentHeading ? COLORS.accentHover : COLORS.fg, fontSize: 28, fontFamily: FONTS.display, marginBottom: 2 }}>
+          <Text style={{ color: copy.accentHeading ? COLORS.accentHover : COLORS.fg, fontSize: FONT_SIZES.display, fontFamily: FONTS.display, marginBottom: 2 }}>
             {title ?? copy.heading}
           </Text>
           {subtitle && (
-            <Text style={{ color: COLORS.fgMuted, fontSize: 15, marginBottom: 4, textAlign: 'center' }}>
+            <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.body, marginBottom: 4, textAlign: 'center' }}>
               {subtitle}
             </Text>
           )}
@@ -236,7 +237,7 @@ export function GameResultScreen({
               style={{
                 marginTop: 18,
                 marginBottom: 6,
-                borderRadius: 14,
+                borderRadius: RADIUS['2xl'],
                 backgroundColor: COLORS.surfaceMuted,
                 paddingHorizontal: 20,
                 paddingVertical: 14,
@@ -244,12 +245,12 @@ export function GameResultScreen({
                 alignSelf: 'stretch',
               }}
             >
-              <Text style={{ color: COLORS.fgMuted, fontSize: 13, marginBottom: 2 }}>Rating</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-                <Text style={{ color: COLORS.fg, fontSize: 24, fontFamily: FONTS.display }}>{ratingValue}</Text>
+              <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginBottom: 2 }}>Rating</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SPACING[2] }}>
+                <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.display }}>{ratingValue}</Text>
                 <Text
                   style={{
-                    fontSize: 17,
+                    fontSize: FONT_SIZES.lg,
                     fontFamily: FONTS.display,
                     color: rating.delta >= 0 ? COLORS.successHover : COLORS.dangerHover,
                   }}
@@ -259,7 +260,7 @@ export function GameResultScreen({
                 </Text>
               </View>
               {hintsUsed > 0 && (
-                <Text style={{ color: COLORS.warningHover, fontSize: 12, marginTop: 6 }}>
+                <Text style={{ color: COLORS.warningHover, fontSize: FONT_SIZES.xs, marginTop: 6 }}>
                   Includes −{hintsUsed * HINT_PENALTY} for {hintsUsed}{' '}
                   {hintsUsed === 1 ? 'hint' : 'hints'}
                 </Text>
@@ -272,7 +273,7 @@ export function GameResultScreen({
               accessibilityLiveRegion="polite"
               style={{
                 marginTop: 14,
-                borderRadius: 12,
+                borderRadius: RADIUS.xl,
                 borderWidth: 1,
                 borderColor: COLORS.danger,
                 backgroundColor: COLORS.dangerMuted,
@@ -281,10 +282,10 @@ export function GameResultScreen({
                 alignSelf: 'stretch',
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 10,
+                gap: SPACING['2.5'],
               }}
             >
-              <Text style={{ color: COLORS.dangerHover, fontSize: 13, flex: 1, lineHeight: 18 }}>
+              <Text style={{ color: COLORS.dangerHover, fontSize: FONT_SIZES.label, flex: 1, lineHeight: 18 }}>
                 Couldn&apos;t save your game — check your connection.
               </Text>
               {onRetrySave && (
@@ -296,11 +297,11 @@ export function GameResultScreen({
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 7,
-                    borderRadius: 8,
+                    borderRadius: RADIUS.lg,
                     backgroundColor: COLORS.danger,
                   }}
                 >
-                  <Text style={{ color: '#fff', fontSize: 13, fontFamily: FONTS.bodyBold }}>Retry</Text>
+                  <Text style={{ color: '#fff', fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold }}>Retry</Text>
                 </Pressable>
               )}
             </View>
@@ -310,7 +311,7 @@ export function GameResultScreen({
               navigates, Review swaps the screen's whole tree — so they go
               through the dismiss-first hop rather than acting on the spot. */}
           <ResultDismissContext.Provider value={dismissThen}>
-            <View style={{ marginTop: 22, gap: 10, alignSelf: 'stretch' }}>
+            <View style={{ marginTop: 22, gap: SPACING['2.5'], alignSelf: 'stretch' }}>
               {onReview && (
                 <Pressable
                   onPress={() => dismissThen(onReview)}
@@ -321,18 +322,18 @@ export function GameResultScreen({
                     <View
                       style={{
                         minHeight: 48,
-                        borderRadius: 12,
+                        borderRadius: RADIUS.xl,
                         borderWidth: 1,
                         borderColor: COLORS.borderStrong,
                         backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceMuted,
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexDirection: 'row',
-                        gap: 8,
+                        gap: SPACING[2],
                       }}
                     >
-                      <Text style={{ fontSize: 16 }}>📈</Text>
-                      <Text style={{ color: COLORS.fg, fontSize: 16, fontFamily: FONTS.bodyBold }}>
+                      <Icon name="chart-line-up" size={FONT_SIZES.lg} color={COLORS.fg} />
+                      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.base, fontFamily: FONTS.bodyBold }}>
                         Review Game
                       </Text>
                     </View>

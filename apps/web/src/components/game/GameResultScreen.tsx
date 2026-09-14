@@ -12,6 +12,7 @@ import { useGameSfx } from '@/hooks/useGameSfx';
 import { celebratePop, springSoft, easeOut } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { SaveProgressPrompt } from './SaveProgressPrompt';
+import { Icon, type IconName } from '@gameexplorer/ui';
 
 const loadMotionFeatures = () =>
   import('@/lib/motion-features').then(mod => mod.default);
@@ -33,11 +34,11 @@ export interface GameResultScreenProps {
   actions: React.ReactNode;
 }
 
-const COPY: Record<GameResult, { emoji: string; heading: string; accentClass: string }> = {
-  win:     { emoji: '🏆', heading: 'You Won!',     accentClass: 'text-gradient-gold' },
-  loss:    { emoji: '💪', heading: 'Good Game',    accentClass: 'text-fg' },
-  draw:    { emoji: '🤝', heading: 'Draw',         accentClass: 'text-fg' },
-  aborted: { emoji: '🛑', heading: 'Game Aborted', accentClass: 'text-fg' },
+const COPY: Record<GameResult, { icon: IconName; iconClass: string; heading: string; accentClass: string }> = {
+  win:     { icon: 'trophy',    iconClass: 'text-accent',   heading: 'You Won!',     accentClass: 'text-gradient-gold' },
+  loss:    { icon: 'hand-fist', iconClass: 'text-fg-muted', heading: 'Good Game',    accentClass: 'text-fg' },
+  draw:    { icon: 'handshake', iconClass: 'text-fg-muted', heading: 'Draw',         accentClass: 'text-fg' },
+  aborted: { icon: 'x-circle',  iconClass: 'text-fg-muted', heading: 'Game Aborted', accentClass: 'text-fg' },
 };
 
 /** Animate an integer from `from` to `to` while `active`. rAF-based, cheap. */
@@ -139,12 +140,12 @@ export function GameResultScreen({
             transition={springSoft}
           >
             <m.div
-              className="text-6xl mb-3"
+              className="text-6xl mb-3 flex justify-center"
               variants={reducedMotion ? undefined : celebratePop}
               initial={reducedMotion ? undefined : 'hidden'}
               animate={reducedMotion ? undefined : 'show'}
             >
-              {copy.emoji}
+              <Icon name={copy.icon} className={copy.iconClass} />
             </m.div>
 
             <h2 className={cn('text-3xl font-bold mb-1', copy.accentClass)}>
@@ -171,7 +172,7 @@ export function GameResultScreen({
                 </div>
                 {hintsUsed != null && hintsUsed > 0 && (
                   <p className="mt-2 text-xs text-warning-hover">
-                    💡 {hintsUsed} hint{hintsUsed > 1 ? 's' : ''} used (−{hintsUsed * 2} pts)
+                    <Icon name="lightbulb" className="mr-1" />{hintsUsed} hint{hintsUsed > 1 ? 's' : ''} used (−{hintsUsed * 2} pts)
                   </p>
                 )}
               </div>

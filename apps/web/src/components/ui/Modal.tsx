@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { MOTION } from '@gameexplorer/ui';
 import { cn } from '@/lib/utils';
+import { prefersReducedMotion } from '@/lib/motion';
 import { IconButton } from './IconButton';
 
 export interface ModalProps {
@@ -28,6 +30,16 @@ const SIZES = {
  * Centralized dialog — report modal, promotion picker, confirmations all route
  * through here. Handles portal, Escape, backdrop dismiss, scroll lock, and
  * focus into the panel. Mobile: full-width with safe-area padding.
+ *
+ * Motion per motion-spec.md §5.10. The scrim fades in over `fast` and never
+ * moves — it used to borrow a page keyframe that slid it 20px over 0.8s. The
+ * panel fades in and grows from 96% over `moderate`. Closing is opacity only,
+ * over `fast`, so the dialog stays mounted that long after `open` goes false,
+ * ignoring clicks. Reduced motion skips all of it.
+ *
+ * The exit needs the caller to keep this mounted and flip `open`. A caller that
+ * unmounts it instead closes at once — Liquidate's `TradeModal` does, on purpose,
+ * so each offer starts from a blank form.
  */
 export function Modal({
   open,
@@ -41,7 +53,19 @@ export function Modal({
   const [mounted, setMounted] = React.useState(false);
   const panelRef = React.useRef<HTMLDivElement>(null);
 
+  // Rendered while open, and for the length of the exit after. Raised during
+  // render the moment `open` turns true, so an opening dialog never lags a frame.
+  const [present, setPresent] = React.useState(open);
+  if (open && !present) setPresent(true);
+  const leaving = present && !open;
+
   React.useEffect(() => setMounted(true), []);
+
+  React.useEffect(() => {
+    if (!leaving) return;
+    const t = window.setTimeout(() => setPresent(false), prefersReducedMotion() ? 0 : MOTION.DURATION.fast);
+    return () => window.clearTimeout(t);
+  }, [leaving]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -72,11 +96,11 @@ export function Modal({
     panelRef.current?.focus();
   }, [open]);
 
-  if (!mounted || !open) return null;
+  if (!mounted || !present) return null;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className={cn('fixed inset-0 z-[60] flex items-center justify-center p-4', leaving && 'pointer-events-none')}
       style={{
         paddingTop: 'max(1rem, env(safe-area-inset-top))',
         paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
@@ -84,7 +108,10 @@ export function Modal({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        className={cn(
+          'absolute inset-0 bg-black/60 backdrop-blur-sm',
+          leaving ? 'motion-safe:animate-fade-out' : 'motion-safe:animate-appear',
+        )}
         onClick={dismissable ? onClose : undefined}
         aria-hidden="true"
       />
@@ -99,6 +126,7 @@ export function Modal({
           'relative w-full bg-surface-alt border border-border rounded-2xl shadow-xl',
           'max-h-[calc(100dvh-2rem)] overflow-y-auto outline-none',
           SIZES[size],
+          leaving ? 'motion-safe:animate-fade-out' : 'motion-safe:animate-dialog-in',
         )}
       >
         {(title || dismissable) && (

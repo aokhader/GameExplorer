@@ -1,9 +1,7 @@
-import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { PUZZLES } from '@gameexplorer/shared';
 import type { PuzzleGame } from '@gameexplorer/shared';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
-import { Screen, BackHeader } from '@/components/ui';
+import { Screen, BackHeader, EmptyState } from '@/components/ui';
 import { PuzzleScreen } from '@/screens/PuzzleScreen';
 
 /**
@@ -14,9 +12,6 @@ import { PuzzleScreen } from '@/screens/PuzzleScreen';
  * `/puzzles/liquidate`.
  */
 export default function PuzzlesRoute() {
-  // Repaint when the theme changes; the tokens below are live views.
-  useThemeName();
-
   const { game } = useLocalSearchParams<{ game: string }>();
   const key = (game ?? '').toLowerCase();
 
@@ -32,11 +27,7 @@ export default function PuzzlesRoute() {
   return (
     <Screen scroll={false}>
       <BackHeader title="Puzzles" fallbackHref="/" />
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: COLORS.fgMuted, fontSize: 15, textAlign: 'center' }}>
-          No puzzles for this game yet.
-        </Text>
-      </View>
+      <EmptyState fill icon="puzzle-piece" title="No puzzles for this game yet" />
     </Screen>
   );
 }

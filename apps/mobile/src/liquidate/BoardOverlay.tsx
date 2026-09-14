@@ -9,9 +9,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
+import { easing, finitePulseCount } from '@/theme/motion';
 import type { RingGeometry } from './boardGeom';
 
-/** One pulse leg; the design's ring breathes on a 1.8s round trip. */
+/**
+ * One pulse leg; the design's ring breathes on a 1.8s round trip. Choreography
+ * rather than a MOTION duration: it pairs with web's `lq-pulse` keyframe, which
+ * runs the same round trip.
+ */
 const PULSE_MS = 900;
 
 export interface BoardOverlayProps {
@@ -43,7 +48,14 @@ export function BoardOverlay({ geom, tile }: BoardOverlayProps) {
       pulse.value = 0;
       return;
     }
-    pulse.value = withRepeat(withTiming(1, { duration: PULSE_MS }), -1, true);
+    // Finite: a decision can sit unanswered for minutes, and an infinite repeat
+    // keeps Android from ever reaching idle. The even count ends on the resting
+    // ring, which still marks the tile.
+    pulse.value = withRepeat(
+      withTiming(1, { duration: PULSE_MS, easing: easing('standard') }),
+      finitePulseCount(PULSE_MS),
+      true,
+    );
     return () => cancelAnimation(pulse);
   }, [reducedMotion, tile, pulse]);
 

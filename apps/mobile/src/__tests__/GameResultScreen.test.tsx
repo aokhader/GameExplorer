@@ -14,7 +14,10 @@ jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) })
 // Trimmed to what this file is about: the sign-up ask reaches for `useAuth` (and
 // through it Supabase), and the chime for the native audio module.
 jest.mock('@/game/SaveProgressPrompt', () => ({ SaveProgressPrompt: () => null }));
-jest.mock('@/providers/SettingsProvider', () => ({ useSettings: () => ({ reducedMotion: true }) }));
+jest.mock('@/providers/SettingsProvider', () => ({
+  useSettings: () => ({ reducedMotion: true }),
+  useFeedbackPrefs: () => ({ reducedMotion: true, haptics: false }),
+}));
 jest.mock('@/audio/useGameSfx.native', () => ({ useGameSfx: () => ({ play: jest.fn() }) }));
 
 beforeEach(() => mockReplace.mockClear());

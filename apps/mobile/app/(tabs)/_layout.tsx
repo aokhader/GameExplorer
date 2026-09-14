@@ -3,17 +3,24 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Tabs, type BottomTabBarProps } from 'expo-router/tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 
+import { Icon, PressableScale, type IconName } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 import { getLastPlayed } from '@/lib/lastPlayed';
 
 /** How far the gold Play button rises above the tab-bar plate. */
 const PLAY_OVERLAP = 24;
 
-const TAB_ICONS: Record<string, string> = {
-  index: '🏠',
-  profile: '👤',
+/**
+ * Each tab's icon, idle and selected. Filling on selection says "you are here"
+ * without leaning on colour alone. Keyed by the route names declared at the
+ * bottom of this file; a tab added there without an entry here falls back to a
+ * visible question mark rather than rendering nothing.
+ */
+const TAB_ICONS: Record<string, { idle: IconName; selected: IconName }> = {
+  index: { idle: 'house', selected: 'house-fill' },
+  profile: { idle: 'user', selected: 'user-fill' },
 };
 
 /**
@@ -62,16 +69,20 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         hitSlop={8}
         style={{
           alignItems: 'center',
-          gap: 3,
+          gap: SPACING[1],
           paddingHorizontal: 18,
           paddingVertical: 6,
         }}
       >
-        <Text style={{ fontSize: 19, opacity: focused ? 1 : 0.55 }}>{TAB_ICONS[route.name] ?? '•'}</Text>
+        <Icon
+          name={TAB_ICONS[route.name] ? TAB_ICONS[route.name][focused ? 'selected' : 'idle'] : 'question'}
+          size={FONT_SIZES['2xl']}
+          color={focused ? COLORS.fg : COLORS.fgSubtle}
+        />
         <Text
           style={{
             fontFamily: focused ? FONTS.bodyBold : FONTS.bodySemi,
-            fontSize: 11,
+            fontSize: FONT_SIZES.caption,
             color: focused ? COLORS.fg : COLORS.fgSubtle,
           }}
         >
@@ -107,19 +118,19 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         }}
       >
         {tabs[0]}
-        <Pressable
+        <PressableScale
           onPress={openPlay}
           accessibilityRole="button"
           accessibilityLabel="Play — jump into a game"
           hitSlop={6}
-          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+          haptic="impact"
         >
           <LinearGradient
             {...GRADIENTS_NATIVE.accent}
             style={{
               width: 56,
               height: 56,
-              borderRadius: 28,
+              borderRadius: RADIUS.full,
               alignItems: 'center',
               justifyContent: 'center',
               // Gold bloom + the design's dark lift off the tab plate. Uses
@@ -128,9 +139,10 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               boxShadow: `${GLOWS_NATIVE.glowAccent}, 0 8px 18px -6px rgba(0,0,0,0.6)`,
             }}
           >
-            <Text style={{ color: COLORS.onAccent, fontSize: 21, marginLeft: 3 }}>▶</Text>
+            {/* Nudged right: a play triangle's visual centre sits left of its box. */}
+            <Icon name="play-fill" size={FONT_SIZES['2xl']} color={COLORS.onAccent} style={{ marginLeft: 3 }} />
           </LinearGradient>
-        </Pressable>
+        </PressableScale>
         {tabs[1]}
       </View>
     </View>

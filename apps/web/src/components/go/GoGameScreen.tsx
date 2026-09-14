@@ -42,6 +42,7 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
 import { Button } from '@/components/ui';
+import { DifficultyMeter } from '@/components/game/DifficultyMeter';
 
 // Only rendered at game end, and it pulls in confetti + a framer-motion tree —
 // keep it out of the route's initial chunk, as every other game screen does.
@@ -258,7 +259,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
             <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
               <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {GO_DIFFICULTY_LEVELS.map(level => {
+                {GO_DIFFICULTY_LEVELS.map((level, i) => {
                   const selected = targetElo === level.elo;
                   return (
                     <button
@@ -270,7 +271,11 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                           : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                       }`}
                     >
-                      <div className="text-2xl mb-2">{level.icon}</div>
+                      <DifficultyMeter
+                        level={i + 1}
+                        of={GO_DIFFICULTY_LEVELS.length}
+                        className={`mb-2 ${selected ? 'text-accent' : 'text-fg-muted'}`}
+                      />
                       <div className={`font-bold text-sm mb-0.5 ${selected ? 'text-accent' : 'text-fg'}`}>
                         {level.label}
                       </div>
@@ -593,7 +598,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                             <span className="mr-1 opacity-60">{move.color === 'black' ? '⬤' : '○'}</span>
                             {notation[i]}
                             {move.captures.length > 0 && (
-                              <span className="ml-1 opacity-50 text-[10px]">×{move.captures.length}</span>
+                              <span className="ml-1 opacity-50 text-2xs">×{move.captures.length}</span>
                             )}
                           </button>
                         </div>

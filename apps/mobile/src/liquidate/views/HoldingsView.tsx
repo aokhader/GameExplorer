@@ -11,7 +11,7 @@ import {
   type LiquidateGameState,
   type OwnableTile,
 } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { tileAccent } from '../lqTheme';
 import { ViewHeader, ViewSection, GhostButton } from './ViewChrome';
@@ -72,7 +72,7 @@ export function HoldingsView({
           <Text
             style={{
               fontFamily: FONTS.bodySemi,
-              fontSize: 13,
+              fontSize: FONT_SIZES.label,
               color: P.dim,
               textAlign: 'center',
               marginTop: 40,
@@ -83,7 +83,7 @@ export function HoldingsView({
         ) : (
           <>
             <ViewSection>Your holdings</ViewSection>
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: SPACING['2.5'] }}>
               {holdings.map((tile) => {
                 const owned = state.tiles[tile.id]!;
                 const canBuild = !raiseOnly && can('build', tile.id);
@@ -95,33 +95,33 @@ export function HoldingsView({
                   <View
                     key={tile.id}
                     style={{
-                      borderRadius: 14,
+                      borderRadius: RADIUS['2xl'],
                       borderWidth: 1,
                       borderColor: P.line,
                       backgroundColor: P.panel,
                       padding: 13,
-                      gap: 10,
+                      gap: SPACING['2.5'],
                     }}
                   >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['2.5'] }}>
                       <View
                         style={{
                           width: 6,
                           height: 30,
-                          borderRadius: 3,
+                          borderRadius: RADIUS.full,
                           backgroundColor: tileAccent(tile),
                         }}
                       />
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text
                           numberOfLines={1}
-                          style={{ fontFamily: FONTS.bodyBold, fontSize: 13, color: P.ink }}
+                          style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.label, color: P.ink }}
                         >
                           {tile.name}
                         </Text>
                         <Text
                           numberOfLines={1}
-                          style={{ fontFamily: FONTS.bodySemi, fontSize: 10, color: P.soft, marginTop: 1 }}
+                          style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES['2xs'], color: P.soft, marginTop: 1 }}
                         >
                           {groupLabel(tile)}
                           {owned.mortgaged ? ' · mortgaged' : ''}
@@ -132,12 +132,12 @@ export function HoldingsView({
                             : ''}
                         </Text>
                       </View>
-                      <Text style={{ fontFamily: FONTS.display, fontSize: 13, color: P.ink }}>
+                      <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.label, color: P.ink }}>
                         {formatCredits(tile.price)}
                       </Text>
                     </View>
 
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[2] }}>
                       {tile.kind === 'planet' && (
                         <GhostButton
                           label={

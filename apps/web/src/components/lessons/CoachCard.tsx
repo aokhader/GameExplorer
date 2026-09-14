@@ -83,7 +83,7 @@ export function CoachCard({
 
       {showTask && (
         <p className="mt-3 text-sm leading-relaxed text-fg-muted" data-testid="coach-task">
-          <span className="font-semibold text-fg-subtle uppercase text-[11px] tracking-wide mr-1.5">
+          <span className="font-semibold text-fg-subtle uppercase text-caption tracking-wide mr-1.5">
             Task
           </span>
           {step.instruction}

@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 import { GameIcon } from '@/components/game/GameIcon';
+import { Icon, type IconName } from '@gameexplorer/ui';
 
 type GameMode = {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  icon: IconName;
   href: string;
   gradient: string;
   available: boolean;
@@ -25,7 +26,7 @@ export default function ChessLandingPage() {
       id: 'bot',
       title: 'Play vs Bot',
       description: 'Challenge AI opponents at different skill levels',
-      icon: '🤖',
+      icon: 'robot',
       href: '/chess/bot',
       gradient: 'from-info to-info-hover',
       available: true,
@@ -34,7 +35,7 @@ export default function ChessLandingPage() {
       id: 'training',
       title: 'Training Mode',
       description: 'Play rated games against a bot matched to your skill level',
-      icon: '🎯',
+      icon: 'target',
       href: '/chess/training',
       gradient: 'from-success to-success-hover',
       available: true,
@@ -43,7 +44,7 @@ export default function ChessLandingPage() {
       id: 'puzzles',
       title: 'Puzzles',
       description: 'Solve tactics one move at a time — no clock, no opponent',
-      icon: '🧩',
+      icon: 'puzzle-piece',
       href: '/chess/puzzles',
       gradient: 'from-info to-info-hover',
       available: true,
@@ -53,7 +54,7 @@ export default function ChessLandingPage() {
       id: 'replays',
       title: 'Game Replays',
       description: 'Review and replay your past games',
-      icon: '📼',
+      icon: 'film-strip',
       href: '/chess/replays',
       gradient: 'from-accent to-accent-hover',
       available: true,
@@ -62,7 +63,7 @@ export default function ChessLandingPage() {
       id: 'analysis',
       title: 'Analysis Board',
       description: 'Build any position and get Stockfish engine analysis',
-      icon: '🔍',
+      icon: 'magnifying-glass',
       href: '/chess/analysis',
       gradient: 'from-warning to-danger',
       available: true,
@@ -71,7 +72,7 @@ export default function ChessLandingPage() {
       id: 'multiplayer',
       title: 'Online Multiplayer',
       description: 'Play against other players around the world',
-      icon: '🌐',
+      icon: 'globe',
       href: '/chess/play',
       gradient: 'from-accent to-info',
       available: true,
@@ -80,7 +81,7 @@ export default function ChessLandingPage() {
       id: 'local',
       title: 'Local 2-Player',
       description: 'Play with a friend on the same device',
-      icon: '👥',
+      icon: 'users',
       href: '/chess/local',
       gradient: 'from-success to-success-hover',
       available: true,
@@ -89,7 +90,7 @@ export default function ChessLandingPage() {
       id: 'learn',
       title: 'How to Play',
       description: 'New to chess? Learn the rules and pick up beginner tips in five minutes',
-      icon: '🎓',
+      icon: 'graduation-cap',
       href: '/chess/learn',
       gradient: 'from-info to-info-hover',
       available: true,
@@ -142,7 +143,7 @@ export default function ChessLandingPage() {
                       <div className={`absolute inset-0 bg-linear-to-br ${mode.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
                       <div className="relative z-10">
                         <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} shadow-md group-hover:scale-110 transition-transform duration-300`}>
-                          <span className="text-4xl">{mode.icon}</span>
+                          <Icon name={mode.icon} className="text-4xl text-white" />
                         </div>
                         <h2 className="text-2xl font-bold text-fg mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-accent group-hover:to-accent-hover transition-all">
                           {mode.title}
@@ -163,7 +164,7 @@ export default function ChessLandingPage() {
                   <div className="relative overflow-hidden rounded-2xl p-8 h-full bg-surface-alt border border-border shadow-lg opacity-60 cursor-not-allowed">
                     <div className="relative z-10">
                       <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} opacity-50`}>
-                        <span className="text-4xl">{mode.icon}</span>
+                        <Icon name={mode.icon} className="text-4xl text-white" />
                       </div>
                       <h2 className="text-2xl font-bold text-fg mb-2">
                         {mode.title}
@@ -208,17 +209,17 @@ export default function ChessLandingPage() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
-              <div className="text-2xl mb-2">⚡</div>
+              <div className="text-2xl mb-2 text-accent"><Icon name="lightning" /></div>
               <div className="text-sm font-medium text-fg">Fast & Responsive</div>
               <div className="text-xs text-fg-muted mt-1">Instant move validation</div>
             </div>
             <div>
-              <div className="text-2xl mb-2">🎨</div>
+              <div className="text-2xl mb-2 text-accent"><Icon name="palette" /></div>
               <div className="text-sm font-medium text-fg">Beautiful Interface</div>
               <div className="text-xs text-fg-muted mt-1">Clean, modern design</div>
             </div>
             <div>
-              <div className="text-2xl mb-2">📱</div>
+              <div className="text-2xl mb-2 text-accent"><Icon name="device-mobile" /></div>
               <div className="text-sm font-medium text-fg">Mobile Friendly</div>
               <div className="text-xs text-fg-muted mt-1">Play on any device</div>
             </div>

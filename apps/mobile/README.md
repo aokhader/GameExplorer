@@ -8,7 +8,8 @@ the Supabase client are **not** re-implemented here.
 ## Status: M0 scaffold (upgrading SDK 52 → 57)
 
 Done:
-- Expo SDK 52 + expo-router + NativeWind v4, monorepo-aware Metro/Babel config.
+- Expo SDK 57 + expo-router, monorepo-aware Metro/Babel config. Styling is inline
+  token objects; NativeWind was wired in early, never used, and has been removed.
 - Shared-layer portability fixes landed (native Supabase client, injectable OAuth
   redirect, native shadow/gradient tokens).
 - Root layout (gesture + safe-area providers, config bootstrap) and a home-hub

@@ -423,7 +423,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
           {/* Rank label */}
           {showRank && (
             <span
-              className="absolute top-0.5 left-1 text-[10px] font-semibold leading-none select-none pointer-events-none z-10"
+              className="absolute top-0.5 left-1 text-2xs font-semibold leading-none select-none pointer-events-none z-10"
               style={{ color: labelColor, opacity: 0.75 }}
             >
               {boardRow + 1}
@@ -433,7 +433,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
           {/* File label */}
           {showFile && (
             <span
-              className="absolute bottom-0.5 right-1 text-[10px] font-semibold leading-none select-none pointer-events-none z-10"
+              className="absolute bottom-0.5 right-1 text-2xs font-semibold leading-none select-none pointer-events-none z-10"
               style={{ color: labelColor, opacity: 0.75 }}
             >
               {String.fromCharCode(97 + boardCol)}

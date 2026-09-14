@@ -7,9 +7,10 @@ import Animated, {
   withTiming,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { COLORS } from '@gameexplorer/ui';
+import { COLORS, FONT_SIZES, MOTION, RADIUS, SPACING } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
+import { finitePulseCount, timing } from '@/theme/motion';
 
 export interface PlayerCardProps {
   /** Display name, e.g. "Bot" or "You". */
@@ -55,7 +56,14 @@ export function PlayerCard({
 
   useEffect(() => {
     if (active && !reducedMotion) {
-      pulse.value = withRepeat(withTiming(0.35, { duration: 700 }), -1, true);
+      // Finite on purpose. An opponent's turn can outlast any pulse worth
+      // watching, and an infinite repeat keeps Android from ever reaching idle.
+      // The even count leaves the dot lit when the pulse ends.
+      pulse.value = withRepeat(
+        withTiming(0.35, timing('slower', 'standard')),
+        finitePulseCount(MOTION.DURATION.slower),
+        true,
+      );
     } else {
       cancelAnimation(pulse);
       pulse.value = 1;
@@ -70,8 +78,8 @@ export function PlayerCard({
   return (
     <View
       style={{
-        gap: 8,
-        borderRadius: 12,
+        gap: SPACING[2],
+        borderRadius: RADIUS.xl,
         paddingHorizontal: 12,
         paddingVertical: 10,
         borderWidth: 1,
@@ -84,31 +92,31 @@ export function PlayerCard({
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 12,
+          gap: SPACING[3],
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[3], flexShrink: 1 }}>
           <View
             style={{
               width: 40,
               height: 40,
-              borderRadius: 12,
+              borderRadius: RADIUS.xl,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: isYou ? COLORS.accent : COLORS.info,
             }}
           >
-            <Text style={{ color: isYou ? COLORS.onAccent : '#fff', fontSize: 16, fontFamily: FONTS.bodyBold }}>
+            <Text style={{ color: isYou ? COLORS.onAccent : '#fff', fontSize: FONT_SIZES.base, fontFamily: FONTS.bodyBold }}>
               {initial}
             </Text>
           </View>
           <View style={{ flexShrink: 1 }}>
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold }} numberOfLines={1}>
+            <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold }} numberOfLines={1}>
               {name}
             </Text>
             {subline && (
               <Text
-                style={{ color: isYou ? COLORS.accent : COLORS.fgMuted, fontSize: 12, marginTop: 1 }}
+                style={{ color: isYou ? COLORS.accent : COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 1 }}
                 numberOfLines={1}
               >
                 {subline}
@@ -116,12 +124,12 @@ export function PlayerCard({
             )}
           </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['2.5'] }}>
           {right}
           {active && (
             <Animated.View
               style={[
-                { width: 10, height: 10, borderRadius: 5, backgroundColor: dotColor },
+                { width: 10, height: 10, borderRadius: RADIUS.full, backgroundColor: dotColor },
                 dotStyle,
               ]}
             />

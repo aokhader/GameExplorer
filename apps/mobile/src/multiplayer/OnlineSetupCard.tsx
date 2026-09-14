@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Button } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 
@@ -28,22 +28,22 @@ export function OnlineSetupCard({ signedIn, connected }: OnlineSetupCardProps) {
   return (
     <View
       style={{
-        borderRadius: 16,
+        borderRadius: RADIUS['2xl'],
         borderWidth: 1,
         borderColor: blocked ? COLORS.warning : COLORS.border,
         backgroundColor: blocked ? COLORS.surfaceMuted : COLORS.surfaceAlt,
         padding: 20,
         marginBottom: 24,
-        gap: 10,
+        gap: SPACING['2.5'],
       }}
     >
       {!signedIn ? (
         <>
-          <Text style={{ color: COLORS.warningHover, fontFamily: FONTS.bodyBold, fontSize: 15 }}>
+          <Text style={{ color: COLORS.warningHover, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.body }}>
             Sign in to play online
           </Text>
           <Text
-            style={{ color: COLORS.warningHover, fontFamily: FONTS.body, fontSize: 13, lineHeight: 19 }}
+            style={{ color: COLORS.warningHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, lineHeight: 19 }}
           >
             Online games are matched on your rating and saved to your history, so
             they need an account.
@@ -56,11 +56,11 @@ export function OnlineSetupCard({ signedIn, connected }: OnlineSetupCardProps) {
         </>
       ) : !connected ? (
         <>
-          <Text style={{ color: COLORS.warningHover, fontFamily: FONTS.bodyBold, fontSize: 15 }}>
+          <Text style={{ color: COLORS.warningHover, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.body }}>
             You&apos;re offline
           </Text>
           <Text
-            style={{ color: COLORS.warningHover, fontFamily: FONTS.body, fontSize: 13, lineHeight: 19 }}
+            style={{ color: COLORS.warningHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, lineHeight: 19 }}
           >
             Online play needs a connection. Bot games and pass-and-play still
             work without one.
@@ -68,10 +68,10 @@ export function OnlineSetupCard({ signedIn, connected }: OnlineSetupCardProps) {
         </>
       ) : (
         <>
-          <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: 15 }}>
+          <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>
             Play a real opponent
           </Text>
-          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13, lineHeight: 19 }}>
+          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, lineHeight: 19 }}>
             Get matched by rating, or send a friend a link. The clock runs on the
             server, so both players see the same time.
           </Text>

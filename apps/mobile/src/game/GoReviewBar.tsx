@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { COLORS, GAME_ACCENTS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 
 export interface GoReviewBarProps {
@@ -30,7 +30,7 @@ export function GoReviewBar({ onAccept, onResume }: GoReviewBarProps) {
       style={{
         flexDirection: 'row',
         alignItems: 'stretch',
-        gap: 8,
+        gap: SPACING[2],
         paddingHorizontal: 8,
         paddingVertical: 8,
         borderTopWidth: 1,
@@ -39,7 +39,7 @@ export function GoReviewBar({ onAccept, onResume }: GoReviewBarProps) {
       }}
     >
       {/* Plain object `style` with the pressed state read from the children
-          function — a function-form style is silently dropped in this app. */}
+          function — the way every control in this app is written. */}
       <Pressable
         onPress={onResume}
         accessibilityRole="button"
@@ -52,7 +52,7 @@ export function GoReviewBar({ onAccept, onResume }: GoReviewBarProps) {
             style={{
               flex: 1,
               minHeight: 46,
-              borderRadius: 12,
+              borderRadius: RADIUS.xl,
               borderWidth: 1,
               borderColor: COLORS.border,
               backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surface,
@@ -60,7 +60,7 @@ export function GoReviewBar({ onAccept, onResume }: GoReviewBarProps) {
               justifyContent: 'center',
             }}
           >
-            <Text style={{ color: COLORS.fg, fontSize: 15, fontFamily: FONTS.bodyBold }}>
+            <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold }}>
               Resume play
             </Text>
           </View>
@@ -79,7 +79,7 @@ export function GoReviewBar({ onAccept, onResume }: GoReviewBarProps) {
             style={{
               flex: 1,
               minHeight: 46,
-              borderRadius: 12,
+              borderRadius: RADIUS.xl,
               borderWidth: 1,
               borderColor: GAME_ACCENTS.go.base,
               backgroundColor: pressed ? GAME_ACCENTS.go.tintBg : GAME_ACCENTS.go.base,
@@ -90,7 +90,7 @@ export function GoReviewBar({ onAccept, onResume }: GoReviewBarProps) {
             <Text
               style={{
                 color: pressed ? GAME_ACCENTS.go.base : COLORS.onAccent,
-                fontSize: 15,
+                fontSize: FONT_SIZES.body,
                 fontFamily: FONTS.bodyBold,
               }}
             >

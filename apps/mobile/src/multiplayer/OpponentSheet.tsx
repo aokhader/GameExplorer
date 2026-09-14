@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { apiFetch } from '@gameexplorer/client';
-import { COLORS, useThemeName } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button, TextField } from '@/components/ui';
 import { MenuRow } from '@/game/MenuRow';
@@ -110,7 +110,7 @@ export function OpponentSheet({
         style={{
           color: COLORS.fg,
           fontFamily: FONTS.displaySemi,
-          fontSize: 16,
+          fontSize: FONT_SIZES.base,
           paddingHorizontal: 12,
           marginBottom: 6,
         }}
@@ -124,7 +124,7 @@ export function OpponentSheet({
           style={{
             marginHorizontal: 12,
             marginBottom: 10,
-            borderRadius: 12,
+            borderRadius: RADIUS.xl,
             borderWidth: 1,
             borderColor: outcome.ok ? COLORS.success : COLORS.danger,
             backgroundColor: outcome.ok ? COLORS.surfaceMuted : COLORS.dangerMuted,
@@ -136,7 +136,7 @@ export function OpponentSheet({
             style={{
               color: outcome.ok ? COLORS.successHover : COLORS.dangerHover,
               fontFamily: FONTS.body,
-              fontSize: 13,
+              fontSize: FONT_SIZES.label,
               lineHeight: 18,
             }}
           >
@@ -148,7 +148,7 @@ export function OpponentSheet({
       {!reporting ? (
         <>
           <MenuRow
-            glyph="🚩"
+            icon="warning"
             label="Report player"
             detail="Files a record for moderation"
             onPress={() => {
@@ -159,7 +159,7 @@ export function OpponentSheet({
             accent={accent}
           />
           <MenuRow
-            glyph="🚫"
+            icon="prohibit"
             label={busy ? 'Blocking…' : 'Block player'}
             detail="Excludes them from your matchmaking and invites"
             danger
@@ -169,20 +169,20 @@ export function OpponentSheet({
           />
         </>
       ) : (
-        <View style={{ paddingHorizontal: 12, paddingBottom: 8, gap: 12 }}>
-          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: 13 }}>
+        <View style={{ paddingHorizontal: 12, paddingBottom: 8, gap: SPACING[3] }}>
+          <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
             Help us keep games fair and friendly.
           </Text>
 
           <View>
             <Text
-              style={{ color: COLORS.fgMuted, fontSize: 13, fontFamily: FONTS.bodySemi, marginBottom: 8 }}
+              style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodySemi, marginBottom: 8 }}
             >
               Reason
             </Text>
             {/* A native picker would need another dependency and a platform
                 split; five tappable rows are clearer on a phone anyway. */}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[2] }}>
               {REPORT_REASONS.map((r) => {
                 const selected = reason === r.value;
                 return (
@@ -196,7 +196,7 @@ export function OpponentSheet({
                       minHeight: 44,
                       justifyContent: 'center',
                       paddingHorizontal: 14,
-                      borderRadius: 999,
+                      borderRadius: RADIUS.full,
                       borderWidth: 1,
                       borderColor: selected ? COLORS.accent : COLORS.border,
                       backgroundColor: selected ? COLORS.accentMuted : COLORS.surfaceMuted,
@@ -206,7 +206,7 @@ export function OpponentSheet({
                       style={{
                         color: selected ? COLORS.accentHover : COLORS.fg,
                         fontFamily: FONTS.body,
-                        fontSize: 14,
+                        fontSize: FONT_SIZES.sm,
                       }}
                     >
                       {r.label}
@@ -226,7 +226,7 @@ export function OpponentSheet({
             accessibilityLabel="Report details"
           />
 
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
             <Button
               label="Cancel"
               variant="secondary"

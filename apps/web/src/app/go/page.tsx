@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 import { GameIcon } from '@/components/game/GameIcon';
+import { Icon, type IconName } from '@gameexplorer/ui';
 
 type GameMode = {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  icon: IconName;
   href: string;
   gradient: string;
   available: boolean;
@@ -25,7 +26,7 @@ export default function GoLandingPage() {
       id: 'bot',
       title: 'Play vs Bot',
       description: 'Six tiers, from a bot that plays almost at random to the engine at full strength',
-      icon: '🤖',
+      icon: 'robot',
       href: '/go/bot',
       gradient: 'from-info to-info-hover',
       available: true,
@@ -34,7 +35,7 @@ export default function GoLandingPage() {
       id: 'training',
       title: 'Training Mode',
       description: 'Rated games against a bot matched to your skill level, with hints for sale',
-      icon: '🎯',
+      icon: 'target',
       href: '/go/training',
       gradient: 'from-success to-success-hover',
       available: true,
@@ -43,7 +44,7 @@ export default function GoLandingPage() {
       id: 'local',
       title: 'Pass & Play',
       description: 'Two players, one screen — no account needed',
-      icon: '👥',
+      icon: 'users',
       href: '/go/local',
       gradient: 'from-accent to-accent-hover',
       available: true,
@@ -52,7 +53,7 @@ export default function GoLandingPage() {
       id: 'puzzles',
       title: 'Puzzles',
       description: 'Life and death, one shape at a time — find the point that settles the group',
-      icon: '🧩',
+      icon: 'puzzle-piece',
       href: '/go/puzzles',
       gradient: 'from-warning to-warning-hover',
       available: true,
@@ -62,7 +63,7 @@ export default function GoLandingPage() {
       id: 'analysis',
       title: 'Analysis Board',
       description: 'Paste a game as SGF and have the engine grade every move',
-      icon: '🔍',
+      icon: 'magnifying-glass',
       href: '/go/analysis',
       gradient: 'from-warning to-danger',
       available: true,
@@ -72,7 +73,7 @@ export default function GoLandingPage() {
       id: 'learn',
       title: 'How to Play',
       description: 'New to Go? Liberties, capture, ko and scoring — the whole game in a few minutes',
-      icon: '🎓',
+      icon: 'graduation-cap',
       href: '/go/learn',
       gradient: 'from-accent to-accent-hover',
       available: true,
@@ -119,7 +120,7 @@ export default function GoLandingPage() {
                       <div className={`absolute inset-0 bg-linear-to-br ${mode.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
                       <div className="relative z-10">
                         <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} shadow-md group-hover:scale-110 transition-transform duration-300`}>
-                          <span className="text-4xl">{mode.icon}</span>
+                          <Icon name={mode.icon} className="text-4xl text-white" />
                         </div>
                         <h2 className="text-2xl font-bold text-fg mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-accent group-hover:to-accent-hover transition-all">
                           {mode.title}
@@ -138,7 +139,7 @@ export default function GoLandingPage() {
                   <div className="relative overflow-hidden rounded-2xl p-8 h-full bg-surface-alt border border-border shadow-lg opacity-60 cursor-not-allowed">
                     <div className="relative z-10">
                       <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} opacity-50`}>
-                        <span className="text-4xl">{mode.icon}</span>
+                        <Icon name={mode.icon} className="text-4xl text-white" />
                       </div>
                       <h2 className="text-2xl font-bold text-fg mb-2">{mode.title}</h2>
                       <p className="text-fg-muted mb-4">{mode.description}</p>
@@ -161,17 +162,17 @@ export default function GoLandingPage() {
           <h3 className="text-xl font-semibold text-fg mb-4 text-center">How It Works</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
-              <div className="text-2xl mb-2">⭕</div>
+              <div className="text-2xl mb-2 text-accent"><Icon name="x-circle" /></div>
               <div className="text-sm font-medium text-fg">Surround to Capture</div>
               <div className="text-xs text-fg-muted mt-1">Take a group&apos;s last empty neighbour and it comes off the board</div>
             </div>
             <div>
-              <div className="text-2xl mb-2">🏞️</div>
+              <div className="text-2xl mb-2 text-accent"><Icon name="mountains" /></div>
               <div className="text-sm font-medium text-fg">Claim Territory</div>
               <div className="text-xs text-fg-muted mt-1">Empty points only you surround count as yours at the end</div>
             </div>
             <div>
-              <div className="text-2xl mb-2">🤝</div>
+              <div className="text-2xl mb-2 text-accent"><Icon name="handshake" /></div>
               <div className="text-sm font-medium text-fg">Two Passes End It</div>
               <div className="text-xs text-fg-muted mt-1">Then stones plus territory are counted, and white adds komi</div>
             </div>

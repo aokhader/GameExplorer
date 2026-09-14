@@ -9,7 +9,7 @@ import {
   type LiquidateAction,
   type LiquidateGameState,
 } from '@gameexplorer/shared';
-import { LIQUIDATE_PANEL_COLORS, useThemeName } from '@gameexplorer/ui';
+import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { seatColor, tileAccent } from '../lqTheme';
 import { ViewHeader, ViewSection, ViewActionBar, AccentButton, GhostButton } from './ViewChrome';
@@ -57,7 +57,7 @@ export function AuctionView({ state, deviceIds, dispatch, onBack }: AuctionViewP
       <View style={{ flex: 1 }}>
         <ViewHeader title="Auction" sub="Settled" onBack={onBack} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 13, color: P.dim }}>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.label, color: P.dim }}>
             This auction is over.
           </Text>
         </View>
@@ -86,43 +86,43 @@ export function AuctionView({ state, deviceIds, dispatch, onBack }: AuctionViewP
             style={{
               paddingHorizontal: 11,
               paddingVertical: 6,
-              borderRadius: 11,
+              borderRadius: RADIUS.xl,
               borderWidth: 1,
               borderColor: P.hintLine,
               backgroundColor: P.hint,
             }}
           >
-            <Text style={{ fontFamily: FONTS.display, fontSize: 13, color: P.hintInk }}>
+            <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.label, color: P.hintInk }}>
               {yourBid ? 'Your bid' : (bidder?.name ?? '—')}
             </Text>
           </View>
         }
       />
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, gap: 14, paddingBottom: 18 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, gap: SPACING['3.5'], paddingBottom: 18 }}>
         <View
           style={{
             backgroundColor: P.panel,
             borderWidth: 1,
             borderColor: P.line,
-            borderRadius: 16,
+            borderRadius: RADIUS['2xl'],
             padding: 16,
             alignItems: 'center',
           }}
         >
           <Text
-            style={{ fontFamily: FONTS.bodyBold, fontSize: 9, letterSpacing: 0.9, color: P.accent }}
+            style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES['3xs'], letterSpacing: 0.9, color: P.accent }}
           >
             ON THE BLOCK
           </Text>
-          <Text style={{ fontFamily: FONTS.display, fontSize: 24, color: P.ink, marginTop: 5 }}>
+          <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES['2xl'], color: P.ink, marginTop: 5 }}>
             {tile.name}
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 7 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['1.5'], marginTop: 7 }}>
             <View
-              style={{ width: 10, height: 10, borderRadius: 4, backgroundColor: tileAccent(tile) }}
+              style={{ width: 10, height: 10, borderRadius: RADIUS.sm, backgroundColor: tileAccent(tile) }}
             />
-            <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 11, color: P.soft }}>
+            <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.caption, color: P.soft }}>
               {groupLabel(tile)}
               {isOwnable(tile) ? ` · list ${formatCredits(tile.price)}` : ''}
             </Text>
@@ -131,7 +131,7 @@ export function AuctionView({ state, deviceIds, dispatch, onBack }: AuctionViewP
           <Text
             style={{
               fontFamily: FONTS.bodySemi,
-              fontSize: 9,
+              fontSize: FONT_SIZES['3xs'],
               letterSpacing: 0.6,
               color: P.dim,
               marginTop: 14,
@@ -139,10 +139,10 @@ export function AuctionView({ state, deviceIds, dispatch, onBack }: AuctionViewP
           >
             HIGH BID
           </Text>
-          <Text style={{ fontFamily: FONTS.display, fontSize: 38, color: P.accent }}>
+          <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES['4xl'], color: P.accent }}>
             {formatCredits(auction.highestBid)}
           </Text>
-          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: 11, color: P.soft, marginTop: 4 }}>
+          <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.caption, color: P.soft, marginTop: 4 }}>
             {leader ? `by ${leader.name}` : 'no bids yet'}
           </Text>
         </View>
@@ -150,7 +150,7 @@ export function AuctionView({ state, deviceIds, dispatch, onBack }: AuctionViewP
         {history.length > 0 && (
           <View>
             <ViewSection>Bid history</ViewSection>
-            <View style={{ gap: 7 }}>
+            <View style={{ gap: SPACING[2] }}>
               {history.map((row, i) => {
                 const seat = state.players.findIndex((p) => p.id === row.playerId);
                 return (
@@ -159,10 +159,10 @@ export function AuctionView({ state, deviceIds, dispatch, onBack }: AuctionViewP
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
-                      gap: 9,
+                      gap: SPACING['2.5'],
                       paddingHorizontal: 11,
                       paddingVertical: 9,
-                      borderRadius: 11,
+                      borderRadius: RADIUS.xl,
                       borderWidth: 1,
                       borderColor: P.line,
                       backgroundColor: P.panel2,
@@ -173,14 +173,14 @@ export function AuctionView({ state, deviceIds, dispatch, onBack }: AuctionViewP
                       style={{
                         width: 9,
                         height: 9,
-                        borderRadius: 4.5,
+                        borderRadius: RADIUS.full,
                         backgroundColor: seat >= 0 ? seatColor(seat) : P.soft,
                       }}
                     />
-                    <Text style={{ flex: 1, fontFamily: FONTS.bodyBold, fontSize: 12, color: P.ink }}>
+                    <Text style={{ flex: 1, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xs, color: P.ink }}>
                       {row.name}
                     </Text>
-                    <Text style={{ fontFamily: FONTS.display, fontSize: 13, color: P.ink }}>
+                    <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.label, color: P.ink }}>
                       {row.passed ? 'passed' : formatCredits(row.amount!)}
                     </Text>
                   </View>
@@ -192,7 +192,7 @@ export function AuctionView({ state, deviceIds, dispatch, onBack }: AuctionViewP
       </ScrollView>
 
       <ViewActionBar>
-        <View style={{ flexDirection: 'row', gap: 9 }}>
+        <View style={{ flexDirection: 'row', gap: SPACING['2.5'] }}>
           {STEPS.map((step) => (
             <GhostButton
               key={step}
