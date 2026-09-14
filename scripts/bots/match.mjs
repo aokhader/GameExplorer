@@ -6,7 +6,7 @@
  *   ./node_modules/.bin/tsx scripts/bots/match.mjs --a=uci:2000 --b=uci:2300 --games=40
  *   # anchor a setting against the Stockfish ladder (see the licence note below)
  *   ./node_modules/.bin/tsx scripts/bots/match.mjs --a=uci:2300 --b=sf:1500 --games=60
- *   # the in-house engine against a Stockfish rung
+ *   # the in-house engine against Stockfish held to a fixed rating
  *   ./node_modules/.bin/tsx scripts/bots/match.mjs --a=ts:1200 --b=sf:1200 --games=60
  *
  * Configuration syntax: `uci:<n>` Arasan with UCI_LimitStrength at that UCI_Elo,
@@ -15,11 +15,12 @@
  * UCI_LimitStrength at that UCI_Elo.
  *
  * **Why a Stockfish opponent is the anchor and not a rival.** Every other
- * instrument here answers a relative question. This one can answer an absolute
- * one, because Stockfish's `UCI_Elo` was calibrated by its authors against
- * *Lichess human ratings* — so "draws level with Stockfish at UCI_Elo 1500" is a
- * claim about people, which is the claim a difficulty tile makes. Nothing else
- * available offers that.
+ * instrument here answers a relative question. This one comes closest to an
+ * absolute answer, because Stockfish's `UCI_Elo` is a fixed, published scale.
+ * It is an engine scale, though: its authors fit it to games against another
+ * engine, on CCRL's blitz list of engine-versus-engine ratings. So "draws level
+ * with Stockfish at UCI_Elo 1500" means about 1500 on that list, which is not the
+ * same thing as a person rated 1500. Nothing else available offers a fixed scale.
  *
  * **Licence hygiene — read before changing how Stockfish is invoked.**
  * Stockfish.js is GPL-3.0 and `apps/web/public/stockfish/README.md` is explicit
@@ -123,7 +124,7 @@ function parseSpec(spec, fallbackElo) {
     case 'sf': {
       // Stockfish clamps UCI_Elo into [1320, 3190] internally, so asking for
       // 1200 silently gets you 1320. Resolve it here or every rating this
-      // script implies from a low rung is off by the difference.
+      // script implies from a low setting is off by the difference.
       const effective = clampStockfishElo(elo);
       return {
         kind,
@@ -366,5 +367,5 @@ console.log(
   `  95% band ${(-400 * Math.log10(1 / lo - 1)).toFixed(0)} .. ${(-400 * Math.log10(1 / hi - 1)).toFixed(0)}`,
 );
 if (specB.kind === 'sf') {
-  console.log(`  implied human-scale rating for A: ~${Math.round(specB.elo + elo)}`);
+  console.log(`  implied rating for A on Stockfish's engine scale: ~${Math.round(specB.elo + elo)}`);
 }

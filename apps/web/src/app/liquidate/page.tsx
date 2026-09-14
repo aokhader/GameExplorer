@@ -111,7 +111,9 @@ export default function LiquidateLandingPage() {
                         >
                           <Icon name={mode.icon} className="text-4xl text-white" />
                         </div>
-                        <h2 className="mb-2 text-2xl font-bold text-fg transition-all group-hover:bg-linear-to-r group-hover:from-accent group-hover:to-accent-hover group-hover:bg-clip-text group-hover:text-transparent">
+                        {/* Gradient text at rest too, in plain fg: hover only animates the stops. Turning
+                            bg-clip-text on at hover made the title vanish for a frame on the way out. */}
+                        <h2 className="mb-2 bg-linear-to-r from-fg to-fg bg-clip-text text-2xl font-bold text-transparent transition-colors group-hover:from-accent group-hover:to-accent-hover">
                           {mode.title}
                         </h2>
                         <p className="mb-4 text-fg-muted">{mode.description}</p>

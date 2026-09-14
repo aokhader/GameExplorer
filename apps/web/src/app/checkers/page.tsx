@@ -125,7 +125,9 @@ export default function CheckersLandingPage() {
                         <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} shadow-md group-hover:scale-110 transition-transform duration-300`}>
                           <Icon name={mode.icon} className="text-4xl text-white" />
                         </div>
-                        <h2 className="text-2xl font-bold text-fg mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-accent group-hover:to-accent-hover transition-all">
+                        {/* Gradient text at rest too, in plain fg: hover only animates the stops. Turning
+                            bg-clip-text on at hover made the title vanish for a frame on the way out. */}
+                        <h2 className="text-2xl font-bold mb-2 bg-linear-to-r from-fg to-fg bg-clip-text text-transparent transition-colors group-hover:from-accent group-hover:to-accent-hover">
                           {mode.title}
                         </h2>
                         <p className="text-fg-muted mb-4">{mode.description}</p>
