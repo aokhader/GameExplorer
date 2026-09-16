@@ -308,9 +308,9 @@ describe('PuzzleScreen', () => {
     const { solved, total } = await seedUpTo('checkers', 'checkers-001');
     await openPuzzles('checkers');
 
-    // e2–g4–e6–c8 is a triple jump ending in a crowning; the board reports only
+    // d2–b4–d6–f8 is a triple jump ending in a crowning; the board reports only
     // where the piece was picked up and put down.
-    await play('checkers board', 'e2', 'c8');
+    await play('checkers board', 'd2', 'f8');
     await waitFor(() => expect(screen.getByText('Solved')).toBeOnTheScreen());
     expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(
       progressText(solved.length + 1, total),
@@ -321,8 +321,8 @@ describe('PuzzleScreen', () => {
     const { solved, total } = await seedUpTo('checkers', 'checkers-001');
     await openPuzzles('checkers');
 
-    // c2–e4–g6 is legal, and a double capture — just not the best one.
-    await play('checkers board', 'c2', 'g6');
+    // f2–d4–b6 is legal, and a double capture — just not the best one.
+    await play('checkers board', 'f2', 'b6');
     await waitFor(() => expect(screen.getByText('Not quite')).toBeOnTheScreen());
     expect(screen.getByTestId('puzzle-progress')).toHaveTextContent(
       progressText(solved.length, total),

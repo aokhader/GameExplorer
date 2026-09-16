@@ -12,6 +12,7 @@ import {
   getChessPremoveDestinations,
   isChessPremoveLegal,
   isChessPremovePromotion,
+  isDarkSquare,
   type ChessPremove,
   type LessonMark,
 } from '@gameexplorer/shared';
@@ -647,7 +648,13 @@ export const ChessBoard = React.memo(function ChessBoard({
         const displayCol = isFlipped ? 7 - col : col;
         const position = getPositionFromCoords(displayRow, displayCol);
         const piece = effectiveState.board[displayRow][displayCol];
-        const isLight = (displayRow + displayCol) % 2 === 0;
+        // a1 dark, h1 light — "light on the right", the orientation every
+        // printed board uses, and the one this app's own lesson text claims
+        // when it says the light square goes in the right-hand corner. Drawn
+        // the other way round the board was a mirror of itself: the queen's
+        // bishop stood on a light square. One rule for every board in the app,
+        // so this and the checkers engine cannot disagree again.
+        const isLight = !isDarkSquare(displayRow, displayCol);
         const isSelected = selectedSquare === position;
         const isValidMove = validMoves.includes(position);
         const isLastMoveSquare = lastMove && (lastMove.from === position || lastMove.to === position);

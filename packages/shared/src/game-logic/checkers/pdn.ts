@@ -9,13 +9,17 @@ import type { CheckersMove } from './types';
  * isn't playable.
  *
  * PDN numbers only the dark squares, left to right along each row starting from
- * Black's back rank. Black's home rows are 8/7/6 here, so `a8` is 1 and the
+ * Black's back rank. Black's home rows are 8/7/6 here, so `b8` is 1 and the
  * invariant holds: Black opens on 1–12 and White on 21–32.
  *
- *     a8 c8 e8 g8  ->   1  2  3  4
- *     b7 d7 f7 h7  ->   5  6  7  8
+ *     b8 d8 f8 h8  ->   1  2  3  4
+ *     a7 c7 e7 g7  ->   5  6  7  8
  *     ...
- *     b1 d1 f1 h1  ->  29 30 31 32
+ *     a1 c1 e1 g1  ->  29 30 31 32
+ *
+ * The rows shifted by one file when the board was mirrored (`isDarkSquare`);
+ * the numbering rule itself is unchanged, which is why the formula below is,
+ * too. `Math.floor(col / 2)` still gives 0..3 on either diagonal set.
  */
 export function toPdnSquare(position: string): number | null {
   const { row, col } = positionToCoordinates(position);
@@ -41,7 +45,8 @@ export function fromPdnSquare(square: number): string | null {
   const index = square - 1;
   const rowFromTop = Math.floor(index / 4);
   const row = 7 - rowFromTop;
-  const col = (index % 4) * 2 + (row % 2 === 0 ? 1 : 0);
+  // Ranks 1, 3, 5, 7 (even `row`) play on the even files now that a1 is dark.
+  const col = (index % 4) * 2 + (row % 2 === 0 ? 0 : 1);
   return coordinatesToPosition({ row, col });
 }
 

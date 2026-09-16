@@ -2,8 +2,8 @@
  * Checkers lessons — pure data, proved by `lessons.test.ts`.
  *
  * Positions are the PDN FEN tag body `Puzzle.position` already uses, with the
- * 1–32 dark-square numbers; moves are algebraic (`c2d3`), and a multi-jump
- * spells out every landing square (`c2e4c6`).
+ * 1–32 dark-square numbers; moves are algebraic (`f2e3`), and a multi-jump
+ * spells out every landing square (`f2d4f6`).
  *
  * Almost every step here is `kind: 'move'` rather than `kind: 'any'`, and that
  * is the forced-capture rule showing through rather than a stylistic choice:
@@ -31,44 +31,44 @@ export const CHECKERS_LESSONS: Lesson[] = [
           'Play happens only on the dark squares. A man moves one square diagonally forward — never sideways, never straight, and never backwards.',
         expect: { kind: 'read' },
         marks: [
-          { square: 'b3', kind: 'move' },
-          { square: 'd3', kind: 'move' },
-          { square: 'f3', kind: 'move' },
+          { square: 'g3', kind: 'move' },
+          { square: 'e3', kind: 'move' },
+          { square: 'c3', kind: 'move' },
         ],
       },
       {
-        id: 'to-d3',
-        instruction: 'Move a piece to d3. Either of yours can reach it.',
-        expect: { kind: 'any', match: { piece: 'man', toAnyOf: ['d3'] } },
+        id: 'to-e3',
+        instruction: 'Move a piece to e3. Either of yours can reach it.',
+        expect: { kind: 'any', match: { piece: 'man', toAnyOf: ['e3'] } },
         success: 'Two pieces could reach that square, which is worth noticing — it is what makes a square defensible.',
-        reply: 'c6b5',
+        reply: 'f6g5',
         misses: [
           {
-            when: ['c2b3', 'e2f3'],
-            say: 'A legal move, but it goes to the edge. The step asked for d3, in the middle.',
+            when: ['f2g3', 'd2c3'],
+            say: 'A legal move, but it goes to the edge. The step asked for e3, in the middle.',
           },
-          { say: 'Both c2 and e2 touch d3 diagonally. Move either one there.' },
+          { say: 'Both f2 and d2 touch e3 diagonally. Move either one there.' },
         ],
-        marks: [{ square: 'd3', kind: 'target' }],
+        marks: [{ square: 'e3', kind: 'target' }],
       },
       {
         id: 'safe',
         instruction:
-          'Black came to b5. Advance your d3 man — but only to a square where it cannot be jumped.',
-        expect: { kind: 'move', moves: ['d3e4'] },
+          'Black came to g5. Advance your e3 man — but only to a square where it cannot be jumped.',
+        expect: { kind: 'move', moves: ['e3d4'] },
         success:
-          'e4 is out of reach. Before every move, look at what stands diagonally in front of you and what is behind that.',
-        hint: 'One of the two squares in front of d3 is next to the black man.',
+          'd4 is out of reach. Before every move, look at what stands diagonally in front of you and what is behind that.',
+        hint: 'One of the two squares in front of e3 is next to the black man.',
         misses: [
           {
-            when: ['d3c4'],
-            say: 'c4 puts your man right in front of the black man on b5, with an empty square behind it — so black jumps, and in checkers a jump that exists must be taken.',
+            when: ['e3f4'],
+            say: 'f4 puts your man right in front of the black man on g5, with an empty square behind it — so black jumps, and in checkers a jump that exists must be taken.',
           },
-          { say: 'The d3 man can go to c4 or e4. One of those two is safe.' },
+          { say: 'The e3 man can go to f4 or d4. One of those two is safe.' },
         ],
         marks: [
-          { square: 'c4', kind: 'danger' },
-          { square: 'e4', kind: 'move' },
+          { square: 'f4', kind: 'danger' },
+          { square: 'd4', kind: 'move' },
         ],
       },
     ],
@@ -81,7 +81,7 @@ export const CHECKERS_LESSONS: Lesson[] = [
     game: 'checkers',
     title: 'The jump, and why it is compulsory',
     summary: 'If you can capture, you must.',
-    position: 'W:W26:B10,22',
+    position: 'W:W27:B11,23',
     learnerColor: 'white',
     teaches: 'jumping',
     estimatedMinutes: 3,
@@ -92,30 +92,30 @@ export const CHECKERS_LESSONS: Lesson[] = [
           'To capture, hop diagonally over an enemy piece onto the empty square directly beyond it. The piece you jumped comes off the board. And if any jump is available to you, it is your only legal move — quiet moves are simply not allowed.',
         expect: { kind: 'read' },
         marks: [
-          { square: 'd3', kind: 'capture' },
-          { square: 'e4', kind: 'move' },
+          { square: 'e3', kind: 'capture' },
+          { square: 'd4', kind: 'move' },
         ],
       },
       {
         id: 'jump',
-        instruction: 'Jump the black man on d3.',
-        expect: { kind: 'move', moves: ['c2e4'] },
+        instruction: 'Jump the black man on e3.',
+        expect: { kind: 'move', moves: ['f2d4'] },
         success: 'One piece up. Notice you were never offered anything else to play.',
-        reply: 'c6d5',
+        reply: 'f6e5',
         misses: [
           {
-            say: 'b3 looks like a normal move, and normally it would be — but a jump is on the board, so the rules do not allow anything else. Drag from c2 to e4.',
+            say: 'g3 looks like a normal move, and normally it would be — but a jump is on the board, so the rules do not allow anything else. Drag from f2 to d4.',
           },
         ],
       },
       {
         id: 'again',
-        instruction: 'Black stepped to d5, straight in front of you again. Take it.',
-        expect: { kind: 'move', moves: ['e4c6'] },
+        instruction: 'Black stepped to e5, straight in front of you again. Take it.',
+        expect: { kind: 'move', moves: ['d4f6'] },
         success:
           'And that is the game — black has no pieces left. A player with nothing to move has lost.',
-        misses: [{ say: 'Hop from e4 over d5 and land on c6.' }],
-        marks: [{ square: 'd5', kind: 'capture' }],
+        misses: [{ say: 'Hop from d4 over e5 and land on f6.' }],
+        marks: [{ square: 'e5', kind: 'capture' }],
       },
     ],
     outro:
@@ -127,7 +127,7 @@ export const CHECKERS_LESSONS: Lesson[] = [
     game: 'checkers',
     title: 'Multi-jump chains',
     summary: 'One jump that keeps going is still one move.',
-    position: 'W:W26:B8,14,22',
+    position: 'W:W27:B5,15,23',
     learnerColor: 'white',
     teaches: 'multi-jumps',
     estimatedMinutes: 3,
@@ -138,22 +138,22 @@ export const CHECKERS_LESSONS: Lesson[] = [
           'If your piece can jump again from where it lands, it must — and the whole chain counts as a single move. Every piece jumped comes off, and nothing gets a turn in between.',
         expect: { kind: 'read' },
         marks: [
-          { square: 'd3', kind: 'capture' },
-          { square: 'd5', kind: 'capture' },
-          { square: 'c6', kind: 'target' },
+          { square: 'e3', kind: 'capture' },
+          { square: 'e5', kind: 'capture' },
+          { square: 'f6', kind: 'target' },
         ],
       },
       {
         id: 'chain',
         instruction:
-          'Jump d3, then carry straight on over d5. Drag from c2 all the way to c6 — the board resolves the chain for you.',
-        expect: { kind: 'move', moves: ['c2e4c6'] },
+          'Jump e3, then carry straight on over e5. Drag from f2 all the way to f6 — the board resolves the chain for you.',
+        expect: { kind: 'move', moves: ['f2d4f6'] },
         success:
           'Two pieces off the board in one move. That is why a piece sitting on a diagonal with gaps behind it is so dangerous.',
-        hint: 'The landing square is c6.',
+        hint: 'The landing square is f6.',
         misses: [
           {
-            say: 'Stopping halfway is not allowed once a second jump exists. Drop the piece on c6 and the whole chain plays.',
+            say: 'Stopping halfway is not allowed once a second jump exists. Drop the piece on f6 and the whole chain plays.',
           },
         ],
       },
@@ -167,7 +167,7 @@ export const CHECKERS_LESSONS: Lesson[] = [
     game: 'checkers',
     title: 'Crowning',
     summary: 'Reach the far row and your man becomes a king.',
-    position: 'W:W6:B24',
+    position: 'W:W7:B21',
     learnerColor: 'white',
     teaches: 'kings',
     estimatedMinutes: 3,
@@ -176,32 +176,32 @@ export const CHECKERS_LESSONS: Lesson[] = [
         id: 'promote',
         instruction:
           'Your man is one square from the far row. Move it there and it is crowned — and your turn ends immediately, even if a jump looks available from the new square.',
-        expect: { kind: 'move', moves: ['d7c8', 'd7e8'] },
+        expect: { kind: 'move', moves: ['e7f8', 'e7d8'] },
         success: 'Crowned. A king moves and jumps diagonally in all four directions.',
-        misses: [{ say: 'Both c8 and e8 crown the man. Take either.' }],
+        misses: [{ say: 'Both f8 and d8 crown the man. Take either.' }],
         marks: [
-          { square: 'c8', kind: 'target' },
-          { square: 'e8', kind: 'target' },
+          { square: 'f8', kind: 'target' },
+          { square: 'd8', kind: 'target' },
         ],
       },
       {
         id: 'backwards',
-        position: 'W:WK3,26:B28',
+        position: 'W:WK2,27:B25',
         instruction:
-          'Here is the difference that matters. You have a king on e8 and a man on c2. Move the king — backwards, down the board, which no man can do.',
+          'Here is the difference that matters. You have a king on d8 and a man on f2. Move the king — backwards, down the board, which no man can do.',
         expect: { kind: 'any', match: { piece: 'king' } },
         success:
           'Backwards. A king is worth roughly two men for exactly this reason: it can chase, and it can defend behind itself.',
         misses: [
           {
             match: { piece: 'man' },
-            say: 'That is your man on c2, and it can only go forward. The king is the crowned piece on e8.',
+            say: 'That is your man on f2, and it can only go forward. The king is the crowned piece on d8.',
           },
-          { say: 'The king is on e8. Move it to d7 or f7 — towards your own side of the board.' },
+          { say: 'The king is on d8. Move it to e7 or c7 — towards your own side of the board.' },
         ],
         marks: [
-          { square: 'd7', kind: 'move' },
-          { square: 'f7', kind: 'move' },
+          { square: 'e7', kind: 'move' },
+          { square: 'c7', kind: 'move' },
         ],
       },
     ],
@@ -214,7 +214,7 @@ export const CHECKERS_LESSONS: Lesson[] = [
     game: 'checkers',
     title: 'Your first shot',
     summary: 'Give one piece away, take two back.',
-    position: 'W:W23,26,29:B14,15',
+    position: 'W:W22,27,32:B14,15',
     learnerColor: 'white',
     teaches: 'endings',
     estimatedMinutes: 4,
@@ -225,47 +225,47 @@ export const CHECKERS_LESSONS: Lesson[] = [
           'A shot is a sacrifice built on the compulsory-capture rule. You offer a piece; your opponent has no choice but to take it; and the piece they take with lands somewhere you can jump through.',
         expect: { kind: 'read' },
         marks: [
-          { square: 'e4', kind: 'target' },
-          { square: 'd5', kind: 'danger' },
-          { square: 'f5', kind: 'danger' },
+          { square: 'd4', kind: 'target' },
+          { square: 'e5', kind: 'danger' },
+          { square: 'c5', kind: 'danger' },
         ],
       },
       {
         id: 'offer',
-        instruction: 'Push your f3 man to e4, where both black men can take it.',
-        expect: { kind: 'move', moves: ['f3e4'] },
+        instruction: 'Push your c3 man to d4, where both black men can take it.',
+        expect: { kind: 'move', moves: ['c3d4'] },
         success:
           'Black must jump — the rules leave no alternative — and whichever way black takes, the piece ends up on your third row.',
-        reply: 'f5d3',
+        reply: 'c5e3',
         hint: 'Give a piece away, on purpose.',
         misses: [
           {
-            when: ['c2d3', 'c2b3', 'b1a2'],
+            when: ['f2e3', 'f2g3', 'g1h2'],
             say: 'Safe and pointless. The shot only works if you actually offer the piece.',
           },
           {
-            when: ['f3g4'],
+            when: ['c3b4'],
             say: 'The edge is the one square black cannot reach. Offer the man where it can be taken.',
           },
-          { say: 'Move the f3 man diagonally to e4, into the fire.' },
+          { say: 'Move the c3 man diagonally to d4, into the fire.' },
         ],
       },
       {
         id: 'collect',
         instruction:
-          'Black took, and landed on d3 — right in front of your c2 man, with an empty square behind it. Jump, and keep jumping.',
-        expect: { kind: 'move', moves: ['c2e4c6'] },
+          'Black took, and landed on e3 — right in front of your f2 man, with an empty square behind it. Jump, and keep jumping.',
+        expect: { kind: 'move', moves: ['f2d4f6'] },
         success:
           'One man given, two taken, and black has nothing left. That is a shot: the sacrifice was the move that forced everything after it.',
-        hint: 'Land on c6.',
+        hint: 'Land on f6.',
         misses: [
           {
-            say: 'The chain runs c2 over d3 to e4, then over d5 to c6. Drop the piece on c6 and the whole thing plays as one move.',
+            say: 'The chain runs f2 over e3 to d4, then over e5 to f6. Drop the piece on f6 and the whole thing plays as one move.',
           },
         ],
         marks: [
-          { square: 'd3', kind: 'capture' },
-          { square: 'd5', kind: 'capture' },
+          { square: 'e3', kind: 'capture' },
+          { square: 'e5', kind: 'capture' },
         ],
       },
     ],

@@ -36,10 +36,10 @@ describe('analyzeCheckersPosition', () => {
     // White has two extra men; the sign convention says positive = White.
     const state = stateWith(
       [
-        ['b2', 'white'],
-        ['d2', 'white'],
-        ['f2', 'white'],
-        ['g7', 'black'],
+        ['g2', 'white'],
+        ['e2', 'white'],
+        ['c2', 'white'],
+        ['b7', 'black'],
       ],
       'white',
     );
@@ -49,10 +49,10 @@ describe('analyzeCheckersPosition', () => {
   it('scores the mirror position black-positive', () => {
     const state = stateWith(
       [
-        ['b2', 'white'],
-        ['a7', 'black'],
-        ['c7', 'black'],
-        ['e7', 'black'],
+        ['g2', 'white'],
+        ['h7', 'black'],
+        ['f7', 'black'],
+        ['d7', 'black'],
       ],
       'white',
     );
@@ -69,7 +69,7 @@ describe('analyzeCheckersPosition', () => {
 
   it('reports a finished game as terminal with no move', () => {
     // Only white pieces left — black has lost.
-    const state = { ...stateWith([['b2', 'white']], 'black'), isGameOver: true, winner: 'white' as const };
+    const state = { ...stateWith([['g2', 'white']], 'black'), isGameOver: true, winner: 'white' as const };
     const result = analyzeCheckersPosition(state, 2);
     expect(result.terminal).toBe(true);
     expect(result.bestMove).toBeNull();

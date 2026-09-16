@@ -81,9 +81,47 @@ for (const game of ['chess', 'checkers', 'reversi', 'go', 'liquidate'] as const)
 // game's hub, leaving home two clicks away.
 for (const path of ['/chess/bot', '/chess/puzzles', '/chess/analysis', '/liquidate/bot']) {
   test(`${path} can get home in one click`, async ({ page }) => {
-    await page.goto(path);
+    // `domcontentloaded`, not `load`: the analysis route pulls the engine's wasm
+    // on the way in, and waiting for it once cost this test a 30s navigation
+    // timeout under four parallel workers. The header is server-rendered.
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('nav')).toHaveCount(0);
     await page.getByRole('link', { name: 'Home' }).click();
     await expect(page).toHaveURL(/\/$/);
   });
 }
+
+test('the chess board is oriented a1-dark, h1-light', async ({ page }) => {
+  await page.goto('/chess/puzzles');
+  const squares = page.locator('.chess-board > .square');
+  await squares.first().waitFor();
+
+  // Squares render top-left first, so a8 is 0, a1 is 56 and h1 is 63. "Light on
+  // the right" is the orientation every printed board uses, and the one the
+  // puzzle explanations assume when they say light-squared bishop.
+  await expect(squares.nth(56)).toHaveClass(/dark/);
+  await expect(squares.nth(63)).toHaveClass(/light/);
+  await expect(squares.nth(0)).toHaveClass(/light/);
+  await expect(squares.nth(7)).toHaveClass(/dark/);
+});
+
+test('the checkers board is oriented a1-dark, with play on the dark squares', async ({ page }) => {
+  await page.goto('/checkers/local');
+  await page.getByRole('button', { name: 'Start Game' }).click();
+
+  // Pieces carry their own square, so the opening position can be read straight
+  // off the board. On an a1-dark board the playable squares are the ones whose
+  // coordinates sum to an even number, and White's back rank is a1, c1, e1, g1.
+  const squares = await page
+    .locator('[data-square]')
+    .evaluateAll((els) => els.map((el) => (el as HTMLElement).dataset.square!));
+
+  expect(squares).toHaveLength(24);
+  for (const square of squares) {
+    const col = square.charCodeAt(0) - 'a'.charCodeAt(0);
+    const row = Number(square[1]) - 1;
+    expect((row + col) % 2, `${square} is a light square`).toBe(0);
+  }
+  expect(squares).toContain('a1');
+  expect(squares).not.toContain('b1');
+});

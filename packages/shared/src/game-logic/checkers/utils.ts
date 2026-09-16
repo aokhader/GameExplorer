@@ -16,9 +16,19 @@ export function isValidCoordinates(coords: Coordinates): boolean {
   return coords.row >= 0 && coords.row < 8 && coords.col >= 0 && coords.col < 8;
 }
 
-/** Checkers pieces only occupy dark squares: (row + col) % 2 === 1 */
+/**
+ * Checkers pieces only occupy dark squares, and on a board laid out the usual
+ * way — a1 dark, h1 light, the same orientation as the chess board — those are
+ * the squares whose coordinates sum to an even number. `row` is 0 at rank 1.
+ *
+ * This was `% 2 === 1` until 2026-09-16, which put play on the other diagonal
+ * set and drew the board as its own mirror image: a1 light, white's back rank
+ * on b1/d1/f1/h1, the double corner on the left. Flipping it mirrored the whole
+ * game left to right, so every stored square reference moved with it — see
+ * `scripts/checkers/mirror-corpus.mjs`.
+ */
 export function isDarkSquare(row: number, col: number): boolean {
-  return (row + col) % 2 === 1;
+  return (row + col) % 2 === 0;
 }
 
 export function getPieceAt(board: CheckersBoard, position: string): CheckersPiece | null {

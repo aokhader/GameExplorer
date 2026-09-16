@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@gameexplorer/shared';
+import { isDarkSquare } from '@gameexplorer/shared';
 import {
   ChessPiece,
   CheckersPiece,
@@ -313,7 +314,11 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
     for (let col = 0; col < 8; col++) {
       const row = 7 - screenRow;
       const pos = `${String.fromCharCode(97 + col)}${row + 1}`;
-      const isLight = (row + col) % 2 === 0;
+      // a1 dark, h1 light, on both boards: chess by convention, checkers because
+      // its dark squares are the squares you may play on and they are laid out
+      // the same way. `isDarkSquare` is the engine's rule, so a checkers diagram
+      // cannot draw a piece onto a light square.
+      const isLight = !isDarkSquare(row, col);
       const kinds = highlightsBySquare.get(pos) ?? [];
       const piece = pieceFor(diagram, pos);
 

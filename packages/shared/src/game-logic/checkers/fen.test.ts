@@ -20,9 +20,11 @@ describe('fromPdnSquare', () => {
     }
   });
 
-  it('anchors the numbering at a8 = 1 and h1 = 32', () => {
-    expect(fromPdnSquare(1)).toBe('a8');
-    expect(fromPdnSquare(32)).toBe('h1');
+  it('anchors the numbering at b8 = 1 and g1 = 32', () => {
+    // The dark squares of Black's back rank are b8, d8, f8, h8 on an a1-dark
+    // board, so the count starts at b8 and ends on g1.
+    expect(fromPdnSquare(1)).toBe('b8');
+    expect(fromPdnSquare(32)).toBe('g1');
   });
 
   it('rejects out-of-range and non-integer input', () => {
@@ -42,9 +44,9 @@ describe('stateToCheckersFen / checkersFenToState', () => {
 
   it.each([
     CHECKERS_START_FEN,
-    'B:WK10,18,24,27:B12,16,K22',
-    'W:WK1:BK32',
-    'B:W21,22:B1,2,3',
+    'B:WK11,19,21,26:B9,13,K23',
+    'W:WK4:BK29',
+    'B:W23,24:B2,3,4',
   ])('round-trips %s', (fen) => {
     expect(stateToCheckersFen(checkersFenToState(fen))).toBe(fen);
   });
@@ -56,16 +58,16 @@ describe('stateToCheckersFen / checkersFenToState', () => {
   });
 
   it('places kings and men on the right squares', () => {
-    const state = checkersFenToState('B:W18,K10:B12,K22');
-    expect(getPieceAt(state.board, fromPdnSquare(18)!)).toEqual({ type: 'man', color: 'white' });
-    expect(getPieceAt(state.board, fromPdnSquare(10)!)).toEqual({ type: 'king', color: 'white' });
-    expect(getPieceAt(state.board, fromPdnSquare(12)!)).toEqual({ type: 'man', color: 'black' });
-    expect(getPieceAt(state.board, fromPdnSquare(22)!)).toEqual({ type: 'king', color: 'black' });
+    const state = checkersFenToState('B:WK11,19:B9,K23');
+    expect(getPieceAt(state.board, fromPdnSquare(19)!)).toEqual({ type: 'man', color: 'white' });
+    expect(getPieceAt(state.board, fromPdnSquare(11)!)).toEqual({ type: 'king', color: 'white' });
+    expect(getPieceAt(state.board, fromPdnSquare(9)!)).toEqual({ type: 'man', color: 'black' });
+    expect(getPieceAt(state.board, fromPdnSquare(23)!)).toEqual({ type: 'king', color: 'black' });
     expect(state.currentTurn).toBe('black');
   });
 
   it('decodes a fresh position — no history, not over', () => {
-    const state = checkersFenToState('B:W18,24:B12,16');
+    const state = checkersFenToState('B:W19,21:B9,13');
     expect(state.moveHistory).toEqual([]);
     expect(state.isGameOver).toBe(false);
     expect(state.winner).toBeNull();
@@ -75,20 +77,20 @@ describe('stateToCheckersFen / checkersFenToState', () => {
   it('normalizes a non-canonical square order to ascending on re-encode', () => {
     // The PDN spec's own examples group kings at the end; we always write
     // ascending by square so a position has exactly one encoding.
-    expect(stateToCheckersFen(checkersFenToState('B:W18,24,27,K10:B12,16,K22')))
-      .toBe('B:WK10,18,24,27:B12,16,K22');
+    expect(stateToCheckersFen(checkersFenToState('B:W19,21,26,K11:B9,13,K23')))
+      .toBe('B:WK11,19,21,26:B9,13,K23');
   });
 
   it('accepts the two piece lists in either order, and lowercase king markers', () => {
-    const a = checkersFenToState('W:B12,16:W18,24');
-    const b = checkersFenToState('W:W18,24:B12,16');
+    const a = checkersFenToState('W:B9,13:W19,21');
+    const b = checkersFenToState('W:W19,21:B9,13');
     expect(a.board).toEqual(b.board);
-    expect(checkersFenToState('W:Wk10:Bk22').board)
-      .toEqual(checkersFenToState('W:WK10:BK22').board);
+    expect(checkersFenToState('W:Wk11:Bk23').board)
+      .toEqual(checkersFenToState('W:WK11:BK23').board);
   });
 
   it('produces a position the engine can generate legal moves from', () => {
-    const state = checkersFenToState('W:W18,24,27:B12,16,20');
+    const state = checkersFenToState('W:W19,21,26:B9,13,17');
     const moves = CheckersEngine.getAllLegalMoves(state);
     expect(moves.length).toBeGreaterThan(0);
     for (const move of moves) {
@@ -101,13 +103,13 @@ describe('stateToCheckersFen / checkersFenToState', () => {
     expect(() => checkersFenToState('X:W18:B12')).toThrow(/side to move/);
     expect(() => checkersFenToState('W:W18:X12')).toThrow(/must start with W or B/);
     expect(() => checkersFenToState('W:W18:W12')).toThrow(/one W list and one B list/);
-    expect(() => checkersFenToState('W:W99:B12')).toThrow(/not a square number/);
-    expect(() => checkersFenToState('W:W18,18:B12')).toThrow(/listed twice/);
+    expect(() => checkersFenToState('W:W98:B9')).toThrow(/not a square number/);
+    expect(() => checkersFenToState('W:W19,19:B9')).toThrow(/listed twice/);
   });
 
   it('rejects a position where a side has no pieces', () => {
     // Already lost — never a valid start position.
-    expect(() => checkersFenToState('W:W:B12')).toThrow(/at least one piece/);
-    expect(() => checkersFenToState('W:W18:B')).toThrow(/at least one piece/);
+    expect(() => checkersFenToState('W:W:B9')).toThrow(/at least one piece/);
+    expect(() => checkersFenToState('W:W19:B')).toThrow(/at least one piece/);
   });
 });

@@ -188,7 +188,7 @@ describe('LessonScreen', () => {
     fireEvent.press(screen.getByTestId('lesson-continue'));
     await waitFor(() => expect(screen.getByText('interactive:true')).toBeOnTheScreen());
 
-    play('checkers board', 'c2', 'c6');
+    play('checkers board', 'f2', 'f6');
 
     await waitFor(() => expect(screen.getByTestId('lesson-done')).toBeOnTheScreen());
     expect(screen.getByTestId('coach-say')).toHaveTextContent(lesson.outro);

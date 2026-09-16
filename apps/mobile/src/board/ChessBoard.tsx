@@ -13,6 +13,8 @@ import {
   ChessEngine,
   getChessPremoveDestinations,
   isChessPremoveLegal,
+  // a1 dark, h1 light. One rule for every board in the app.
+  isDarkSquare as isDark,
 } from '@gameexplorer/shared';
 import type {
   ChessGameState,
@@ -97,9 +99,6 @@ const PREMOVE_FIRE_DELAY_MS = 90;
 const HINT_RING = 'rgba(245,158,11,0.95)';
 const HINT_FILL = 'rgba(245,158,11,0.28)';
 
-function isDark(row: number, col: number): boolean {
-  return (row + col) % 2 === 1;
-}
 function posFromCoords(row: number, col: number): string {
   return String.fromCharCode(97 + col) + (row + 1);
 }

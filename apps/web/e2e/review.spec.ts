@@ -22,12 +22,12 @@ async function playedOutGame(page: import('@playwright/test').Page) {
 
   // Board is white-side-down at the start: index = (8 - rank) * 8 + file.
   const cells = page.locator('.grid.grid-cols-8.grid-rows-8 > *');
-  await cells.nth((8 - 3) * 8 + 1).click(); // b3
-  await cells.nth((8 - 4) * 8 + 2).click(); // c4
+  await cells.nth((8 - 3) * 8 + 6).click(); // g3
+  await cells.nth((8 - 4) * 8 + 5).click(); // f4
   // The in-game list uses algebraic notation; PDN ("21-18") is a review-panel
   // concern. The move landing is the real gate — click-to-move needs a render between the
   // two clicks, so wait on the move list rather than on the second click.
-  await expect(page.locator('body')).toContainText('b3-c4', { timeout: 15000 });
+  await expect(page.locator('body')).toContainText('g3-f4', { timeout: 15000 });
 
   // Resign asks twice (a 3s window), so the second click has to be prompt.
   const resign = page.getByRole('button', { name: /^Resign\??$/ });

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Polygon } from 'react-native-svg';
 import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@gameexplorer/shared';
+import { isDarkSquare } from '@gameexplorer/shared';
 import { ChessPiece, CheckersPiece, ReversiDisc, GoStone, BOARD_COLORS, CHECKERS_BOARD_COLORS, REVERSI_BOARD_COLORS, GO_BOARD_COLORS, GO_STAR_POINTS_9, COLORS, useThemeName, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/board/BoardFrame';
 import { FONTS } from '@/theme/typography';
@@ -337,7 +338,9 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
             for (let col = 0; col < 8; col++) {
               const row = 7 - screenRow;
               const pos = `${String.fromCharCode(97 + col)}${row + 1}`;
-              const isLight = (row + col) % 2 === 0;
+              // a1 dark, h1 light on both boards — `isDarkSquare` is the
+              // engine's own rule. Mirrors web's TutorialBoard.
+              const isLight = !isDarkSquare(row, col);
               const kinds = highlightsBySquare.get(pos) ?? [];
               const piece = pieceFor(diagram, pos, pieceSize);
 

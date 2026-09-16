@@ -6,6 +6,10 @@ import {
   CheckersEngine,
   getCheckersPremoveDestinations,
   isCheckersPremoveLegal,
+  // The engine's own rule, not a copy of it: these are the squares play happens
+  // on, so the colour drawn here and the squares the engine fills can never
+  // drift apart.
+  isDarkSquare as isDark,
 } from '@gameexplorer/shared';
 import type { CheckersGameState, CheckersPremove, LessonMark } from '@gameexplorer/shared';
 // Deep import: the `@gameexplorer/client` barrel builds a Supabase client at
@@ -92,10 +96,6 @@ interface CheckersBoardProps {
    * would silently discard the move.
    */
   interactive?: boolean;
-}
-
-function isDark(row: number, col: number): boolean {
-  return (row + col) % 2 === 1;
 }
 
 function posFromCoords(row: number, col: number): string {

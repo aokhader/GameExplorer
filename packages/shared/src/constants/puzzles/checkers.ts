@@ -13,17 +13,17 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
   {
     id: 'checkers-001',
     game: 'checkers',
-    position: 'W:W26,27:B6,15,22,23',
+    position: 'W:W26,27:B7,14,22,23',
     playerColor: 'white',
     goal: 'best-move',
     prompt: 'White must capture. Two jumps are on offer — take the right one.',
     difficulty: 'medium',
     rating: 1100,
     themes: ['double-jump', 'promotion'],
-    steps: [{ move: 'e2c8' }],
+    steps: [{ move: 'd2f8' }],
     explanation:
       'Captures are compulsory, so the only question is which one. The eye-catching jump is ' +
-      'c2–e4–g6, taking two pieces and stopping there. The e2 man instead runs g4–e6–c8: ' +
+      'f2–d4–b6, taking two pieces and stopping there. The d2 man instead runs b4–d6–f8: ' +
       'three pieces, and it finishes on the back row and crowns. Follow every jump chain to ' +
       'its end before choosing between them.',
     source: 'Composed for GameExplorer',
@@ -31,7 +31,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
   {
     id: 'checkers-002',
     game: 'checkers',
-    position: 'W:W26,27,29:B18,19',
+    position: 'W:W26,27,32:B18,19',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'White to play and win. Give something up first.',
@@ -40,23 +40,23 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     themes: ['shot', 'sacrifice', 'double-jump'],
     steps: [
       {
-        move: 'c2d3',
-        reply: 'e4c2',
+        move: 'f2e3',
+        reply: 'd4f2',
         note: 'Captures are compulsory, so Black has exactly one legal reply.',
       },
-      { move: 'b1b5' },
+      { move: 'g1g5' },
     ],
     explanation:
-      'A shot. The quiet move c2–d3 hangs a man where Black is compelled to take it, and the ' +
-      'capture drags the black man from e4 onto c2 — straight into the line of the b1 man, ' +
-      'which jumps it and carries on over c4 to b5. Two pieces back for one, and Black has ' +
+      'A shot. The quiet move f2–e3 hangs a man where Black is compelled to take it, and the ' +
+      'capture drags the black man from d4 onto f2 — straight into the line of the g1 man, ' +
+      'which jumps it and carries on over f4 to g5. Two pieces back for one, and Black has ' +
       'nothing left on the board.',
     source: 'Composed for GameExplorer',
   },
   {
     id: 'checkers-003',
     game: 'checkers',
-    position: 'W:W18,28,29:B14,15,23',
+    position: 'W:W19,25,32:B14,15,22',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'White has to jump, and there are two ways to do it. One of them wins.',
@@ -65,25 +65,25 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     themes: ['double-jump', 'shot'],
     steps: [
       {
-        move: 'g2g6',
-        reply: 'd5b3',
-        note: 'Black jumps back over c4 — captures are compulsory for both sides.',
+        move: 'b2b6',
+        reply: 'e5g3',
+        note: 'Black jumps back over f4 — captures are compulsory for both sides.',
       },
-      { move: 'g6h7', reply: 'b3c2' },
-      { move: 'b1d3' },
+      { move: 'b6a7', reply: 'g3f2' },
+      { move: 'g1e3' },
     ],
     explanation:
-      'Both chains start g2–e4. From there the jump can turn onto d5 and finish at c6, or ' +
-      'carry on over f5 to g6 — two men either way, so material does not choose for you. ' +
-      'Take the f5 man: the survivor on d5 jumps back to b3 and then has nowhere to go but ' +
-      'c2, where the b1 man is waiting. Ending a chain in the wrong corner is how a won ' +
+      'Both chains start b2–d4. From there the jump can turn onto e5 and finish at f6, or ' +
+      'carry on over c5 to b6 — two men either way, so material does not choose for you. ' +
+      'Take the c5 man: the survivor on e5 jumps back to g3 and then has nowhere to go but ' +
+      'f2, where the g1 man is waiting. Ending a chain in the wrong corner is how a won ' +
       'checkers endgame gets drawn.',
     source: 'Composed for GameExplorer',
   },
   {
     id: 'checkers-004',
     game: 'checkers',
-    position: 'W:W13,26,30:B6,18,19',
+    position: 'W:W16,27,31:B7,18,19',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'White to play and win. Something has to be given up.',
@@ -92,17 +92,17 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     themes: ['shot', 'sacrifice', 'double-jump'],
     steps: [
       {
-        move: 'c2d3',
-        reply: 'c4e2',
+        move: 'f2e3',
+        reply: 'f4d2',
         note: 'Either black man may take it, and either one loses the same way.',
       },
-      { move: 'd1d5', reply: 'd7e6' },
-      { move: 'd5f7' },
+      { move: 'e1e5', reply: 'e7d6' },
+      { move: 'e5c7' },
     ],
     explanation:
-      'The classic two-for-one. c2–d3 puts a man between two black men, and since captures ' +
-      'are compulsory one of them has to take it — which lands it on e2 or c2, right in front ' +
-      'of the man on d1. The recapture is a double jump, f3 and then d5, and White comes out ' +
+      'The classic two-for-one. f2–e3 puts a man between two black men, and since captures ' +
+      'are compulsory one of them has to take it — which lands it on d2 or f2, right in front ' +
+      'of the man on e1. The recapture is a double jump, c3 and then e5, and White comes out ' +
       'a man up with the last black piece cut off. Offering a man to force where the enemy ' +
       'lands is the whole art of the shot.',
     source: 'Composed for GameExplorer',
@@ -110,7 +110,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
   {
     id: 'checkers-005',
     game: 'checkers',
-    position: 'W:W16,26:B8,14',
+    position: 'W:W13,27:B5,15',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'Two men each. White to play and win.',
@@ -119,24 +119,24 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     themes: ['trapped-piece', 'endgame'],
     steps: [
       {
-        move: 'c2d3',
-        reply: 'd5e4',
-        note: 'c4 loses the man the same way — both of its squares are covered.',
+        move: 'f2e3',
+        reply: 'e5d4',
+        note: 'f4 loses the man the same way — both of its squares are covered.',
       },
-      { move: 'd3f5', reply: 'h7g6' },
-      { move: 'f5h7' },
+      { move: 'e3c5', reply: 'a7b6' },
+      { move: 'c5a7' },
     ],
     explanation:
-      'Nothing is attacked yet, so this is about squares rather than captures. c2–d3 covers ' +
-      'both c4 and e4 — the only two squares the black man on d5 can reach — while the man on ' +
-      'h5 already covers g6, the only square open to h7. Black is left with three legal moves ' +
+      'Nothing is attacked yet, so this is about squares rather than captures. f2–e3 covers ' +
+      'both f4 and d4 — the only two squares the black man on e5 can reach — while the man on ' +
+      'a5 already covers b6, the only square open to a7. Black is left with three legal moves ' +
       'and all three walk into a jump. Count the enemy’s squares, not his men.',
     source: 'Composed for GameExplorer',
   },
   {
     id: 'checkers-006',
     game: 'checkers',
-    position: 'W:W19,26:B8,18',
+    position: 'W:W18,27:B5,19',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'Two men each. White to play and win.',
@@ -144,21 +144,21 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     rating: 1250,
     themes: ['endgame', 'trapped-piece'],
     steps: [
-      { move: 'e4f5', reply: 'c4d3' },
-      { move: 'c2e4', reply: 'h7g6' },
-      { move: 'f5h7' },
+      { move: 'd4c5', reply: 'f4e3' },
+      { move: 'f2d4', reply: 'a7b6' },
+      { move: 'c5a7' },
     ],
     explanation:
-      'e4–f5 does two things at once: it steps out of reach of the man on c4 and takes g6 ' +
-      'away from the man on h7, which is the only square that man has. Black is reduced to ' +
-      'shuffling the c4 man, and d3 runs straight into the jump from c2. Moving a man ' +
+      'd4–c5 does two things at once: it steps out of reach of the man on f4 and takes b6 ' +
+      'away from the man on a7, which is the only square that man has. Black is reduced to ' +
+      'shuffling the f4 man, and e3 runs straight into the jump from f2. Moving a man ' +
       'forward to take away a square is worth more here than any attack.',
     source: 'Composed for GameExplorer',
   },
   {
     id: 'checkers-007',
     game: 'checkers',
-    position: 'W:W15,21:B8,10',
+    position: 'W:W14,24:B5,11',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'White to play and win a man — quietly.',
@@ -167,24 +167,24 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     themes: ['fork', 'endgame'],
     steps: [
       {
-        move: 'b3c4',
-        reply: 'c6d5',
-        note: 'b5 is no better — the same man on c4 jumps either way.',
+        move: 'g3f4',
+        reply: 'f6e5',
+        note: 'g5 is no better — the same man on f4 jumps either way.',
       },
-      { move: 'c4e6', reply: 'h7g6' },
-      { move: 'f5h7' },
+      { move: 'f4d6', reply: 'a7b6' },
+      { move: 'c5a7' },
     ],
     explanation:
-      'A man on c4 attacks nothing, but it stands in front of both squares the black man on ' +
-      'c6 could use — b5 and d5 — so whichever it picks, it is jumped. Meanwhile f5 covers ' +
-      'g6, the only move the h7 man has. Every legal black move loses a piece, and that is a ' +
+      'A man on f4 attacks nothing, but it stands in front of both squares the black man on ' +
+      'f6 could use — g5 and e5 — so whichever it picks, it is jumped. Meanwhile c5 covers ' +
+      'b6, the only move the a7 man has. Every legal black move loses a piece, and that is a ' +
       'fork without a single capture on the board.',
     source: 'Composed for GameExplorer',
   },
   {
     id: 'checkers-008',
     game: 'checkers',
-    position: 'W:W19,30:B8,22',
+    position: 'W:W18,31:B5,23',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'White to play and win a man — quietly.',
@@ -192,21 +192,21 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     rating: 1000,
     themes: ['fork', 'endgame'],
     steps: [
-      { move: 'e4f5', reply: 'd3e2', note: 'c2 is covered by the same man on d1.' },
-      { move: 'd1f3', reply: 'h7g6' },
-      { move: 'f5h7' },
+      { move: 'd4c5', reply: 'e3d2', note: 'f2 is covered by the same man on e1.' },
+      { move: 'e1c3', reply: 'a7b6' },
+      { move: 'c5a7' },
     ],
     explanation:
-      'The man on d1 already covers c2 and e2 — both squares the black man on d3 can move to ' +
-      '— so that man is lost as soon as it has to move. e4–f5 handles the other one by taking ' +
-      'g6 away from h7. Black is in what checkers players call a squeeze: every move is a ' +
+      'The man on e1 already covers f2 and d2 — both squares the black man on e3 can move to ' +
+      '— so that man is lost as soon as it has to move. d4–c5 handles the other one by taking ' +
+      'b6 away from a7. Black is in what checkers players call a squeeze: every move is a ' +
       'losing move, and no capture was needed to arrange it.',
     source: 'Composed for GameExplorer',
   },
   {
     id: 'checkers-009',
     game: 'checkers',
-    position: 'W:W6,19:B1,11',
+    position: 'W:W7,18:B4,10',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'White to play and win. Start with the obvious move.',
@@ -214,21 +214,21 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     rating: 1150,
     themes: ['promotion', 'endgame'],
     steps: [
-      { move: 'd7c8', reply: 'e6f5', note: 'The new king now covers b7, the a8 man’s only square.' },
-      { move: 'e4g6', reply: 'a8b7' },
-      { move: 'c8a6' },
+      { move: 'e7f8', reply: 'd6c5', note: 'The new king now covers g7, the h8 man’s only square.' },
+      { move: 'd4b6', reply: 'h8g7' },
+      { move: 'f8h6' },
     ],
     explanation:
-      'Crown first. The man on d7 walks in to c8, and the king it becomes covers b7 — which ' +
-      'happens to be the only square the black man buried in the a8 corner can move to. The ' +
-      'other black man runs into the e4 man, and then the corner man has to step out and be ' +
+      'Crown first. The man on e7 walks in to f8, and the king it becomes covers g7 — which ' +
+      'happens to be the only square the black man buried in the h8 corner can move to. The ' +
+      'other black man runs into the d4 man, and then the corner man has to step out and be ' +
       'taken. A king is worth the tempo it costs almost every time.',
     source: 'Composed for GameExplorer',
   },
   {
     id: 'checkers-010',
     game: 'checkers',
-    position: 'W:WK20,31:B16,24',
+    position: 'W:WK17,30:B13,21',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'White has the king. Use it without giving it away.',
@@ -236,13 +236,13 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     rating: 1300,
     themes: ['endgame', 'trapped-piece'],
     steps: [
-      { move: 'g4f3', reply: 'h3g2' },
-      { move: 'f1h3', reply: 'h5g4' },
-      { move: 'f3h5' },
+      { move: 'b4c3', reply: 'a3b2' },
+      { move: 'c1a3', reply: 'a5b4' },
+      { move: 'c3a5' },
     ],
     explanation:
       'Two black men are stuck on the h-file, where each has exactly one square to move to. ' +
-      'The king steps back to f3, and now g2 is covered by the man on f1 and g4 is covered by ' +
+      'The king steps back to c3, and now b2 is covered by the man on c1 and b4 is covered by ' +
       'the king itself. Neither black man can move without being jumped, and there is nothing ' +
       'else on the board to move instead. The edge of the board does most of the work.',
     source: 'Composed for GameExplorer',
@@ -250,7 +250,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
   {
     id: 'checkers-011',
     game: 'checkers',
-    position: 'W:W18,19,K29:B6,9,25',
+    position: 'W:W18,19,K32:B7,12,28',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'White to play and win. One black man is already out of the game.',
@@ -258,13 +258,13 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     rating: 1400,
     themes: ['trapped-piece', 'endgame'],
     steps: [
-      { move: 'e4d5', reply: 'a6b5' },
-      { move: 'c4a6', reply: 'd7e6' },
-      { move: 'd5f7' },
+      { move: 'd4e5', reply: 'h6g5' },
+      { move: 'f4h6', reply: 'e7d6' },
+      { move: 'e5c7' },
     ],
     explanation:
-      'Look at a2 before anything else: it is on the edge, so its only move is b1 — and the ' +
-      'white king is sitting on b1. That man will never move again, which means Black is ' +
+      'Look at h2 before anything else: it is on the edge, so its only move is g1 — and the ' +
+      'white king is sitting on g1. That man will never move again, which means Black is ' +
       'effectively playing two against three. Pick off the other two and the game ends with ' +
       'pieces still on the board, because a player with no legal move has lost.',
     source: 'Composed for GameExplorer',
@@ -272,7 +272,7 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
   {
     id: 'checkers-012',
     game: 'checkers',
-    position: 'W:W14,16:B1,8',
+    position: 'W:W13,15:B4,5',
     playerColor: 'white',
     goal: 'win-game',
     prompt: 'Both black men are on the edge. White to play and win.',
@@ -280,15 +280,15 @@ export const CHECKERS_PUZZLES: Puzzle[] = [
     rating: 1350,
     themes: ['trapped-piece', 'promotion', 'endgame'],
     steps: [
-      { move: 'd5c6', reply: 'h7g6' },
-      { move: 'h5f7', reply: 'a8b7' },
-      { move: 'c6a8' },
+      { move: 'e5f6', reply: 'a7b6' },
+      { move: 'a5c7', reply: 'h8g7' },
+      { move: 'f6h8' },
     ],
     explanation:
-      'A man in a corner has one move, and both black men are in one. c6 covers b7, the only ' +
-      'square open to a8; h5 already covers g6, the only square open to h7. Black has to ' +
+      'A man in a corner has one move, and both black men are in one. f6 covers g7, the only ' +
+      'square open to h8; a5 already covers b6, the only square open to a7. Black has to ' +
       'unstack one of them, and whichever goes first is jumped — the second follows, and the ' +
-      'jump that takes it lands on a8 and crowns.',
+      'jump that takes it lands on h8 and crowns.',
     source: 'Composed for GameExplorer',
   },
 ];

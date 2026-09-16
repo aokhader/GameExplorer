@@ -6,10 +6,10 @@ import type { CheckersDiagramPiece, GameTutorial } from './types';
  * Engine color 'white' renders as the gold disc, 'black' as the blue disc.
  */
 const INITIAL_SETUP: CheckersDiagramPiece[] = [
-  ...['b1', 'd1', 'f1', 'h1', 'a2', 'c2', 'e2', 'g2', 'b3', 'd3', 'f3', 'h3'].map(
+  ...['g1', 'e1', 'c1', 'a1', 'h2', 'f2', 'd2', 'b2', 'g3', 'e3', 'c3', 'a3'].map(
     (square): CheckersDiagramPiece => ({ square, piece: 'man', color: 'white' }),
   ),
-  ...['a6', 'c6', 'e6', 'g6', 'b7', 'd7', 'f7', 'h7', 'a8', 'c8', 'e8', 'g8'].map(
+  ...['h6', 'f6', 'd6', 'b6', 'g7', 'e7', 'c7', 'a7', 'h8', 'f8', 'd8', 'b8'].map(
     (square): CheckersDiagramPiece => ({ square, piece: 'man', color: 'black' }),
   ),
 ];
@@ -46,10 +46,10 @@ export const CHECKERS_TUTORIAL: GameTutorial = {
       diagrams: [
         {
           game: 'checkers',
-          pieces: [{ square: 'e4', piece: 'man', color: 'white' }],
+          pieces: [{ square: 'd4', piece: 'man', color: 'white' }],
           highlights: [
-            { square: 'd5', kind: 'move' },
-            { square: 'f5', kind: 'move' },
+            { square: 'e5', kind: 'move' },
+            { square: 'c5', kind: 'move' },
           ],
           caption: 'A man can step to either forward diagonal square.',
         },
@@ -66,15 +66,15 @@ export const CHECKERS_TUTORIAL: GameTutorial = {
         {
           game: 'checkers',
           pieces: [
-            { square: 'e4', piece: 'man', color: 'white' },
-            { square: 'f5', piece: 'man', color: 'black' },
+            { square: 'd4', piece: 'man', color: 'white' },
+            { square: 'c5', piece: 'man', color: 'black' },
           ],
           highlights: [
-            { square: 'f5', kind: 'capture' },
-            { square: 'g6', kind: 'move' },
+            { square: 'c5', kind: 'capture' },
+            { square: 'b6', kind: 'move' },
           ],
-          arrows: [{ from: 'e4', to: 'g6' }],
-          caption: 'Gold must jump: over the blue piece on f5, landing on g6.',
+          arrows: [{ from: 'd4', to: 'b6' }],
+          caption: 'Gold must jump: over the blue piece on c5, landing on b6.',
         },
       ],
     },
@@ -89,18 +89,18 @@ export const CHECKERS_TUTORIAL: GameTutorial = {
         {
           game: 'checkers',
           pieces: [
-            { square: 'b3', piece: 'man', color: 'white' },
-            { square: 'c4', piece: 'man', color: 'black' },
-            { square: 'e6', piece: 'man', color: 'black' },
+            { square: 'g3', piece: 'man', color: 'white' },
+            { square: 'f4', piece: 'man', color: 'black' },
+            { square: 'd6', piece: 'man', color: 'black' },
           ],
           highlights: [
-            { square: 'c4', kind: 'capture' },
-            { square: 'e6', kind: 'capture' },
-            { square: 'f7', kind: 'target' },
+            { square: 'f4', kind: 'capture' },
+            { square: 'd6', kind: 'capture' },
+            { square: 'c7', kind: 'target' },
           ],
           arrows: [
-            { from: 'b3', to: 'd5' },
-            { from: 'd5', to: 'f7' },
+            { from: 'g3', to: 'e5' },
+            { from: 'e5', to: 'c7' },
           ],
           caption: 'A double jump: gold captures both blue pieces in a single turn.',
         },
@@ -116,12 +116,12 @@ export const CHECKERS_TUTORIAL: GameTutorial = {
       diagrams: [
         {
           game: 'checkers',
-          pieces: [{ square: 'd5', piece: 'king', color: 'white' }],
+          pieces: [{ square: 'e5', piece: 'king', color: 'white' }],
           highlights: [
-            { square: 'c4', kind: 'move' },
-            { square: 'e4', kind: 'move' },
-            { square: 'c6', kind: 'move' },
-            { square: 'e6', kind: 'move' },
+            { square: 'f4', kind: 'move' },
+            { square: 'd4', kind: 'move' },
+            { square: 'f6', kind: 'move' },
+            { square: 'd6', kind: 'move' },
           ],
           caption: 'A king moves one square diagonally in any direction — kings here don’t fly across the board.',
         },

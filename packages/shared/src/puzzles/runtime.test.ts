@@ -48,14 +48,14 @@ const PROMOTION: Puzzle = {
 const CHECKERS_SHOT: Puzzle = {
   id: 'checkers-900',
   game: 'checkers',
-  position: 'W:W26,27,29:B18,19',
+  position: 'W:W26,27,32:B18,19',
   playerColor: 'white',
   goal: 'win-game',
   prompt: 'Win.',
   difficulty: 'medium',
   rating: 1250,
   themes: ['shot'],
-  steps: [{ move: 'c2d3', reply: 'e4c2' }, { move: 'b1b5' }],
+  steps: [{ move: 'f2e3', reply: 'd4f2' }, { move: 'g1g5' }],
   explanation: 'A shot.',
 };
 
@@ -274,12 +274,12 @@ describe('hints', () => {
 describe('checkers in the loop', () => {
   it('answers a multi-jump by its start and end squares', () => {
     let run = startPuzzle<CheckersGameState>(CHECKERS_SHOT, checkersPuzzleRules);
-    run = applyPlayerMove(run, checkersPuzzleRules, { from: 'c2', to: 'd3' }).run;
+    run = applyPlayerMove(run, checkersPuzzleRules, { from: 'f2', to: 'e3' }).run;
     run = applyOpponentReply(run, checkersPuzzleRules);
 
     // The board reports only where the piece was picked up and put down; the
-    // engine resolves the chain over c2 and c4.
-    const last = applyPlayerMove(run, checkersPuzzleRules, { from: 'b1', to: 'b5' });
+    // engine resolves the chain over f2 and f4.
+    const last = applyPlayerMove(run, checkersPuzzleRules, { from: 'g1', to: 'g5' });
     expect(last.result).toBe('solved');
     expect(last.run.state.isGameOver).toBe(true);
     expect(last.run.state.winner).toBe('white');
@@ -498,17 +498,17 @@ describe('refuting a wrong move', () => {
   });
 
   it('reads a checkers wrong move as a real position, not a rejection', () => {
-    // e2–d3 is legal here and is not the shot; whether the engine calls it
+    // d2–e3 is legal here and is not the shot; whether the engine calls it
     // refuted is its business, but the branch has to be a real position with a
     // real sentence attached either way.
     let run = startPuzzle<CheckersGameState>(CHECKERS_SHOT, checkersPuzzleRules);
     run = applyRefutation(
-      applyPlayerMove(run, checkersPuzzleRules, { from: 'e2', to: 'd3' }).run,
+      applyPlayerMove(run, checkersPuzzleRules, { from: 'd2', to: 'e3' }).run,
       checkersPuzzleRules,
     );
     expect(run.refutation?.legal).toBe(true);
     expect(run.timeline.length).toBeGreaterThan(1);
-    expect(describeRefutation(run)).toContain('e2→d3');
+    expect(describeRefutation(run)).toContain('d2→e3');
   });
 });
 

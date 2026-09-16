@@ -89,7 +89,7 @@ describe('normalizeMove', () => {
 });
 
 describe('matchesMove — checkers', () => {
-  const state = checkersPuzzleRules.decode('W:W26,27,29:B18,19') as CheckersGameState;
+  const state = checkersPuzzleRules.decode('W:W26,27,32:B18,19') as CheckersGameState;
 
   it('reads the piece as it stood before the move', () => {
     const moves = checkersPuzzleRules.legalMoves(state);
@@ -99,10 +99,10 @@ describe('matchesMove — checkers', () => {
   });
 
   it('counts jumped pieces as captures', () => {
-    // After c2d3 black is forced to jump — checkers has no quiet alternative
+    // After f2e3 black is forced to jump — checkers has no quiet alternative
     // once a capture exists, which is why this position has to be reached
     // rather than declared.
-    const forced = checkersPuzzleRules.validateMove(state, { from: 'c2', to: 'd3' })
+    const forced = checkersPuzzleRules.validateMove(state, { from: 'f2', to: 'e3' })
       .resultingState as CheckersGameState;
     const jumps = checkersPuzzleRules
       .legalMoves(forced)
@@ -223,7 +223,7 @@ describe('the four games all answer describeMove', () => {
     [
       'checkers',
       () => {
-        const state = checkersPuzzleRules.decode('W:W26,27,29:B18,19');
+        const state = checkersPuzzleRules.decode('W:W26,27,32:B18,19');
         const move = checkersPuzzleRules.legalMoves(state)[0];
         return matchesMove(checkersPuzzleRules, state, move, { check: false });
       },

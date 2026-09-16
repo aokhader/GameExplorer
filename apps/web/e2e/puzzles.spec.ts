@@ -288,11 +288,11 @@ test('checkers: a multi-jump is answered by its first and last square', async ({
   const { solved, total } = await openPuzzle(page, 'checkers', 'checkers-001');
   await expect(page.getByTestId('puzzle-prompt')).toContainText('Two jumps are on offer');
 
-  // e2–g4–e6–c8 is a triple jump ending in a crowning. The board only ever
+  // d2–b4–d6–f8 is a triple jump ending in a crowning. The board only ever
   // reports where the piece was picked up and put down; the engine resolves
   // the chain in between.
-  await gridCell(page, 'e2').click();
-  await gridCell(page, 'c8').click();
+  await gridCell(page, 'd2').click();
+  await gridCell(page, 'f8').click();
 
   await expect(status(page)).toHaveText('Solved');
   await expect(page.getByTestId('puzzle-progress')).toContainText(
@@ -303,9 +303,9 @@ test('checkers: a multi-jump is answered by its first and last square', async ({
 test('checkers: the tempting shorter jump is refused', async ({ page }) => {
   const { solved, total } = await openPuzzle(page, 'checkers', 'checkers-001');
 
-  // c2–e4–g6 is legal, and a double capture — just not the best one.
-  await gridCell(page, 'c2').click();
-  await gridCell(page, 'g6').click();
+  // f2–d4–b6 is legal, and a double capture — just not the best one.
+  await gridCell(page, 'f2').click();
+  await gridCell(page, 'b6').click();
 
   await expect(status(page)).toHaveText('Not quite');
   await expect(page.getByTestId('puzzle-progress')).toContainText(

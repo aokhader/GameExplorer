@@ -13,6 +13,9 @@ import {
   CheckersEngine,
   getCheckersPremoveDestinations,
   isCheckersPremoveLegal,
+  // The engine's own rule — these are the squares play happens on, so the
+  // colour drawn here cannot drift from where the pieces actually go.
+  isDarkSquare as isDark,
 } from '@gameexplorer/shared';
 import type {
   CheckersGameState,
@@ -86,9 +89,6 @@ const PREMOVE_FIRE_DELAY_MS = 90;
 const HINT_RING = 'rgba(245,158,11,0.95)';
 const HINT_FILL = 'rgba(245,158,11,0.28)';
 
-function isDark(row: number, col: number): boolean {
-  return (row + col) % 2 === 1;
-}
 function posFromCoords(row: number, col: number): string {
   return String.fromCharCode(97 + col) + (row + 1);
 }
