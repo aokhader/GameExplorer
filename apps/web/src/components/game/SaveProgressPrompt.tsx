@@ -2,8 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { supabase } from '@gameexplorer/db';
 import { useAuth } from '@/hooks/useAuth';
+import { authHref } from '@/components/auth/returnTo';
 import { SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
 
 /**
@@ -15,6 +17,9 @@ import { SAVE_PROGRESS_PENDING_KEY } from '@/lib/onboarding';
  */
 export function SaveProgressPrompt({ open }: { open: boolean }) {
   const { user, loading } = useAuth();
+  // This ask interrupts a result screen, so signing up has to come back to it
+  // rather than stranding the player on their profile.
+  const pathname = usePathname();
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -61,7 +66,7 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
           Continue with Google
         </button>
         <Link
-          href="/auth/signup"
+          href={authHref('/auth/signup', pathname)}
           onClick={consume}
           className="w-full py-3 rounded-xl bg-white/5 border border-white/15 text-fg font-bold text-sm hover:bg-white/10 transition-colors"
         >

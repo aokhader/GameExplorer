@@ -1,7 +1,7 @@
 import React from 'react';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { BOARD_MAX_PX, BOARD_VH_CAP } from '@/components/board/BoardFrame';
+import { BOARD_MAX_PX } from '@/components/board/BoardFrame';
+import { ShellNav } from '@/components/game/ShellNav';
 
 export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
@@ -37,9 +37,15 @@ export interface GameScreenLayoutProps {
    * more cells per side (Liquidate's 12-per-side ring) ask for more still.
    *
    * This is an upper bound: on a short screen the column is additionally capped
-   * by `--gx-board-cap` below, so it always fits without clipping.
+   * by `--gx-board-budget` below, so it always fits without clipping.
    */
   boardColumnClassName?: string;
+  /**
+   * The board's own `maxPx`, when it is not the default — Liquidate's ring caps
+   * at 760. The column never grows past the board it holds, so the sidebar gets
+   * the difference instead of a strip of empty column.
+   */
+  boardMaxPx?: number;
   className?: string;
 }
 
@@ -60,12 +66,6 @@ const PLAYER_CARD_PX = 58;
 /** The disc-count strip (40px) plus its `gap-3`. */
 const TOP_EXTRAS_PX = 52;
 
-const BackArrow = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-  </svg>
-);
-
 /**
  * The single-player in-game shell (bot / training / analysis). Mirrors the
  * multiplayer `GameLayout` in-game view: a fixed board column with player cards
@@ -83,10 +83,11 @@ export function GameScreenLayout({
   bottomCard,
   board,
   sidebar,
-  // Grow into whatever width the sidebar leaves, up to `--gx-board-cap` below.
+  // Grow into whatever width the sidebar leaves, up to `--gx-board-budget` below.
   // The fixed breakpoint widths this replaced gave every 1280–1535px-wide
   // screen a 600px board regardless of the height it had to spare.
   boardColumnClassName = 'lg:grow-[1000] lg:basis-0 lg:min-w-0',
+  boardMaxPx = BOARD_MAX_PX,
   className,
 }: GameScreenLayoutProps) {
   // The desktop shell is `lg:h-svh lg:overflow-hidden`, so a board column
@@ -111,13 +112,7 @@ export function GameScreenLayout({
       {/* Header */}
       <div className="shrink-0 px-4 py-2 border-b border-border bg-surface-alt/50 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-between gap-3">
-          <Link
-            href={backHref}
-            className="inline-flex items-center gap-1.5 text-fg-muted hover:text-fg transition-colors text-sm"
-          >
-            <BackArrow />
-            {backLabel}
-          </Link>
+          <ShellNav backHref={backHref} backLabel={backLabel} />
           {headerCenter}
           <div className="flex items-center gap-2">{headerActions}</div>
         </div>
@@ -137,14 +132,24 @@ export function GameScreenLayout({
                 // column is silently CUT OFF. Below `lg` the page scrolls
                 // instead, so nothing is lost by overflowing — and applying the
                 // cap there just shrinks every board for no benefit.
-                'flex flex-col gap-3 w-full lg:shrink-0 lg:max-w-[var(--gx-board-cap)]',
+                // `gx-board-column` is what publishes the budget below to the
+                // board frame inside it, and globals.css does that from `lg`
+                // up only — see the comment there.
+                'gx-board-column flex flex-col gap-3 w-full lg:shrink-0 lg:max-w-[var(--gx-board-budget)]',
                 boardColumnClassName,
               )}
-              // The height budget, and the board frame's own caps too: a column
-              // wider than the board it holds would stretch the player cards
-              // past the board's edges on a tall screen.
+              // The height budget: what is left of the viewport once this
+              // shell's own chrome and the column's cards are paid for. It caps
+              // the column (a column wider than the board it holds would
+              // stretch the player cards past the board's edges) and, through
+              // `gx-board-column`, the board frame itself.
+              //
+              // No flat `svh` term here. This number already IS the height the
+              // board may have; adding `80svh` next to it only made a screen
+              // with no player cards — puzzles, analysis, a lesson — settle for
+              // 80% of the viewport while this budget offered ~91%.
               style={{
-                '--gx-board-cap': `min(calc(100svh - ${reservedPx}px), ${BOARD_VH_CAP}svh, ${BOARD_MAX_PX}px)`,
+                '--gx-board-budget': `min(calc(100svh - ${reservedPx}px), ${boardMaxPx}px)`,
               } as React.CSSProperties}
             >
               {topCard}

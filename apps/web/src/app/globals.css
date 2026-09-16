@@ -902,6 +902,24 @@ html {
   }
 }
 
+/* The board column of a game shell hands its height budget to the BoardFrame
+ * inside it, so one number sizes the board instead of two that disagree. The
+ * shells set `--gx-board-budget` inline (the viewport minus their own chrome
+ * and cards); BoardFrame reads `--gx-board-cap`, falling back to its own flat
+ * `svh` cap when no shell has published one.
+ *
+ * From `lg` up only, and that is the whole point of doing it here rather than
+ * inline. Above `lg` the shell is `h-svh overflow-hidden`, so a board taller
+ * than the budget is silently CUT OFF and the budget must bind. Below `lg` the
+ * page scrolls, nothing is lost by overflowing, and a landscape phone is better
+ * served by the frame's own cap than by a budget that would shrink its board to
+ * the few hundred pixels left between the cards. */
+@media (min-width: 64rem) {
+  .gx-board-column {
+    --gx-board-cap: var(--gx-board-budget);
+  }
+}
+
 /* ────────────────────────────────────────────────────────────────────────────
  * Richness layer — the "expression" of the tokens (depth, glass, glow, motion).
  * All ambient/continuous animation is gated behind prefers-reduced-motion.

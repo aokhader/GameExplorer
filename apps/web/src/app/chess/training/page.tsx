@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   CHESS_HINT_SEARCH_MS,
   ChessGameState,
@@ -30,6 +29,7 @@ import { GameActions } from '@/components/game/GameActions';
 import { StatusBanner } from '@/components/game/StatusBanner';
 import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
+import { ShellNav } from '@/components/game/ShellNav';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -418,15 +418,7 @@ export default function ChessTrainingPage() {
     return (
       <div className="min-h-svh page-glow-chess">
         <div className="container mx-auto px-4 pt-8">
-          <Link
-            href="/chess"
-            className="inline-flex items-center text-fg-muted hover:text-fg transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </Link>
+          <ShellNav backHref="/chess" />
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">

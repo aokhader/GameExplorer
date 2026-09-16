@@ -58,3 +58,32 @@ test('the Go tutorial draws its diagrams, including the counted board', async ({
   await expect(page.getByText(/Black 36, White 43\.5/)).toBeVisible();
   await expect(page.getByRole('heading', { name: /Two ways to count/ })).toBeVisible();
 });
+
+// Every game's hub ends with the same rules panel and the same way into its
+// guide. Chess used to have no panel, and three of the five that did dead-ended
+// with no link out.
+for (const game of ['chess', 'checkers', 'reversi', 'go', 'liquidate'] as const) {
+  test(`${game} hub explains the rules and links to the guide`, async ({ page }) => {
+    await page.goto(`/${game}`);
+    const panel = page.getByTestId('how-it-works');
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole('heading', { name: 'How It Works' })).toBeVisible();
+
+    const guide = page.getByTestId('how-it-works-guide');
+    await expect(guide).toHaveAttribute('href', `/${game}/learn`);
+    // A link people are meant to tap, not a 20px line of text.
+    expect((await guide.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  });
+}
+
+// The board screens render no global navbar, so the shell's own header is the
+// only navigation there is — and until this landed it could only reach the
+// game's hub, leaving home two clicks away.
+for (const path of ['/chess/bot', '/chess/puzzles', '/chess/analysis', '/liquidate/bot']) {
+  test(`${path} can get home in one click`, async ({ page }) => {
+    await page.goto(path);
+    await expect(page.locator('nav')).toHaveCount(0);
+    await page.getByRole('link', { name: 'Home' }).click();
+    await expect(page).toHaveURL(/\/$/);
+  });
+}

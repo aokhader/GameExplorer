@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   ReversiEngine,
   ReversiGameState,
@@ -25,6 +24,7 @@ import { StatusBanner } from '@/components/game/StatusBanner';
 import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { Icon } from '@gameexplorer/ui';
+import { ShellNav } from '@/components/game/ShellNav';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -336,15 +336,7 @@ export default function ReversiTrainingPage() {
     return (
       <div className="min-h-svh page-glow-reversi">
         <div className="container mx-auto px-4 pt-8">
-          <Link
-            href="/reversi"
-            className="inline-flex items-center text-fg-muted hover:text-fg transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </Link>
+          <ShellNav backHref="/reversi" />
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">

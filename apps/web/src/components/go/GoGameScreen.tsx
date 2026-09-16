@@ -45,6 +45,7 @@ import { Button } from '@/components/ui';
 import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { DifficultyMeter } from '@/components/game/DifficultyMeter';
+import { ShellNav } from '@/components/game/ShellNav';
 
 // Only rendered at game end, and it pulls in confetti + a framer-motion tree —
 // keep it out of the route's initial chunk, as every other game screen does.
@@ -231,12 +232,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
     return (
       <div className="min-h-svh page-glow-go">
         <div className="container mx-auto px-4 pt-8">
-          <Link href="/go" className="inline-flex items-center text-fg-muted hover:text-fg transition-colors">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </Link>
+          <ShellNav backHref="/go" />
         </div>
 
         <div className="container mx-auto px-4 py-10 max-w-2xl">

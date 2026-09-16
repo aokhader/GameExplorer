@@ -17,6 +17,7 @@ import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { Button, Card } from '@/components/ui';
 import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
+import { ShellNav } from '@/components/game/ShellNav';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useLiquidateGame } from '@/hooks/useLiquidateGame';
 import { TradeModal } from './TradeModal';
@@ -122,7 +123,13 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
   if (!state) {
     return (
       <div className="page-glow-liquidate min-h-svh">
-        <div className="container mx-auto max-w-2xl px-4 py-10">
+        <div className="container mx-auto px-4 pt-8">
+          {/* This route renders no global navbar, and this screen had no link
+              of its own — the browser's own Back button was the only way off
+              it. */}
+          <ShellNav backHref="/liquidate" backLabel="Liquidate" />
+        </div>
+        <div className="container mx-auto max-w-2xl px-4 pt-6 pb-10">
           <h1 className="mb-1 text-3xl font-bold text-fg">
             {mode === 'bot' ? 'Liquidate vs Bots' : 'Liquidate — Pass & Play'}
           </h1>
@@ -270,8 +277,11 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
         accent="liquidate"
         backHref="/liquidate"
         backLabel="Liquidate"
-        // A 12-per-side ring needs more width than the default 8×8 column.
-        boardColumnClassName="lg:w-[600px] xl:w-[680px]"
+        // The ring caps at 760px (see `LiquidateBoard`), so the column stops
+        // there too rather than growing past the board and leaving a strip of
+        // empty column beside it. The fixed widths this replaced held the board
+        // to 680px on a screen with room for the lot.
+        boardMaxPx={760}
         headerCenter={
           <div className="text-sm text-fg-muted">
             {/* The engine advances the round before testing the cap, so the raw

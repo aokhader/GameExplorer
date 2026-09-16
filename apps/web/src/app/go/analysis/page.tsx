@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import {
   createGoAnalysis,
   goReviewOwnership,
@@ -14,6 +13,7 @@ import { GoBoard } from '@/components/go/GoBoard';
 import { GoSgfLoad } from '@/components/go/GoSgfLoad';
 import { ReviewPanel } from '@/components/game/ReviewPanel';
 import { GradientText, Reveal } from '@/components/visual';
+import { ShellNav } from '@/components/game/ShellNav';
 
 /**
  * Go's analysis page.
@@ -36,15 +36,7 @@ export default function GoAnalysisPage() {
   return (
     <div className="relative min-h-svh pt-16">
       <div className="container mx-auto px-4 pt-8">
-        <Link
-          href="/go"
-          className="group inline-flex items-center text-fg-muted transition-colors hover:text-fg"
-        >
-          <svg className="mr-2 h-5 w-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Go
-        </Link>
+        <ShellNav backHref="/go" backLabel="Back to Go" />
       </div>
 
       {timeline ? (

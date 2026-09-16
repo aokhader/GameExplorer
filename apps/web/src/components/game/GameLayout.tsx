@@ -15,8 +15,23 @@ import { GameResultScreen, type GameResult } from '@/components/game/GameResultS
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import type { GameAccent } from '@/components/game/GameScreenLayout';
+import { BOARD_MAX_PX } from '@/components/board/BoardFrame';
 
 type GameSession = ReturnType<typeof useGameSession>;
+
+/**
+ * The board column's height budget, the same contract `GameScreenLayout`
+ * documents — only the chrome differs. This shell has no header row, so all it
+ * spends before the column is its own `py-6` (48). A player card is 46px plus
+ * the column's `gap-3`, and `topExtras` is the 40px strip plus the same gap.
+ *
+ * Nothing is clipped here (this shell scrolls rather than `overflow-hidden`),
+ * so the budget is about keeping your own clock on screen with the board, not
+ * about rescuing a cut-off card.
+ */
+const SHELL_CHROME_PX = 48;
+const PLAYER_CARD_PX = 58;
+const TOP_EXTRAS_PX = 52;
 
 export interface GameLayoutProps {
   session: GameSession;
@@ -336,10 +351,18 @@ export function GameLayout({
           matching the Arcade Glow in-game layout. */}
       {inGame && s.gameState && (
         <div className="w-full max-w-6xl 2xl:max-w-7xl flex flex-col lg:flex-row lg:justify-center gap-4 xl:gap-6 items-start">
-          {/* Board column (fixed on desktop; the sidebar takes the remaining
-              width). Sized to match the single-player GameScreenLayout so a
-              game looks the same whoever you're playing. */}
-          <div className="flex flex-col gap-3 w-full lg:w-[520px] xl:w-[600px] 2xl:w-[680px] lg:shrink-0">
+          {/* Board column. Sized to match the single-player GameScreenLayout so
+              a game looks the same whoever you're playing: grow into whatever
+              the sidebar leaves, then stop at the height this shell has left
+              (`--gx-board-budget`, published to the frame by
+              `gx-board-column`). The breakpoint widths this replaced pinned
+              every 1280–1535px screen to a 600px board with room to spare. */}
+          <div
+            className="gx-board-column flex flex-col gap-3 w-full lg:shrink-0 lg:grow-[1000] lg:basis-0 lg:min-w-0 lg:max-w-[var(--gx-board-budget)]"
+            style={{
+              '--gx-board-budget': `min(calc(100svh - ${SHELL_CHROME_PX + PLAYER_CARD_PX * 2 + (topExtras ? TOP_EXTRAS_PX : 0)}px), ${BOARD_MAX_PX}px)`,
+            } as React.CSSProperties}
+          >
             {topExtras}
 
             <PlayerCard
@@ -380,8 +403,8 @@ export function GameLayout({
             />
           </div>
 
-          {/* Sidebar */}
-          <div className="w-full lg:flex-1 lg:max-w-[460px] flex flex-col gap-4">
+          {/* Sidebar — takes what the board leaves, between 280 and 460px. */}
+          <div className="w-full lg:grow lg:basis-[280px] lg:min-w-[280px] lg:max-w-[460px] flex flex-col gap-4">
             <Card elevation="raised">
               <h3 className="text-sm font-semibold text-fg-muted mb-2 uppercase tracking-wide">Moves</h3>
               <div className="overflow-y-auto max-h-[28svh] lg:max-h-64 text-sm font-mono">{moveList}</div>

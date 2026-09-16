@@ -5,6 +5,25 @@ import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 import { GameIcon } from '@/components/game/GameIcon';
 import { Icon, type IconName } from '@gameexplorer/ui';
+import { HowItWorks, type HowItWorksPoint } from '@/components/game/HowItWorks';
+
+const HOW_IT_WORKS: HowItWorksPoint[] = [
+  {
+    icon: 'arrows-clockwise',
+    title: 'Flip Your Opponent',
+    description: 'Sandwich opponent discs to flip them to your colour',
+  },
+  {
+    icon: 'target',
+    title: 'Control the Corners',
+    description: "Corner squares can never be flipped — they're the key",
+  },
+  {
+    icon: 'trophy',
+    title: 'Most Discs Wins',
+    description: 'When the board fills up, the player with more discs wins',
+  },
+];
 
 type GameMode = {
   id: string;
@@ -163,27 +182,7 @@ export default function ReversiLandingPage() {
           </div>
         </div>
 
-        {/* Rules callout */}
-        <div className="max-w-4xl mx-auto mt-16 p-8 rounded-2xl glass">
-          <h3 className="text-xl font-semibold text-fg mb-4 text-center">How It Works</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="arrows-clockwise" /></div>
-              <div className="text-sm font-medium text-fg">Flip Your Opponent</div>
-              <div className="text-xs text-fg-muted mt-1">Sandwich opponent discs to flip them to your colour</div>
-            </div>
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="target" /></div>
-              <div className="text-sm font-medium text-fg">Control the Corners</div>
-              <div className="text-xs text-fg-muted mt-1">Corner squares can never be flipped — they&apos;re the key</div>
-            </div>
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="trophy" /></div>
-              <div className="text-sm font-medium text-fg">Most Discs Wins</div>
-              <div className="text-xs text-fg-muted mt-1">When the board fills up, the player with more discs wins</div>
-            </div>
-          </div>
-        </div>
+        <HowItWorks learnHref="/reversi/learn" points={HOW_IT_WORKS} />
       </div>
     </div>
   );

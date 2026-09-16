@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { authHref } from '@/components/auth/returnTo';
 import { isImmersiveGameRoute } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { GAME_LIST } from '@gameexplorer/shared';
@@ -19,6 +20,10 @@ const NAV_ITEMS = [
 
 export function Navigation() {
   const pathname = usePathname();
+  // Signing in should put you back where you were, not on a profile page you
+  // did not ask for. `authHref` drops the parameter for home, where there is
+  // nothing to return to.
+  const signInHref = authHref('/auth/signin', pathname);
   const router = useRouter();
   const { user, loading } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -147,7 +152,7 @@ export function Navigation() {
                     <Icon name="gear" className="text-xl" />
                   </Link>
                   <Link
-                    href="/auth/signin"
+                    href={signInHref}
                     className="hidden sm:inline text-sm text-fg-muted hover:text-fg transition-colors"
                   >
                     Sign in
@@ -209,7 +214,7 @@ export function Navigation() {
             </Link>
             {!loading && !user && (
               <Link
-                href="/auth/signin"
+                href={signInHref}
                 className="py-3 px-2 text-base font-medium rounded-lg transition-colors text-fg-muted hover:text-fg hover:bg-surface-muted"
               >
                 Sign in

@@ -5,6 +5,25 @@ import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 import { GameIcon } from '@/components/game/GameIcon';
 import { Icon, type IconName } from '@gameexplorer/ui';
+import { HowItWorks, type HowItWorksPoint } from '@/components/game/HowItWorks';
+
+const HOW_IT_WORKS: HowItWorksPoint[] = [
+  {
+    icon: 'x-circle',
+    title: 'Surround to Capture',
+    description: "Take a group's last empty neighbour and it comes off the board",
+  },
+  {
+    icon: 'mountains',
+    title: 'Claim Territory',
+    description: 'Empty points only you surround count as yours at the end',
+  },
+  {
+    icon: 'handshake',
+    title: 'Two Passes End It',
+    description: 'Then stones plus territory are counted, and white adds komi',
+  },
+];
 
 type GameMode = {
   id: string;
@@ -159,27 +178,7 @@ export default function GoLandingPage() {
           </div>
         </div>
 
-        {/* Rules callout */}
-        <div className="max-w-4xl mx-auto mt-16 p-8 rounded-2xl glass">
-          <h3 className="text-xl font-semibold text-fg mb-4 text-center">How It Works</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="x-circle" /></div>
-              <div className="text-sm font-medium text-fg">Surround to Capture</div>
-              <div className="text-xs text-fg-muted mt-1">Take a group&apos;s last empty neighbour and it comes off the board</div>
-            </div>
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="mountains" /></div>
-              <div className="text-sm font-medium text-fg">Claim Territory</div>
-              <div className="text-xs text-fg-muted mt-1">Empty points only you surround count as yours at the end</div>
-            </div>
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="handshake" /></div>
-              <div className="text-sm font-medium text-fg">Two Passes End It</div>
-              <div className="text-xs text-fg-muted mt-1">Then stones plus territory are counted, and white adds komi</div>
-            </div>
-          </div>
-        </div>
+        <HowItWorks learnHref="/go/learn" points={HOW_IT_WORKS} />
       </div>
     </div>
   );

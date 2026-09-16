@@ -6,13 +6,19 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@gameexplorer/db';
 import { signInWithIdentifier } from '@gameexplorer/client';
 import { GradientText } from '@/components/visual';
+import { ReturnLink, authHref, useReturnTo } from '@/components/auth/returnTo';
 
 // useSearchParams() requires a Suspense boundary in Next.js App Router.
 // Split into an inner component so the boundary can wrap just what needs it.
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') ?? '/profile';
+  // Where to land after signing in. `useReturnTo` refuses anything that is not
+  // a same-site path, so a crafted `?next=` cannot bounce the user off the site
+  // with a session in hand.
+  const next = useReturnTo('/profile');
+  // …and where "Sign up" should carry them, so the round trip keeps its place.
+  const from = searchParams.get('next');
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -121,7 +127,7 @@ function SignInForm() {
 
       <p className="text-center text-sm text-fg-muted">
         No account?{' '}
-        <Link href="/auth/signup" className="text-accent hover:underline">
+        <Link href={authHref('/auth/signup', from)} className="text-accent hover:underline">
           Sign up
         </Link>
       </p>
@@ -133,6 +139,9 @@ export default function SignInPage() {
   return (
     <div className="relative min-h-svh flex items-center justify-center px-4 pt-16 page-glow-gold">
       <div className="w-full max-w-sm">
+        <Suspense fallback={null}>
+          <ReturnLink />
+        </Suspense>
         <h1 className="text-3xl font-bold text-center mb-8 tracking-tight">
           <GradientText>Sign in</GradientText>
         </h1>

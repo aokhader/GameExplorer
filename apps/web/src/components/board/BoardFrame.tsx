@@ -16,7 +16,13 @@ export interface BoardFrameProps {
   children: React.ReactNode;
   /** Upper bound on the board's edge length, in px. */
   maxPx?: number;
-  /** Upper bound on the board's edge length, as a fraction of the small viewport height. */
+  /**
+   * Upper bound on the board's edge length, as a fraction of the small viewport
+   * height — a backstop for a frame outside a game shell, and for the stacked
+   * layout below `lg`. Inside a shell from `lg` up, `--gx-board-cap` overrides
+   * it with the height the shell actually has left, which is a better number
+   * than any flat percentage.
+   */
   vhCap?: number;
   className?: string;
   style?: React.CSSProperties;
@@ -30,7 +36,14 @@ export interface BoardFrameProps {
  *   - `100%`        → never wider than its (padded) container → no horizontal scroll
  *   - `vhCap·svh`   → never taller than the viewport → no clipping in a stacked
  *                     mobile layout or short landscape (svh = small viewport
- *                     height, stable across mobile browser-chrome show/hide)
+ *                     height, stable across mobile browser-chrome show/hide).
+ *                     A game shell replaces this term with `--gx-board-cap`
+ *                     from `lg` up: the height left after ITS chrome, which is
+ *                     what actually binds. Left at a flat 80svh the frame was
+ *                     the tighter of the two and held every board on a screen
+ *                     with no player cards (puzzles, analysis, lessons) to
+ *                     80% of the viewport height — 720px on a 900px screen —
+ *                     while the column it sits in had ~820px to give.
  *   - `maxPx`       → never larger than is comfortable on a wide desktop
  *                     (`BOARD_MAX_PX`: the board is the page, so this is
  *                     deliberately generous — the layout's own height budget is
@@ -50,7 +63,7 @@ export const BoardFrame = React.forwardRef<HTMLDivElement, BoardFrameProps>(func
       ref={ref}
       className={cn('relative mx-auto', className)}
       style={{
-        width: `min(${vhCap}svh, ${maxPx}px, 100%)`,
+        width: `min(var(--gx-board-cap, ${vhCap}svh), ${maxPx}px, 100%)`,
         aspectRatio: '1 / 1',
         ...style,
       }}

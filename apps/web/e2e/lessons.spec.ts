@@ -152,3 +152,21 @@ test('every game with lessons serves its first one', async ({ page }) => {
     });
   }
 });
+
+test('a lesson renders as a board screen, not under the global navbar', async ({ page }) => {
+  await page.goto(`/chess/learn/${CHESS_L01.id}`);
+  await expect(page.getByTestId('lesson-progress')).toBeVisible();
+
+  // `isImmersiveGameRoute` has to match a lesson: it renders GameScreenLayout,
+  // which starts at the top of the viewport and reserves nothing for the fixed
+  // navbar. When the two disagreed, the navbar was painted over the top ~64px
+  // of the shell — its header and the top of the board.
+  await expect(page.locator('nav')).toHaveCount(0);
+
+  const header = page.getByTestId('lesson-progress');
+  expect((await header.boundingBox())?.y ?? -1).toBeGreaterThanOrEqual(0);
+
+  // The index that lists the lessons is an ordinary page and keeps its nav.
+  await page.goto('/chess/learn');
+  await expect(page.locator('nav')).toHaveCount(1);
+});

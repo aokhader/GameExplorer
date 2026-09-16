@@ -4,6 +4,25 @@ import Link from 'next/link';
 import { GradientText, Reveal } from '@/components/visual';
 import { GameIcon } from '@/components/game/GameIcon';
 import { Icon, type IconName } from '@gameexplorer/ui';
+import { HowItWorks, type HowItWorksPoint } from '@/components/game/HowItWorks';
+
+const HOW_IT_WORKS: HowItWorksPoint[] = [
+  {
+    icon: 'dice-five',
+    title: 'Roll and Claim',
+    description: 'Buy the planet you land on, or send it to auction',
+  },
+  {
+    icon: 'buildings',
+    title: 'Corner a System',
+    description: 'Hold every planet in a system to double rent and build colonies',
+  },
+  {
+    icon: 'coins',
+    title: 'Last One Solvent',
+    description: 'Mortgage, trade and squeeze until only one baron is left',
+  },
+];
 
 type GameMode = {
   id: string;
@@ -157,32 +176,7 @@ export default function LiquidateLandingPage() {
           </div>
         </div>
 
-        <div className="glass mx-auto mt-16 max-w-4xl rounded-2xl p-8">
-          <h3 className="mb-4 text-center text-xl font-semibold text-fg">How It Works</h3>
-          <div className="grid grid-cols-1 gap-6 text-center md:grid-cols-3">
-            <div>
-              <div className="mb-2 text-2xl text-accent"><Icon name="dice-five" /></div>
-              <div className="text-sm font-medium text-fg">Roll and Claim</div>
-              <div className="mt-1 text-xs text-fg-muted">
-                Buy the planet you land on, or send it to auction
-              </div>
-            </div>
-            <div>
-              <div className="mb-2 text-2xl text-accent"><Icon name="buildings" /></div>
-              <div className="text-sm font-medium text-fg">Corner a System</div>
-              <div className="mt-1 text-xs text-fg-muted">
-                Hold every planet in a system to double rent and build colonies
-              </div>
-            </div>
-            <div>
-              <div className="mb-2 text-2xl text-accent"><Icon name="coins" /></div>
-              <div className="text-sm font-medium text-fg">Last One Solvent</div>
-              <div className="mt-1 text-xs text-fg-muted">
-                Mortgage, trade and squeeze until only one baron is left
-              </div>
-            </div>
-          </div>
-        </div>
+        <HowItWorks learnHref="/liquidate/learn" points={HOW_IT_WORKS} />
       </div>
     </div>
   );

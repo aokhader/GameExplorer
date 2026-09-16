@@ -5,6 +5,25 @@ import { useAuth } from '@/hooks/useAuth';
 import { GradientText, Reveal } from '@/components/visual';
 import { GameIcon } from '@/components/game/GameIcon';
 import { Icon, type IconName } from '@gameexplorer/ui';
+import { HowItWorks, type HowItWorksPoint } from '@/components/game/HowItWorks';
+
+const HOW_IT_WORKS: HowItWorksPoint[] = [
+  {
+    icon: 'lightning',
+    title: 'Mandatory Captures',
+    description: 'You must jump when a capture is available',
+  },
+  {
+    icon: 'crown',
+    title: 'King Promotion',
+    description: 'Reach the back rank to become a king',
+  },
+  {
+    icon: 'link',
+    title: 'Multi-Jump Chains',
+    description: 'Chain multiple captures in a single turn',
+  },
+];
 
 type GameMode = {
   id: string;
@@ -162,32 +181,7 @@ export default function CheckersLandingPage() {
           </div>
         </div>
 
-        {/* Rules callout */}
-        <div className="max-w-4xl mx-auto mt-16 p-8 rounded-2xl glass">
-          <h3 className="text-xl font-semibold text-fg mb-4 text-center">How It Works</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="lightning" /></div>
-              <div className="text-sm font-medium text-fg">Mandatory Captures</div>
-              <div className="text-xs text-fg-muted mt-1">You must jump when a capture is available</div>
-            </div>
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="crown" /></div>
-              <div className="text-sm font-medium text-fg">King Promotion</div>
-              <div className="text-xs text-fg-muted mt-1">Reach the back rank to become a king</div>
-            </div>
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="link" /></div>
-              <div className="text-sm font-medium text-fg">Multi-Jump Chains</div>
-              <div className="text-xs text-fg-muted mt-1">Chain multiple captures in a single turn</div>
-            </div>
-          </div>
-          <div className="text-center mt-6">
-            <Link href="/checkers/learn" className="text-accent font-medium text-sm hover:underline">
-              Read the full guide →
-            </Link>
-          </div>
-        </div>
+        <HowItWorks learnHref="/checkers/learn" points={HOW_IT_WORKS} />
       </div>
     </div>
   );
