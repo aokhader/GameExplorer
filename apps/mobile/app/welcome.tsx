@@ -297,7 +297,7 @@ export default function WelcomeScreen() {
             How tough should the bot be?
           </Text>
           <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, textAlign: 'center', marginTop: 4, marginBottom: 20 }}>
-            The bot adapts as you improve.
+            You can change the strength any time.
           </Text>
           <View style={{ gap: SPACING[3] }}>
             {DIFFICULTIES.map((d) => (

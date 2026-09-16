@@ -32,11 +32,17 @@ export interface GameResultScreenProps {
   saveError?: boolean;
   /** Re-attempt the failed save. Required when `saveError` can be true. */
   onRetrySave?: () => void;
-  /** Action buttons (Play Again / Back) supplied by the screen. */
+  /** The first action — Rematch on the game screens. Rendered above Review. */
   actions: React.ReactNode;
   /**
-   * Open game review. Rendered above the other actions when supplied — right
-   * after a loss is the moment a player most wants to know what went wrong.
+   * The quiet actions, after Review: Change setup, Back to Home. Optional, so a
+   * card with a single way out can pass it all through `actions`.
+   */
+  secondaryActions?: React.ReactNode;
+  /**
+   * Open game review. Rendered straight after the first action, in the same
+   * order web uses: Rematch is what most players do next, and Review is the
+   * next most likely — right after a loss is when a player most wants it.
    */
   onReview?: () => void;
 }
@@ -88,6 +94,7 @@ export function GameResultScreen({
   saveError = false,
   onRetrySave,
   actions,
+  secondaryActions,
   onReview,
 }: GameResultScreenProps) {
   const { reducedMotion } = useSettings();
@@ -307,11 +314,14 @@ export function GameResultScreen({
             </View>
           )}
 
-          {/* Every action in here leaves the card behind — `BackToHomeButton`
-              navigates, Review swaps the screen's whole tree — so they go
-              through the dismiss-first hop rather than acting on the spot. */}
+          {/* Actions that leave the card behind — `BackToHomeButton` navigates;
+              Review and Change setup swap the screen's whole tree — go through
+              the dismiss-first hop rather than acting on the spot. Rematch
+              needs no hop: the board stays mounted and the card closes because
+              the game state it reads was reset. */}
           <ResultDismissContext.Provider value={dismissThen}>
             <View style={{ marginTop: 22, gap: SPACING['2.5'], alignSelf: 'stretch' }}>
+              {actions}
               {onReview && (
                 <Pressable
                   onPress={() => dismissThen(onReview)}
@@ -340,7 +350,7 @@ export function GameResultScreen({
                   )}
                 </Pressable>
               )}
-              {actions}
+              {secondaryActions}
             </View>
           </ResultDismissContext.Provider>
 

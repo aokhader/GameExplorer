@@ -208,7 +208,7 @@ function ThemePicker() {
 
 export default function SettingsPage() {
   return (
-    <div className="relative min-h-dvh pt-16">
+    <div className="relative min-h-svh pt-16">
       <div className="container mx-auto max-w-2xl px-4 py-12">
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
           <GradientText>Settings</GradientText>

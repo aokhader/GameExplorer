@@ -55,7 +55,7 @@ export function BoardMark({ mark, round = false }: { mark: LessonMark; round?: b
         data-mark-square={mark.square}
       >
         {mark.kind === 'move' ? (
-          <div className="w-[28%] h-[28%] rounded-full bg-emerald-300/70 motion-safe:animate-pulse" />
+          <div className="w-[28%] h-[28%] rounded-full bg-emerald-300/70 animate-state-pulse" />
         ) : (
           <div className={`absolute inset-[6%] ${shape} ${RING[mark.kind]}`} />
         )}

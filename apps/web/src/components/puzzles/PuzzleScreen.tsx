@@ -365,7 +365,7 @@ function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
+    <div className="min-h-svh flex items-center justify-center px-6">
       <div className="max-w-md text-center">
         <h1 className="text-2xl font-bold text-fg mb-2">{title}</h1>
         <p className="text-sm text-fg-muted mb-6">{body}</p>

@@ -15,6 +15,8 @@ import {
 } from '@gameexplorer/shared';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { Button, Card } from '@/components/ui';
+import { ResultActions } from '@/components/game/ResultActions';
+import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useLiquidateGame } from '@/hooks/useLiquidateGame';
 import { TradeModal } from './TradeModal';
@@ -119,7 +121,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
   // ── Setup ────────────────────────────────────────────────────────────────
   if (!state) {
     return (
-      <div className="page-glow-liquidate min-h-screen">
+      <div className="page-glow-liquidate min-h-svh">
         <div className="container mx-auto max-w-2xl px-4 py-10">
           <h1 className="mb-1 text-3xl font-bold text-fg">
             {mode === 'bot' ? 'Liquidate vs Bots' : 'Liquidate — Pass & Play'}
@@ -233,9 +235,11 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
               </div>
             )}
 
-            <Button onClick={start} data-testid="liquidate-start">
-              Start game
-            </Button>
+            <SetupStartBar tone="card">
+              <Button onClick={start} data-testid="liquidate-start">
+                Start game
+              </Button>
+            </SetupStartBar>
           </Card>
         </div>
       </div>
@@ -391,12 +395,16 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
             : undefined
         }
         actions={
-          <>
-            <Button onClick={endGame}>New game</Button>
-            <Button variant="secondary" onClick={() => setResultDismissed(true)}>
-              Review board
-            </Button>
-          </>
+          // `start` rebuilds the seats from the setup still in state, so a
+          // rematch is the same table and rules on a fresh board.
+          <ResultActions
+            onRematch={start}
+            onReview={() => setResultDismissed(true)}
+            reviewLabel="Review board"
+            onChangeSetup={endGame}
+            backHref="/liquidate"
+            backLabel="Back to Liquidate"
+          />
         }
       />
     </>

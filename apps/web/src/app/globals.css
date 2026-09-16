@@ -1015,6 +1015,15 @@ html {
   0%, 100% { opacity: 0.6; }
   50%      { opacity: 1; }
 }
+/* A state indicator announcing a change: a turn dot, a hint ring, a lesson mark,
+   a "pass" badge. It plays three times and then holds its lit state (0% and
+   100% are lit), so nothing on a board screen is still animating five seconds
+   after the state arrived — motion-spec §5.16, WCAG 2.2.2. It restarts whenever
+   the element mounts, which is when the state it marks begins. */
+@keyframes state-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
 @keyframes shimmer {
   0%   { background-position: -150% 0; }
   100% { background-position: 250% 0; }
@@ -1107,8 +1116,10 @@ html {
   :root:not([data-reduced-motion]) .hover-lift:hover    { transform: translateY(-4px); }
   :root:not([data-reduced-motion]) .animate-aurora      { animation: aurora-drift 18s ease-in-out infinite; }
   :root:not([data-reduced-motion]) .animate-glow-pulse  { animation: glow-pulse 4s ease-in-out infinite; }
+  :root:not([data-reduced-motion]) .animate-state-pulse { animation: state-pulse calc(var(--duration-slower) * 2) var(--ease-standard) 3; }
   :root:not([data-reduced-motion]) .animate-float       { animation: float 6s ease-in-out infinite; }
-  :root:not([data-reduced-motion]) .lq-you-ring         { animation: lq-pulse 1.8s ease-in-out infinite; }
+  /* Two breaths, then the resting ring — the same count mobile's overlay plays. */
+  :root:not([data-reduced-motion]) .lq-you-ring         { animation: lq-pulse 1.8s ease-in-out 2; }
   :root:not([data-reduced-motion]) .lq-hop              { animation: lq-hop var(--lq-step, 150ms) ease-in-out infinite; }
   :root:not([data-reduced-motion]) .lq-dice-tumble      { animation: lq-dice-tumble 260ms ease-in-out infinite; }
   :root:not([data-reduced-motion]) .lq-pip-pop          { animation: lq-pip-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }

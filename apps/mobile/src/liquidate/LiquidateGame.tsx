@@ -31,7 +31,7 @@ import {
 import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { GameResultScreen } from '@/game/GameResultScreen';
-import { BackToHomeButton } from '@/game/resultDismiss';
+import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
 import { Button } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 import { LiquidateBoard, BoardWellCaption } from './LiquidateBoard';
@@ -57,6 +57,8 @@ export interface LiquidateGameProps {
   game: ReturnType<typeof useLiquidateGame>;
   mode: 'bot' | 'local';
   onQuit: () => void;
+  /** Start the next game with the same seats and rules. */
+  onRematch: () => void;
 }
 
 /**
@@ -70,7 +72,7 @@ export interface LiquidateGameProps {
  * is derived from state on every render, so a settled auction simply stops being
  * demanded; a pushed route would leave a dead screen on the stack.
  */
-export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
+export function LiquidateGame({ game, mode, onQuit, onRematch }: LiquidateGameProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
   const { reducedMotion } = useSettings();
@@ -82,6 +84,19 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const [resultDismissed, setResultDismissed] = useState(false);
   const [boardBox, setBoardBox] = useState({ w: 0, h: 0 });
+
+  /**
+   * The next game with the same seats and rules. The open view and the card's
+   * dismissal belong to the finished game, so they reset with it — a result the
+   * player had dismissed to look at the board would otherwise stay dismissed,
+   * and the next game's card would never show.
+   */
+  const rematch = () => {
+    setUserView('board');
+    setSelectedTile(null);
+    setResultDismissed(false);
+    onRematch();
+  };
 
   const state = game.state!;
   const P = LIQUIDATE_PANEL_COLORS;
@@ -536,9 +551,10 @@ export function LiquidateGame({ game, mode, onQuit }: LiquidateGameProps) {
         result={resultFor(state, youId, mode)}
         title={titleFor(state, youId, mode)}
         subtitle={subtitleFor(state, roundLabel)}
-        actions={
+        actions={<Button label="Rematch" onPress={rematch} glow />}
+        secondaryActions={
           <>
-            <Button label="Play Again" onPress={onQuit} glow />
+            <ChangeSetupButton onPress={onQuit} />
             <BackToHomeButton />
           </>
         }

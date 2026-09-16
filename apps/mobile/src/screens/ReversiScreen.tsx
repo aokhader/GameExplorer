@@ -15,7 +15,7 @@ import { ReversiBoard } from '@/board/ReversiBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
-import { BackToHomeButton } from '@/game/resultDismiss';
+import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
 import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
@@ -140,9 +140,16 @@ export function ReversiScreen() {
       ? !!userId && online
       : true;
 
+  /** Back to the setup screen (game bar New Game, result card Change setup). */
   const handleNewGame = () => {
     game.newGame();
     setStarted(false);
+    setReviewing(false);
+  };
+
+  /** The next game with the same setup, on the same board — see ChessScreen. */
+  const handleRematch = () => {
+    game.newGame();
     setReviewing(false);
   };
 
@@ -170,8 +177,28 @@ export function ReversiScreen() {
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
+    // Pinned under the scrolling form rather than at its end.
+    const startButton = (
+      <Button
+        label={
+          isPuzzles
+            ? 'Start Puzzles'
+            : isOnlineMode
+              ? 'Find an Opponent'
+              : isTraining
+                ? 'Start Rated Game'
+                : 'Start Game'
+        }
+        onPress={
+          isPuzzles ? () => router.push('/puzzles/reversi' as never) : () => setStarted(true)
+        }
+        disabled={!canStart}
+        glow
+      />
+    );
+
     return (
-      <Screen>
+      <Screen footer={startButton}>
         <GlowBackdrop
           blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.reversi.base, opacity: 0.16 }]}
         />
@@ -339,23 +366,6 @@ export function ReversiScreen() {
             turns.
           </Text>
         )}
-
-        <Button
-          label={
-            isPuzzles
-              ? 'Start Puzzles'
-              : isOnlineMode
-                ? 'Find an Opponent'
-                : isTraining
-                  ? 'Start Rated Game'
-                  : 'Start Game'
-          }
-          onPress={
-            isPuzzles ? () => router.push('/puzzles/reversi' as never) : () => setStarted(true)
-          }
-          disabled={!canStart}
-          glow
-        />
       </Screen>
     );
   }
@@ -614,9 +624,10 @@ export function ReversiScreen() {
         saveError={game.saveError}
         onRetrySave={game.retrySave}
         onReview={() => setReviewing(true)}
-        actions={
+        actions={<Button label="Rematch" onPress={handleRematch} glow />}
+        secondaryActions={
           <>
-            <Button label="Play Again" onPress={handleNewGame} glow />
+            <ChangeSetupButton onPress={handleNewGame} />
             <BackToHomeButton />
           </>
         }

@@ -90,7 +90,7 @@ export default function WelcomePage() {
   const totalSteps = 4;
 
   return (
-    <div className="min-h-screen pt-16 flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-svh pt-16 flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         {/* Step card — re-keyed so each step change animates in. `page-enter`
             only fires when `data-animate` is present (see globals.css); we mark
@@ -215,7 +215,7 @@ export default function WelcomePage() {
           {step === 3 && (
             <>
               <h1 className="text-2xl font-bold text-center mb-1.5">How tough should the bot be?</h1>
-              <p className="text-sm text-fg-muted text-center mb-5">The bot adapts as you improve.</p>
+              <p className="text-sm text-fg-muted text-center mb-5">You can change the strength any time.</p>
               <div className="flex flex-col gap-3">
                 {DIFFICULTIES.map(d => (
                   <OptionRow

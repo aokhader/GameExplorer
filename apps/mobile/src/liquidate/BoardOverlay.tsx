@@ -9,7 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LIQUIDATE_BOARD_COLORS, useThemeName } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
-import { easing, finitePulseCount } from '@/theme/motion';
+import { easing, statePulseCount } from '@/theme/motion';
 import type { RingGeometry } from './boardGeom';
 
 /**
@@ -48,12 +48,12 @@ export function BoardOverlay({ geom, tile }: BoardOverlayProps) {
       pulse.value = 0;
       return;
     }
-    // Finite: a decision can sit unanswered for minutes, and an infinite repeat
-    // keeps Android from ever reaching idle. The even count ends on the resting
-    // ring, which still marks the tile.
+    // A couple of breaths to say "this tile", then the resting ring holds —
+    // it still marks the tile. A decision can sit unanswered for minutes, and
+    // pulsing through all of them kept the screen rendering the whole time.
     pulse.value = withRepeat(
       withTiming(1, { duration: PULSE_MS, easing: easing('standard') }),
-      finitePulseCount(PULSE_MS),
+      statePulseCount(PULSE_MS),
       true,
     );
     return () => cancelAnimation(pulse);

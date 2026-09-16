@@ -99,7 +99,7 @@ export default function ChessLandingPage() {
   ];
 
   return (
-    <div className="relative min-h-screen pt-16">
+    <div className="relative min-h-svh pt-16">
       {/* Header */}
       <div className="container mx-auto px-4 pt-8">
         <Link
@@ -188,45 +188,6 @@ export default function ChessLandingPage() {
           </div>
         </div>
 
-        {/* Stats Section */}
-        <div className="max-w-4xl mx-auto mt-16 grid grid-cols-3 gap-8">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-fg mb-1">3</div>
-            <div className="text-sm text-fg-muted">Difficulty Levels</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-fg mb-1">2500+</div>
-            <div className="text-sm text-fg-muted">Bot ELO Rating</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-fg mb-1">∞</div>
-            <div className="text-sm text-fg-muted">Games to Play</div>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="max-w-4xl mx-auto mt-16 p-8 rounded-2xl glass">
-          <h3 className="text-xl font-semibold text-fg mb-4 text-center">
-            Features
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="lightning" /></div>
-              <div className="text-sm font-medium text-fg">Fast & Responsive</div>
-              <div className="text-xs text-fg-muted mt-1">Instant move validation</div>
-            </div>
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="palette" /></div>
-              <div className="text-sm font-medium text-fg">Beautiful Interface</div>
-              <div className="text-xs text-fg-muted mt-1">Clean, modern design</div>
-            </div>
-            <div>
-              <div className="text-2xl mb-2 text-accent"><Icon name="device-mobile" /></div>
-              <div className="text-sm font-medium text-fg">Mobile Friendly</div>
-              <div className="text-xs text-fg-muted mt-1">Play on any device</div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

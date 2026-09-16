@@ -42,6 +42,21 @@ const EMOJI_GUARDS = [
   { selector: `JSXText[value=${EMOJI}]`, message: EMOJI_MESSAGE },
 ];
 
+/**
+ * No 100vh page shells. `h-screen`, `min-h-screen` and a literal `100vh` resolve
+ * to the viewport with the mobile browser's toolbar *hidden*, so on a phone the
+ * bottom of the page starts under the URL bar — in real Android Chrome the
+ * in-game Resign row sat 27px out of view on load. `h-svh`/`min-h-svh` use the
+ * small viewport, which always fits.
+ */
+const VIEWPORT = String.raw`/(^|[\s:])(min-|max-)?h-screen\b|100vh/`;
+const VIEWPORT_MESSAGE =
+  "Use h-svh / min-h-svh instead of h-screen, min-h-screen or 100vh: vh ignores the mobile browser toolbar, so the bottom of the page is cut off.";
+const VIEWPORT_GUARDS = [
+  { selector: `Literal[value=${VIEWPORT}]`, message: VIEWPORT_MESSAGE },
+  { selector: `TemplateElement[value.raw=${VIEWPORT}]`, message: VIEWPORT_MESSAGE },
+];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -76,18 +91,18 @@ const eslintConfig = defineConfig([
   {
     files: ["src/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-syntax": ["error", ...SCALE_GUARDS, ...EMOJI_GUARDS],
+      "no-restricted-syntax": ["error", ...SCALE_GUARDS, ...EMOJI_GUARDS, ...VIEWPORT_GUARDS],
     },
   },
   {
     // Exempt from the emoji guard only. Liquidate's dock, panels and tiles speak
     // a deliberate glyph language shared with the mobile app, carried over from
     // its design mock — revisit it as a whole, on both platforms, rather than
-    // piecemeal. The scale guard still applies: a flat-config override replaces
-    // the whole rule, so it is restated here.
+    // piecemeal. The scale and viewport guards still apply: a flat-config
+    // override replaces the whole rule, so they are restated here.
     files: ["src/components/liquidate/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-syntax": ["error", ...SCALE_GUARDS],
+      "no-restricted-syntax": ["error", ...SCALE_GUARDS, ...VIEWPORT_GUARDS],
     },
   },
 ]);

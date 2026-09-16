@@ -10,7 +10,7 @@ import Animated, {
 import { COLORS, FONT_SIZES, MOTION, RADIUS, SPACING } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
-import { finitePulseCount, timing } from '@/theme/motion';
+import { statePulseCount, timing } from '@/theme/motion';
 
 export interface PlayerCardProps {
   /** Display name, e.g. "Bot" or "You". */
@@ -56,12 +56,12 @@ export function PlayerCard({
 
   useEffect(() => {
     if (active && !reducedMotion) {
-      // Finite on purpose. An opponent's turn can outlast any pulse worth
-      // watching, and an infinite repeat keeps Android from ever reaching idle.
-      // The even count leaves the dot lit when the pulse ends.
+      // A few cycles to announce the turn, then the dot holds lit. A pulse that
+      // ran as long as the turn kept the screen rendering at full rate for a
+      // minute after every move; an infinite one never lets Android go idle.
       pulse.value = withRepeat(
         withTiming(0.35, timing('slower', 'standard')),
-        finitePulseCount(MOTION.DURATION.slower),
+        statePulseCount(MOTION.DURATION.slower),
         true,
       );
     } else {

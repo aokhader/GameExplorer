@@ -16,7 +16,7 @@ import { ChessBoard } from '@/board/ChessBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
-import { BackToHomeButton } from '@/game/resultDismiss';
+import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
 import { OpponentPicker, FlipBoardCard, type SetupMode } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
@@ -181,10 +181,21 @@ export function ChessScreen() {
       ? !!userId && online
       : true;
 
+  /** Back to the setup screen (game bar New Game, result card Change setup). */
   const handleNewGame = () => {
     game.newGame();
     setStarted(false);
     setFlipped(false);
+    setReviewing(false);
+  };
+
+  /**
+   * The next game with the same setup, on the same board. `newGame` aborts any
+   * search still running and resets the result, so the card closes by itself;
+   * a rated rematch reads the rating the last game just wrote.
+   */
+  const handleRematch = () => {
+    game.newGame();
     setReviewing(false);
   };
 
@@ -212,8 +223,29 @@ export function ChessScreen() {
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
+    // Pinned under the scrolling form rather than at its end, where it sat about
+    // a screen-height down on a phone.
+    const startButton = (
+      <Button
+        label={
+          isPuzzles
+            ? 'Start Puzzles'
+            : isOnlineMode
+              ? 'Find an Opponent'
+              : isTraining
+                ? 'Start Rated Game'
+                : 'Start Game'
+        }
+        onPress={
+          isPuzzles ? () => router.push('/puzzles/chess' as never) : () => setStarted(true)
+        }
+        disabled={!canStart}
+        glow
+      />
+    );
+
     return (
-      <Screen>
+      <Screen footer={startButton}>
         <GlowBackdrop
           blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.chess.base, opacity: 0.16 }]}
         />
@@ -426,23 +458,6 @@ export function ChessScreen() {
 
         {/* Pass-and-play is casual (no rating) — the only option is board flipping. */}
         {isPassAndPlay && <FlipBoardCard />}
-
-        <Button
-          label={
-            isPuzzles
-              ? 'Start Puzzles'
-              : isOnlineMode
-                ? 'Find an Opponent'
-                : isTraining
-                  ? 'Start Rated Game'
-                  : 'Start Game'
-          }
-          onPress={
-            isPuzzles ? () => router.push('/puzzles/chess' as never) : () => setStarted(true)
-          }
-          disabled={!canStart}
-          glow
-        />
       </Screen>
     );
   }
@@ -772,9 +787,10 @@ export function ChessScreen() {
         saveError={game.saveError}
         onRetrySave={game.retrySave}
         onReview={() => setReviewing(true)}
-        actions={
+        actions={<Button label="Rematch" onPress={handleRematch} glow />}
+        secondaryActions={
           <>
-            <Button label="Play Again" onPress={handleNewGame} glow />
+            <ChangeSetupButton onPress={handleNewGame} />
             <BackToHomeButton />
           </>
         }

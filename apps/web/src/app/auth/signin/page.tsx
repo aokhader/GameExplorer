@@ -131,7 +131,7 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 pt-16 page-glow-gold">
+    <div className="relative min-h-svh flex items-center justify-center px-4 pt-16 page-glow-gold">
       <div className="w-full max-w-sm">
         <h1 className="text-3xl font-bold text-center mb-8 tracking-tight">
           <GradientText>Sign in</GradientText>

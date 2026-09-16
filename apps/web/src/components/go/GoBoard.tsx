@@ -317,7 +317,7 @@ export const GoBoard = React.memo(function GoBoard({
 
           {hintPos === position && (
             <div
-              className="pointer-events-none absolute animate-pulse rounded-full"
+              className="pointer-events-none absolute animate-state-pulse rounded-full"
               style={{
                 width: `${STONE_RATIO * 100}%`,
                 height: `${STONE_RATIO * 100}%`,

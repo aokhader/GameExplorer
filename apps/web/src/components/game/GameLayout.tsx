@@ -312,7 +312,7 @@ export function GameLayout({
       className={cn(
         // No `pt-16`: multiplayer routes are immersive too, so the global navbar
         // is not rendered there (see `isImmersiveGameRoute`).
-        'relative min-h-dvh text-fg flex flex-col items-center px-3 sm:px-4 py-6',
+        'relative min-h-svh text-fg flex flex-col items-center px-3 sm:px-4 py-6',
         inGame ? 'justify-start' : 'justify-center',
         accent && `page-glow-${accent}`,
       )}

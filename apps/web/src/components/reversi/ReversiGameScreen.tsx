@@ -16,7 +16,8 @@ import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
-import { Button } from '@/components/ui';
+import { ResultActions } from '@/components/game/ResultActions';
+import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { DifficultyMeter } from '@/components/game/DifficultyMeter';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -173,7 +174,13 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
     });
   }, []);
 
+  // Bumped on every reset. A rematch starts the next game the instant the last
+  // one ends, so a reply still being computed for the finished board must not be
+  // appended to the new one, or clear the thinking flag a newer search owns.
+  const gameGenRef = useRef(0);
+
   const makeBotMove = useCallback(async () => {
+    const gen = gameGenRef.current;
     const currentLive = timelineRef.current[timelineRef.current.length - 1];
     const elo = targetEloRef.current;
 
@@ -185,8 +192,9 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
         ),
         new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
       ]);
-      // Dropped if the player resigned while the bot was thinking.
-      if (manualEndRef.current) return;
+      // Dropped if the game was reset, or the player resigned, while the bot
+      // was thinking.
+      if (gen !== gameGenRef.current || manualEndRef.current) return;
       const result = ReversiEngine.validateMove(currentLive, move.position);
       if (result.valid && result.resultingState) {
         appendState(result.resultingState);
@@ -194,7 +202,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
     } catch (err) {
       console.error('Bot error:', err);
     } finally {
-      setIsThinking(false);
+      if (gen === gameGenRef.current) setIsThinking(false);
     }
   }, [appendState]);
 
@@ -280,16 +288,28 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
     setPassMsg(null);
   };
 
-  const handleNewGame = () => {
+  /** Clear the finished game. `keepSetup` starts the next one straight away. */
+  const resetGame = (keepSetup: boolean) => {
+    gameGenRef.current += 1;
     setTimeline([ReversiEngine.newGame()]);
     setViewIndex(0);
-    setGameStarted(false);
+    if (!keepSetup) setGameStarted(false);
     setIsThinking(false);
     setManualEnd(null);
     setPassMsg(null);
     setRatingResult(null);
     setGameSaved(false);
+    setReviewing(false);
   };
+
+  /** Back to the setup form (header New Game, result card Change setup). */
+  const handleNewGame = () => resetGame(false);
+
+  /**
+   * Same strength, colour and rated choice, straight onto a fresh board. The
+   * turn effect gives the bot the first move when it plays black.
+   */
+  const handleRematch = () => resetGame(true);
 
   const handleStartGame = () => {
     setGameStarted(true);
@@ -305,7 +325,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen page-glow-reversi">
+      <div className="min-h-svh page-glow-reversi">
         <div className="container mx-auto px-4 pt-8">
           <Link href="/reversi" className="inline-flex items-center text-fg-muted hover:text-fg transition-colors">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -392,12 +412,14 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
             <RatedToggle checked={rated} onChange={setRated} gameLabel="reversi" userId={userId} />
           )}
 
-          <button
-            onClick={handleStartGame}
-            className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
-          >
-            Start Game
-          </button>
+          <SetupStartBar>
+            <button
+              onClick={handleStartGame}
+              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
+            >
+              Start Game
+            </button>
+          </SetupStartBar>
         </div>
       </div>
     );
@@ -452,7 +474,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
         headerActions={
           <>
             {passMsg && (
-              <span className="text-xs px-3 py-1 bg-warning/15 text-warning-hover rounded-full border border-warning/40 animate-pulse">
+              <span className="text-xs px-3 py-1 bg-warning/15 text-warning-hover rounded-full border border-warning/40 animate-state-pulse">
                 {passMsg}
               </span>
             )}
@@ -621,20 +643,13 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
             : undefined
         }
         actions={
-          <>
-            <Button size="lg" fullWidth onClick={handleNewGame}>
-              Play Again
-            </Button>
-            <Button size="lg" fullWidth variant="secondary" onClick={() => setReviewing(true)}>
-              Review Game
-            </Button>
-            <Link
-              href="/reversi"
-              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
-            >
-              Back to Reversi
-            </Link>
-          </>
+          <ResultActions
+            onRematch={handleRematch}
+            onReview={() => setReviewing(true)}
+            onChangeSetup={handleNewGame}
+            backHref="/reversi"
+            backLabel="Back to Reversi"
+          />
         }
       />
 

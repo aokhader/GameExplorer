@@ -94,7 +94,7 @@ export function LiquidateScreen() {
   };
 
   if (game.state) {
-    return <LiquidateGame game={game} mode={mode} onQuit={game.quit} />;
+    return <LiquidateGame game={game} mode={mode} onQuit={game.quit} onRematch={start} />;
   }
 
   const config = LIQUIDATE_CONFIGS[boardMode];
@@ -104,7 +104,8 @@ export function LiquidateScreen() {
   );
 
   return (
-    <Screen>
+    // Start pinned under the scrolling form rather than at its end.
+    <Screen footer={<Button label="Start Match" onPress={start} glow />}>
       <GlowBackdrop
         blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: accent.base, opacity: 0.16 }]}
       />
@@ -273,8 +274,6 @@ export function LiquidateScreen() {
           />
         ))}
       </View>
-
-      <Button label="Start Match" onPress={start} glow />
     </Screen>
   );
 }

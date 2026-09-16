@@ -58,6 +58,12 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
   const workerRef = useRef<Worker | null>(null);
   const [isReady, setIsReady] = useState(false);
   const moveResolverRef = useRef<((move: StockfishMove) => void) | null>(null);
+  const moveRejecterRef = useRef<((err: Error) => void) | null>(null);
+  // Answers still owed to searches nobody waits for any more. `stop` makes a
+  // cancelled search reply at once — but it does reply, and without this count
+  // that stale `bestmove` would resolve the next caller with a move for a
+  // different position (a rematch starts while the last game's bot is thinking).
+  const staleAnswersRef = useRef(0);
   // `isReady` mirrored into a ref, plus whoever is waiting for it to turn true —
   // for a caller that would rather wait for the engine than be refused.
   const isReadyRef = useRef(false);
@@ -90,9 +96,16 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
       }
 
       const bestMove = parseUciBestMove(message);
-      if (bestMove && moveResolverRef.current) {
-        moveResolverRef.current(bestMove);
-        moveResolverRef.current = null;
+      if (bestMove) {
+        if (staleAnswersRef.current > 0) {
+          staleAnswersRef.current -= 1;
+          return;
+        }
+        if (moveResolverRef.current) {
+          moveResolverRef.current(bestMove);
+          moveResolverRef.current = null;
+          moveRejecterRef.current = null;
+        }
       }
     };
 
@@ -100,10 +113,28 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
       workerRef.current?.terminate();
       workerRef.current = null;
       moveResolverRef.current = null;
+      moveRejecterRef.current = null;
+      staleAnswersRef.current = 0;
       isReadyRef.current = false;
       setIsReady(false);
     };
   }, [enabled]);
+
+  /**
+   * Abandon the search in flight, if there is one: stop the engine, discard the
+   * answer it still sends, and reject the waiting caller with an `AbortError`.
+   * Starting a new search does this first, so two callers never share one reply.
+   */
+  const cancelSearch = useCallback(() => {
+    const worker = workerRef.current;
+    const reject = moveRejecterRef.current;
+    if (!moveResolverRef.current || !worker) return;
+    worker.postMessage('stop');
+    staleAnswersRef.current += 1;
+    moveResolverRef.current = null;
+    moveRejecterRef.current = null;
+    reject?.(new DOMException('Search cancelled', 'AbortError'));
+  }, []);
 
   const getBestMove = useCallback(
     (gameState: ChessGameState, targetElo: number): Promise<StockfishMove> => {
@@ -119,7 +150,9 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
           return;
         }
 
+        cancelSearch();
         moveResolverRef.current = resolve;
+        moveRejecterRef.current = reject;
 
         // No ucinewgame here: the worker lives for exactly one game (it is
         // created when the game starts), so keeping the hash between moves
@@ -131,7 +164,7 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
         workerRef.current.postMessage(`go movetime ${stockfishMoveTimeMs(targetElo)}`);
       });
     },
-    [isReady],
+    [isReady, cancelSearch],
   );
 
   /** Resolves once the engine is up, waiting at most `timeoutMs` for it. */
@@ -167,15 +200,17 @@ export function useStockfish({ enabled = true }: UseStockfishOptions = {}) {
           return;
         }
 
+        cancelSearch();
         moveResolverRef.current = resolve;
+        moveRejecterRef.current = reject;
 
         worker.postMessage('setoption name UCI_LimitStrength value false');
         worker.postMessage(buildUciPositionCommand(gameState.moveHistory));
         worker.postMessage(`go movetime ${movetimeMs}`);
       });
     },
-    [whenReady],
+    [whenReady, cancelSearch],
   );
 
-  return { isReady, getBestMove, getFullStrengthMove };
+  return { isReady, getBestMove, getFullStrengthMove, cancelSearch };
 }

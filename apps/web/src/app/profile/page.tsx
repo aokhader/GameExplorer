@@ -149,7 +149,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="relative min-h-screen pt-16 page-glow-profile">
+      <div className="relative min-h-svh pt-16 page-glow-profile">
         <div className="container mx-auto px-4 pt-8 pb-8 max-w-5xl">
           <HomeLink />
           {/* Avatar + username */}
@@ -239,7 +239,7 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="relative min-h-screen pt-16 page-glow-profile">
+    <div className="relative min-h-svh pt-16 page-glow-profile">
       <div className="container mx-auto px-4 pt-8 pb-8 max-w-5xl">
         <HomeLink />
 

@@ -32,7 +32,7 @@ export function TutorialArticle({ tutorial }: { tutorial: GameTutorial }) {
   const meta = GAME_META[tutorial.game];
 
   return (
-    <main className="relative min-h-screen pt-16">
+    <main className="relative min-h-svh pt-16">
       <div className="container mx-auto px-4 pt-8">
         <Link
           href={meta.hubHref}

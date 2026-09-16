@@ -18,6 +18,12 @@ interface ScreenProps {
    * where the eye expects it; `none` where something inside owns its entrance.
    */
   entrance?: 'rise' | 'fade' | 'none';
+  /**
+   * Pinned below the content, outside the scroll — a setup screen's Start
+   * button. At the end of a form it sat about a screen-height down on a phone,
+   * so every game began with a scroll to find it.
+   */
+  footer?: ReactNode;
 }
 
 /**
@@ -60,7 +66,7 @@ function useKeyboardHeight(): number {
  * the keyboard open — see `useKeyboardHeight`. The content enters on mount, as
  * `entrance` says.
  */
-export function Screen({ children, scroll = true, edges = ['top', 'bottom'], entrance = 'rise' }: ScreenProps) {
+export function Screen({ children, scroll = true, edges = ['top', 'bottom'], entrance = 'rise', footer }: ScreenProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
@@ -86,6 +92,23 @@ export function Screen({ children, scroll = true, edges = ['top', 'bottom'], ent
         <Entrance variant={entrance} style={[{ flex: 1, paddingHorizontal: 20, paddingTop: 8 }, column]}>
           {children}
         </Entrance>
+      )}
+      {footer && (
+        <View
+          style={[
+            {
+              paddingHorizontal: 20,
+              paddingTop: 12,
+              paddingBottom: 12,
+              borderTopWidth: 1,
+              borderTopColor: COLORS.border,
+              backgroundColor: COLORS.surface,
+            },
+            column,
+          ]}
+        >
+          {footer}
+        </View>
       )}
     </SafeAreaView>
   );

@@ -17,7 +17,7 @@ import {
 } from '@gameexplorer/shared';
 import { motionKey, useBoardMotion } from '@gameexplorer/client/hooks/useBoardMotion';
 import { ChessPiece } from '@gameexplorer/ui';
-import { BoardFrame } from '@/components/board/BoardFrame';
+import { BOARD_MAX_PX, BoardFrame } from '@/components/board/BoardFrame';
 import { BoardMark, markMap } from '@/components/board/BoardMark';
 import { PieceSlot } from '@/components/board/PieceSlot';
 import { useGameSfx } from '@/hooks/useGameSfx';
@@ -771,7 +771,7 @@ export const ChessBoard = React.memo(function ChessBoard({
 
   return (
     <div className="chess-board-wrapper">
-      <BoardFrame maxPx={compact ? 520 : 680} vhCap={compact ? 70 : 80}>
+      <BoardFrame maxPx={compact ? 520 : BOARD_MAX_PX} vhCap={compact ? 70 : 80}>
         <div className="relative w-full h-full">
         <div
           className={`chess-board${myTurn ? ' my-turn' : ''}`}

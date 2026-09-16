@@ -22,7 +22,8 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { CapturedTray } from '@/components/game/CapturedTray';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
-import { Button } from '@/components/ui';
+import { ResultActions } from '@/components/game/ResultActions';
+import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -157,6 +158,12 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   // when the worker confirms, not when makeMove() posts the message.
   const botMovePendingRef = useRef(false);
 
+  // Bumped on every reset. A rematch starts the next game in the same instant
+  // the last one ended, so a bot search still running for the finished game (the
+  // player resigned mid-think) must not land on the new one — or clear the
+  // thinking flag of the search that now owns the turn.
+  const gameGenRef = useRef(0);
+
   // Always-fresh refs for use inside async callbacks and effects.
   const targetEloRef    = useRef(targetElo);
   targetEloRef.current  = targetElo;
@@ -246,12 +253,15 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
     // Weak bots (< STOCKFISH_MIN_ELO) run in the chess-engine worker and don't
     // need Stockfish; only wait on it when the selected ELO actually uses it.
     if (targetElo >= STOCKFISH_MIN_ELO && !stockfish.isReady) return;
+    // Between a reset and the worker's fresh position the timeline is empty and
+    // `liveState` is still the finished game — never search on that.
+    if (timeline.length === 0) return;
     if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd) return;
     if (liveState.currentTurn !== playerColor && !isThinking) {
       makeBotMove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, targetElo, manualEnd]);
+  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, targetElo, manualEnd, timeline.length]);
 
   // ── Save game and update rating when it ends ────────────────────────────────
   // One effect for both endings. Resign/draw used to save from its own handler,
@@ -303,6 +313,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   // ── Bot move ────────────────────────────────────────────────────────────────
   const makeBotMove = useCallback(async () => {
     const elo = targetEloRef.current;
+    const gen = gameGenRef.current;
     setIsThinking(true);
     botMovePendingRef.current = true;
 
@@ -325,6 +336,8 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
         from = move.from; to = move.to; promotion = move.promotion;
       }
 
+      // A newer game owns the board and the thinking flag now; leave both alone.
+      if (gen !== gameGenRef.current) return;
       // The player may have resigned / agreed a draw while the bot was
       // thinking — drop the move instead of playing on a finished game.
       if (manualEndRef.current) {
@@ -337,6 +350,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
       // isThinking is cleared in the timeline sync effect when the worker confirms.
       makeMove(from as Position, to as Position, promotion);
     } catch (err) {
+      if (gen !== gameGenRef.current) return;
       console.error('Bot error:', err);
       botMovePendingRef.current = false;
       setIsThinking(false);
@@ -362,17 +376,33 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
     // The save/rating effect above picks this up — it watches `manualEnd`.
   };
 
-  const handleNewGame = () => {
+  /** Clear the finished game. `keepSetup` starts the next one straight away. */
+  const resetGame = (keepSetup: boolean) => {
+    gameGenRef.current += 1;
+    // The finished game's bot may still be thinking; its answer is for a board
+    // that no longer exists.
+    stockfish.cancelSearch();
     setTimeline([]);
     setViewIndex(0);
-    setGameStarted(false);
+    if (!keepSetup) setGameStarted(false);
     setIsThinking(false);
     setManualEnd(null);
     setGameSaved(false);
     setRatingResult(null);
+    setReviewing(false);
     botMovePendingRef.current = false;
     reset(); // worker resets to newGame() and broadcasts STATE_UPDATE
   };
+
+  /** Back to the setup form (header New Game, result card Change setup). */
+  const handleNewGame = () => resetGame(false);
+
+  /**
+   * Same strength, same colour, same rated choice — no setup form. A rated
+   * rematch reads the rating the last game just wrote (`userRating` is updated
+   * when the save resolves).
+   */
+  const handleRematch = () => resetGame(true);
 
   const handleStartGame = () => {
     setGameStarted(true);
@@ -409,7 +439,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen page-glow-chess">
+      <div className="min-h-svh page-glow-chess">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/chess"
@@ -527,12 +557,14 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
             <RatedToggle checked={rated} onChange={setRated} gameLabel="chess" userId={userId} />
           )}
 
-          <button
-            onClick={handleStartGame}
-            className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
-          >
-            Start Game
-          </button>
+          <SetupStartBar>
+            <button
+              onClick={handleStartGame}
+              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
+            >
+              Start Game
+            </button>
+          </SetupStartBar>
         </div>
       </div>
     );
@@ -734,20 +766,13 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
             : undefined
         }
         actions={
-          <>
-            <Button size="lg" fullWidth onClick={handleNewGame}>
-              Play Again
-            </Button>
-            <Button size="lg" fullWidth variant="secondary" onClick={() => setReviewing(true)}>
-              Review Game
-            </Button>
-            <Link
-              href="/chess"
-              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
-            >
-              Back to Chess
-            </Link>
-          </>
+          <ResultActions
+            onRematch={handleRematch}
+            onReview={() => setReviewing(true)}
+            onChangeSetup={handleNewGame}
+            backHref="/chess"
+            backLabel="Back to Chess"
+          />
         }
       />
 

@@ -24,7 +24,7 @@ const REQUEST_SUBJECT = 'GameExplorer — Account deletion request';
 export default function DeleteAccountPage() {
   return (
     // pt-16 clears the fixed nav, the same shell every other page uses.
-    <div className="relative min-h-screen pt-16">
+    <div className="relative min-h-svh pt-16">
       <main className="max-w-2xl mx-auto px-6 py-14">
         <h1 className="text-3xl font-bold mb-2">
           <GradientText>Delete Your Account</GradientText>

@@ -42,6 +42,8 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
 import { Button } from '@/components/ui';
+import { ResultActions } from '@/components/game/ResultActions';
+import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { DifficultyMeter } from '@/components/game/DifficultyMeter';
 
 // Only rendered at game end, and it pulls in confetti + a framer-motion tree —
@@ -205,10 +207,20 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   const hintPos = hintMove && !hintIsPass ? hintMove.to : null;
 
   const handleStart = () => setStarted(true);
+  /** Back to the setup form (header New Game, result card Change setup). */
   const handleNewGame = () => {
     newGame();
     setDead([]);
     setStarted(false);
+  };
+
+  /**
+   * Same size, komi, colour and strength, straight onto a fresh board.
+   * `newGame` aborts any search still running for the finished one.
+   */
+  const handleRematch = () => {
+    newGame();
+    setDead([]);
   };
 
   // ── Setup screen ────────────────────────────────────────────────────────────
@@ -217,7 +229,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
     const guestBlocked = isTraining && !userId;
 
     return (
-      <div className="min-h-screen page-glow-go">
+      <div className="min-h-svh page-glow-go">
         <div className="container mx-auto px-4 pt-8">
           <Link href="/go" className="inline-flex items-center text-fg-muted hover:text-fg transition-colors">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,13 +367,15 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
             <RatedToggle checked={rated} onChange={setRated} gameLabel="Go" userId={userId} />
           )}
 
-          <button
-            onClick={handleStart}
-            disabled={guestBlocked || (isTraining && ratingLoading)}
-            className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isTraining ? 'Start Rated Game' : 'Start Game'}
-          </button>
+          <SetupStartBar>
+            <button
+              onClick={handleStart}
+              disabled={guestBlocked || (isTraining && ratingLoading)}
+              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isTraining ? 'Start Rated Game' : 'Start Game'}
+            </button>
+          </SetupStartBar>
 
           <p className="mt-6 text-center text-sm text-fg-subtle">
             New to Go?{' '}
@@ -663,13 +677,12 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                 {liveState.komi > 0 ? ` (incl. ${liveState.komi} komi)` : ' (no komi)'}
               </span>
             </p>
-            <Button size="lg" fullWidth onClick={handleNewGame}>Play Again</Button>
-            <Link
-              href="/go"
-              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
-            >
-              Back to Go
-            </Link>
+            <ResultActions
+              onRematch={handleRematch}
+              onChangeSetup={handleNewGame}
+              backHref="/go"
+              backLabel="Back to Go"
+            />
           </>
         }
       />

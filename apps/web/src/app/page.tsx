@@ -7,9 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY } from '@/lib/onboarding';
 import { SUPPORT_EMAIL } from '@/lib/support';
-import { GAME_LIST, gameCountWord, type GameCatalogEntry, type GameId } from '@gameexplorer/shared';
+import { GAME_LIST, gameCountWord, gameNameList, type GameCatalogEntry, type GameId } from '@gameexplorer/shared';
 import { GameIcon } from '@/components/game/GameIcon';
-import { Icon, type IconName } from '@gameexplorer/ui';
 
 const GAME_CARD_GLOW: Record<GameId, string> = {
   chess: 'group-hover:[box-shadow:var(--shadow-glow-chess)]',
@@ -40,7 +39,7 @@ export default function HomePage() {
   const games = GAME_LIST;
 
   return (
-    <div className="relative min-h-screen pt-16">
+    <div className="relative min-h-svh pt-16">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
@@ -49,8 +48,10 @@ export default function HomePage() {
             <span className="text-fg">Game</span>
             <span className="text-gradient-brand text-info">Explorer</span>
           </Reveal>
+          {/* Every clause here can be checked against the product. The names come
+              from the catalog, so a new game joins the sentence by existing. */}
           <Reveal as="p" delay={120} className="text-xl md:text-2xl text-fg-muted mb-8">
-            Classic board games, reimagined for the modern web
+            {gameNameList()} — free, and no sign-up to start.
           </Reveal>
           <Reveal delay={220} className="flex justify-center gap-4">
             <Link
@@ -66,6 +67,16 @@ export default function HomePage() {
               Browse Games
             </a>
           </Reveal>
+          {/* The tour used to be reachable only by being redirected into it on a
+              first visit. Native Home has always had this link. */}
+          <div className="mt-3">
+            <Link
+              href="/welcome"
+              className="inline-flex min-h-11 items-center px-2 text-sm text-fg-muted hover:text-fg transition-colors"
+            >
+              Take a quick tour
+            </Link>
+          </div>
         </div>
 
         {/* Game Cards */}
@@ -92,28 +103,6 @@ export default function HomePage() {
                     <GameCard game={game} isHovered={hoveredGame === game.id} />
                   </div>
                 )}
-              </Reveal>
-            ))}
-          </div>
-        </div>
-
-        {/* Features Section */}
-        <div className="max-w-6xl mx-auto mt-24">
-          <Reveal as="h2" className="text-4xl font-bold text-fg text-center mb-12">
-            Features
-          </Reveal>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {([
-              { icon: 'game-controller', title: 'Play vs AI', description: 'Challenge our adaptive bot across a wide range of difficulty levels' },
-              { icon: 'globe', title: 'Online Multiplayer', description: 'Match with players worldwide or invite a friend by link — live and real-time' },
-              { icon: 'device-mobile', title: 'Mobile Friendly', description: 'Play seamlessly on any device — desktop, tablet, or phone' },
-              { icon: 'chart-bar', title: 'Track Progress', description: 'Per-game ratings, full match history, and stats on your profile' },
-              { icon: 'graduation-cap', title: 'Training Mode', description: 'Rated games against a bot matched to your skill, with in-game hints' },
-              { icon: 'palette', title: 'Built to Delight', description: 'A clean, vibrant interface with satisfying, responsive feedback' },
-            ] as const).map((f, i) => (
-              <Reveal key={f.title} delay={i * 70}>
-                <FeatureCard {...f} />
               </Reveal>
             ))}
           </div>
@@ -203,34 +192,6 @@ function GameCard({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// Feature Card Component
-function FeatureCard({
-  icon,
-  title,
-  description,
-  comingSoon = false,
-}: {
-  icon: IconName;
-  title: string;
-  description: string;
-  comingSoon?: boolean;
-}) {
-  return (
-    <div className="h-full glass rounded-2xl p-6 hover-lift hover:border-white/15">
-      <div className="text-4xl mb-4 text-accent"><Icon name={icon} /></div>
-      <h3 className="text-xl font-semibold text-fg mb-2">
-        {title}
-        {comingSoon && (
-          <span className="ml-2 text-xs bg-info text-white px-2 py-1 rounded-full align-middle">
-            Soon
-          </span>
-        )}
-      </h3>
-      <p className="text-fg-muted">{description}</p>
     </div>
   );
 }

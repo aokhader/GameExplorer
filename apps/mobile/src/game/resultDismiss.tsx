@@ -24,6 +24,18 @@ export function useDismissThen(): DismissThen {
 }
 
 /**
+ * "Change setup" — the quiet way back to a game's setup screen from its result
+ * card. Rematch is the primary action and keeps the setup; this is for a
+ * different strength, colour or mode. It swaps the screen's whole tree, so it
+ * takes the same dismiss-first hop as Review.
+ */
+export function ChangeSetupButton({ onPress }: { onPress: () => void }) {
+  const dismissThen = useDismissThen();
+
+  return <Button label="Change setup" variant="ghost" onPress={() => dismissThen(onPress)} />;
+}
+
+/**
  * "Back to Home", the last action on every game-over card.
  *
  * `replace` rather than `push`: a finished game should not sit on the back

@@ -32,6 +32,45 @@ test('plays the opening of a bot game as black', async ({ page }) => {
   await expect(legal.first()).toBeVisible(); // our turn again — game is alive
 });
 
+test('Rematch starts the next game without the setup screen', async ({ page }) => {
+  await page.goto('/reversi/bot');
+  await page.getByRole('button', { name: /Beginner/ }).click();
+  await page.getByRole('button', { name: 'Start Game' }).click();
+
+  const discs = page.locator('[data-disc]');
+  const legal = page.locator('[data-legal]');
+  await expect(discs).toHaveCount(4);
+
+  // Play a move so the rematch has a position to throw away.
+  await legal.first().click();
+  await expect.poll(() => discs.count(), { timeout: 20_000 }).toBeGreaterThanOrEqual(6);
+
+  // Resign asks for a second click (the GameActions confirm step).
+  const resign = page.getByRole('button', { name: /^Resign\??$/ });
+  await resign.click();
+  await resign.click();
+
+  await page.getByRole('button', { name: 'Rematch' }).click();
+
+  // A fresh board, our move, and no setup form in between.
+  await expect(discs).toHaveCount(4);
+  await expect(legal.first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start Game' })).toHaveCount(0);
+});
+
+test('Change setup on the result card returns to the setup screen', async ({ page }) => {
+  await page.goto('/reversi/bot');
+  await page.getByRole('button', { name: 'Start Game' }).click();
+  await expect(page.locator('[data-disc]')).toHaveCount(4);
+
+  const resign = page.getByRole('button', { name: /^Resign\??$/ });
+  await resign.click();
+  await resign.click();
+
+  await page.getByRole('button', { name: 'Change setup' }).click();
+  await expect(page.getByRole('button', { name: 'Start Game' })).toBeVisible();
+});
+
 test('New Game returns to the setup screen', async ({ page }) => {
   await page.goto('/reversi/bot');
   await page.getByRole('button', { name: 'Start Game' }).click();

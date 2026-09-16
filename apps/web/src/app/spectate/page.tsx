@@ -47,7 +47,7 @@ export default function SpectateLobby() {
   }, [loadGames]);
 
   return (
-    <div className="relative min-h-screen text-fg pt-16 flex flex-col items-center px-4 py-8">
+    <div className="relative min-h-svh text-fg pt-16 flex flex-col items-center px-4 py-8">
       <div className="w-full max-w-2xl">
         <div className="flex items-center justify-between mb-6 mt-6">
           <h1 className="flex items-center gap-2 text-2xl font-bold"><Icon name="eye" className="text-fg-muted" /> Watch Live Games</h1>

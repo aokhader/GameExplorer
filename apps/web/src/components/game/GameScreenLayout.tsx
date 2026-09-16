@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { BOARD_MAX_PX, BOARD_VH_CAP } from '@/components/board/BoardFrame';
 
 export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
@@ -82,10 +83,13 @@ export function GameScreenLayout({
   bottomCard,
   board,
   sidebar,
-  boardColumnClassName = 'lg:w-[520px] xl:w-[600px] 2xl:w-[680px]',
+  // Grow into whatever width the sidebar leaves, up to `--gx-board-cap` below.
+  // The fixed breakpoint widths this replaced gave every 1280–1535px-wide
+  // screen a 600px board regardless of the height it had to spare.
+  boardColumnClassName = 'lg:grow-[1000] lg:basis-0 lg:min-w-0',
   className,
 }: GameScreenLayoutProps) {
-  // The desktop shell is `lg:h-screen lg:overflow-hidden`, so a board column
+  // The desktop shell is `lg:h-svh lg:overflow-hidden`, so a board column
   // taller than the viewport doesn't scroll — it gets silently cut off (which
   // is what used to hide the "You" player card on ~720px-tall laptop screens).
   // Cap the column by the height actually available and the square board
@@ -99,7 +103,7 @@ export function GameScreenLayout({
   return (
     <div
       className={cn(
-        'reveal-up min-h-screen lg:h-screen flex flex-col lg:overflow-hidden',
+        'reveal-up min-h-svh lg:h-svh flex flex-col lg:overflow-hidden',
         accent && `page-glow-${accent}`,
         className,
       )}
@@ -129,21 +133,29 @@ export function GameScreenLayout({
             <div
               className={cn(
                 // `lg:` only, deliberately. The cap exists because the desktop
-                // shell is `lg:h-screen lg:overflow-hidden`, where a too-tall
+                // shell is `lg:h-svh lg:overflow-hidden`, where a too-tall
                 // column is silently CUT OFF. Below `lg` the page scrolls
                 // instead, so nothing is lost by overflowing — and applying the
                 // cap there just shrinks every board for no benefit.
                 'flex flex-col gap-3 w-full lg:shrink-0 lg:max-w-[var(--gx-board-cap)]',
                 boardColumnClassName,
               )}
-              style={{ '--gx-board-cap': `calc(100svh - ${reservedPx}px)` } as React.CSSProperties}
+              // The height budget, and the board frame's own caps too: a column
+              // wider than the board it holds would stretch the player cards
+              // past the board's edges on a tall screen.
+              style={{
+                '--gx-board-cap': `min(calc(100svh - ${reservedPx}px), ${BOARD_VH_CAP}svh, ${BOARD_MAX_PX}px)`,
+              } as React.CSSProperties}
             >
               {topCard}
               {topExtras}
               {board}
               {bottomCard}
             </div>
-            <div className="w-full lg:flex-1 lg:max-w-[460px] flex flex-col gap-3 lg:min-h-0 lg:h-full">
+            {/* The sidebar takes what the board leaves: at least 280px, at most
+                460px. The board column's much larger grow factor means it fills
+                first, up to its cap, and the sidebar absorbs the rest. */}
+            <div className="w-full lg:grow lg:basis-[280px] lg:min-w-[280px] lg:max-w-[460px] flex flex-col gap-3 lg:min-h-0 lg:h-full">
               {sidebar}
             </div>
           </div>

@@ -273,8 +273,9 @@
   100% { opacity: 0; transform: scale(1.25); }
 }
 
-/* Check highlight — a red ring + glow on the king under attack. The ring is
-   always visible (signifier); the pulse is motion-safe only. */
+/* Check highlight — a red ring + glow on the king under attack. Static on
+   purpose: a check lasts as long as the player takes to answer it, and the loop
+   that used to pulse here repainted the board at 60fps for that whole time. */
 .check-ring {
   position: absolute;
   inset: 6%;
@@ -300,23 +301,6 @@
     0 0 0 2px rgba(59, 130, 246, 0.6),
     0 0 30px -2px rgba(59, 130, 246, 0.55)
   );
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .check-ring { animation: check-pulse 1s ease-in-out infinite; }
-}
-
-@keyframes check-pulse {
-  0%, 100% {
-    box-shadow:
-      0 0 0 3px rgba(220, 38, 38, 0.9),
-      0 0 18px 4px rgba(220, 38, 38, 0.55);
-  }
-  50% {
-    box-shadow:
-      0 0 0 4px rgba(220, 38, 38, 1),
-      0 0 26px 8px rgba(220, 38, 38, 0.8);
-  }
 }
 
 /* Responsive label/indicator tuning (board size itself is handled by BoardFrame) */

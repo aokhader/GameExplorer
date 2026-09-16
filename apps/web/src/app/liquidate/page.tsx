@@ -58,7 +58,7 @@ const gameModes: GameMode[] = [
 
 export default function LiquidateLandingPage() {
   return (
-    <div className="relative min-h-screen pt-16 page-glow-liquidate">
+    <div className="relative min-h-svh pt-16 page-glow-liquidate">
       <div className="container mx-auto px-4 pt-8">
         <Link
           href="/"

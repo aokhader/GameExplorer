@@ -16,7 +16,8 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
 import { useSettings } from '@/components/providers/SettingsProvider';
-import { Button } from '@/components/ui';
+import { ResultActions } from '@/components/game/ResultActions';
+import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { DifficultyMeter } from '@/components/game/DifficultyMeter';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -211,7 +212,13 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
     getUserRating(user.id, 'checkers').then(setUserRating);
   }, [user]);
 
+  // Bumped on every reset. A rematch starts the next game the instant the last
+  // one ends, so a reply still being computed for the finished board must not be
+  // appended to the new one, or clear the thinking flag a newer search owns.
+  const gameGenRef = useRef(0);
+
   const makeBotMove = useCallback(async () => {
+    const gen = gameGenRef.current;
     const currentTimeline  = timelineRef.current;
     const wasAtLive        = viewIndexRef.current === currentTimeline.length - 1;
     const currentLiveState = currentTimeline[currentTimeline.length - 1];
@@ -227,8 +234,9 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
         new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
       ]);
 
-      // Dropped if the player resigned / agreed a draw while the bot thought.
-      if (manualEndRef.current) return;
+      // Dropped if the game was reset, or the player resigned / agreed a draw,
+      // while the bot thought.
+      if (gen !== gameGenRef.current || manualEndRef.current) return;
 
       const result = CheckersEngine.validateMove(currentLiveState, move.from, move.to);
       if (result.valid && result.resultingState) {
@@ -240,7 +248,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
     } catch (err) {
       console.error('Bot error:', err);
     } finally {
-      setIsThinking(false);
+      if (gen === gameGenRef.current) setIsThinking(false);
     }
   }, []);
 
@@ -319,15 +327,24 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
     setIsThinking(false);
   };
 
-  const handleNewGame = () => {
+  /** Clear the finished game. `keepSetup` starts the next one straight away. */
+  const resetGame = (keepSetup: boolean) => {
+    gameGenRef.current += 1;
     setTimeline([CheckersEngine.newGame()]);
     setViewIndex(0);
-    setGameStarted(false);
+    if (!keepSetup) setGameStarted(false);
     setIsThinking(false);
     setManualEnd(null);
     setRatingResult(null);
     setGameSaved(false);
+    setReviewing(false);
   };
+
+  /** Back to the setup form (header New Game, result card Change setup). */
+  const handleNewGame = () => resetGame(false);
+
+  /** Same strength, colour and rated choice, straight onto a fresh board. */
+  const handleRematch = () => resetGame(true);
 
   const handleStartGame = () => {
     setGameStarted(true);
@@ -344,7 +361,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen page-glow-checkers">
+      <div className="min-h-svh page-glow-checkers">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/checkers"
@@ -440,12 +457,14 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
             <RatedToggle checked={rated} onChange={setRated} gameLabel="checkers" userId={userId} />
           )}
 
-          <button
-            onClick={handleStartGame}
-            className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
-          >
-            Start Game
-          </button>
+          <SetupStartBar>
+            <button
+              onClick={handleStartGame}
+              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
+            >
+              Start Game
+            </button>
+          </SetupStartBar>
         </div>
       </div>
     );
@@ -693,20 +712,13 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
             : undefined
         }
         actions={
-          <>
-            <Button size="lg" fullWidth onClick={handleNewGame}>
-              Play Again
-            </Button>
-            <Button size="lg" fullWidth variant="secondary" onClick={() => setReviewing(true)}>
-              Review Game
-            </Button>
-            <Link
-              href="/checkers"
-              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
-            >
-              Back to Checkers
-            </Link>
-          </>
+          <ResultActions
+            onRematch={handleRematch}
+            onReview={() => setReviewing(true)}
+            onChangeSetup={handleNewGame}
+            backHref="/checkers"
+            backLabel="Back to Checkers"
+          />
         }
       />
 

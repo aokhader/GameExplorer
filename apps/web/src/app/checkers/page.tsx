@@ -81,7 +81,7 @@ export default function CheckersLandingPage() {
   ];
 
   return (
-    <div className="relative min-h-screen pt-16">
+    <div className="relative min-h-svh pt-16">
       <div className="container mx-auto px-4 pt-8">
         <Link
           href="/"

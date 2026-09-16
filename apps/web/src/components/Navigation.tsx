@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { isImmersiveGameRoute } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { GAME_LIST } from '@gameexplorer/shared';
+import { Icon } from '@gameexplorer/ui';
 
 // The games come from the catalog so a new one appears in the nav by existing,
 // not by someone remembering this file. Home and Watch are not games.
@@ -135,6 +136,16 @@ export function Navigation() {
                 </div>
               ) : (
                 <>
+                  {/* Settings is device-level (theme, sound, motion), so a guest
+                      needs it as much as anyone — it used to live only in the
+                      signed-in account menu. Below sm it's in the menu panel. */}
+                  <Link
+                    href="/settings"
+                    aria-label="Settings"
+                    className="hidden sm:inline-flex items-center justify-center w-10 h-10 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  >
+                    <Icon name="gear" className="text-xl" />
+                  </Link>
                   <Link
                     href="/auth/signin"
                     className="hidden sm:inline text-sm text-fg-muted hover:text-fg transition-colors"
@@ -186,6 +197,24 @@ export function Navigation() {
                 {item.label}
               </Link>
             ))}
+            <div className="my-1 border-t border-border" />
+            <Link
+              href="/settings"
+              className={cn(
+                'py-3 px-2 text-base font-medium rounded-lg transition-colors',
+                isActive('/settings') ? 'text-accent' : 'text-fg-muted hover:text-fg hover:bg-surface-muted',
+              )}
+            >
+              Settings
+            </Link>
+            {!loading && !user && (
+              <Link
+                href="/auth/signin"
+                className="py-3 px-2 text-base font-medium rounded-lg transition-colors text-fg-muted hover:text-fg hover:bg-surface-muted"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       )}

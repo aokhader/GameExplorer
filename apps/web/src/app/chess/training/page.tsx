@@ -28,7 +28,8 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { CapturedTray } from '@/components/game/CapturedTray';
 import { GameActions } from '@/components/game/GameActions';
 import { StatusBanner } from '@/components/game/StatusBanner';
-import { Button } from '@/components/ui';
+import { ResultActions } from '@/components/game/ResultActions';
+import { SetupStartBar } from '@/components/game/SetupStartBar';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -108,6 +109,11 @@ export default function ChessTrainingPage() {
   // Tracks whether a bot MAKE_MOVE is in flight so we clear isThinking only
   // when the worker confirms, not when makeMove() posts the message.
   const botMovePendingRef = useRef(false);
+
+  // Bumped on every reset. A rematch starts the next game the instant the last
+  // one ends, so a search still running for the finished board must not land on
+  // the new one, or clear the thinking flag a newer search owns.
+  const gameGenRef = useRef(0);
 
   // Stable refs for async callbacks
   const liveStateRef = useRef(liveState);
@@ -194,13 +200,16 @@ export default function ChessTrainingPage() {
     // first, so a bot that also plays through Stockfish would receive the hint's
     // move for a position that is gone. The bot waits for the hint instead.
     if (isHinting) return;
+    // Between a reset and the worker's fresh position the timeline is empty and
+    // `liveState` is still the finished game — never search on that.
+    if (timeline.length === 0) return;
     if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd) return;
     const isBotTurn = liveState.currentTurn !== playerColor;
     if (isBotTurn && !isThinking) {
       makeBotMove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking, isHinting, stockfish.isReady, engineReady, botElo, manualEnd]);
+  }, [liveState, playerColor, gameStarted, isThinking, isHinting, stockfish.isReady, engineReady, botElo, manualEnd, timeline.length]);
 
   // ── Save game + update rating when game ends ──────────────────────────────
 
@@ -261,6 +270,7 @@ export default function ChessTrainingPage() {
 
   const makeBotMove = async () => {
     const elo = userRatingRef.current?.rating ?? 1200;
+    const gen = gameGenRef.current;
 
     setIsThinking(true);
     botMovePendingRef.current = true;
@@ -280,6 +290,8 @@ export default function ChessTrainingPage() {
         ]);
       }
 
+      // A newer game owns the board and the thinking flag now; leave both alone.
+      if (gen !== gameGenRef.current) return;
       // Dropped if the player resigned / agreed a draw while the bot thought.
       if (manualEndRef.current) {
         botMovePendingRef.current = false;
@@ -291,6 +303,7 @@ export default function ChessTrainingPage() {
       // isThinking is cleared in the timeline sync effect when the worker confirms.
       makeMove(move.from as Position, move.to as Position, move.promotion as PieceType | undefined);
     } catch (err) {
+      if (gen !== gameGenRef.current) return;
       console.error('Bot error:', err);
       botMovePendingRef.current = false;
       setIsThinking(false);
@@ -332,7 +345,8 @@ export default function ChessTrainingPage() {
         setTimeout(() => setHintArrow(null), 3000);
       }
     } catch (err) {
-      console.error('Hint error:', err);
+      // A rematch cancels a hint still searching; that is not an error.
+      if ((err as Error)?.name !== 'AbortError') console.error('Hint error:', err);
     } finally {
       setIsHinting(false);
     }
@@ -350,10 +364,14 @@ export default function ChessTrainingPage() {
     setHintArrow(null);
   };
 
-  const handleNewGame = () => {
+  /** Clear the finished game. `keepSetup` starts the next one straight away. */
+  const resetGame = (keepSetup: boolean) => {
+    gameGenRef.current += 1;
+    // A bot move or a hint may still be searching the finished board.
+    stockfish.cancelSearch();
     setTimeline([]);
     setViewIndex(0);
-    setGameStarted(false);
+    if (!keepSetup) setGameStarted(false);
     setIsThinking(false);
     setManualEnd(null);
     setHintArrow(null);
@@ -364,6 +382,15 @@ export default function ChessTrainingPage() {
     botMovePendingRef.current = false;
     reset(); // worker resets to newGame() and broadcasts STATE_UPDATE
   };
+
+  /** Back to the setup form (header New Game, result card Change setup). */
+  const handleNewGame = () => resetGame(false);
+
+  /**
+   * The next rated game, straight onto the board. The bot is matched to the
+   * rating the last game wrote — `userRating` updates when that save resolves.
+   */
+  const handleRematch = () => resetGame(true);
 
   const handleStartGame = () => {
     // When the player is black the bot-turn effect fires the first move once
@@ -379,7 +406,7 @@ export default function ChessTrainingPage() {
 
   if (authLoading || (!user && !authLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-svh flex items-center justify-center">
         <div className="text-fg-muted">Loading…</div>
       </div>
     );
@@ -389,7 +416,7 @@ export default function ChessTrainingPage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen page-glow-chess">
+      <div className="min-h-svh page-glow-chess">
         <div className="container mx-auto px-4 pt-8">
           <Link
             href="/chess"
@@ -487,13 +514,15 @@ export default function ChessTrainingPage() {
             </div>
           </div>
 
-          <button
-            onClick={handleStartGame}
-            disabled={ratingLoading}
-            className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            Start Rated Game
-          </button>
+          <SetupStartBar>
+            <button
+              onClick={handleStartGame}
+              disabled={ratingLoading}
+              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Start Rated Game
+            </button>
+          </SetupStartBar>
         </div>
       </div>
     );
@@ -693,25 +722,16 @@ export default function ChessTrainingPage() {
         }
         hintsUsed={ratingResult?.hintsUsed}
         actions={
-          <>
-            {savedGameId && (
-              <Link
-                href={`/chess/analysis?gameId=${savedGameId}`}
-                className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-accent [background-image:var(--gradient-accent)] text-on-accent hover:[box-shadow:var(--shadow-glow-accent)] transition-shadow"
-              >
-                Analyze Game
-              </Link>
-            )}
-            <Button size="lg" fullWidth onClick={handleNewGame}>
-              Play Again
-            </Button>
-            <Link
-              href="/chess"
-              className="inline-flex items-center justify-center h-11 px-6 rounded-lg font-semibold bg-surface-muted hover:bg-surface-hover text-fg transition-colors"
-            >
-              Back to Chess
-            </Link>
-          </>
+          <ResultActions
+            onRematch={handleRematch}
+            // The analysis link needs the saved game's id, which arrives with the
+            // rating change that opens this card.
+            reviewHref={savedGameId ? `/chess/analysis?gameId=${savedGameId}` : undefined}
+            reviewLabel="Analyze Game"
+            onChangeSetup={handleNewGame}
+            backHref="/chess"
+            backLabel="Back to Chess"
+          />
         }
       />
     </>

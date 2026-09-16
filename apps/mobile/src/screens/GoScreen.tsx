@@ -36,7 +36,7 @@ import { GoBoard } from '@/board/GoBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
-import { BackToHomeButton } from '@/game/resultDismiss';
+import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
 import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
@@ -168,10 +168,17 @@ export function GoScreen() {
   const [dead, setDead] = useState<string[]>([]);
   const awaitingReview = game.awaitingReview;
 
+  /** Back to the setup screen (game bar New Game, result card Change setup). */
   const handleNewGame = () => {
     game.newGame();
     setDead([]);
     setStarted(false);
+  };
+
+  /** The next game with the same size, komi, colour and strength — see ChessScreen. */
+  const handleRematch = () => {
+    game.newGame();
+    setDead([]);
   };
 
   // Seeded the moment the second pass lands, and cleared on the way out so a
@@ -220,8 +227,18 @@ export function GoScreen() {
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
+    // Pinned under the scrolling form rather than at its end.
+    const startButton = (
+      <Button
+        label={isPuzzles ? 'Start Puzzles' : isTraining ? 'Start Rated Game' : 'Start Game'}
+        onPress={() => (isPuzzles ? router.push('/puzzles/go' as never) : setStarted(true))}
+        disabled={!canStart}
+        glow
+      />
+    );
+
     return (
-      <Screen>
+      <Screen footer={startButton}>
         <GlowBackdrop
           blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.go.base, opacity: 0.16 }]}
         />
@@ -417,13 +434,6 @@ export function GoScreen() {
             turns.
           </Text>
         )}
-
-        <Button
-          label={isPuzzles ? 'Start Puzzles' : isTraining ? 'Start Rated Game' : 'Start Game'}
-          onPress={() => (isPuzzles ? router.push('/puzzles/go' as never) : setStarted(true))}
-          disabled={!canStart}
-          glow
-        />
       </Screen>
     );
   }
@@ -695,10 +705,11 @@ export function GoScreen() {
         hintsUsed={ratingResult?.hintsUsed}
         saveError={game.saveError}
         onRetrySave={game.retrySave}
-        actions={
+        actions={<Button label="Rematch" onPress={handleRematch} glow />}
+        secondaryActions={
           <>
-            <Button label="Play Again" onPress={handleNewGame} glow />
             <Button label="Share as SGF" onPress={shareSgf} variant="secondary" />
+            <ChangeSetupButton onPress={handleNewGame} />
             <BackToHomeButton />
           </>
         }

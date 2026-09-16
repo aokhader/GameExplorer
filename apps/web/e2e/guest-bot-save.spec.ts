@@ -41,7 +41,7 @@ for (const { game, path } of BOT_PAGES) {
 
     // The result screen proves the end-of-game save path actually ran — without
     // it the assertion below would also pass on a game that never finished.
-    await expect(page.getByRole('button', { name: 'Play Again' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Rematch' })).toBeVisible();
 
     expect(writes).toEqual([]);
   });

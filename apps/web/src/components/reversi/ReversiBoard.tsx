@@ -149,7 +149,7 @@ export const ReversiBoard = React.memo(function ReversiBoard({
 
           {/* Hint ring — pulsing cyan circle on suggested empty square */}
           {hintPos === pos && !disc && (
-            <div className="absolute inset-[10%] rounded-full ring-2 ring-cyan-400 animate-pulse pointer-events-none z-20" />
+            <div className="absolute inset-[10%] rounded-full ring-2 ring-cyan-400 animate-state-pulse pointer-events-none z-20" />
           )}
 
           {/* Valid move indicator (ghost dot) */}

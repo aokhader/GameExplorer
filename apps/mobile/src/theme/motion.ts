@@ -63,7 +63,29 @@ export function springTo(toValue: number, name: SpringToken, reducedMotion: bool
  * An infinite `withRepeat` keeps Android from ever reaching idle, which blocks
  * accessibility services and instrumentation and is invisible to every gate.
  * The count is even so a reversing pulse finishes back on its starting value.
+ *
+ * `limitMs` has no default: a state indicator wants `statePulseCount` instead,
+ * and a loading pulse names its own limit (the skeleton's ten seconds).
  */
-export function finitePulseCount(legMs: number, limitMs = 60_000): number {
+export function finitePulseCount(legMs: number, limitMs: number): number {
   return Math.max(2, Math.ceil(limitMs / legMs / 2) * 2);
+}
+
+/** A state indicator stops pulsing within this long — WCAG 2.2.2's threshold. */
+export const STATE_PULSE_LIMIT_MS = 5_000;
+
+/** …and plays at most this many cycles inside it. */
+export const STATE_PULSE_MAX_CYCLES = 3;
+
+/**
+ * Repeat count for a state indicator: a turn dot, a marker awaiting a decision.
+ *
+ * It pulses to announce that the state began, then holds its lit value — at most
+ * three cycles, all inside five seconds (motion-spec §5.16). The old rule let it
+ * pulse for a minute, which kept the game screen rendering at ~59fps for 60s
+ * after every turn change. Always even, so a reversing pulse ends lit.
+ */
+export function statePulseCount(legMs: number): number {
+  const cycles = Math.min(STATE_PULSE_MAX_CYCLES, Math.floor(STATE_PULSE_LIMIT_MS / (2 * legMs)));
+  return Math.max(1, cycles) * 2;
 }

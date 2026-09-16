@@ -64,7 +64,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
 
   if (error || !lesson) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6">
+      <div className="min-h-svh flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <h1 className="text-2xl font-bold text-fg mb-2">Lesson not found</h1>
           <p className="text-sm text-fg-muted mb-6">

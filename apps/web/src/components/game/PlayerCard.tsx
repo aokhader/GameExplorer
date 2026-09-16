@@ -73,7 +73,7 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
         (active && (
           <span
             className={cn(
-              'h-2.5 w-2.5 shrink-0 rounded-full motion-safe:animate-glow-pulse',
+              'h-2.5 w-2.5 shrink-0 rounded-full animate-state-pulse',
               isYou ? 'bg-accent' : 'bg-success',
             )}
             style={{
