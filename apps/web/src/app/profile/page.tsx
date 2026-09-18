@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { BlockedPlayers } from '@/components/multiplayer/BlockedPlayers';
 import { Skeleton } from '@/components/ui';
 import { ratingDelta, summarizePlayer } from '@gameexplorer/client/game/playerStats';
+import { signInRequiredHref } from '@/components/auth/returnTo';
 
 type Tab = 'all' | GameType;
 
@@ -119,7 +120,7 @@ export default function ProfilePage() {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
         if (!user) {
-          router.replace('/auth/signin');
+          router.replace(signInRequiredHref('/profile'));
           return;
         }
         setUser({ id: user.id, email: user.email! });

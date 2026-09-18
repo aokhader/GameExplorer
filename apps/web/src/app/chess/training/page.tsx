@@ -38,6 +38,7 @@ import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/un
 import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
+import { signInRequiredHref } from '@/components/auth/returnTo';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -264,7 +265,7 @@ export default function ChessTrainingPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace('/auth/signin?next=/chess/training');
+      router.replace(signInRequiredHref('/chess/training'));
     }
   }, [authLoading, user, router]);
 

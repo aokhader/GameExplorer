@@ -7,6 +7,7 @@ import { useGameSession } from '@gameexplorer/client';
 import { GameLayout }     from '@/components/game/GameLayout';
 import { formatClockShort } from '@gameexplorer/shared';
 import type { CheckersGameState, TimeControl } from '@gameexplorer/shared';
+import { signInRequiredHref } from '@/components/auth/returnTo';
 
 const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
   { id: 'movetime', label: 'Normal', desc: '30s per move' },
@@ -24,7 +25,7 @@ export default function CheckersPlayPage() {
   );
 
   useEffect(() => {
-    if (!s.loading && !s.user) redirect('/auth/signin?next=/checkers/play');
+    if (!s.loading && !s.user) redirect(signInRequiredHref('/checkers/play'));
   }, [s.user, s.loading]);
 
   useEffect(() => {

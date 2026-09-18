@@ -51,6 +51,7 @@ import type { UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
+import { authHref } from '@/components/auth/returnTo';
 
 // Only rendered at game end, and it pulls in confetti + a framer-motion tree —
 // keep it out of the route's initial chunk, as every other game screen does.
@@ -307,7 +308,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
               {guestBlocked ? (
                 <p className="text-fg-muted">
                   Training is always rated, so it needs an account.{' '}
-                  <Link href="/auth/signin" className="text-accent hover:underline">Sign in</Link> to play.
+                  <Link href={authHref('/auth/signin', '/go/training')} className="text-accent hover:underline">Sign in</Link> to play.
                 </p>
               ) : (
                 <p className="text-fg-muted">

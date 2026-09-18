@@ -13,6 +13,7 @@ import { useGameStore }  from '@/stores/gameStore';
 import { useSocketStore } from '@/stores/socketStore';
 import type { ChessGameState, CheckersGameState, ReversiGameState, ReversiColor, ClockSnapshot } from '@gameexplorer/shared';
 import { Icon } from '@gameexplorer/ui';
+import { signInRequiredHref } from '@/components/auth/returnTo';
 
 /** Which side a player has — a plain swatch, not a font glyph that draws differently per platform. */
 function SideDot({ color }: { color: 'black' | 'white' }) {
@@ -90,7 +91,7 @@ export default function SpectatePage() {
 
   // Auth guard — spectating still requires an authenticated socket.
   useEffect(() => {
-    if (!loading && !user) redirect(`/auth/signin?next=/spectate/${gameId}`);
+    if (!loading && !user) redirect(signInRequiredHref(`/spectate/${gameId}`));
   }, [user, loading, gameId]);
 
   // Join / leave the spectate room.

@@ -32,6 +32,7 @@ import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/un
 import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
+import { signInRequiredHref } from '@/components/auth/returnTo';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -203,7 +204,7 @@ export default function ReversiTrainingPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace('/auth/signin?next=/reversi/training');
+      router.replace(signInRequiredHref('/reversi/training'));
     }
   }, [authLoading, user, router]);
 

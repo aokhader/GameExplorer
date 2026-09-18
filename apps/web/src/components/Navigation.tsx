@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useRef, useState, useEffect } from 'react';
+import { Suspense, useRef, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { authHref } from '@/components/auth/returnTo';
+import { authHref, useAuthSwitchHref } from '@/components/auth/returnTo';
+import { isAuthPath } from '@/lib/returnPath';
 import { isImmersiveGameRoute } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { GAME_LIST } from '@gameexplorer/shared';
@@ -20,10 +21,6 @@ const NAV_ITEMS = [
 
 export function Navigation() {
   const pathname = usePathname();
-  // Signing in should put you back where you were, not on a profile page you
-  // did not ask for. `authHref` drops the parameter for home, where there is
-  // nothing to return to.
-  const signInHref = authHref('/auth/signin', pathname);
   const router = useRouter();
   const { user, loading } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -151,12 +148,7 @@ export function Navigation() {
                   >
                     <Icon name="gear" className="text-xl" />
                   </Link>
-                  <Link
-                    href={signInHref}
-                    className="hidden sm:inline text-sm text-fg-muted hover:text-fg transition-colors"
-                  >
-                    Sign in
-                  </Link>
+                  <SignInNavLink className="hidden sm:inline text-sm text-fg-muted hover:text-fg transition-colors" />
                   <Link
                     href="/chess"
                     className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
@@ -213,17 +205,54 @@ export function Navigation() {
               Settings
             </Link>
             {!loading && !user && (
-              <Link
-                href={signInHref}
-                className="py-3 px-2 text-base font-medium rounded-lg transition-colors text-fg-muted hover:text-fg hover:bg-surface-muted"
-              >
-                Sign in
-              </Link>
+              <SignInNavLink className="py-3 px-2 text-base font-medium rounded-lg transition-colors text-fg-muted hover:text-fg hover:bg-surface-muted" />
             )}
           </div>
         </div>
       )}
     </nav>
+  );
+}
+
+/**
+ * The navbar's Sign in link. Signing in should put you back where you were,
+ * not on a profile page you did not ask for, so it carries the current page
+ * (`authHref` drops it for home, where there is nothing to return to).
+ *
+ * On the auth pages there is no "here" worth returning to: carrying the sign-up
+ * page as `next` landed a newly signed-in user back on the sign-up form. The
+ * link keeps the round trip that page already has instead, and replaces it so
+ * the auth pages stay one step in the browser's history.
+ */
+function SignInNavLink({ className }: { className: string }) {
+  const pathname = usePathname();
+  if (!isAuthPath(pathname)) {
+    return (
+      <Link href={authHref('/auth/signin', pathname)} className={className}>
+        Sign in
+      </Link>
+    );
+  }
+  // `useSearchParams` needs a Suspense boundary in the App Router.
+  return (
+    <Suspense
+      fallback={
+        <Link href="/auth/signin" replace className={className}>
+          Sign in
+        </Link>
+      }
+    >
+      <CarriedSignInLink className={className} />
+    </Suspense>
+  );
+}
+
+function CarriedSignInLink({ className }: { className: string }) {
+  const href = useAuthSwitchHref('/auth/signin');
+  return (
+    <Link href={href} replace className={className}>
+      Sign in
+    </Link>
   );
 }
 

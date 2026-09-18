@@ -2,19 +2,19 @@
 
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@gameexplorer/db';
 import { GradientText } from '@/components/visual';
-import { ReturnLink, authHref, useReturnTo } from '@/components/auth/returnTo';
+import { ReturnLink, useAuthSwitchHref, useReturnTo } from '@/components/auth/returnTo';
 
 // `useSearchParams` needs a Suspense boundary in the App Router, so the form is
 // its own component the way sign-in's is.
 function SignUpForm() {
   const router = useRouter();
   // Where to land once there is a session, and where "Sign in" should carry the
-  // `?next=` on. Same same-site guard as sign-in.
+  // round trip on. Same same-site guard as sign-in.
   const next = useReturnTo('/profile');
-  const from = useSearchParams().get('next');
+  const signInHref = useAuthSwitchHref('/auth/signin');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -171,7 +171,8 @@ function SignUpForm() {
 
         <p className="text-center text-sm text-fg-muted">
           Already have an account?{' '}
-          <Link href={authHref('/auth/signin', from)} className="text-accent hover:underline">
+          {/* Replaces: Sign in and Sign up are one step, so Back leaves both. */}
+          <Link href={signInHref} replace className="text-accent hover:underline">
             Sign in
           </Link>
         </p>

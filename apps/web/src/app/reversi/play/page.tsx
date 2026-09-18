@@ -8,6 +8,7 @@ import { useGameSession } from '@gameexplorer/client';
 import { GameLayout }     from '@/components/game/GameLayout';
 import { formatClockShort } from '@gameexplorer/shared';
 import type { ReversiGameState, TimeControl } from '@gameexplorer/shared';
+import { signInRequiredHref } from '@/components/auth/returnTo';
 
 const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
   { id: 'movetime', label: 'Normal', desc: '30s per move' },
@@ -25,7 +26,7 @@ export default function ReversiPlayPage() {
   );
 
   useEffect(() => {
-    if (!s.loading && !s.user) redirect('/auth/signin?next=/reversi/play');
+    if (!s.loading && !s.user) redirect(signInRequiredHref('/reversi/play'));
   }, [s.user, s.loading]);
 
   useEffect(() => {

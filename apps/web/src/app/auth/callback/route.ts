@@ -5,11 +5,15 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { encryptEmail, hashEmail } from '@gameexplorer/db';
+import { safeReturnPath } from '@/lib/returnPath';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/profile';
+  // Checked here as well as on the sign-in page: this URL can be hand-made, and
+  // `${origin}${next}` with a `next` of `.evil.example` or `@evil.example` is
+  // another host.
+  const next = safeReturnPath(searchParams.get('next')) ?? '/profile';
 
   if (!code) {
     return NextResponse.redirect(`${origin}/auth/error`);

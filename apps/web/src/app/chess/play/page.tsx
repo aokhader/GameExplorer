@@ -9,6 +9,7 @@ import { GameLayout } from '@/components/game/GameLayout';
 import { GameSkeleton } from '@/components/game/GameSkeleton';
 import { formatClockLong } from '@gameexplorer/shared';
 import type { ChessGameState, TimeControl, Position, PieceType } from '@gameexplorer/shared';
+import { signInRequiredHref } from '@/components/auth/returnTo';
 
 const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
   { id: 'bullet',    label: 'Bullet',    desc: '1 min'      },
@@ -30,7 +31,7 @@ export default function ChessPlayPage() {
 
   // Auth guard (web routing).
   useEffect(() => {
-    if (!s.loading && !s.user) redirect('/auth/signin?next=/chess/play');
+    if (!s.loading && !s.user) redirect(signInRequiredHref('/chess/play'));
   }, [s.user, s.loading]);
 
   // Accept an invite link (?invite=<id>) once connected — web reads it off the URL.

@@ -2,23 +2,22 @@
 
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@gameexplorer/db';
 import { signInWithIdentifier } from '@gameexplorer/client';
 import { GradientText } from '@/components/visual';
-import { ReturnLink, authHref, useReturnTo } from '@/components/auth/returnTo';
+import { ReturnLink, useAuthSwitchHref, useReturnTo } from '@/components/auth/returnTo';
 
 // useSearchParams() requires a Suspense boundary in Next.js App Router.
 // Split into an inner component so the boundary can wrap just what needs it.
 function SignInForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   // Where to land after signing in. `useReturnTo` refuses anything that is not
   // a same-site path, so a crafted `?next=` cannot bounce the user off the site
   // with a session in hand.
   const next = useReturnTo('/profile');
   // …and where "Sign up" should carry them, so the round trip keeps its place.
-  const from = searchParams.get('next');
+  const signUpHref = useAuthSwitchHref('/auth/signup');
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -127,7 +126,8 @@ function SignInForm() {
 
       <p className="text-center text-sm text-fg-muted">
         No account?{' '}
-        <Link href={authHref('/auth/signup', from)} className="text-accent hover:underline">
+        {/* Replaces: Sign in and Sign up are one step, so Back leaves both. */}
+        <Link href={signUpHref} replace className="text-accent hover:underline">
           Sign up
         </Link>
       </p>
