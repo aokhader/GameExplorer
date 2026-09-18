@@ -177,7 +177,7 @@ export default function YouScreen() {
   // Guest state — invite to sign in, keep settings reachable.
   if (!authLoading && !user) {
     return (
-      <Screen scroll={false}>
+      <Screen inTabs scroll={false}>
         <YouHeader onSettings={goSettings} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACING[3], paddingBottom: 60 }}>
           <View
@@ -225,7 +225,7 @@ export default function YouScreen() {
 
   if (authLoading || !profile || !ratings) {
     return (
-      <Screen scroll={false}>
+      <Screen inTabs scroll={false}>
         <YouHeader onSettings={goSettings} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={COLORS.accent} />
@@ -249,7 +249,7 @@ export default function YouScreen() {
   const recent = filtered.slice(0, 10);
 
   return (
-    <Screen>
+    <Screen inTabs>
       <YouHeader onSettings={goSettings} />
 
       {/* Identity */}

@@ -7,11 +7,28 @@ import { FONTS } from '@/theme/typography';
 import { Entrance } from './Entrance';
 import { Icon } from './Icon';
 
+/**
+ * How far the tab bar's gold Play button rises above the bar, over the bottom
+ * of the tab screen above it. The bar is drawn that far up into the screen, so
+ * the content runs to the bar's edge instead of stopping a button's height
+ * short of it; a tab screen ends its scroll with this much extra room, so the
+ * last row can clear the button.
+ */
+export const TAB_BAR_OVERLAP = 24;
+
 interface ScreenProps {
   children: ReactNode;
   /** Wrap content in a ScrollView (default true). Set false for full-bleed screens. */
   scroll?: boolean;
+  /** Safe-area edges to pad. Defaults to top and bottom, or top only in a tab. */
   edges?: Edge[];
+  /**
+   * A tab's screen, above the tab bar. The bar already pads for the bottom
+   * safe area, so the screen pads only the top — padding both left a blank band
+   * the height of the system gesture bar above the tab bar — and it leaves
+   * `TAB_BAR_OVERLAP` for the Play button at the end.
+   */
+  inTabs?: boolean;
   /**
    * How the content arrives — `motion-spec.md` §5.5. `rise` for content screens;
    * `fade`, opacity only, for a screen centred on a board, so the board lands
@@ -66,19 +83,27 @@ function useKeyboardHeight(): number {
  * the keyboard open — see `useKeyboardHeight`. The content enters on mount, as
  * `entrance` says.
  */
-export function Screen({ children, scroll = true, edges = ['top', 'bottom'], entrance = 'rise', footer }: ScreenProps) {
+export function Screen({
+  children,
+  scroll = true,
+  inTabs = false,
+  edges = inTabs ? ['top'] : ['top', 'bottom'],
+  entrance = 'rise',
+  footer,
+}: ScreenProps) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
   const column = { width: '100%' as const, maxWidth: 560, alignSelf: 'center' as const };
   const keyboardHeight = useKeyboardHeight();
+  const underPlayButton = inTabs ? TAB_BAR_OVERLAP : 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.surface }} edges={edges}>
       {scroll ? (
         <ScrollView
           contentContainerStyle={[
-            { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 + keyboardHeight },
+            { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 + underPlayButton + keyboardHeight },
             column,
           ]}
           keyboardShouldPersistTaps="handled"
@@ -86,10 +111,15 @@ export function Screen({ children, scroll = true, edges = ['top', 'bottom'], ent
           {entrance === 'none' ? children : <Entrance variant={entrance}>{children}</Entrance>}
         </ScrollView>
       ) : entrance === 'none' ? (
-        <View style={[{ flex: 1, paddingHorizontal: 20, paddingTop: 8 }, column]}>{children}</View>
+        <View style={[{ flex: 1, paddingHorizontal: 20, paddingTop: 8, paddingBottom: underPlayButton }, column]}>
+          {children}
+        </View>
       ) : (
         // The entrance is the column itself here, so children that take `flex: 1` still fill it.
-        <Entrance variant={entrance} style={[{ flex: 1, paddingHorizontal: 20, paddingTop: 8 }, column]}>
+        <Entrance
+          variant={entrance}
+          style={[{ flex: 1, paddingHorizontal: 20, paddingTop: 8, paddingBottom: underPlayButton }, column]}
+        >
           {children}
         </Entrance>
       )}

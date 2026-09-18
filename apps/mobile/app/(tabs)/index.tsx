@@ -25,7 +25,7 @@ import {
   PlayAgainCard,
   SectionLabel,
 } from '@/home/LauncherParts';
-import { Skeleton } from '@/components/ui';
+import { Skeleton, TAB_BAR_OVERLAP } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 
 /**
@@ -198,7 +198,8 @@ export default function HomeScreen() {
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingTop: 20,
-          paddingBottom: 26,
+          // Clears the tab bar's Play button, which rises over the end of the scroll.
+          paddingBottom: 26 + TAB_BAR_OVERLAP,
           gap: SPACING[6],
           // Tablet: keep the launcher column phone-width and centered.
           width: '100%',
