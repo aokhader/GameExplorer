@@ -8,6 +8,16 @@ export interface SetupDeepLink {
   online: boolean;
   /** Invite id to redeem once the socket connects. */
   inviteId: string | null;
+  /**
+   * Open straight onto this game's unfinished game, if there is one — the
+   * launcher's Continue and the tab bar's Play (`?resume=1`).
+   */
+  resume: boolean;
+  /**
+   * Start a game with the remembered mode and setup, as the launcher's *Play*
+   * does (`?start=last`). Unlike the tour's `start=1`, it does not force the bot.
+   */
+  repeat: boolean;
 }
 
 /**
@@ -33,6 +43,7 @@ export function useSetupDeepLink(tiers: readonly number[]): SetupDeepLink {
     start?: string;
     online?: string;
     invite?: string;
+    resume?: string;
   }>();
   const requested = Number(params.elo);
   const elo =
@@ -47,5 +58,7 @@ export function useSetupDeepLink(tiers: readonly number[]): SetupDeepLink {
     // else an invite could mean.
     online: params.online === '1' || inviteId != null,
     inviteId,
+    resume: params.resume === '1',
+    repeat: params.start === 'last',
   };
 }

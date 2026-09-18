@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
@@ -17,7 +17,7 @@ import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
-import { OpponentPicker, FlipBoardCard, type SetupMode } from '@/game/OpponentPicker';
+import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
@@ -38,6 +38,10 @@ import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
 import { chessAdapter } from '@/engine/chessAdapter';
 import { useEngineNative } from '@/engine/useEngineNative';
 import { useSetupDeepLink } from '@/game/useSetupDeepLink';
+import { useGameSetup, useUnfinishedGame } from '@/game/useGameSetup';
+import { ContinueCard, SetupStartFooter } from '@/game/ContinueCard';
+import { nativeLocalStore } from '@/lib/localStore';
+import type { UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
@@ -90,18 +94,20 @@ export function ChessScreen() {
   const userId = user?.id ?? null;
   const { settings } = useSettings();
 
-  // ?elo=&start=1 from the welcome tour. Read once, as lazy initial state.
+  // ?elo=&start=1 from the welcome tour, ?resume=1 from the launcher. Read once.
   const deepLink = useSetupDeepLink(DIFFICULTY_LEVELS.map((l) => l.elo));
 
-  const [mode, setMode] = useState<SetupMode>(deepLink.online ? 'online' : 'bot');
-  const [selectedElo, setSelectedElo] = useState(deepLink.elo ?? 1200);
+  // The form remembers what was chosen last time; a started game keeps the setup
+  // it began with. See `useGameSetup`.
+  const setup = useGameSetup('chess', deepLink);
+  const unfinished = useUnfinishedGame('chess');
+  const { mode, setMode, started } = setup;
+  const selectedElo = setup.setup.elo;
   // Custom tier — the exact-rating picker replaces the preset tiles. Its starting
   // value is whatever preset was highlighted, so the slider opens where you were.
-  const [isCustomTier, setIsCustomTier] = useState(false);
-  const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
-  const [rated, setRated] = useState(true);
-  // An invite link skips setup entirely — the game it points at already exists.
-  const [started, setStarted] = useState(deepLink.autoStart || deepLink.online);
+  const isCustomTier = setup.setup.custom;
+  const playerColor = setup.setup.color;
+  const rated = setup.setup.rated;
   // Manual board flip from the game menu — inverts whatever orientation the mode
   // would otherwise pick (see boardColor below).
   const [flipped, setFlipped] = useState(false);
@@ -171,6 +177,7 @@ export function ChessScreen() {
     eloBounds: { min: CUSTOM_ELO_MIN, max: maxElo },
     started: started && isLocalMode,
     botReady: !engineActive || engine.isReady,
+    persistence: { store: nativeLocalStore, game: 'chess', setup: setup.setup },
   });
 
   // The tier picked on setup, or — in training — the player's own rating.
@@ -181,13 +188,36 @@ export function ChessScreen() {
       ? !!userId && online
       : true;
 
-  /** Back to the setup screen (game bar New Game, result card Change setup). */
+  /**
+   * Back to the setup screen (game bar New Game, result card Change setup). A game
+   * left unfinished stays saved, and the Continue card reads it back.
+   */
   const handleNewGame = () => {
     game.newGame();
-    setStarted(false);
+    setup.stop();
+    unfinished.refresh();
     setFlipped(false);
     setReviewing(false);
   };
+
+  /** Pick a saved game up where it was left — its moves first, then the board. */
+  const resumeSaved = (saved: UnfinishedGame) => {
+    setFlipped(false);
+    setReviewing(false);
+    if (game.restore(saved)) setup.resume(saved);
+    // Moves these rules reject describe no position anyone can play or score.
+    else void unfinished.settle({ resign: true }).catch(() => {});
+  };
+
+  // The launcher's Continue opens this screen with `?resume=1`. State, not a
+  // ref: with nothing to resume, the blank screen below must still re-render.
+  const [awaitingResume, setAwaitingResume] = useState(deepLink.resume);
+  useEffect(() => {
+    if (!awaitingResume || !setup.ready || !unfinished.hydrated) return;
+    setAwaitingResume(false);
+    if (unfinished.saved && !unfinished.saved.end && !started) resumeSaved(unfinished.saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingResume, setup.ready, unfinished.hydrated]);
 
   /**
    * The next game with the same setup, on the same board. `newGame` aborts any
@@ -218,7 +248,13 @@ export function ChessScreen() {
   // websocket it has no use for. Sits after every hook above it, so the hook
   // order is the same on every render.
   if (started && isOnlineMode) {
-    return <ChessOnline inviteId={deepLink.inviteId} onExit={() => setStarted(false)} />;
+    return <ChessOnline inviteId={deepLink.inviteId} onExit={setup.stop} />;
+  }
+
+  // Nothing to show until the remembered setup is known, or while a link is about
+  // to replace the form with a game.
+  if (!started && (!setup.ready || setup.awaitingAutoStart || awaitingResume)) {
+    return <Screen scroll={false}>{null}</Screen>;
   }
 
   // ── Setup screen ────────────────────────────────────────────────────────────
@@ -226,7 +262,7 @@ export function ChessScreen() {
     // Pinned under the scrolling form rather than at its end, where it sat about
     // a screen-height down on a phone.
     const startButton = (
-      <Button
+      <SetupStartFooter
         label={
           isPuzzles
             ? 'Start Puzzles'
@@ -236,11 +272,13 @@ export function ChessScreen() {
                 ? 'Start Rated Game'
                 : 'Start Game'
         }
-        onPress={
-          isPuzzles ? () => router.push('/puzzles/chess' as never) : () => setStarted(true)
-        }
+        onStart={isPuzzles ? () => router.push('/puzzles/chess' as never) : setup.start}
         disabled={!canStart}
-        glow
+        saved={unfinished.saved}
+        onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+        onSettle={unfinished.settle}
+        settling={unfinished.settling}
+        leavesGame={isPuzzles || isOnlineMode}
       />
     );
 
@@ -251,6 +289,17 @@ export function ChessScreen() {
         />
         <BackHeader fallbackHref="/" />
         <SetupHero game="chess" />
+
+        {unfinished.saved && (
+          <View style={{ marginBottom: 24 }}>
+            <ContinueCard
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
+            />
+          </View>
+        )}
 
         <LearnLink game="chess" label="New to chess? How to play →" />
         <LessonsCard game="chess" />
@@ -290,10 +339,7 @@ export function ChessScreen() {
                 return (
                   <Pressable
                     key={level.elo}
-                    onPress={() => {
-                      setIsCustomTier(false);
-                      setSelectedElo(level.elo);
-                    }}
+                    onPress={() => setup.update({ custom: false, elo: level.elo })}
                     accessibilityRole="button"
                     accessibilityLabel={`${level.label} bot — ${level.description}`}
                     accessibilityState={{ selected }}
@@ -324,7 +370,7 @@ export function ChessScreen() {
 
               {/* Custom — pick the exact rating instead of a preset rung. */}
               <Pressable
-                onPress={() => setIsCustomTier(true)}
+                onPress={() => setup.update({ custom: true })}
                 accessibilityRole="button"
                 accessibilityLabel={`Custom bot rating — set an exact rating between ${CUSTOM_ELO_MIN} and ${maxElo}`}
                 accessibilityState={{ selected: isCustomTier }}
@@ -356,7 +402,7 @@ export function ChessScreen() {
             {isCustomTier && (
               <CustomEloPicker
                 value={targetElo}
-                onChange={setSelectedElo}
+                onChange={(elo) => setup.update({ elo })}
                 min={CUSTOM_ELO_MIN}
                 max={maxElo}
                 accent={GAME_ACCENTS.chess.base}
@@ -387,7 +433,7 @@ export function ChessScreen() {
                 return (
                   <Pressable
                     key={color}
-                    onPress={() => setPlayerColor(color)}
+                    onPress={() => setup.update({ color })}
                     accessibilityRole="button"
                     accessibilityLabel={`Play as ${color}`}
                     accessibilityState={{ selected }}
@@ -452,7 +498,7 @@ export function ChessScreen() {
                     : 'Updates your chess rating'}
               </Text>
             </View>
-            <Toggle value={ratedEffective} onValueChange={setRated} label="Rated" disabled={!userId || !online} />
+            <Toggle value={ratedEffective} onValueChange={(value) => setup.update({ rated: value })} label="Rated" disabled={!userId || !online} />
           </View>
         )}
 

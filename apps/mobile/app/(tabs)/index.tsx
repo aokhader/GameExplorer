@@ -3,41 +3,50 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, {
-  Defs,
-  LinearGradient as SvgLinearGradient,
-  Stop,
-  Text as SvgText,
-  TSpan,
-} from 'react-native-svg';
 import { useAuth } from '@gameexplorer/client';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { GAME_CATALOG, type GameId } from '@gameexplorer/shared';
+import { settleUnfinishedGame } from '@gameexplorer/client/game/settleUnfinishedGame';
+import { unfinishedGameSummary } from '@gameexplorer/client/game/unfinishedGame';
+import { COLORS, GRADIENTS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 
-import { GlowBackdrop, Icon, PressableScale } from '@/components/ui';
-import { GamePieceIcon } from '@/game/GamePieceIcon';
-import { getLastPlayed } from '@/lib/lastPlayed';
 import { hasOnboarded } from '@/lib/onboarding';
-import { GAME_LIST } from '@gameexplorer/shared';
+import { nativeLocalStore } from '@/lib/localStore';
+import { continueRoute, type ContinueItem } from '@/lib/continueGame';
+import { nativeLiquidateStore } from '@/liquidate/useLiquidateGame';
+import { ContinueCard } from '@/game/ContinueCard';
+import { useLauncher } from '@/home/useLauncher';
+import {
+  AlsoUnfinishedRow,
+  FirstGameCard,
+  GamesRow,
+  LinkRow,
+  LiquidateContinueCard,
+  NumbersRow,
+  PlayAgainCard,
+  SectionLabel,
+} from '@/home/LauncherParts';
+import { Skeleton } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 
-// The catalog is pure data, so reading it at module scope is safe — unlike a
-// token: storing `accent: GAME_ACCENTS.chess` here would freeze the accent at
-// import time, because the token objects are live views that have to be read
-// during render. `hook` is the catalog's phone-sized register (web's home cards
-// use the longer `blurb`), so the copy stays one source of truth without either
-// surface having to wear the other's voice.
-
-const FEATURES = [
-  { icon: 'lightning', label: 'Instant play' },
-  { icon: 'handshake', label: 'Play a friend' },
-  { icon: 'trend-up', label: 'Climb ranks' },
-] as const;
-
 /**
- * Home — the app's landing screen ("Deck" direction from the mobile design).
- * Guest-browsable. App bar: wordmark + auth control; hero + gold CTA; stacked
- * accent-glow game cards; feature tiles. First-run visitors are sent to the
- * welcome tour once (mirrors web's onboarding redirect).
+ * Home — the returning launcher (`project-docs/ux-fix-ideas.md` §4.3, §4.5).
+ *
+ * It used to spend its first screen on a "Game on." hero, a sentence of claims
+ * and three feature chips, then five neon game cards — the same page on the
+ * fiftieth visit as on the first. Now it leads with what this player can do
+ * next, in this order:
+ *
+ * 1. **Continue** the game they were in the middle of, or **play again** with the
+ *    setup they chose last time. A first visit gets *Start a game*.
+ * 2. **Their numbers**: each rating with its last change, a win streak, puzzles
+ *    solved.
+ * 3. **Their games**, the most recently played first.
+ * 4. **Something new**: one game they have not played for a month, with a first
+ *    step into it.
+ * 5. Watching and learning, as plain rows.
+ *
+ * Guest-browsable. First-run visitors are still sent to the welcome tour once;
+ * replacing the tour is later work (§4.4).
  */
 export default function HomeScreen() {
   // Repaint when the theme changes; the tokens below are live views.
@@ -45,7 +54,10 @@ export default function HomeScreen() {
 
   const router = useRouter();
   const { user, loading } = useAuth();
+  const userId = user?.id ?? null;
   const [checkedOnboarding, setCheckedOnboarding] = useState(false);
+  const { local, stats, reload, tryNew } = useLauncher(userId, !loading);
+  const [settling, setSettling] = useState(false);
 
   // One-time first-run redirect into the tour. Runs after auth resolves so a
   // returning signed-in user (who has clearly onboarded) is never bounced.
@@ -62,13 +74,61 @@ export default function HomeScreen() {
     };
   }, [loading, user, checkedOnboarding, router]);
 
-  const openPlay = () => {
-    getLastPlayed().then((game) => {
-      router.push({ pathname: '/play/[game]', params: { game } } as never);
-    });
-  };
+  const openGame = (game: GameId) => router.push({ pathname: '/play/[game]', params: { game } } as never);
+  const openContinue = (item: ContinueItem) => router.push(continueRoute(item) as never);
 
   const initial = user?.email?.[0]?.toUpperCase() ?? '?';
+  const [primary, ...others] = local?.continueItems ?? [];
+
+  let top: React.ReactNode;
+  if (!local) {
+    top = <Skeleton height={132} radius="2xl" />;
+  } else if (primary?.kind === 'board') {
+    top = (
+      <ContinueCard
+        saved={primary.saved}
+        showGame
+        onResume={() => openContinue(primary)}
+        settling={settling}
+        onSettle={async (options) => {
+          setSettling(true);
+          try {
+            return await settleUnfinishedGame(nativeLocalStore, primary.saved, options);
+          } finally {
+            setSettling(false);
+            reload();
+          }
+        }}
+      />
+    );
+  } else if (primary?.kind === 'liquidate') {
+    top = (
+      <LiquidateContinueCard
+        save={primary.save}
+        onResume={() => openContinue(primary)}
+        onDiscard={() => {
+          nativeLiquidateStore.clear(primary.slot);
+          reload();
+        }}
+      />
+    );
+  } else if (local.playAgain) {
+    const { game, summary, quick } = local.playAgain;
+    top = (
+      <PlayAgainCard
+        game={game}
+        summary={summary}
+        onPlay={() =>
+          quick
+            ? router.push({ pathname: '/play/[game]', params: { game, start: 'last' } } as never)
+            : openGame(game)
+        }
+        onChange={quick ? () => openGame(game) : undefined}
+      />
+    );
+  } else {
+    top = <FirstGameCard onStart={() => openGame('chess')} />;
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.surface }} edges={['top']}>
@@ -134,219 +194,98 @@ export default function HomeScreen() {
         )}
       </View>
 
-      <View style={{ flex: 1 }}>
-        <GlowBackdrop
-          blooms={[
-            { cx: '25%', cy: '0%', rx: '90%', ry: '30%', color: GAME_ACCENTS.chess.base, opacity: 0.14 },
-            { cx: '100%', cy: '6%', rx: '75%', ry: '26%', color: GAME_ACCENTS.checkers.base, opacity: 0.1 },
-          ]}
-        />
-        <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingTop: 22,
-            paddingBottom: 26,
-            // Tablet: keep the landing column phone-width and centered.
-            width: '100%',
-            maxWidth: 560,
-            alignSelf: 'center',
-          }}
-        >
-          {/* Hero — "Game on." with the brand blue→pink gradient on "on." */}
-          <Svg width="100%" height={58} accessible accessibilityLabel="Game on.">
-            <Defs>
-              <SvgLinearGradient id="heroBrand" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0" stopColor={GAME_ACCENTS.chess.base} />
-                <Stop offset="1" stopColor={GAME_ACCENTS.checkers.base} />
-              </SvgLinearGradient>
-            </Defs>
-            <SvgText x="0" y="46" fontSize="52" fontFamily={FONTS.display} fill={COLORS.fg}>
-              Game <TSpan fill="url(#heroBrand)">on.</TSpan>
-            </SvgText>
-          </Svg>
-          <Text
-            style={{
-              fontFamily: FONTS.body,
-              fontSize: FONT_SIZES.body,
-              lineHeight: 23,
-              color: COLORS.fgMuted,
-              marginTop: 12,
-              marginBottom: 22,
-            }}
-          >
-            Chess, checkers, reversi, Go &amp; Liquidate with a pulse — sharp bots, pass-and-play,
-            instant rematches. No sign-up to start.
-          </Text>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 20,
+          paddingBottom: 26,
+          gap: SPACING[6],
+          // Tablet: keep the launcher column phone-width and centered.
+          width: '100%',
+          maxWidth: 560,
+          alignSelf: 'center',
+        }}
+      >
+        <View style={{ gap: SPACING[2] }}>
+          {top}
+          {others.map((item) =>
+            item.kind === 'board' ? (
+              <AlsoUnfinishedRow
+                key={item.saved.game}
+                game={item.saved.game}
+                detail={unfinishedGameSummary(item.saved)}
+                onPress={() => openContinue(item)}
+              />
+            ) : (
+              <AlsoUnfinishedRow
+                key={`liquidate-${item.slot}`}
+                game="liquidate"
+                detail={`${item.save.state.players.length} players · round ${item.save.state.round}`}
+                onPress={() => openContinue(item)}
+              />
+            ),
+          )}
+        </View>
 
-          {/* Primary CTA */}
-          <PressableScale
-            onPress={openPlay}
-            accessibilityRole="button"
-            accessibilityLabel="Play now"
-            haptic="impact"
-          >
-            <LinearGradient
-              {...GRADIENTS_NATIVE.accent}
-              style={{
-                borderRadius: RADIUS['2xl'],
-                paddingVertical: 16,
-                alignItems: 'center',
-                boxShadow: GLOWS_NATIVE.glowAccent,
-              }}
-            >
-              <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: COLORS.onAccent }}>
-                Play now →
-              </Text>
-            </LinearGradient>
-          </PressableScale>
+        {local && (
+          <NumbersRow
+            signedIn={!!userId}
+            stats={stats.stats}
+            loading={stats.loading}
+            error={stats.error}
+            onRetry={stats.refresh}
+            puzzlesSolved={local.puzzlesSolved}
+            finishedGame={local.finishedGame}
+            onSignIn={() => router.push('/(auth)/sign-in' as never)}
+          />
+        )}
+
+        <View style={{ gap: SPACING[3] }}>
+          <SectionLabel>YOUR GAMES</SectionLabel>
+          <GamesRow games={local?.games ?? []} onOpen={openGame} />
+        </View>
+
+        {tryNew && (
+          <View style={{ gap: SPACING[3] }}>
+            <SectionLabel>TRY SOMETHING NEW</SectionLabel>
+            <LinkRow
+              game={tryNew.game}
+              title={
+                tryNew.fresh
+                  ? `New to ${GAME_CATALOG[tryNew.game].name}?`
+                  : `Back to ${GAME_CATALOG[tryNew.game].name}?`
+              }
+              detail={tryNew.action}
+              onPress={() => router.push(tryNew.route as never)}
+            />
+          </View>
+        )}
+
+        <View style={{ gap: SPACING[3] }}>
+          {/* The only way into the spectate lobby outside a shared link. */}
+          <LinkRow
+            icon="eye"
+            title="Watch live games"
+            detail="See what other players are up to"
+            onPress={() => router.push('/spectate' as never)}
+          />
+          <LinkRow
+            icon="graduation-cap"
+            title="Learn a game"
+            detail={`Rules and lessons for ${GAME_CATALOG[local?.games[0] ?? 'chess'].name}`}
+            onPress={() => router.push(`/learn/${local?.games[0] ?? 'chess'}` as never)}
+          />
           <Pressable
             onPress={() => router.push('/welcome' as never)}
             accessibilityRole="button"
-            style={{ alignItems: 'center', paddingVertical: 12, marginBottom: 16 }}
+            style={{ alignItems: 'center', paddingVertical: 12 }}
           >
             <Text style={{ fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.sm, color: COLORS.fgMuted }}>
               Take a quick tour
             </Text>
           </Pressable>
-
-          {/* Game cards */}
-          <Text
-            style={{
-              fontFamily: FONTS.displaySemi,
-              fontSize: FONT_SIZES.label,
-              letterSpacing: 0.8,
-              color: COLORS.fgSubtle,
-              marginBottom: 14,
-            }}
-          >
-            CHOOSE YOUR GAME
-          </Text>
-          <View style={{ gap: SPACING[3] }}>
-            {GAME_LIST.map((g) => (
-              <PressableScale
-                key={g.id}
-                onPress={() =>
-                  router.push({ pathname: '/play/[game]', params: { game: g.id } } as never)
-                }
-                accessibilityRole="button"
-                accessibilityLabel={`Play ${g.name}`}
-              >
-                <LinearGradient
-                  colors={[GAME_ACCENTS[g.id].tintBg, GAME_ACCENTS[g.id].tintBgSoft]}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1 }}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: SPACING[4],
-                    padding: 16,
-                    borderRadius: RADIUS['2xl'],
-                    borderWidth: 1,
-                    borderColor: GAME_ACCENTS[g.id].tintBorder,
-                    // The design's per-card bloom — tighter than GLOWS_NATIVE's
-                    // shared halo, so it stays inline rather than tokenized.
-                    boxShadow: `0 0 34px -16px ${GAME_ACCENTS[g.id].glow}`,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: RADIUS['2xl'],
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: GAME_ACCENTS[g.id].tintBg,
-                      borderWidth: 1,
-                      borderColor: GAME_ACCENTS[g.id].tintBorder,
-                      boxShadow: `0 0 22px -6px ${GAME_ACCENTS[g.id].glow}`,
-                    }}
-                  >
-                    <GamePieceIcon game={g.id} size={34} />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.fg }}>
-                      {g.name}
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: FONTS.body,
-                        fontSize: FONT_SIZES.label,
-                        lineHeight: 18,
-                        color: COLORS.fgMuted,
-                        marginTop: 2,
-                      }}
-                    >
-                      {g.hook}
-                    </Text>
-                  </View>
-                  <Icon name="caret-right" size={FONT_SIZES.xl} color={GAME_ACCENTS[g.id].light} />
-                </LinearGradient>
-              </PressableScale>
-            ))}
-          </View>
-
-          {/* Watch live games — the only way into the spectate lobby, which
-              otherwise has no entry point outside a shared link. */}
-          <PressableScale
-            onPress={() => router.push('/spectate' as never)}
-            accessibilityRole="button"
-            accessibilityLabel="Watch live games"
-            accessibilityHint="Browse games other people are playing right now"
-            style={{ marginTop: 22 }}
-          >
-            {({ pressed }) => (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: SPACING[3],
-                  minHeight: 56,
-                  paddingHorizontal: 16,
-                  borderRadius: RADIUS['2xl'],
-                  borderWidth: 1,
-                  borderColor: COLORS.border,
-                  backgroundColor: pressed ? COLORS.surfaceHover : COLORS.surfaceAlt,
-                }}
-              >
-                <Icon name="eye" size={FONT_SIZES.xl} color={COLORS.fgMuted} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.body, color: COLORS.fg }}>
-                    Watch live games
-                  </Text>
-                  <Text style={{ fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.fgMuted }}>
-                    See what other players are up to
-                  </Text>
-                </View>
-                <Icon name="caret-right" size={FONT_SIZES.lg} color={COLORS.fgMuted} />
-              </View>
-            )}
-          </PressableScale>
-
-          {/* Feature tiles */}
-          <View style={{ flexDirection: 'row', gap: SPACING['2.5'], marginTop: 22 }}>
-            {FEATURES.map((f) => (
-              <View
-                key={f.label}
-                style={{
-                  flex: 1,
-                  alignItems: 'center',
-                  paddingVertical: 14,
-                  paddingHorizontal: 8,
-                  borderRadius: RADIUS['2xl'],
-                  backgroundColor: COLORS.surfaceAlt,
-                  borderWidth: 1,
-                  borderColor: COLORS.border,
-                }}
-              >
-                <Icon name={f.icon} size={FONT_SIZES.xl} color={COLORS.accent} style={{ marginBottom: 6 }} />
-                <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xs, color: COLORS.fg }}>
-                  {f.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

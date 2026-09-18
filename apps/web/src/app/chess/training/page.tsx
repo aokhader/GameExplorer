@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CHESS_HINT_SEARCH_MS,
@@ -30,6 +30,14 @@ import { StatusBanner } from '@/components/game/StatusBanner';
 import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { ShellNav } from '@/components/game/ShellNav';
+import { ContinueCard, GuardedStartButton } from '@/components/game/ContinueCard';
+import { useRememberedSetup } from '@gameexplorer/client/hooks/useRememberedSetup';
+import { useUnfinishedGameWriter } from '@gameexplorer/client/hooks/useUnfinishedGameWriter';
+import { CHESS_RULES, actionsFromHistory } from '@gameexplorer/client/game/localRules';
+import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
+import { webLocalStore } from '@/lib/localStore';
+import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -70,18 +78,20 @@ interface RatingResult {
 export default function ChessTrainingPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  // The colour chosen last time, read before the first paint (`ux-fix-ideas.md` §2.1).
+  const { setup, update } = useRememberedSetup({ store: webLocalStore, game: 'chess', mode: 'training' });
+  const playerColor = setup.color;
 
   const [userRating, setUserRating] = useState<UserRating | null>(null);
   const [ratingLoading, setRatingLoading] = useState(true);
 
   // Worker owns the canonical game state; all move validation and the weak
   // bot's minimax run off the main thread (same architecture as /chess/bot).
-  const { gameState: liveState, legalMoves: legalMovesMap, isReady: engineReady, makeMove, getBotMove, reset } = useChessEngine();
+  const { gameState: liveState, legalMoves: legalMovesMap, isReady: engineReady, makeMove, getBotMove, reset, load } = useChessEngine();
 
   // Timeline for replay — grows as the worker confirms each move.
   const [timeline, setTimeline] = useState<ChessGameState[]>([]);
   const [viewIndex, setViewIndex] = useState(0);
-  const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   // Player-initiated end (½ Draw / Resign) — still applies the rated outcome.
@@ -169,6 +179,87 @@ export default function ChessTrainingPage() {
     });
   }, [engineReady, liveState]);
 
+  // ── Unfinished game (`ux-fix-ideas.md` §2.4) ──────────────────────────────
+  // Training is always rated, so an unfinished game here stays open until it is
+  // finished or resigned — saved as it is played, hints included.
+  const unfinished = useUnfinishedGame('chess');
+  const trainingActions = useMemo(() => actionsFromHistory('chess', liveState), [liveState]);
+  const slot = useUnfinishedGameWriter({
+    store: webLocalStore,
+    game: 'chess',
+    mode: 'training',
+    userId: user?.id ?? null,
+    rated: true,
+    playerColor,
+    botElo,
+    setup,
+    hintsUsed,
+    started: gameStarted && timeline.length > 0,
+    actions: trainingActions,
+    over: liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || !!manualEnd,
+  });
+
+  /**
+   * A saved game waiting for what a resume needs: the player's rating, which the
+   * bot's strength comes from, and the chess worker, whose first position after mount would otherwise reset the restored timeline.
+   */
+  const [pendingResume, setPendingResume] = useState<UnfinishedGame | null>(null);
+
+  /** Pick a saved game up where it was left; another mode's resumes on its own route. */
+  const resumeSaved = (saved: UnfinishedGame) => {
+    if (saved.mode !== 'training') {
+      router.push(resumeHref(saved));
+      return;
+    }
+    if (ratingLoading || !engineReady) {
+      setPendingResume(saved);
+      return;
+    }
+    const replayed = replayActions(CHESS_RULES, saved.actions) as ChessGameState[] | null;
+    if (!replayed) {
+      void unfinished.settle({ resign: true }).catch(() => {});
+      return;
+    }
+    gameGenRef.current += 1;
+    update({ color: saved.playerColor });
+    // The timeline first, then the worker: when its update arrives the timeline
+    // already ends on that position, so the sync effect leaves it alone.
+    setTimeline(replayed);
+    setViewIndex(replayed.length - 1);
+    load(replayed[replayed.length - 1]);
+    stockfish.cancelSearch();
+    botMovePendingRef.current = false;
+    setIsThinking(false);
+    setManualEnd(null);
+    setHintArrow(null);
+    setSavedGameId(null);
+    setHintsUsed(saved.hintsUsed);
+    setRatingResult(null);
+    setGameSaved(false);
+    slot.resumedFrom(saved);
+    setGameStarted(true);
+  };
+
+  // `?resume=1` from a Continue card on another route: blank until it is known
+  // whether there is a game to open.
+  const [awaitingResume, setAwaitingResume] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    if (wantsResume()) setAwaitingResume(true);
+  }, []);
+  useEffect(() => {
+    if (!awaitingResume || !unfinished.hydrated) return;
+    setAwaitingResume(false);
+    const saved = unfinished.saved;
+    if (saved && !saved.end && saved.mode === 'training') resumeSaved(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingResume, unfinished.hydrated]);
+  useEffect(() => {
+    if (!pendingResume || ratingLoading || !engineReady) return;
+    setPendingResume(null);
+    resumeSaved(pendingResume);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingResume, ratingLoading, engineReady]);
+
   // ── Auth guard ────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -233,6 +324,9 @@ export default function ChessTrainingPage() {
     setGameSaved(true); // prevent double-fire
 
     const current = userRatingRef.current;
+    // Owed until written: a failed write or a closed tab leaves the result on the
+    // Continue card rather than losing it.
+    slot.markEnded(manualEnd ?? 'over');
     if (!current) return;
 
     const rawDelta = calculateNewRating(current.rating, botElo, outcome, current.games_played) - current.rating;
@@ -254,6 +348,7 @@ export default function ChessTrainingPage() {
         { mode: 'rated', rating_before: current.rating, rating_after: newRating },
       ),
     ]).then(([updatedRating, savedGame]) => {
+      slot.clear();
       setUserRating(updatedRating);
       setSavedGameId(savedGame?.id ?? null);
       setRatingResult({
@@ -262,7 +357,7 @@ export default function ChessTrainingPage() {
         delta: adjustedDelta,
         hintsUsed: hintsUsedRef.current,
       });
-    });
+    }).catch((err) => console.error('Failed to save game / rating:', err));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState.isCheckmate, liveState.isStalemate, liveState.isDraw, manualEnd]);
 
@@ -383,8 +478,14 @@ export default function ChessTrainingPage() {
     reset(); // worker resets to newGame() and broadcasts STATE_UPDATE
   };
 
-  /** Back to the setup form (header New Game, result card Change setup). */
-  const handleNewGame = () => resetGame(false);
+  /**
+   * Back to the setup form (header New Game, result card Change setup). A game
+   * left unfinished stays saved, and the Continue card reads it back.
+   */
+  const handleNewGame = () => {
+    resetGame(false);
+    unfinished.refresh();
+  };
 
   /**
    * The next rated game, straight onto the board. The bot is matched to the
@@ -414,6 +515,10 @@ export default function ChessTrainingPage() {
 
   // ── Setup screen ──────────────────────────────────────────────────────────
 
+  if (!gameStarted && (awaitingResume || pendingResume)) {
+    return <div className="min-h-svh page-glow-chess" />;
+  }
+
   if (!gameStarted) {
     return (
       <div className="min-h-svh page-glow-chess">
@@ -428,6 +533,15 @@ export default function ChessTrainingPage() {
           <p className="text-fg-muted text-center mb-8">
             Play rated games against a bot matched to your skill level
           </p>
+
+          {unfinished.saved && (
+            <ContinueCard
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
+            />
+          )}
 
           {/* Rating card */}
           <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
@@ -489,7 +603,7 @@ export default function ChessTrainingPage() {
               {(['white', 'black'] as const).map(color => (
                 <button
                   key={color}
-                  onClick={() => setPlayerColor(color)}
+                  onClick={() => update({ color })}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
                       ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
@@ -507,13 +621,16 @@ export default function ChessTrainingPage() {
           </div>
 
           <SetupStartBar>
-            <button
-              onClick={handleStartGame}
+            <GuardedStartButton
+              onStart={handleStartGame}
               disabled={ratingLoading}
-              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
             >
               Start Rated Game
-            </button>
+            </GuardedStartButton>
           </SetupStartBar>
         </div>
       </div>

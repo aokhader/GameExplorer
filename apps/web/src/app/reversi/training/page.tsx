@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ReversiEngine,
   ReversiGameState,
-  ReversiColor,
   getBestReversiMove,
   calculateNewRating,
   GameOutcome,
@@ -25,6 +24,14 @@ import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { Icon } from '@gameexplorer/ui';
 import { ShellNav } from '@/components/game/ShellNav';
+import { ContinueCard, GuardedStartButton } from '@/components/game/ContinueCard';
+import { useRememberedSetup } from '@gameexplorer/client/hooks/useRememberedSetup';
+import { useUnfinishedGameWriter } from '@gameexplorer/client/hooks/useUnfinishedGameWriter';
+import { REVERSI_RULES, actionsFromHistory } from '@gameexplorer/client/game/localRules';
+import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
+import { webLocalStore } from '@/lib/localStore';
+import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -73,13 +80,15 @@ interface RatingResult {
 export default function ReversiTrainingPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  // The colour chosen last time, read before the first paint (`ux-fix-ideas.md` §2.1).
+  const { setup, update } = useRememberedSetup({ store: webLocalStore, game: 'reversi', mode: 'training' });
+  const playerColor = setup.color;
 
   const [userRating, setUserRating] = useState<UserRating | null>(null);
   const [ratingLoading, setRatingLoading] = useState(true);
 
   const [timeline, setTimeline] = useState<ReversiGameState[]>(() => [ReversiEngine.newGame()]);
   const [viewIndex, setViewIndex] = useState(0);
-  const [playerColor, setPlayerColor] = useState<ReversiColor>('black');
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [passMsg, setPassMsg] = useState<string | null>(null);
@@ -113,6 +122,82 @@ export default function ReversiTrainingPage() {
 
   const lastMove = liveState.moveHistory[liveState.moveHistory.length - 1];
   const lastPlacedPos = lastMove?.position ?? null;
+
+  // ── Unfinished game (`ux-fix-ideas.md` §2.4) ──────────────────────────────
+  // Training is always rated, so an unfinished game here stays open until it is
+  // finished or resigned — saved as it is played, hints included.
+  const unfinished = useUnfinishedGame('reversi');
+  const trainingActions = useMemo(() => actionsFromHistory('reversi', liveState), [liveState]);
+  const slot = useUnfinishedGameWriter({
+    store: webLocalStore,
+    game: 'reversi',
+    mode: 'training',
+    userId: user?.id ?? null,
+    rated: true,
+    playerColor,
+    botElo,
+    setup,
+    hintsUsed,
+    started: gameStarted,
+    actions: trainingActions,
+    over: liveState.isGameOver || !!manualEnd,
+  });
+
+  /**
+   * A saved game waiting for what a resume needs: the player's rating, which the
+   * bot's strength comes from.
+   */
+  const [pendingResume, setPendingResume] = useState<UnfinishedGame | null>(null);
+
+  /** Pick a saved game up where it was left; another mode's resumes on its own route. */
+  const resumeSaved = (saved: UnfinishedGame) => {
+    if (saved.mode !== 'training') {
+      router.push(resumeHref(saved));
+      return;
+    }
+    if (ratingLoading) {
+      setPendingResume(saved);
+      return;
+    }
+    const replayed = replayActions(REVERSI_RULES, saved.actions) as ReversiGameState[] | null;
+    if (!replayed) {
+      void unfinished.settle({ resign: true }).catch(() => {});
+      return;
+    }
+    gameGenRef.current += 1;
+    update({ color: saved.playerColor });
+    setTimeline(replayed);
+    setViewIndex(replayed.length - 1);
+    setIsThinking(false);
+    setManualEnd(null);
+    setHintPos(null);
+    setPassMsg(null);
+    setHintsUsed(saved.hintsUsed);
+    setRatingResult(null);
+    setGameSaved(false);
+    slot.resumedFrom(saved);
+    setGameStarted(true);
+  };
+
+  // `?resume=1` from a Continue card on another route: blank until it is known
+  // whether there is a game to open.
+  const [awaitingResume, setAwaitingResume] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    if (wantsResume()) setAwaitingResume(true);
+  }, []);
+  useEffect(() => {
+    if (!awaitingResume || !unfinished.hydrated) return;
+    setAwaitingResume(false);
+    const saved = unfinished.saved;
+    if (saved && !saved.end && saved.mode === 'training') resumeSaved(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingResume, unfinished.hydrated]);
+  useEffect(() => {
+    if (!pendingResume || ratingLoading) return;
+    setPendingResume(null);
+    resumeSaved(pendingResume);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingResume, ratingLoading]);
 
   // ── Auth guard ────────────────────────────────────────────────────────────
 
@@ -219,6 +304,9 @@ export default function ReversiTrainingPage() {
       result === 'draw' ? 'draw' : result === pc ? 'win' : 'loss';
 
     const current = userRatingRef.current;
+    // Owed until written: a failed write or a closed tab leaves the result on the
+    // Continue card rather than losing it.
+    slot.markEnded(manualEnd ?? 'over');
     if (!current || !user) return;
 
     const rawDelta = calculateNewRating(current.rating, botElo, outcome, current.games_played) - current.rating;
@@ -234,6 +322,7 @@ export default function ReversiTrainingPage() {
         rating_after: newRating,
       }),
     ]).then(([updatedRating]) => {
+      slot.clear();
       setUserRating(updatedRating);
       setRatingResult({
         before: current.rating,
@@ -241,7 +330,7 @@ export default function ReversiTrainingPage() {
         delta: adjustedDelta,
         hintsUsed: hintsUsedRef.current,
       });
-    });
+    }).catch((err) => console.error('Failed to save game / rating:', err));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState.isGameOver, manualEnd]);
 
@@ -305,8 +394,14 @@ export default function ReversiTrainingPage() {
     setGameSaved(false);
   };
 
-  /** Back to the setup form (header New Game, result card Change setup). */
-  const handleNewGame = () => resetGame(false);
+  /**
+   * Back to the setup form (header New Game, result card Change setup). A game
+   * left unfinished stays saved, and the Continue card reads it back.
+   */
+  const handleNewGame = () => {
+    resetGame(false);
+    unfinished.refresh();
+  };
 
   /** The next rated game, matched to the rating the last one wrote. */
   const handleRematch = () => resetGame(true);
@@ -332,6 +427,10 @@ export default function ReversiTrainingPage() {
 
   // ── Setup screen ──────────────────────────────────────────────────────────
 
+  if (!gameStarted && (awaitingResume || pendingResume)) {
+    return <div className="min-h-svh page-glow-reversi" />;
+  }
+
   if (!gameStarted) {
     return (
       <div className="min-h-svh page-glow-reversi">
@@ -346,6 +445,15 @@ export default function ReversiTrainingPage() {
           <p className="text-fg-muted text-center mb-8">
             Play rated games against a bot matched to your skill level
           </p>
+
+          {unfinished.saved && (
+            <ContinueCard
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
+            />
+          )}
 
           {/* Rating card */}
           <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
@@ -407,7 +515,7 @@ export default function ReversiTrainingPage() {
               {(['black', 'white'] as const).map(color => (
                 <button
                   key={color}
-                  onClick={() => setPlayerColor(color)}
+                  onClick={() => update({ color })}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
                       ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
@@ -431,13 +539,16 @@ export default function ReversiTrainingPage() {
           </div>
 
           <SetupStartBar>
-            <button
-              onClick={handleStartGame}
+            <GuardedStartButton
+              onStart={handleStartGame}
               disabled={ratingLoading}
-              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
             >
               Start Rated Game
-            </button>
+            </GuardedStartButton>
           </SetupStartBar>
         </div>
       </div>

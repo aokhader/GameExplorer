@@ -22,7 +22,18 @@
     "./hooks/useSettingsStore": "./src/hooks/useSettingsStore.ts",
     "./hooks/usePuzzleFeedback": "./src/hooks/usePuzzleFeedback.ts",
     "./liquidate/useLiquidateWalk": "./src/liquidate/useLiquidateWalk.ts",
-    "./liquidate/useLiquidateGame": "./src/liquidate/useLiquidateGame.ts"
+    "./liquidate/useLiquidateGame": "./src/liquidate/useLiquidateGame.ts",
+    "./storage": "./src/storage.ts",
+    "./game/localSetup": "./src/game/localSetup.ts",
+    "./game/localRules": "./src/game/localRules.ts",
+    "./game/localResult": "./src/game/localResult.ts",
+    "./game/unfinishedGame": "./src/game/unfinishedGame.ts",
+    "./game/settleUnfinishedGame": "./src/game/settleUnfinishedGame.ts",
+    "./game/playerStats": "./src/game/playerStats.ts",
+    "./hooks/useRememberedSetup": "./src/hooks/useRememberedSetup.ts",
+    "./hooks/useUnfinishedGames": "./src/hooks/useUnfinishedGames.ts",
+    "./hooks/usePlayerStats": "./src/hooks/usePlayerStats.ts",
+    "./hooks/useUnfinishedGameWriter": "./src/hooks/useUnfinishedGameWriter.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

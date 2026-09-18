@@ -15,6 +15,8 @@ function fileLabels(page: Page) {
 async function startBotGame(page: Page) {
   await page.goto('/chess/bot?elo=600&start=1');
   await expect(page.locator('.chess-board')).toBeVisible();
+  // The board takes input once the engine worker has sent its first position.
+  await expect(page.locator('.chess-board')).not.toHaveAttribute('aria-disabled', 'true', { timeout: 15000 });
 }
 
 test('flip turns the board around', async ({ page }) => {

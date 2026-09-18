@@ -32,7 +32,7 @@ const STORAGE_PREFIX = 'gx:liquidate:';
  */
 const LOG_KEEP = 200;
 
-const nativeStore: LiquidateSaveStore = {
+export const nativeLiquidateStore: LiquidateSaveStore = {
   read: async (slot) => {
     try {
       const raw = await AsyncStorage.getItem(STORAGE_PREFIX + slot);
@@ -67,7 +67,7 @@ export interface UseLiquidateGameOptions {
 
 export function useLiquidateGame({ storageKey, botLevel }: UseLiquidateGameOptions) {
   const { reducedMotion } = useSettings();
-  return useLiquidateGameCore({ storageKey, botLevel, store: nativeStore, reducedMotion });
+  return useLiquidateGameCore({ storageKey, botLevel, store: nativeLiquidateStore, reducedMotion });
 }
 
 export type { PlacedToken, SavedLiquidateGame };

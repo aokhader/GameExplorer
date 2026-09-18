@@ -12,6 +12,7 @@ import {
   type GameType,
 } from '@gameexplorer/db';
 import { endReasonLabel } from '@gameexplorer/shared';
+import { ratingDelta, summarizePlayer } from '@gameexplorer/client/game/playerStats';
 import { useAuth } from '@gameexplorer/client';
 import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, Card, Button, Icon } from '@/components/ui';
@@ -57,11 +58,6 @@ function relativeTime(iso: string) {
   if (days === 1) return 'yesterday';
   if (days < 7) return `${days}d ago`;
   return formatDate(iso);
-}
-
-function ratingDelta(g: GameListItem): number | null {
-  if (g.rating_before == null || g.rating_after == null) return null;
-  return g.rating_after - g.rating_before;
 }
 
 function StatTile({ label, value, valueColor }: { label: string; value: string | number; valueColor?: string }) {
@@ -238,20 +234,9 @@ export default function YouScreen() {
     );
   }
 
-  const wins = games.filter((g) => g.result === g.player_color).length;
-  const winRate = games.length > 0 ? Math.round((wins / games.length) * 100) : 0;
-
-  let currentStreak = 0;
-  for (const g of games) {
-    if (g.result === g.player_color) currentStreak++;
-    else break;
-  }
-  let bestStreak = 0;
-  let run = 0;
-  for (const g of games) {
-    run = g.result === g.player_color ? run + 1 : 0;
-    if (run > bestStreak) bestStreak = run;
-  }
+  // One implementation of these numbers for Profile, web's Profile and the
+  // launcher — see `playerStats.ts`.
+  const { winRate, currentStreak, bestStreak, topRating, perGame } = summarizePlayer(games, ratings);
 
   const orderedRatings: { type: GameType; rating: UserRating }[] = [
     { type: 'chess', rating: ratings.chess },
@@ -259,12 +244,6 @@ export default function YouScreen() {
     { type: 'reversi', rating: ratings.reversi },
     { type: 'go', rating: ratings.go },
   ];
-  const topRating = Math.max(0, ...orderedRatings.map((r) => r.rating.peak_rating));
-
-  const deltaFor = (type: GameType): number | null => {
-    const g = games.find((g) => (g.game_type ?? 'chess') === type && ratingDelta(g) !== null);
-    return g ? ratingDelta(g) : null;
-  };
 
   const filtered = tab === 'all' ? games : games.filter((g) => (g.game_type ?? 'chess') === tab);
   const recent = filtered.slice(0, 10);
@@ -310,7 +289,7 @@ export default function YouScreen() {
       <View style={{ gap: SPACING[3], marginBottom: 20 }}>
         {orderedRatings.map(({ type, rating }) => {
           const meta = GAME_META[type];
-          const delta = deltaFor(type);
+          const delta = perGame[type].lastDelta;
           const rated = rating.games_played > 0;
           return (
             <Card key={type} style={{ padding: 16, borderLeftColor: GAME_ACCENTS[type].base, borderLeftWidth: 4 }}>

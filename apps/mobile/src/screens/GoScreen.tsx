@@ -13,13 +13,10 @@ import {
   toggleDeadChain,
   type GoColor,
   type GoGameState,
-  type GoScoring,
 } from '@gameexplorer/shared';
 import {
   GO_DIFFICULTY_LEVELS,
   GO_PASS,
-  GO_RATED_KOMI,
-  GO_RATED_SIZE,
   GO_RESUME,
   GO_TRAINING_ELO_BOUNDS,
   goEloLabel,
@@ -49,6 +46,12 @@ import { GoReviewBar } from '@/game/GoReviewBar';
 import { GoRulesCard } from '@/game/GoRulesCard';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
+import { useSetupDeepLink } from '@/game/useSetupDeepLink';
+import { useGameSetup, useUnfinishedGame } from '@/game/useGameSetup';
+import { ContinueCard, SetupStartFooter } from '@/game/ContinueCard';
+import { nativeLocalStore } from '@/lib/localStore';
+import { localRulesFor } from '@gameexplorer/client/game/localRules';
+import type { UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { useIsOnline } from '@/lib/useIsOnline';
 import { FONTS } from '@/theme/typography';
 
@@ -100,14 +103,14 @@ export function GoScreen() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
 
-  const [mode, setMode] = useState<SetupMode>('bot');
-  const [targetElo, setTargetElo] = useState(1100);
-  const [playerColor, setPlayerColor] = useState<GoColor>('black');
-  const [rated, setRated] = useState(true);
-  const [started, setStarted] = useState(false);
-  const [size, setSize] = useState(GO_RATED_SIZE);
-  const [komi, setKomi] = useState(GO_RATED_KOMI);
-  const [scoring, setScoring] = useState<GoScoring>('area');
+  // ?resume=1 from the launcher. Go has no tour or invite links.
+  const deepLink = useSetupDeepLink(GO_DIFFICULTY_LEVELS.map((l) => l.elo));
+  // The form remembers what was chosen last time — rules included — and a started
+  // game keeps the setup it began with. See `useGameSetup`.
+  const setup = useGameSetup('go', deepLink);
+  const unfinished = useUnfinishedGame('go');
+  const { mode, setMode, started } = setup;
+  const { elo: targetElo, color: playerColor, rated, size, komi, scoring } = setup.setup;
 
   const online = useIsOnline();
   const router = useRouter();
@@ -154,6 +157,7 @@ export function GoScreen() {
     // Puzzles are their own screen behind their own route; keeping the loop out
     // of them is what stops a game being set up behind the setup screen.
     started: started && !isPuzzles,
+    persistence: { store: nativeLocalStore, game: 'go', setup: setup.setup },
   });
 
   const botElo = game.botElo;
@@ -168,12 +172,37 @@ export function GoScreen() {
   const [dead, setDead] = useState<string[]>([]);
   const awaitingReview = game.awaitingReview;
 
-  /** Back to the setup screen (game bar New Game, result card Change setup). */
+  /**
+   * Back to the setup screen (game bar New Game, result card Change setup). A game
+   * left unfinished stays saved, and the Continue card reads it back.
+   */
   const handleNewGame = () => {
     game.newGame();
     setDead([]);
-    setStarted(false);
+    setup.stop();
+    unfinished.refresh();
   };
+
+  /**
+   * Pick a saved game up where it was left. Its moves replay through the rules it
+   * was started with — the adapter on screen is still the form's, and a 13×13 game
+   * replayed on a 9×9 board fails on its first move off the smaller one.
+   */
+  const resumeSaved = (saved: UnfinishedGame) => {
+    setDead([]);
+    if (game.restore(saved, localRulesFor(saved) as typeof adapter)) setup.resume(saved);
+    // Moves these rules reject describe no position anyone can play or score.
+    else void unfinished.settle({ resign: true }).catch(() => {});
+  };
+
+  // The launcher's Continue opens this screen with `?resume=1`.
+  const [awaitingResume, setAwaitingResume] = useState(deepLink.resume);
+  useEffect(() => {
+    if (!awaitingResume || !setup.ready || !unfinished.hydrated) return;
+    setAwaitingResume(false);
+    if (unfinished.saved && !unfinished.saved.end && !started) resumeSaved(unfinished.saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingResume, setup.ready, unfinished.hydrated]);
 
   /** The next game with the same size, komi, colour and strength — see ChessScreen. */
   const handleRematch = () => {
@@ -225,15 +254,25 @@ export function GoScreen() {
     [awaitingReview, reviewScore, game.displayState],
   );
 
+  // Nothing to show until the remembered setup is known, or while the launcher's
+  // Continue is about to replace the form with a game.
+  if (!started && (!setup.ready || awaitingResume)) {
+    return <Screen scroll={false}>{null}</Screen>;
+  }
+
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
     // Pinned under the scrolling form rather than at its end.
     const startButton = (
-      <Button
+      <SetupStartFooter
         label={isPuzzles ? 'Start Puzzles' : isTraining ? 'Start Rated Game' : 'Start Game'}
-        onPress={() => (isPuzzles ? router.push('/puzzles/go' as never) : setStarted(true))}
+        onStart={isPuzzles ? () => router.push('/puzzles/go' as never) : setup.start}
         disabled={!canStart}
-        glow
+        saved={unfinished.saved}
+        onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+        onSettle={unfinished.settle}
+        settling={unfinished.settling}
+        leavesGame={isPuzzles}
       />
     );
 
@@ -244,6 +283,17 @@ export function GoScreen() {
         />
         <BackHeader fallbackHref="/" />
         <SetupHero game="go" />
+
+        {unfinished.saved && (
+          <View style={{ marginBottom: 24 }}>
+            <ContinueCard
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
+            />
+          </View>
+        )}
 
         <LearnLink game="go" label="New to Go? How to play →" />
         <LessonsCard game="go" />
@@ -275,11 +325,11 @@ export function GoScreen() {
         {!isPuzzles && (
         <GoRulesCard
           size={size}
-          onSizeChange={setSize}
+          onSizeChange={(value) => setup.update({ size: value })}
           komi={komi}
-          onKomiChange={setKomi}
+          onKomiChange={(value) => setup.update({ komi: value })}
           scoring={scoring}
-          onScoringChange={setScoring}
+          onScoringChange={(value) => setup.update({ scoring: value })}
           showRatedNote={!isPassAndPlay}
         />
         )}
@@ -306,7 +356,7 @@ export function GoScreen() {
                 return (
                   <Pressable
                     key={level.elo}
-                    onPress={() => setTargetElo(level.elo)}
+                    onPress={() => setup.update({ elo: level.elo })}
                     accessibilityRole="button"
                     accessibilityLabel={`${level.label} bot — ${level.description}`}
                     accessibilityState={{ selected }}
@@ -350,7 +400,7 @@ export function GoScreen() {
                 return (
                   <Pressable
                     key={color}
-                    onPress={() => setPlayerColor(color)}
+                    onPress={() => setup.update({ color })}
                     accessibilityRole="button"
                     accessibilityLabel={`Play as ${color}`}
                     accessibilityState={{ selected }}
@@ -424,7 +474,7 @@ export function GoScreen() {
                     : 'Updates your Go rating'}
               </Text>
             </View>
-            <Toggle value={ratedEffective} onValueChange={setRated} label="Rated" disabled={!userId || !online} />
+            <Toggle value={ratedEffective} onValueChange={(value) => setup.update({ rated: value })} label="Rated" disabled={!userId || !online} />
           </View>
         )}
 

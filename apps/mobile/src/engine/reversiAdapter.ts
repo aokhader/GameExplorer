@@ -1,9 +1,5 @@
-import {
-  ReversiEngine,
-  getBestReversiMove,
-  type ReversiGameState,
-} from '@gameexplorer/shared';
-import { saveReversiGame } from '@gameexplorer/db';
+import { getBestReversiMove, type ReversiGameState } from '@gameexplorer/shared';
+import { REVERSI_RULES } from '@gameexplorer/client/game/localRules';
 import type { LocalGameAdapter } from './useLocalGame';
 
 /** Bot pacing by strength — mirrors web's reversi `thinkTimeForElo`. */
@@ -23,15 +19,9 @@ function thinkTimeForElo(elo: number): number {
  * live here; it only adapts names/shapes over the shared engine + bot + writer.
  */
 export const reversiAdapter: LocalGameAdapter<ReversiGameState> = {
-  gameType: 'reversi',
-  newGame: () => ReversiEngine.newGame(),
-  currentTurn: (s) => s.currentTurn,
-  isGameOver: (s) => s.isGameOver,
-  winner: (s) => s.winner,
-  validateMove: (s, from) => {
-    const r = ReversiEngine.validateMove(s, from);
-    return { valid: r.valid, resultingState: r.resultingState };
-  },
+  // Rules, forced pass and writer shared with anything that replays or resigns
+  // a saved reversi game away from this screen.
+  ...REVERSI_RULES,
   getBotMove: (s, elo) => {
     const { position } = getBestReversiMove(s, elo);
     return { from: position, to: position };
@@ -43,8 +33,4 @@ export const reversiAdapter: LocalGameAdapter<ReversiGameState> = {
   // Always the engine's strongest square, as on web.
   hintElo: () => 2000,
   thinkTimeForElo,
-  mustPass: (s) => ReversiEngine.mustPass(s),
-  executePass: (s) => ReversiEngine.executePass(s),
-  save: ({ state, playerColor, result, difficulty, userId, options }) =>
-    saveReversiGame(state, playerColor, result, difficulty, userId, options),
 };

@@ -25,6 +25,14 @@ import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { useSettings } from '@/components/providers/SettingsProvider';
 import { ShellNav } from '@/components/game/ShellNav';
+import { ContinueCard, GuardedStartButton } from '@/components/game/ContinueCard';
+import { useRouter } from 'next/navigation';
+import { useRememberedSetup } from '@gameexplorer/client/hooks/useRememberedSetup';
+import { useUnfinishedGameWriter } from '@gameexplorer/client/hooks/useUnfinishedGameWriter';
+import { CHESS_RULES, actionsFromHistory } from '@gameexplorer/client/game/localRules';
+import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
+import { webLocalStore } from '@/lib/localStore';
+import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -111,14 +119,27 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   const { settings } = useSettings();
 
   // Worker owns the canonical game state; all move validation runs off main thread.
-  const { gameState: liveState, legalMoves: legalMovesMap, isReady: engineReady, makeMove, getBotMove, reset } = useChessEngine();
+  const { gameState: liveState, legalMoves: legalMovesMap, isReady: engineReady, makeMove, getBotMove, reset, load } = useChessEngine();
   const { user } = useAuth();
 
   // Timeline for replay — grows as the worker confirms each move.
   const [timeline, setTimeline] = useState<ChessGameState[]>([]);
   const [viewIndex, setViewIndex] = useState(0);
-  const [targetElo, setTargetElo] = useState(1200);
-  const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
+  // Strength, colour and rated as chosen last time on this route, read before the
+  // first paint (`ux-fix-ideas.md` §2.1).
+  const { setup, update } = useRememberedSetup({
+    store: webLocalStore,
+    game: 'chess',
+    mode: isLocal ? 'pass-and-play' : 'bot',
+  });
+  const { elo: targetElo, color: playerColor, rated } = setup;
+  /**
+   * The slider reaches strengths between the presets. Marking those custom is
+   * what keeps a remembered 1325 from snapping back to the nearest preset — and
+   * lets native, which draws presets and a custom picker separately, read it.
+   */
+  const setTargetElo = (elo: number) =>
+    update({ elo, custom: !ELO_PRESETS.some((preset) => preset.elo === elo) });
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -128,8 +149,6 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   const [userRating, setUserRating] = useState<UserRating | null>(null);
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
   const [gameSaved, setGameSaved] = useState(false);
-  // Rated is opt-out, and needs an account to read/write a rating.
-  const [rated, setRated] = useState(true);
   // View only — which colour sits at the bottom. Never changes what you own.
   const [flipped, setFlipped] = useState(false);
   // Post-game review. Gated on the game being over: mid-game it would be an
@@ -245,6 +264,89 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
     getUserRating(user.id, 'chess').then(setUserRating);
   }, [user]);
 
+  // ── Unfinished game (`ux-fix-ideas.md` §2.4) ────────────────────────────────
+  // Saved as it is played, so a closed tab no longer loses the game — and a rated
+  // one stays open until it is finished or resigned.
+  const setupMode = isLocal ? 'pass-and-play' : 'bot';
+  const unfinished = useUnfinishedGame('chess');
+  const router = useRouter();
+  const actions = useMemo(() => actionsFromHistory('chess', liveState), [liveState]);
+  const slot = useUnfinishedGameWriter({
+    store: webLocalStore,
+    game: 'chess',
+    mode: setupMode,
+    userId,
+    rated,
+    playerColor,
+    botElo: targetElo,
+    setup,
+    // Only once the timeline holds the worker's position: between a reset and
+    // the worker's reply, `liveState` is still the game that just ended.
+    started: gameStarted && timeline.length > 0,
+    actions,
+    over: liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || !!manualEnd,
+  });
+
+  /**
+   * A saved game waiting for the worker. The timeline sync below treats the
+   * worker's first position after mount as a fresh board, so a game restored
+   * before that would be reset by it.
+   */
+  const [pendingResume, setPendingResume] = useState<UnfinishedGame | null>(null);
+
+  /** Pick a saved game up where it was left; another mode's resumes on its own route. */
+  const resumeSaved = (saved: UnfinishedGame) => {
+    if (saved.mode !== setupMode) {
+      router.push(resumeHref(saved));
+      return;
+    }
+    if (!engineReady) {
+      setPendingResume(saved);
+      return;
+    }
+    const replayed = replayActions(CHESS_RULES, saved.actions);
+    if (!replayed) {
+      void unfinished.settle({ resign: true }).catch(() => {});
+      return;
+    }
+    gameGenRef.current += 1;
+    stockfish.cancelSearch();
+    botMovePendingRef.current = false;
+    update({ elo: saved.botElo, color: saved.playerColor, rated: saved.rated });
+    // The timeline first, then the worker: when its update arrives the timeline
+    // already ends on that position, so the sync effect leaves it alone.
+    setTimeline(replayed);
+    setViewIndex(replayed.length - 1);
+    load(replayed[replayed.length - 1]);
+    setIsThinking(false);
+    setManualEnd(null);
+    setGameSaved(false);
+    setRatingResult(null);
+    setReviewing(false);
+    slot.resumedFrom(saved);
+    setGameStarted(true);
+  };
+
+  // `?resume=1` from a Continue card on another route: blank until it is known
+  // whether there is a game to open.
+  const [awaitingResume, setAwaitingResume] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    if (wantsResume()) setAwaitingResume(true);
+  }, []);
+  useEffect(() => {
+    if (!awaitingResume || !unfinished.hydrated) return;
+    setAwaitingResume(false);
+    const saved = unfinished.saved;
+    if (saved && !saved.end && saved.mode === setupMode) resumeSaved(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingResume, unfinished.hydrated]);
+  useEffect(() => {
+    if (!pendingResume || !engineReady) return;
+    setPendingResume(null);
+    resumeSaved(pendingResume);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingResume, engineReady]);
+
   // ── Trigger bot move when it's the bot's turn ───────────────────────────────
   useEffect(() => {
     // Pass-and-play has no bot to move: the second player supplies the reply.
@@ -270,7 +372,12 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   useEffect(() => {
     // Pass-and-play is casual by definition — no rating and no saved row. There
     // is no single "player" whose result could be recorded against an account.
-    if (isLocal) return;
+    // With the game over nothing is owed, so its resumable slot goes.
+    if (isLocal) {
+      const ended = liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd;
+      if (gameStarted && ended) slot.clear();
+      return;
+    }
     if (!gameStarted || gameSaved) return;
     const naturalEnd = liveState.isCheckmate || liveState.isStalemate || liveState.isDraw;
     if (!naturalEnd && !manualEnd) return;
@@ -293,6 +400,9 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
       const rawDelta = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played) - current.rating;
       const newRating = Math.max(100, current.rating + rawDelta);
 
+      // Owed until written: a failed write or a closed tab leaves the result on
+      // the Continue card rather than losing it.
+      slot.markEnded(manualEnd ?? 'over');
       Promise.all([
         upsertUserRating(uid, newRating, outcome, 'chess'),
         saveGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid, {
@@ -301,10 +411,12 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
           rating_after: newRating,
         }),
       ]).then(([updatedRating]) => {
+        slot.clear();
         setUserRating(updatedRating);
         setRatingResult({ before: current.rating, after: newRating, delta: rawDelta });
-      });
+      }).catch((err) => console.error('Failed to save game / rating:', err));
     } else {
+      slot.clear();
       saveGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid ?? undefined);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -394,8 +506,14 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
     reset(); // worker resets to newGame() and broadcasts STATE_UPDATE
   };
 
-  /** Back to the setup form (header New Game, result card Change setup). */
-  const handleNewGame = () => resetGame(false);
+  /**
+   * Back to the setup form (header New Game, result card Change setup). A game
+   * left unfinished stays saved, and the Continue card reads it back.
+   */
+  const handleNewGame = () => {
+    resetGame(false);
+    unfinished.refresh();
+  };
 
   /**
    * Same strength, same colour, same rated choice — no setup form. A rated
@@ -437,6 +555,10 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
 
   // ── Setup screen ──────────────────────────────────────────────────────────────
 
+  if (!gameStarted && (awaitingResume || pendingResume)) {
+    return <div className="min-h-svh page-glow-chess" />;
+  }
+
   if (!gameStarted) {
     return (
       <div className="min-h-svh page-glow-chess">
@@ -448,6 +570,15 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
           <h1 className="text-4xl font-bold text-fg mb-8 text-center">
             {isLocal ? 'Pass & Play' : 'Play vs Bot'}
           </h1>
+
+          {unfinished.saved && (
+            <ContinueCard
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
+            />
+          )}
 
           {/* ELO selector — no bot in pass-and-play, so nothing to calibrate. */}
           <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
@@ -514,7 +645,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <button
-                onClick={() => setPlayerColor('white')}
+                onClick={() => update({ color: 'white' })}
                 className={`p-6 rounded-lg transition-all ${
                   playerColor === 'white'
                     ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
@@ -528,7 +659,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
                 </div>
               </button>
               <button
-                onClick={() => setPlayerColor('black')}
+                onClick={() => update({ color: 'black' })}
                 className={`p-6 rounded-lg transition-all ${
                   playerColor === 'black'
                     ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
@@ -546,16 +677,19 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
 
           {/* Pass-and-play is casual by definition — nothing to rate. */}
           {!isLocal && (
-            <RatedToggle checked={rated} onChange={setRated} gameLabel="chess" userId={userId} />
+            <RatedToggle checked={rated} onChange={(value) => update({ rated: value })} gameLabel="chess" userId={userId} />
           )}
 
           <SetupStartBar>
-            <button
-              onClick={handleStartGame}
-              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
+            <GuardedStartButton
+              onStart={handleStartGame}
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
             >
               Start Game
-            </button>
+            </GuardedStartButton>
           </SetupStartBar>
         </div>
       </div>
@@ -655,6 +789,12 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
             orientation={orientation}
             showCoordinates={true}
             legalMovesMap={isAtLive && !isThinking ? legalMovesMap : undefined}
+            // Inert until the worker has sent its first position. Before that the
+            // timeline is empty, so `handleMove` drops every move — but without a
+            // legal-move map the board works its own out and lets a piece be
+            // picked up and put down, and on a slow load a first move vanished
+            // as if it had never been made.
+            interactive={engineReady && timeline.length > 0}
             // Line up a reply while the bot thinks. Off while reviewing history
             // (the board isn't showing the live position) or after a manual end.
             // Nobody to pre-empt in pass-and-play: the next mover is sitting

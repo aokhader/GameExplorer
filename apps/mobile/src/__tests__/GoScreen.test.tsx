@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { GoScreen } from '@/screens/GoScreen';
 import { SettingsProvider } from '@/providers/SettingsProvider';
@@ -60,9 +61,11 @@ function mockGoBoardModule() {
 jest.mock('@/board/GoBoard', () => ({ GoBoard: mockGoBoardModule() }));
 
 const mockPush = jest.fn();
+let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn(), canGoBack: () => false }),
   useFocusEffect: (cb: () => void) => cb(),
+  useLocalSearchParams: () => mockParams,
 }));
 
 // `useIsOnline` subscribes to expo-network, whose native listener has no
@@ -86,25 +89,55 @@ jest.mock('@gameexplorer/db', () => ({
   upsertUserRating: jest.fn(async () => null),
 }));
 
-function renderScreen() {
-  return render(
+/**
+ * The form renders once the remembered setup has been read — a frame late under
+ * AsyncStorage — so every render waits for the mode picker to appear.
+ */
+async function renderScreen() {
+  const view = render(
     <SettingsProvider>
       <GoScreen />
     </SettingsProvider>,
   );
+  await screen.findByRole('button', { name: /vs Bot/ });
+  return view;
 }
+
+/**
+ * Close the screen and open it again, as leaving and coming back would. The
+ * same root re-renders a new GoScreen under a fresh key: unmounting one root
+ * and rendering a second in the same test leaves the first root's async work
+ * running past the test, and cleanup never settles.
+ */
+async function reopen(view: ReturnType<typeof render>, extra?: Record<string, string>) {
+  if (extra) mockParams = extra;
+  reopenKey += 1;
+  view.rerender(
+    <SettingsProvider>
+      <GoScreen key={reopenKey} />
+    </SettingsProvider>,
+  );
+}
+let reopenKey = 0;
+
+// Setups and unfinished games persist, so each test starts from an empty device.
+beforeEach(async () => {
+  mockParams = {};
+  mockPush.mockClear();
+  await AsyncStorage.clear();
+});
 
 /** Walk the setup screen into a started game in the given mode. */
 async function startGame(mode: 'vs Bot' | 'Pass & Play') {
-  renderScreen();
+  await renderScreen();
   fireEvent.press(screen.getByRole('button', { name: new RegExp(mode) }));
   fireEvent.press(screen.getByRole('button', { name: /Start Game/ }));
   await waitFor(() => expect(screen.getByLabelText('go board')).toBeTruthy());
 }
 
 describe('GoScreen — setup', () => {
-  it('offers only the modes Go supports', () => {
-    renderScreen();
+  it('offers only the modes Go supports', async () => {
+    await renderScreen();
     expect(screen.getByRole('button', { name: /vs Bot/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Training/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Pass & Play/ })).toBeTruthy();
@@ -114,8 +147,8 @@ describe('GoScreen — setup', () => {
     expect(screen.queryByRole('button', { name: /Online/ })).toBeNull();
   });
 
-  it('sends the puzzles mode to its own route rather than setting up a game', () => {
-    renderScreen();
+  it('sends the puzzles mode to its own route rather than setting up a game', async () => {
+    await renderScreen();
     fireEvent.press(screen.getByRole('button', { name: /Puzzles/ }));
 
     // The rules card belongs to a game about to be played; puzzles have none.
@@ -125,13 +158,13 @@ describe('GoScreen — setup', () => {
     expect(mockPush).toHaveBeenCalledWith('/puzzles/go');
   });
 
-  it('states the ruleset the player is agreeing to', () => {
-    renderScreen();
+  it('states the ruleset the player is agreeing to', async () => {
+    await renderScreen();
     expect(screen.getByText(/9×9 · area scoring · 7\.5 komi to white/)).toBeTruthy();
   });
 
-  it('restates the ruleset when either rule is changed', () => {
-    renderScreen();
+  it('restates the ruleset when either rule is changed', async () => {
+    await renderScreen();
     fireEvent.press(screen.getByRole('button', { name: /^Territory scoring/ }));
     expect(screen.getByText(/9×9 · territory scoring · 7\.5 komi to white/)).toBeTruthy();
 
@@ -144,7 +177,7 @@ describe('GoScreen — setup', () => {
     // `useState` initializer, which runs once. The setup screen and the board
     // are the same component, so a ruleset chosen after mount used to be
     // discarded and the game began under area scoring at 7.5 komi regardless.
-    renderScreen();
+    await renderScreen();
     fireEvent.press(screen.getByRole('button', { name: /^Territory scoring/ }));
     fireEvent.press(screen.getByRole('button', { name: /^Komi None/ }));
     fireEvent.press(screen.getByRole('button', { name: /Start Game/ }));
@@ -155,8 +188,8 @@ describe('GoScreen — setup', () => {
     expect(screen.getByText('none')).toBeTruthy();
   });
 
-  it('takes the rated toggle away at a komi the bot was never measured at', () => {
-    renderScreen();
+  it('takes the rated toggle away at a komi the bot was never measured at', async () => {
+    await renderScreen();
     expect(screen.getByLabelText('Rated')).toBeTruthy();
 
     fireEvent.press(screen.getByRole('button', { name: /^Komi 5\.5/ }));
@@ -164,8 +197,8 @@ describe('GoScreen — setup', () => {
     expect(screen.getByText(/casual/)).toBeTruthy();
   });
 
-  it('blocks training for a guest, since training is always rated', () => {
-    renderScreen();
+  it('blocks training for a guest, since training is always rated', async () => {
+    await renderScreen();
     fireEvent.press(screen.getByRole('button', { name: /Training/ }));
     expect(screen.getByRole('button', { name: /Start Rated Game/ })).toBeDisabled();
   });
@@ -283,5 +316,84 @@ describe('GoScreen — playing', () => {
     fireEvent.press(await screen.findByRole('button', { name: 'Accept score' }));
 
     await waitFor(() => expect(screen.getByText('interactive:false')).toBeTruthy());
+  });
+});
+
+/**
+ * `ux-fix-ideas.md` §2.1 and §2.4: the second visit costs less than the first,
+ * and closing the app mid-game no longer loses the game.
+ */
+describe('GoScreen — remembering', () => {
+  it('reopens on the mode and rules chosen last time', async () => {
+    const first = await renderScreen();
+    fireEvent.press(screen.getByRole('button', { name: /Pass & Play/ }));
+    fireEvent.press(screen.getByRole('button', { name: /^Territory scoring/ }));
+    fireEvent.press(screen.getByRole('button', { name: /^Komi None/ }));
+    await reopen(first);
+
+    expect(await screen.findByRole('button', { name: /Pass & Play/ })).toBeSelected();
+    expect(screen.getByText(/9×9 · territory scoring · no komi/)).toBeTruthy();
+  });
+
+  it('keeps each mode\'s choices apart', async () => {
+    const first = await renderScreen();
+    fireEvent.press(screen.getByRole('button', { name: /^Komi None/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Pass & Play/ }));
+    // Pass-and-play has its own remembered rules, still the defaults.
+    expect(screen.getByText(/9×9 · area scoring · 7\.5 komi to white/)).toBeTruthy();
+    first.unmount();
+  });
+
+  it('offers an abandoned game back, and resumes it where it was left', async () => {
+    const first = await renderScreen();
+    fireEvent.press(screen.getByRole('button', { name: /^Komi None/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Pass & Play/ }));
+    fireEvent.press(screen.getByRole('button', { name: /^Komi None/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Start Game/ }));
+    await waitFor(() => expect(screen.getByLabelText('go board')).toBeTruthy());
+    mockBoard.move = 'e5';
+    fireEvent.press(screen.getByLabelText('go board'));
+    await waitFor(() => expect(screen.getByText('E5')).toBeTruthy());
+    // Closing the app mid-game.
+    await reopen(first);
+
+    expect(await screen.findByText('Game in progress')).toBeTruthy();
+    expect(screen.getByText(/Pass & Play · 1 move in/)).toBeTruthy();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Resume' }));
+    await waitFor(() => expect(screen.getByLabelText('go board')).toBeTruthy());
+    expect(screen.getByText('E5')).toBeTruthy();
+    // Resumed under the rules it was started with.
+    expect(screen.getByText('none')).toBeTruthy();
+  });
+
+  it('opens straight onto the unfinished game from the launcher', async () => {
+    const first = await renderScreen();
+    fireEvent.press(screen.getByRole('button', { name: /Pass & Play/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Start Game/ }));
+    await waitFor(() => expect(screen.getByLabelText('go board')).toBeTruthy());
+    mockBoard.move = 'e5';
+    fireEvent.press(screen.getByLabelText('go board'));
+    await waitFor(() => expect(screen.getByText('E5')).toBeTruthy());
+    await reopen(first, { resume: '1' });
+
+    expect(await screen.findByLabelText('go board')).toBeTruthy();
+    expect(screen.getByText('E5')).toBeTruthy();
+  });
+
+  it('discards a casual game without asking', async () => {
+    const first = await renderScreen();
+    fireEvent.press(screen.getByRole('button', { name: /Pass & Play/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Start Game/ }));
+    await waitFor(() => expect(screen.getByLabelText('go board')).toBeTruthy());
+    mockBoard.move = 'e5';
+    fireEvent.press(screen.getByLabelText('go board'));
+    await waitFor(() => expect(screen.getByText('E5')).toBeTruthy());
+    await reopen(first);
+
+    fireEvent.press(await screen.findByRole('button', { name: 'Discard' }));
+    // Findable by storage first: the removal is what the card waits on.
+    await waitFor(async () => expect(await AsyncStorage.getItem('gx:inprogress:go:guest')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('Game in progress')).toBeNull());
   });
 });

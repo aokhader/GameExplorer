@@ -5,9 +5,11 @@ import { Tabs, type BottomTabBarProps } from 'expo-router/tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 
+import { useAuth } from '@gameexplorer/client';
 import { Icon, PressableScale, type IconName } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 import { getLastPlayed } from '@/lib/lastPlayed';
+import { continueRoute, readContinueItems } from '@/lib/continueGame';
 
 /** How far the gold Play button rises above the tab-bar plate. */
 const PLAY_OVERLAP = 24;
@@ -25,7 +27,9 @@ const TAB_ICONS: Record<string, { idle: IconName; selected: IconName }> = {
 
 /**
  * The "Deck" tab bar: Home · ▶ Play · You. The center Play button is an
- * action (jumps into the last-played game's setup), not a route. The chrome
+ * action, not a route: it resumes the game the player was last in the middle of
+ * (`ux-fix-ideas.md` §2.4), and otherwise opens the last-played game's setup,
+ * already filled in with what was chosen last time. The chrome
  * plate starts `PLAY_OVERLAP` below the container top so the button can rise
  * above the bar while staying inside the touchable bounds (Android ignores
  * touches outside a parent's box).
@@ -36,11 +40,18 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, loading } = useAuth();
 
-  const openPlay = () => {
-    getLastPlayed().then((game) => {
-      router.push({ pathname: '/play/[game]', params: { game } } as never);
-    });
+  const openPlay = async () => {
+    // Before auth resolves the account is unknown, and a guest's game must not
+    // stand in for it.
+    const [next] = loading ? [] : await readContinueItems(user?.id ?? null);
+    if (next) {
+      router.push(continueRoute(next) as never);
+      return;
+    }
+    const game = await getLastPlayed();
+    router.push({ pathname: '/play/[game]', params: { game } } as never);
   };
 
   const tabs = state.routes.map((route, index) => {

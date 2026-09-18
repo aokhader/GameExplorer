@@ -1,17 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  calculateNewRating,
-  type EngineMove,
-  type GameOutcome,
-} from '@gameexplorer/shared';
+import { type EngineMove } from '@gameexplorer/shared';
 import {
   getUserRating,
-  upsertUserRating,
   type GameType,
   type SaveGameOptions,
   type UserRating,
 } from '@gameexplorer/db';
-import { HINT_PENALTY, HINT_VISIBLE_MS } from './trainingRules';
+import { HINT_VISIBLE_MS } from './trainingRules';
+import type { LocalStore } from '../storage';
+import {
+  claimResultWrite,
+  releaseResultWrite,
+  writeCasualLocalResult,
+  writeRatedLocalResult,
+} from '../game/localResult';
+import {
+  localGameResult,
+  replayActions,
+  serializeUnfinishedGame,
+  unfinishedGameKey,
+  type LocalAction,
+  type LocalGameEnd,
+  type ReplayRules,
+  type UnfinishedGame,
+  type UnfinishedGameType,
+} from '../game/unfinishedGame';
 
 export type LocalGameMode = 'bot' | 'pass-and-play' | 'training';
 export type Color = 'white' | 'black';
@@ -130,6 +143,23 @@ export interface UseLocalGameOptions<S> {
    * bot page.
    */
   botReady?: boolean;
+  /**
+   * Keep the game resumable (`project-docs/ux-fix-ideas.md` §2.4).
+   *
+   * When set, every move writes the game's actions to `store` under its
+   * `gx:inprogress` key, and the slot is cleared once the result is written — for
+   * a rated game, only once the write has *succeeded*, so a game whose save
+   * failed at the end is still owed rather than lost. A game abandoned mid-way
+   * (the game bar's New Game, leaving the screen, closing the app) keeps its slot,
+   * which is what lets an unfinished rated game stay open until it is finished or
+   * resigned.
+   */
+  persistence?: {
+    store: LocalStore;
+    game: UnfinishedGameType;
+    /** The setup the game is played with, in `localSetup`'s shape for this game. */
+    setup: object;
+  };
 }
 
 export interface RatingResult {
@@ -162,12 +192,45 @@ export function useLocalGame<S>({
   eloBounds,
   started,
   botReady = true,
+  persistence,
 }: UseLocalGameOptions<S>) {
   const isTraining = mode === 'training';
   // Training plays a bot too — everything but the strength source is shared.
   const vsBot = mode !== 'pass-and-play';
 
+  /**
+   * Whether *this game* counts, fixed when it starts.
+   *
+   * `rated` is the setup screen's live answer, and on native it folds in
+   * connectivity — so a connection that dropped mid-game used to turn a rated
+   * game casual at the end, and the loss it was about to record was saved as a
+   * casual row that an offline device could not write either. The documented
+   * rule is that rated needs a connection *at the start* and saves at the end
+   * with a retry; this is what makes the second half true. A restored game
+   * brings its own answer (see `restore`).
+   *
+   * Written during render, like `setupAdapterRef` below: it has to be settled
+   * before the effects that read it run on the same commit.
+   */
+  const lockedRatedRef = useRef<boolean | null>(started ? rated : null);
+  // A restored game's answer, held until the start it is waiting for — a screen
+  // may render once between `restore` and setting `started`.
+  const restoredRatedRef = useRef<boolean | null>(null);
+  if (!started) {
+    lockedRatedRef.current = null;
+  } else if (lockedRatedRef.current === null) {
+    lockedRatedRef.current = restoredRatedRef.current ?? rated;
+    restoredRatedRef.current = null;
+  }
+  const gameRated = started ? (lockedRatedRef.current ?? rated) : rated;
+
   const [timeline, setTimeline] = useState<S[]>(() => [adapter.newGame()]);
+  /**
+   * What produced each position after the first: `actions[i]` turned
+   * `timeline[i]` into `timeline[i + 1]`. A saved game stores these rather than
+   * the positions, and replays them to resume.
+   */
+  const [actions, setActions] = useState<LocalAction[]>([]);
   const [viewIndex, setViewIndex] = useState(0);
   /**
    * Rebuild the starting position when the adapter changes before the game has
@@ -188,6 +251,7 @@ export function useLocalGame<S>({
   if (setupAdapterRef.current !== adapter && !started) {
     setupAdapterRef.current = adapter;
     setTimeline([adapter.newGame()]);
+    setActions([]);
     setViewIndex(0);
   }
   const [isThinking, setIsThinking] = useState(false);
@@ -196,7 +260,7 @@ export function useLocalGame<S>({
   // Seeded from the same predicate the fetch effect uses, so training's Start
   // button is disabled on the very first frame too — a tap in the gap before the
   // effect ran would otherwise start a game against the default 1200 bot.
-  const [ratingLoading, setRatingLoading] = useState(() => !!userId && rated && vsBot);
+  const [ratingLoading, setRatingLoading] = useState(() => !!userId && gameRated && vsBot);
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
   const [gameSaved, setGameSaved] = useState(false);
   // Rated save/rating write failed (e.g. connectivity dropped mid-game). Per the
@@ -214,13 +278,21 @@ export function useLocalGame<S>({
   const isAtLive = viewIndex === timeline.length - 1;
 
   /**
+   * The strength a restored training game was being played at. Training reads
+   * the bot's strength off the player's rating, which has to load again after a
+   * resume — and cannot, offline. The saved value is a better stand-in than the
+   * flat 1200 a fresh game falls back on.
+   */
+  const restoredBotEloRef = useRef<number | null>(null);
+
+  /**
    * Bot strength. Training matches the player's own rating (that's the whole
    * point of the mode); everything else uses the tier the setup screen picked.
    */
   const botElo = isTraining
     ? Math.min(
         eloBounds?.max ?? Number.MAX_SAFE_INTEGER,
-        Math.max(eloBounds?.min ?? 0, userRating?.rating ?? 1200),
+        Math.max(eloBounds?.min ?? 0, userRating?.rating ?? restoredBotEloRef.current ?? 1200),
       )
     : targetElo;
 
@@ -239,6 +311,16 @@ export function useLocalGame<S>({
   userRatingRef.current = userRating;
   const manualEndRef = useRef(manualEnd);
   manualEndRef.current = manualEnd;
+  const actionsRef = useRef(actions);
+  actionsRef.current = actions;
+  const persistenceRef = useRef(persistence);
+  persistenceRef.current = persistence;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  /** When the game in the slot began; kept across a resume. */
+  const startedAtRef = useRef<number | null>(null);
   // Id of the bot search that currently owns the turn, or null when idle.
   // Mirrors `isThinking` but is readable synchronously — see makeBotMove.
   const botRunRef = useRef<number | null>(null);
@@ -248,7 +330,7 @@ export function useLocalGame<S>({
   // Training also reads it before the game starts — the setup screen shows it,
   // and it's what the bot's strength is matched to.
   useEffect(() => {
-    if (!userId || !rated || !vsBot) {
+    if (!userId || !gameRated || !vsBot) {
       setUserRating(null);
       setRatingLoading(false);
       return;
@@ -271,16 +353,77 @@ export function useLocalGame<S>({
     return () => {
       active = false;
     };
-  }, [userId, rated, vsBot, adapter]);
+  }, [userId, gameRated, vsBot, adapter]);
 
   // Append a new state to the timeline, following the live head if we're on it
   // (so bot/pass moves scroll into view but don't yank a user reviewing history).
-  const appendState = useCallback((next: S) => {
+  // The action that produced it is recorded alongside, for a resume to replay.
+  const appendState = useCallback((next: S, action: LocalAction) => {
     const wasAtLive = viewIndexRef.current === timelineRef.current.length - 1;
     const newIndex = timelineRef.current.length;
     setTimeline((prev) => [...prev, next]);
+    setActions((prev) => [...prev, action]);
     if (wasAtLive) setViewIndex(newIndex);
   }, []);
+
+  // ── Resumable slot ────────────────────────────────────────────────────────────
+
+  /** This game as a resumable snapshot, read from refs so any effect can build one. */
+  const snapshot = useCallback(
+    (end?: LocalGameEnd): UnfinishedGame | null => {
+      const p = persistenceRef.current;
+      if (!p || actionsRef.current.length === 0) return null;
+      const now = Date.now();
+      if (startedAtRef.current === null) startedAtRef.current = now;
+      return {
+        v: 1,
+        game: p.game,
+        mode: modeRef.current,
+        userId: userIdRef.current,
+        // A guest can never hold a rated game; the parser rejects one.
+        rated: !!userIdRef.current && (lockedRatedRef.current ?? false),
+        playerColor: playerColorRef.current,
+        botElo: botEloRef.current,
+        setup: { ...p.setup },
+        actions: actionsRef.current,
+        hintsUsed: hintsUsedRef.current,
+        startedAt: startedAtRef.current,
+        savedAt: now,
+        ...(end ? { end } : {}),
+      };
+    },
+    [],
+  );
+
+  const writeSlot = useCallback(
+    (end?: LocalGameEnd) => {
+      const p = persistenceRef.current;
+      const snap = snapshot(end);
+      if (!p || !snap) return;
+      void p.store
+        .set(unfinishedGameKey(p.game, snap.userId), serializeUnfinishedGame(snap))
+        .catch(() => {});
+    },
+    [snapshot],
+  );
+
+  const clearSlot = useCallback(() => {
+    const p = persistenceRef.current;
+    if (!p) return;
+    void p.store.remove(unfinishedGameKey(p.game, userIdRef.current)).catch(() => {});
+  }, []);
+
+  /**
+   * Save after every move, and after a hint (which the result will charge for).
+   * Only while the game is live: its end is the save effect's to record, because
+   * what happens to the slot then depends on whether the result was written.
+   */
+  useEffect(() => {
+    if (!started || actions.length === 0) return;
+    if (adapter.isGameOver(liveState) || manualEnd) return;
+    writeSlot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actions, hintsUsed, started]);
 
   // ── Bot reply ─────────────────────────────────────────────────────────────────
   const makeBotMove = useCallback(async () => {
@@ -315,9 +458,20 @@ export function useLocalGame<S>({
 
       // Dropped if the player resigned / agreed a draw while the bot thought.
       if (manualEndRef.current) return;
+      // Dropped if the board it was searching is gone — a new game, a rematch or
+      // a resumed game replaced the timeline. Engines that abort on a new game
+      // already reject here, but the in-house bots do not, and their answer would
+      // be appended to a game it was never asked about.
+      if (timelineRef.current[timelineRef.current.length - 1] !== current) return;
 
       const result = adapter.validateMove(current, move.from, move.to, move.promotion);
-      if (result.valid && result.resultingState) appendState(result.resultingState);
+      if (result.valid && result.resultingState) {
+        appendState(result.resultingState, {
+          from: move.from,
+          to: move.to,
+          ...(move.promotion ? { promotion: move.promotion } : {}),
+        });
+      }
     } catch (err) {
       // An aborted search is routine — the game moved on (new game, or a
       // superseded request) and nobody is waiting for this answer any more.
@@ -349,14 +503,18 @@ export function useLocalGame<S>({
       const t = setTimeout(() => {
         if (manualEndRef.current) return;
         const live = timelineRef.current[timelineRef.current.length - 1];
-        appendState(adapter.executePass!(live));
+        appendState(adapter.executePass!(live), { pass: true });
       }, delay);
       return () => clearTimeout(t);
     }
 
+    // Training's bot plays at the player's rating, which is still loading for a
+    // moment after a resume that lands on the bot's turn. Searching now would
+    // play that move at the fallback strength instead.
+    if (isTraining && ratingLoading) return;
     if (isBotTurn && botReady) makeBotMove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, started, isThinking, manualEnd, vsBot, botReady]);
+  }, [liveState, playerColor, started, isThinking, manualEnd, vsBot, botReady, ratingLoading]);
 
   // ── Save + rating on end ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -364,70 +522,70 @@ export function useLocalGame<S>({
     if (!adapter.isGameOver(liveState) && !manualEnd) return;
     setGameSaved(true);
 
+    const pc = playerColorRef.current;
+    const { result, outcome } = localGameResult({
+      playerColor: pc,
+      winner: adapter.winner(liveState),
+      end: manualEnd ?? 'over',
+    });
+    const botEloAtEnd = botEloRef.current;
+    const current = userRatingRef.current;
+    const ratedGame = lockedRatedRef.current ?? rated;
+
     // Pass-and-play is never persisted: it's a casual game between two humans on
     // one device (the db writers record `opponent: 'bot'`, so a row would show up
     // in history as a bot game), and it must work fully offline.
-    if (!vsBot) return;
-
-    const pc = playerColorRef.current;
-    const other: Color = pc === 'white' ? 'black' : 'white';
-    const winner = adapter.winner(liveState);
-    const result: Color | 'draw' =
-      manualEnd === 'draw' ? 'draw'
-      : manualEnd === 'resign' ? other
-      : winner === null ? 'draw'
-      : winner === pc ? pc
-      : other;
-
-    const outcome: GameOutcome = result === 'draw' ? 'draw' : result === pc ? 'win' : 'loss';
-    const difficulty = `elo-${botEloRef.current}`;
-    const current = userRatingRef.current;
-
-    // Signed-out guests are never persisted: the `games` RLS policy rejects
-    // rows they don't own, and such a row would be invisible to every client
-    // anyway (see `isSignedIn` in packages/db). The setup screen already tells
-    // guests to sign in for rated play, and Profile for saved games.
-    if (!userId) return;
-
+    //
+    // Signed-out guests are never persisted either: the `games` RLS policy
+    // rejects rows they don't own, and such a row would be invisible to every
+    // client anyway (see `isSignedIn` in packages/db). The setup screen already
+    // tells guests to sign in for rated play, and Profile for saved games.
+    //
     // Casual: an unrated bot game, or one whose rating row hasn't loaded — save
     // without Elo. Best-effort; a casual game must never surface a save error
-    // (it's the offline path).
-    if (!rated || !current) {
-      adapter
-        .save({ state: liveState, playerColor: pc, result, difficulty, userId })
-        .catch((err) => console.error('Failed to save casual game:', err));
+    // (it's the offline path). In all three cases there is nothing left to owe,
+    // so the resumable slot goes now.
+    if (!vsBot || !userId || !ratedGame || !current) {
+      clearSlot();
+      if (vsBot && userId) {
+        writeCasualLocalResult({ adapter, state: liveState, playerColor: pc, result, botElo: botEloAtEnd, userId });
+      }
       return;
     }
 
-    // Hints are only ever taken in training, and each one costs the player two
-    // rating points off whatever the game was worth — same price as web's
-    // training pages. The floor keeps a hint-heavy loss from digging below 100.
-    const earned = calculateNewRating(current.rating, botEloRef.current, outcome, current.games_played);
-    const hintsTaken = hintsUsedRef.current;
-    const newRating = Math.max(100, earned - hintsTaken * HINT_PENALTY);
-    const delta = newRating - current.rating;
+    // Rated. Mark the slot as ended *before* writing: if the write fails and the
+    // app closes, the result is still owed rather than lost, and the Continue
+    // card can offer to record it. The slot clears only once the write lands.
+    const slot = persistenceRef.current ? unfinishedGameKey(persistenceRef.current.game, userId) : null;
+    writeSlot(manualEnd ?? 'over');
 
     const attempt = () => {
+      // Another writer (a Continue card) already has this result in hand.
+      if (slot && !claimResultWrite(slot)) return;
       setSaveError(false);
-      Promise.all([
-        upsertUserRating(userId, newRating, outcome, adapter.gameType),
-        adapter.save({
-          state: liveState,
-          playerColor: pc,
-          result,
-          difficulty,
-          userId,
-          options: { mode: 'rated', rating_before: current.rating, rating_after: newRating },
-        }),
-      ])
-        .then(([updated]) => {
+      writeRatedLocalResult({
+        adapter,
+        state: liveState,
+        playerColor: pc,
+        result,
+        outcome,
+        botElo: botEloAtEnd,
+        userId,
+        current,
+        hintsUsed: hintsUsedRef.current,
+      })
+        .then(({ updated, before, after, delta, hintsUsed: hintsTaken }) => {
           saveAttemptRef.current = null;
+          clearSlot();
           setUserRating(updated);
-          setRatingResult({ before: current.rating, after: newRating, delta, hintsUsed: hintsTaken });
+          setRatingResult({ before, after, delta, hintsUsed: hintsTaken });
         })
         .catch((err) => {
           console.error('Failed to save game / rating:', err);
           setSaveError(true);
+        })
+        .finally(() => {
+          if (slot) releaseResultWrite(slot);
         });
     };
     saveAttemptRef.current = attempt;
@@ -504,7 +662,7 @@ export function useLocalGame<S>({
       const result = adapter.validateMove(live, from, to, promotion);
       if (result.valid && result.resultingState) {
         clearHint(); // a hint belongs to the position it was asked about
-        appendState(result.resultingState);
+        appendState(result.resultingState, { from, to, ...(promotion ? { promotion } : {}) });
       }
     },
     [adapter, vsBot, appendState, clearHint],
@@ -525,7 +683,7 @@ export function useLocalGame<S>({
     if (vsBot && adapter.currentTurn(live) !== playerColorRef.current) return;
 
     clearHint();
-    appendState(adapter.executePass(live));
+    appendState(adapter.executePass(live), { pass: true });
   }, [adapter, vsBot, appendState, clearHint]);
 
   const endManually = useCallback(
@@ -545,6 +703,7 @@ export function useLocalGame<S>({
     // run won't touch it on the way out: its id no longer matches.
     botRunRef.current = null;
     setTimeline([adapter.newGame()]);
+    setActions([]);
     setViewIndex(0);
     setIsThinking(false);
     setManualEnd(null);
@@ -554,7 +713,56 @@ export function useLocalGame<S>({
     saveAttemptRef.current = null;
     setHintsUsed(0);
     clearHint();
+    // The next game is a new game in every sense: it is rated by whatever the
+    // setup says when it starts, and it has its own start time.
+    lockedRatedRef.current = null;
+    restoredRatedRef.current = null;
+    restoredBotEloRef.current = null;
+    startedAtRef.current = null;
   }, [adapter, clearHint]);
+
+  /**
+   * Pick up a saved game where it was left: replay its actions onto a fresh
+   * board, and take back its hints and its rated status. Returns false — and
+   * changes nothing — for a snapshot that cannot be resumed: one that has
+   * already ended, or whose actions these rules reject.
+   *
+   * Call it *before* starting, in the same event, so the first started render
+   * already holds the restored board — started first, and a bot whose turn it
+   * is would begin searching the empty starting position. The rated flag set
+   * here is what that start then keeps.
+   *
+   * `rules` defaults to the current adapter. A screen whose adapter is built
+   * from its setup (Go) passes the saved game's own rules instead, because the
+   * setup it is about to apply has not rendered yet: replaying a 13×13 game
+   * through the 9×9 adapter still on screen would fail on its first move.
+   */
+  const restore = useCallback(
+    (saved: UnfinishedGame, rules: ReplayRules<S> = adapter): boolean => {
+      if (saved.end) return false;
+      const replayed = replayActions(rules, saved.actions);
+      if (!replayed) return false;
+      botRunRef.current = null;
+      setTimeline(replayed);
+      setActions(saved.actions);
+      setViewIndex(replayed.length - 1);
+      setIsThinking(false);
+      setManualEnd(null);
+      setRatingResult(null);
+      setGameSaved(false);
+      setSaveError(false);
+      saveAttemptRef.current = null;
+      setHintsUsed(saved.hintsUsed);
+      clearHint();
+      restoredRatedRef.current = saved.rated;
+      // Already started (a resume onto a live screen): the lock applies now.
+      if (lockedRatedRef.current !== null) lockedRatedRef.current = saved.rated;
+      restoredBotEloRef.current = saved.botElo;
+      startedAtRef.current = saved.startedAt;
+      return true;
+    },
+    [adapter, clearHint],
+  );
 
   return {
     timeline,
@@ -577,6 +785,12 @@ export function useLocalGame<S>({
     resign: () => endManually('resign'),
     agreeDraw: () => endManually('draw'),
     newGame,
+    /** Resume a saved game — see `persistence`. */
+    restore,
+    /** What produced each position after the first; `actions[i]` led to `timeline[i + 1]`. */
+    actions,
+    /** Whether this game counts — fixed at its start, unlike the `rated` option. */
+    rated: gameRated,
     canGoBack: viewIndex > 0,
     canGoForward: viewIndex < timeline.length - 1,
     /** Strength the bot is actually playing at (rating-matched in training). */

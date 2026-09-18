@@ -1,9 +1,5 @@
-import {
-  CheckersEngine,
-  getBestCheckersMove,
-  type CheckersGameState,
-} from '@gameexplorer/shared';
-import { saveCheckersGame } from '@gameexplorer/db';
+import { getBestCheckersMove, type CheckersGameState } from '@gameexplorer/shared';
+import { CHECKERS_RULES } from '@gameexplorer/client/game/localRules';
 import type { LocalGameAdapter } from './useLocalGame';
 
 /** Bot pacing by strength — mirrors web's checkers `thinkTimeForElo`. */
@@ -20,21 +16,13 @@ function thinkTimeForElo(elo: number): number {
  * the `saveCheckersGame` writer. No rules live here; it only adapts names/shapes.
  */
 export const checkersAdapter: LocalGameAdapter<CheckersGameState> = {
-  gameType: 'checkers',
-  newGame: () => CheckersEngine.newGame(),
-  currentTurn: (s) => s.currentTurn,
-  isGameOver: (s) => s.isGameOver,
-  winner: (s) => s.winner,
-  validateMove: (s, from, to) => {
-    const r = CheckersEngine.validateMove(s, from, to);
-    return { valid: r.valid, resultingState: r.resultingState };
-  },
+  // The rules and the writer are shared with anything that replays or resigns a
+  // saved checkers game away from this screen.
+  ...CHECKERS_RULES,
   getBotMove: (s, elo) => getBestCheckersMove(s, elo),
   getHintMove: (s, elo) => getBestCheckersMove(s, elo),
   // Always the engine's strongest play — as on web, checkers hints don't scale
   // with the player (there's no separate hint ladder to scale along).
   hintElo: () => 2000,
   thinkTimeForElo,
-  save: ({ state, playerColor, result, difficulty, userId, options }) =>
-    saveCheckersGame(state, playerColor, result, difficulty, userId, options),
 };

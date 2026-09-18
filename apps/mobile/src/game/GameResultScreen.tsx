@@ -11,6 +11,7 @@ import { SaveProgressPrompt } from './SaveProgressPrompt';
 import { FONTS } from '@/theme/typography';
 import { springTo, timing } from '@/theme/motion';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { markFinished } from '@/lib/lastPlayed';
 
 export type GameResult = 'win' | 'loss' | 'draw' | 'aborted';
 
@@ -164,6 +165,9 @@ export function GameResultScreen({
   useEffect(() => {
     if (visible && !wasOpen.current) {
       wasOpen.current = true;
+      // Every local game on every board ends here, so this is where the launcher
+      // learns the device has finished one.
+      if (result !== 'aborted') markFinished();
       if (result !== 'aborted') sfx.play(result);
       cardOpacity.value = withTiming(1, timing('moderate', 'out'));
       if (reducedMotion) {

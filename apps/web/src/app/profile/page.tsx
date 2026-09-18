@@ -9,6 +9,7 @@ import type { AuthUser, Profile, GameListItem, UserRating, GameType } from '@gam
 import { useRouter } from 'next/navigation';
 import { BlockedPlayers } from '@/components/multiplayer/BlockedPlayers';
 import { Skeleton } from '@/components/ui';
+import { ratingDelta, summarizePlayer } from '@gameexplorer/client/game/playerStats';
 
 type Tab = 'all' | GameType;
 
@@ -55,11 +56,6 @@ const GAME_META: Record<GameType, { label: string; text: string; card: string }>
     card: 'bg-[linear-gradient(180deg,var(--c-game-go-tint),var(--c-game-tint-tail))] border-[var(--c-game-go-tint-border)] [box-shadow:var(--c-game-go-card-glow)]',
   },
 };
-
-function ratingDelta(game: GameListItem): number | null {
-  if (game.rating_before == null || game.rating_after == null) return null;
-  return game.rating_after - game.rating_before;
-}
 
 function ResultBadge({ game }: { game: GameListItem }) {
   const playerWon = game.result === game.player_color;
@@ -183,23 +179,6 @@ export default function ProfilePage() {
     return null; // redirect is in flight
   }
 
-  const wins = games.filter(g => g.result === g.player_color).length;
-  const winRate = games.length > 0 ? Math.round((wins / games.length) * 100) : 0;
-
-  // Streaks — games arrive newest-first; a run of consecutive wins is the same
-  // set scanned in either direction, so best streak works on the array as-is.
-  let currentStreak = 0;
-  for (const g of games) {
-    if (g.result === g.player_color) currentStreak++;
-    else break;
-  }
-  let bestStreak = 0;
-  let run = 0;
-  for (const g of games) {
-    run = g.result === g.player_color ? run + 1 : 0;
-    if (run > bestStreak) bestStreak = run;
-  }
-
   const ratings: { type: GameType; rating: UserRating | null }[] = [
     { type: 'chess',    rating: chessRating },
     { type: 'checkers', rating: checkersRating },
@@ -207,13 +186,15 @@ export default function ProfilePage() {
     { type: 'go',       rating: goRating },
   ];
 
-  const topRating = Math.max(0, ...ratings.map(r => r.rating?.peak_rating ?? 0));
-
-  // Rating movement from the most recent rated game of each type.
-  const deltaFor = (type: GameType): number | null => {
-    const g = games.find(g => (g.game_type ?? 'chess') === type && ratingDelta(g) !== null);
-    return g ? ratingDelta(g) : null;
-  };
+  // One implementation of these numbers for this page, native's You tab and the
+  // launcher — see `playerStats.ts`.
+  const { winRate, currentStreak, bestStreak, topRating, perGame } = summarizePlayer(games, {
+    chess: chessRating ?? undefined,
+    checkers: checkersRating ?? undefined,
+    reversi: reversiRating ?? undefined,
+    go: goRating ?? undefined,
+  });
+  const deltaFor = (type: GameType): number | null => perGame[type].lastDelta;
 
   const chessGames    = games.filter(g => !g.game_type || g.game_type === 'chess');
   const checkersGames = games.filter(g => g.game_type === 'checkers');

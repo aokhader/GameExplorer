@@ -29,6 +29,8 @@ describe('useSetupDeepLink', () => {
       autoStart: false,
       online: false,
       inviteId: null,
+      resume: false,
+      repeat: false,
     });
   });
 

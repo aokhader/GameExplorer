@@ -19,6 +19,14 @@ import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { DifficultyMeter } from '@/components/game/DifficultyMeter';
 import { ShellNav } from '@/components/game/ShellNav';
+import { ContinueCard, GuardedStartButton } from '@/components/game/ContinueCard';
+import { useRouter } from 'next/navigation';
+import { useRememberedSetup } from '@gameexplorer/client/hooks/useRememberedSetup';
+import { useUnfinishedGameWriter } from '@gameexplorer/client/hooks/useUnfinishedGameWriter';
+import { CHECKERS_RULES, actionsFromHistory } from '@gameexplorer/client/game/localRules';
+import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
+import { webLocalStore } from '@/lib/localStore';
+import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -121,10 +129,16 @@ export interface CheckersGameScreenProps {
 export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   const isLocal = mode === 'local';
   const { settings } = useSettings();
+  // Strength, colour and rated as chosen last time on this route, read before the
+  // first paint (`ux-fix-ideas.md` §2.1). Rated is opt-out, and needs an account.
+  const { setup, update } = useRememberedSetup({
+    store: webLocalStore,
+    game: 'checkers',
+    mode: isLocal ? 'pass-and-play' : 'bot',
+  });
+  const { elo: targetElo, color: playerColor, rated } = setup;
   const [timeline, setTimeline]     = useState<CheckersGameState[]>(() => [CheckersEngine.newGame()]);
   const [viewIndex, setViewIndex]   = useState(0);
-  const [targetElo, setTargetElo]   = useState(1100);
-  const [playerColor, setPlayerColor] = useState<'white' | 'black'>('white');
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [userId, setUserId]         = useState<string | null>(null);
@@ -133,8 +147,6 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   const [gameSaved, setGameSaved]   = useState(false);
   // Player-initiated end (½ Draw / Resign) — still applies the rated outcome.
   const [manualEnd, setManualEnd]   = useState<'resign' | 'draw' | null>(null);
-  // Rated is opt-out, and needs an account to read/write a rating.
-  const [rated, setRated]           = useState(true);
   // View only — which colour sits at the bottom. Never changes what you own.
   const [flipped, setFlipped]       = useState(false);
   // Post-game review. Gated on the game being over: mid-game it would be an
@@ -201,7 +213,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
       const nearest = DIFFICULTY_LEVELS.reduce((a, b) =>
         Math.abs(b.elo - elo) < Math.abs(a.elo - elo) ? b : a,
       );
-      setTargetElo(nearest.elo);
+      update({ elo: nearest.elo });
     }
     if (params.get('start') === '1') setGameStarted(true);
   }, []);
@@ -252,6 +264,66 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
     }
   }, []);
 
+
+  // ── Unfinished game (`ux-fix-ideas.md` §2.4) ────────────────────────────────
+  // Saved as it is played, so a closed tab no longer loses the game — and a
+  // rated one stays open until it is finished or resigned.
+  const setupMode = isLocal ? 'pass-and-play' : 'bot';
+  const unfinished = useUnfinishedGame('checkers');
+  const router = useRouter();
+  const actions = useMemo(() => actionsFromHistory('checkers', liveState), [liveState]);
+  const slot = useUnfinishedGameWriter({
+    store: webLocalStore,
+    game: 'checkers',
+    mode: setupMode,
+    userId,
+    rated,
+    playerColor,
+    botElo: targetElo,
+    setup,
+    started: gameStarted,
+    actions,
+    over: liveState.isGameOver || !!manualEnd,
+  });
+
+  /** Pick a saved game up where it was left; another mode's resumes on its own route. */
+  const resumeSaved = (saved: UnfinishedGame) => {
+    if (saved.mode !== setupMode) {
+      router.push(resumeHref(saved));
+      return;
+    }
+    const replayed = replayActions(CHECKERS_RULES, saved.actions) as CheckersGameState[] | null;
+    if (!replayed) {
+      void unfinished.settle({ resign: true }).catch(() => {});
+      return;
+    }
+    gameGenRef.current += 1;
+    update({ elo: saved.botElo, color: saved.playerColor, rated: saved.rated });
+    setTimeline(replayed);
+    setViewIndex(replayed.length - 1);
+    setIsThinking(false);
+    setManualEnd(null);
+    setRatingResult(null);
+    setGameSaved(false);
+    setReviewing(false);
+    slot.resumedFrom(saved);
+    setGameStarted(true);
+  };
+
+  // `?resume=1` from a Continue card on another route: blank until it is known
+  // whether there is a game to open.
+  const [awaitingResume, setAwaitingResume] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    if (wantsResume()) setAwaitingResume(true);
+  }, []);
+  useEffect(() => {
+    if (!awaitingResume || !unfinished.hydrated) return;
+    setAwaitingResume(false);
+    const saved = unfinished.saved;
+    if (saved && !saved.end && saved.mode === setupMode) resumeSaved(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingResume, unfinished.hydrated]);
+
   // Trigger bot move when it's the bot's turn
   useEffect(() => {
     // Pass-and-play has no bot to move: the second player supplies the reply.
@@ -265,8 +337,12 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
 
   // Save game and update rating when it ends (naturally or by resign/draw)
   useEffect(() => {
-    // Pass-and-play is casual by definition — no rating and no saved row.
-    if (isLocal) return;
+    // Pass-and-play is casual by definition — no rating and no saved row, and
+    // with the game over nothing is owed, so its resumable slot goes.
+    if (isLocal) {
+      if (gameStarted && (liveState.isGameOver || manualEnd)) slot.clear();
+      return;
+    }
     if (!gameStarted || gameSaved) return;
     if (!liveState.isGameOver && !manualEnd) return;
     setGameSaved(true);
@@ -289,6 +365,9 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
       const rawDelta = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played) - current.rating;
       const newRating = Math.max(100, current.rating + rawDelta);
 
+      // Owed until written: a failed write or a closed tab leaves the result on
+      // the Continue card rather than losing it.
+      slot.markEnded(manualEnd ?? 'over');
       Promise.all([
         upsertUserRating(uid, newRating, outcome, 'checkers'),
         saveCheckersGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid, {
@@ -297,10 +376,12 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
           rating_after: newRating,
         }),
       ]).then(([updatedRating]) => {
+        slot.clear();
         setUserRating(updatedRating);
         setRatingResult({ before: current.rating, after: newRating, delta: rawDelta });
-      });
+      }).catch((err) => console.error('Failed to save game / rating:', err));
     } else {
+      slot.clear();
       saveCheckersGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid ?? undefined);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -340,8 +421,14 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
     setReviewing(false);
   };
 
-  /** Back to the setup form (header New Game, result card Change setup). */
-  const handleNewGame = () => resetGame(false);
+  /**
+   * Back to the setup form (header New Game, result card Change setup). A game
+   * left unfinished stays saved, and the Continue card reads it back.
+   */
+  const handleNewGame = () => {
+    resetGame(false);
+    unfinished.refresh();
+  };
 
   /** Same strength, colour and rated choice, straight onto a fresh board. */
   const handleRematch = () => resetGame(true);
@@ -359,6 +446,10 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
 
   // ── Setup screen ──────────────────────────────────────────────────────────────
 
+  if (!gameStarted && awaitingResume) {
+    return <div className="min-h-svh page-glow-checkers" />;
+  }
+
   if (!gameStarted) {
     return (
       <div className="min-h-svh page-glow-checkers">
@@ -371,6 +462,15 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
             {isLocal ? 'Pass & Play' : 'Play vs Bot'}
           </h1>
 
+          {unfinished.saved && (
+            <ContinueCard
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
+            />
+          )}
+
           {/* Difficulty selector — no bot in pass-and-play, so nothing to calibrate. */}
           <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
             <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
@@ -380,7 +480,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
                 return (
                   <button
                     key={level.elo}
-                    onClick={() => setTargetElo(level.elo)}
+                    onClick={() => update({ elo: level.elo })}
                     className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                       selected
                         ? 'border-accent bg-accent-muted [box-shadow:var(--shadow-glow-accent)] scale-[1.02]'
@@ -418,7 +518,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
               {(['white', 'black'] as const).map(color => (
                 <button
                   key={color}
-                  onClick={() => setPlayerColor(color)}
+                  onClick={() => update({ color })}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
                       ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
@@ -446,16 +546,19 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
 
           {/* Pass-and-play is casual by definition — nothing to rate. */}
           {!isLocal && (
-            <RatedToggle checked={rated} onChange={setRated} gameLabel="checkers" userId={userId} />
+            <RatedToggle checked={rated} onChange={(value) => update({ rated: value })} gameLabel="checkers" userId={userId} />
           )}
 
           <SetupStartBar>
-            <button
-              onClick={handleStartGame}
-              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
+            <GuardedStartButton
+              onStart={handleStartGame}
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
             >
               Start Game
-            </button>
+            </GuardedStartButton>
           </SetupStartBar>
         </div>
       </div>

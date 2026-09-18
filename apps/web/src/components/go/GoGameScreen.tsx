@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   GoEngine,
@@ -12,14 +13,11 @@ import {
   toggleDeadChain,
   type GoColor,
   type GoGameState,
-  type GoScoring,
 } from '@gameexplorer/shared';
 import { useLocalGame, type LocalGameMode } from '@gameexplorer/client/hooks/useLocalGame';
 import {
   GO_DIFFICULTY_LEVELS,
   GO_PASS,
-  GO_RATED_KOMI,
-  GO_RATED_SIZE,
   GO_RESUME,
   GO_TRAINING_ELO_BOUNDS,
   goEloLabel,
@@ -46,6 +44,13 @@ import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { DifficultyMeter } from '@/components/game/DifficultyMeter';
 import { ShellNav } from '@/components/game/ShellNav';
+import { ContinueCard, GuardedStartButton } from '@/components/game/ContinueCard';
+import { useRememberedSetup } from '@gameexplorer/client/hooks/useRememberedSetup';
+import { localRulesFor } from '@gameexplorer/client/game/localRules';
+import type { UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
+import { webLocalStore } from '@/lib/localStore';
+import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 
 // Only rendered at game end, and it pulls in confetti + a framer-motion tree —
 // keep it out of the route's initial chunk, as every other game screen does.
@@ -88,13 +93,20 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   const isLocal = mode === 'local';
   const isTraining = mode === 'training';
 
-  const [targetElo, setTargetElo] = useState(1100);
-  const [playerColor, setPlayerColor] = useState<GoColor>('black');
-  const [rated, setRated] = useState(true);
+  const loopMode: LocalGameMode = isLocal ? 'pass-and-play' : isTraining ? 'training' : 'bot';
+  // What was chosen last time on this route, read before the first paint
+  // (`ux-fix-ideas.md` §2.1).
+  const { setup, update } = useRememberedSetup({ store: webLocalStore, game: 'go', mode: loopMode });
+  const { elo: targetElo, color: playerColor, rated, size, komi, scoring } = setup;
   const [started, setStarted] = useState(false);
-  const [size, setSize] = useState(GO_RATED_SIZE);
-  const [komi, setKomi] = useState(GO_RATED_KOMI);
-  const [scoring, setScoring] = useState<GoScoring>('area');
+  const unfinished = useUnfinishedGame('go');
+  const router = useRouter();
+  // `?resume=1` from a Continue card on another route: blank until it is known
+  // whether there is a game to open.
+  const [awaitingResume, setAwaitingResume] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    if (wantsResume()) setAwaitingResume(true);
+  }, []);
 
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -109,7 +121,6 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   // Training is rated by definition; the other two ask.
   const ratedEffective =
     (isTraining ? !!userId : rated && !!userId && !isLocal) && eligibility.rated;
-  const loopMode: LocalGameMode = isLocal ? 'pass-and-play' : isTraining ? 'training' : 'bot';
 
   /**
    * Memoized on the two rules it carries. The loop treats the adapter as an
@@ -131,6 +142,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
     userId,
     eloBounds: GO_TRAINING_ELO_BOUNDS,
     started,
+    persistence: { store: webLocalStore, game: 'go', setup },
   });
 
   const {
@@ -208,12 +220,44 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   const hintPos = hintMove && !hintIsPass ? hintMove.to : null;
 
   const handleStart = () => setStarted(true);
-  /** Back to the setup form (header New Game, result card Change setup). */
+  /**
+   * Back to the setup form (header New Game, result card Change setup). A game
+   * left unfinished stays saved, and the Continue card reads it back.
+   */
   const handleNewGame = () => {
     newGame();
     setDead([]);
     setStarted(false);
+    unfinished.refresh();
   };
+
+  /**
+   * Pick a saved game up where it was left. Another mode's game resumes on its own
+   * route. On this one, its moves replay through the rules it was started with —
+   * the adapter on screen is still the form's, and a 13×13 game replayed on a 9×9
+   * board would fail on its first move off the smaller one.
+   */
+  const resumeSaved = (saved: UnfinishedGame) => {
+    if (saved.mode !== loopMode) {
+      router.push(resumeHref(saved));
+      return;
+    }
+    setDead([]);
+    if (game.restore(saved, localRulesFor(saved) as typeof adapter)) {
+      update({ ...(saved.setup as Partial<typeof setup>), color: saved.playerColor, rated: saved.rated });
+      setStarted(true);
+    } else {
+      void unfinished.settle({ resign: true }).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    if (!awaitingResume || !unfinished.hydrated) return;
+    setAwaitingResume(false);
+    const saved = unfinished.saved;
+    if (saved && !saved.end && saved.mode === loopMode) resumeSaved(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingResume, unfinished.hydrated]);
 
   /**
    * Same size, komi, colour and strength, straight onto a fresh board.
@@ -225,6 +269,10 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   };
 
   // ── Setup screen ────────────────────────────────────────────────────────────
+
+  if (!started && awaitingResume) {
+    return <div className="min-h-svh page-glow-go" />;
+  }
 
   if (!started) {
     const guestBlocked = isTraining && !userId;
@@ -242,6 +290,15 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
           <p className="text-center text-fg-muted mb-8">
             {goRulesetSummary(size, komi, scoring)}
           </p>
+
+          {unfinished.saved && (
+            <ContinueCard
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
+            />
+          )}
 
           {/* Training matches the bot to you, so there is no tier to pick. */}
           {isTraining && (
@@ -272,7 +329,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                   return (
                     <button
                       key={level.elo}
-                      onClick={() => setTargetElo(level.elo)}
+                      onClick={() => update({ elo: level.elo })}
                       className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                         selected
                           ? 'border-accent bg-accent-muted [box-shadow:var(--shadow-glow-accent)] scale-[1.02]'
@@ -307,11 +364,11 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
 
           <GoRulesCard
             size={size}
-            onSizeChange={setSize}
+            onSizeChange={(value) => update({ size: value })}
             komi={komi}
-            onKomiChange={setKomi}
+            onKomiChange={(value) => update({ komi: value })}
             scoring={scoring}
-            onScoringChange={setScoring}
+            onScoringChange={(value) => update({ scoring: value })}
             showRatedNote={!isLocal}
           />
 
@@ -323,7 +380,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                 {(['black', 'white'] as const).map(color => (
                   <button
                     key={color}
-                    onClick={() => setPlayerColor(color)}
+                    onClick={() => update({ color })}
                     className={`p-6 rounded-lg transition-all ${
                       playerColor === color
                         ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
@@ -360,17 +417,20 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
           )}
 
           {mode === 'bot' && eligibility.rated && (
-            <RatedToggle checked={rated} onChange={setRated} gameLabel="Go" userId={userId} />
+            <RatedToggle checked={rated} onChange={(value) => update({ rated: value })} gameLabel="Go" userId={userId} />
           )}
 
           <SetupStartBar>
-            <button
-              onClick={handleStart}
+            <GuardedStartButton
+              onStart={handleStart}
               disabled={guestBlocked || (isTraining && ratingLoading)}
-              className="w-full px-8 py-4 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-lg [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
             >
               {isTraining ? 'Start Rated Game' : 'Start Game'}
-            </button>
+            </GuardedStartButton>
           </SetupStartBar>
 
           <p className="mt-6 text-center text-sm text-fg-subtle">

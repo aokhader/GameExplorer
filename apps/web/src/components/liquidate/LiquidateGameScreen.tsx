@@ -20,6 +20,8 @@ import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { ShellNav } from '@/components/game/ShellNav';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useLiquidateGame } from '@/hooks/useLiquidateGame';
+import { useRememberedSetup } from '@gameexplorer/client/hooks/useRememberedSetup';
+import { webLocalStore } from '@/lib/localStore';
 import { TradeModal } from './TradeModal';
 import { ActionLog } from './ActionLog';
 import { BoardLegend } from './BoardLegend';
@@ -51,10 +53,18 @@ const BOT_NAMES = ['Vega', 'Orin', 'Kessa', 'Dax', 'Nyra'];
  * and dialogs are identical.
  */
 export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
-  const [playerCount, setPlayerCount] = React.useState(mode === 'bot' ? 3 : 2);
-  const [boardMode, setBoardMode] = React.useState<'full' | 'quick'>('quick');
-  const [debtRule, setDebtRule] = React.useState<DebtRule>('allow-negative');
-  const [botLevel, setBotLevel] = React.useState<LiquidateBotLevel>('steady');
+  // Seats, board, debt rule and bot personality as chosen last time on this
+  // route, read before the first paint (`ux-fix-ideas.md` §2.1).
+  const { setup, update } = useRememberedSetup({
+    store: webLocalStore,
+    game: 'liquidate',
+    mode: mode === 'local' ? 'pass-and-play' : 'bot',
+  });
+  const { players: playerCount, board: boardMode, debtRule, botLevel } = setup;
+  const setPlayerCount = (players: number) => update({ players });
+  const setBoardMode = (board: 'full' | 'quick') => update({ board });
+  const setDebtRule = (rule: DebtRule) => update({ debtRule: rule });
+  const setBotLevel = (level: LiquidateBotLevel) => update({ botLevel: level });
   const [selectedTile, setSelectedTile] = React.useState<number | null>(null);
   const [holdingsOpen, setHoldingsOpen] = React.useState(false);
   const [tradeOpen, setTradeOpen] = React.useState(false);

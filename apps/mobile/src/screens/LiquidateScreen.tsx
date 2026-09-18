@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLastSetupMode, useRememberedSetup } from '@gameexplorer/client/hooks/useRememberedSetup';
+import { nativeLocalStore } from '@/lib/localStore';
+import { markPlayed } from '@/lib/lastPlayed';
 import {
   LIQUIDATE_BOT_LABELS,
   LIQUIDATE_BOT_LEVELS,
@@ -8,7 +11,6 @@ import {
   LIQUIDATE_MAX_PLAYERS,
   LIQUIDATE_MIN_PLAYERS,
   formatCredits,
-  type DebtRule,
   type LiquidateBotLevel,
   type LiquidateSeat,
 } from '@gameexplorer/shared';
@@ -72,16 +74,47 @@ export function LiquidateScreen() {
   useThemeName();
 
   const router = useRouter();
-  const [mode, setMode] = useState<'bot' | 'local'>('bot');
-  const [playerCount, setPlayerCount] = useState(3);
-  const [boardMode, setBoardMode] = useState<'full' | 'quick'>('quick');
-  const [debtRule, setDebtRule] = useState<DebtRule>('allow-negative');
-  const [botLevel, setBotLevel] = useState<LiquidateBotLevel>('steady');
+  // The launcher's Continue opens a saved match directly: `?resume=bot|local`.
+  const params = useLocalSearchParams<{ resume?: string }>();
+  const resumeSlot = params.resume === 'bot' || params.resume === 'local' ? params.resume : null;
+
+  // The form remembers each mode's choices, and which mode was used last
+  // (`ux-fix-ideas.md` §2.1). Both modes are read up front, so switching between
+  // them never waits on storage.
+  const last = useLastSetupMode(nativeLocalStore, 'liquidate');
+  const [picked, setPicked] = useState<'bot' | 'local' | null>(resumeSlot);
+  const mode: 'bot' | 'local' = picked ?? (last.mode === 'pass-and-play' ? 'local' : 'bot');
+  const bySlot = {
+    bot: useRememberedSetup({ store: nativeLocalStore, game: 'liquidate', mode: 'bot' }),
+    local: useRememberedSetup({ store: nativeLocalStore, game: 'liquidate', mode: 'pass-and-play' }),
+  };
+  const { setup, update } = bySlot[mode];
+  const { players: playerCount, board: boardMode, debtRule, botLevel } = setup;
+  const setMode = (next: 'bot' | 'local') => {
+    setPicked(next);
+    last.remember(next === 'local' ? 'pass-and-play' : 'bot');
+  };
+  const setupReady = (picked !== null || last.hydrated) && bySlot.bot.hydrated && bySlot.local.hydrated;
 
   const game = useLiquidateGame({ storageKey: mode, botLevel });
   const accent = GAME_ACCENTS.liquidate;
 
+  // Resume the saved match the link named, once it has been read. Until then the
+  // screen stays blank rather than flashing the form; with no match saved, the
+  // form shows. Quitting a match discards its save, which is what ends the wait.
+  const resumeSaved = game.resume;
+  const savedMatch = game.savedGame;
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (!resumeSlot || !game.hydrated || !savedMatch || resumedRef.current) return;
+    resumedRef.current = true;
+    resumeSaved();
+    markPlayed('liquidate');
+  }, [resumeSlot, game.hydrated, savedMatch, resumeSaved]);
+  const awaitingResume = resumeSlot !== null && (!game.hydrated || (!!savedMatch && !game.state));
+
   const start = () => {
+    markPlayed('liquidate');
     const seats: LiquidateSeat[] = Array.from({ length: playerCount }, (_, i) => {
       if (mode === 'local') return { name: `Player ${i + 1}` };
       // A proper name, not "You": the engine writes third-person log lines
@@ -95,6 +128,12 @@ export function LiquidateScreen() {
 
   if (game.state) {
     return <LiquidateGame game={game} mode={mode} onQuit={game.quit} onRematch={start} />;
+  }
+
+  // Nothing to show until the remembered setup is known, or while a link is about
+  // to open a saved match.
+  if (!setupReady || awaitingResume) {
+    return <Screen scroll={false}>{null}</Screen>;
   }
 
   const config = LIQUIDATE_CONFIGS[boardMode];
@@ -153,7 +192,15 @@ export function LiquidateScreen() {
             {game.savedGame.state.config.mode === 'quick' ? 'Quick' : 'Full'} board
           </Text>
           <View style={{ flexDirection: 'row', gap: SPACING['2.5'] }}>
-            <Button label="Resume" onPress={game.resume} glow style={{ flex: 1 }} />
+            <Button
+              label="Resume"
+              onPress={() => {
+                game.resume();
+                markPlayed('liquidate');
+              }}
+              glow
+              style={{ flex: 1 }}
+            />
             <Button
               label="Discard"
               variant="secondary"
@@ -186,7 +233,7 @@ export function LiquidateScreen() {
           return (
             <Pressable
               key={n}
-              onPress={() => setPlayerCount(n)}
+              onPress={() => update({ players: n })}
               accessibilityRole="button"
               accessibilityLabel={`${n} players`}
               accessibilityState={{ selected }}
@@ -222,7 +269,7 @@ export function LiquidateScreen() {
           <SelectTile
             key={b.key}
             selected={boardMode === b.key}
-            onPress={() => setBoardMode(b.key)}
+            onPress={() => update({ board: b.key })}
             label={b.label}
             sub={b.sub}
             accessibilityLabel={`${b.label} board — ${b.sub}`}
@@ -249,7 +296,7 @@ export function LiquidateScreen() {
               <SelectTile
                 key={level}
                 selected={botLevel === level}
-                onPress={() => setBotLevel(level)}
+                onPress={() => update({ botLevel: level })}
                 label={LIQUIDATE_BOT_LABELS[level]}
                 sub={BOT_BLURB[level]}
                 basis="47%"
@@ -266,7 +313,7 @@ export function LiquidateScreen() {
           <SelectTile
             key={r.key}
             selected={debtRule === r.key}
-            onPress={() => setDebtRule(r.key)}
+            onPress={() => update({ debtRule: r.key })}
             label={r.label}
             sub={r.sub}
             basis="100%"

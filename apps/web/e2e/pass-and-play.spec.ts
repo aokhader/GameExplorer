@@ -32,6 +32,8 @@ test('chess pass-and-play lets both colours move and never answers back', async 
 
   const squares = page.locator('.square');
   await expect(squares).toHaveCount(64);
+  // The board takes input once the engine worker has sent its first position.
+  await expect(page.locator('.chess-board')).not.toHaveAttribute('aria-disabled', 'true', { timeout: 15000 });
 
   // White: e2–e4. The board starts white-side-down, so index = (8 - rank) * 8 + file.
   const e2 = squares.nth((8 - 2) * 8 + 4);

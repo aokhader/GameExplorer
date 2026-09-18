@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@gameexplorer/client';
@@ -16,7 +16,7 @@ import { GameScreenLayout } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
-import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
+import { OpponentPicker } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
 import { SetupHero } from '@/game/SetupHero';
 import { LearnLink } from '@/game/LearnLink';
@@ -26,6 +26,10 @@ import { GameBar } from '@/game/GameBar';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { eloLabel } from '@/game/eloLabel';
 import { useSetupDeepLink } from '@/game/useSetupDeepLink';
+import { useGameSetup, useUnfinishedGame } from '@/game/useGameSetup';
+import { ContinueCard, SetupStartFooter } from '@/game/ContinueCard';
+import { nativeLocalStore } from '@/lib/localStore';
+import type { UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { ReversiOnline } from '@/multiplayer/ReversiOnline';
 import { OnlineSetupCard } from '@/multiplayer/OnlineSetupCard';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
@@ -80,15 +84,17 @@ export function ReversiScreen() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
 
-  // ?elo=&start=1 from the welcome tour, ?online=1&invite= from an invite link.
-  // Read once, as lazy initial state.
+  // ?elo=&start=1 from the welcome tour, ?online=1&invite= from an invite link,
+  // ?resume=1 from the launcher. Read once.
   const deepLink = useSetupDeepLink(DIFFICULTY_LEVELS.map((l) => l.elo));
-  const [mode, setMode] = useState<SetupMode>(deepLink.online ? 'online' : 'bot');
-  const [targetElo, setTargetElo] = useState(deepLink.elo ?? 1100);
-  const [playerColor, setPlayerColor] = useState<ReversiColor>('black');
-  const [rated, setRated] = useState(true);
-  // An invite link skips setup entirely — the game it points at already exists.
-  const [started, setStarted] = useState(deepLink.autoStart || deepLink.online);
+  // The form remembers what was chosen last time; a started game keeps the setup
+  // it began with. See `useGameSetup`.
+  const setup = useGameSetup('reversi', deepLink);
+  const unfinished = useUnfinishedGame('reversi');
+  const { mode, setMode, started } = setup;
+  const targetElo = setup.setup.elo;
+  const playerColor = setup.setup.color;
+  const rated = setup.setup.rated;
   // Post-game review. Only reachable once the game is over — see the GameBar
   // handler below.
   const [reviewing, setReviewing] = useState(false);
@@ -130,6 +136,7 @@ export function ReversiScreen() {
     userId,
     eloBounds: TRAINING_ELO_BOUNDS,
     started: started && isLocalMode,
+    persistence: { store: nativeLocalStore, game: 'reversi', setup: setup.setup },
   });
 
   // Training matches the bot to the player; every other mode uses the picked tier.
@@ -140,12 +147,33 @@ export function ReversiScreen() {
       ? !!userId && online
       : true;
 
-  /** Back to the setup screen (game bar New Game, result card Change setup). */
+  /**
+   * Back to the setup screen (game bar New Game, result card Change setup). A game
+   * left unfinished stays saved, and the Continue card reads it back.
+   */
   const handleNewGame = () => {
     game.newGame();
-    setStarted(false);
+    setup.stop();
+    unfinished.refresh();
     setReviewing(false);
   };
+
+  /** Pick a saved game up where it was left — its moves first, then the board. */
+  const resumeSaved = (saved: UnfinishedGame) => {
+    setReviewing(false);
+    if (game.restore(saved)) setup.resume(saved);
+    // Moves these rules reject describe no position anyone can play or score.
+    else void unfinished.settle({ resign: true }).catch(() => {});
+  };
+
+  // The launcher's Continue opens this screen with `?resume=1`.
+  const [awaitingResume, setAwaitingResume] = useState(deepLink.resume);
+  useEffect(() => {
+    if (!awaitingResume || !setup.ready || !unfinished.hydrated) return;
+    setAwaitingResume(false);
+    if (unfinished.saved && !unfinished.saved.end && !started) resumeSaved(unfinished.saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingResume, setup.ready, unfinished.hydrated]);
 
   /** The next game with the same setup, on the same board — see ChessScreen. */
   const handleRematch = () => {
@@ -172,14 +200,20 @@ export function ReversiScreen() {
   // websocket it has no use for. Sits after every hook above it, so the hook
   // order is the same on every render.
   if (started && isOnlineMode) {
-    return <ReversiOnline inviteId={deepLink.inviteId} onExit={() => setStarted(false)} />;
+    return <ReversiOnline inviteId={deepLink.inviteId} onExit={setup.stop} />;
+  }
+
+  // Nothing to show until the remembered setup is known, or while a link is about
+  // to replace the form with a game.
+  if (!started && (!setup.ready || setup.awaitingAutoStart || awaitingResume)) {
+    return <Screen scroll={false}>{null}</Screen>;
   }
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   if (!started) {
     // Pinned under the scrolling form rather than at its end.
     const startButton = (
-      <Button
+      <SetupStartFooter
         label={
           isPuzzles
             ? 'Start Puzzles'
@@ -189,11 +223,13 @@ export function ReversiScreen() {
                 ? 'Start Rated Game'
                 : 'Start Game'
         }
-        onPress={
-          isPuzzles ? () => router.push('/puzzles/reversi' as never) : () => setStarted(true)
-        }
+        onStart={isPuzzles ? () => router.push('/puzzles/reversi' as never) : setup.start}
         disabled={!canStart}
-        glow
+        saved={unfinished.saved}
+        onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+        onSettle={unfinished.settle}
+        settling={unfinished.settling}
+        leavesGame={isPuzzles || isOnlineMode}
       />
     );
 
@@ -204,6 +240,17 @@ export function ReversiScreen() {
         />
         <BackHeader fallbackHref="/" />
         <SetupHero game="reversi" />
+
+        {unfinished.saved && (
+          <View style={{ marginBottom: 24 }}>
+            <ContinueCard
+              saved={unfinished.saved}
+              onResume={() => unfinished.saved && resumeSaved(unfinished.saved)}
+              onSettle={unfinished.settle}
+              settling={unfinished.settling}
+            />
+          </View>
+        )}
 
         <LearnLink game="reversi" label="New to Reversi? How to play →" />
         <LessonsCard game="reversi" />
@@ -236,7 +283,7 @@ export function ReversiScreen() {
                 return (
                   <Pressable
                     key={level.elo}
-                    onPress={() => setTargetElo(level.elo)}
+                    onPress={() => setup.update({ elo: level.elo })}
                     accessibilityRole="button"
                     accessibilityLabel={`${level.label} bot — ${level.description}`}
                     accessibilityState={{ selected }}
@@ -282,7 +329,7 @@ export function ReversiScreen() {
                 return (
                   <Pressable
                     key={color}
-                    onPress={() => setPlayerColor(color)}
+                    onPress={() => setup.update({ color })}
                     accessibilityRole="button"
                     accessibilityLabel={`Play as ${color}`}
                     accessibilityState={{ selected }}
@@ -354,7 +401,7 @@ export function ReversiScreen() {
                     : 'Updates your reversi rating'}
               </Text>
             </View>
-            <Toggle value={ratedEffective} onValueChange={setRated} label="Rated" disabled={!userId || !online} />
+            <Toggle value={ratedEffective} onValueChange={(value) => setup.update({ rated: value })} label="Rated" disabled={!userId || !online} />
           </View>
         )}
 

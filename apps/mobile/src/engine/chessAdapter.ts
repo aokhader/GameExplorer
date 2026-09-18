@@ -1,12 +1,10 @@
 import {
   CHESS_HINT_SEARCH_MS,
-  ChessEngine,
   chessBotConfig,
   getBestMoveElo,
   type ChessGameState,
-  type PieceType,
 } from '@gameexplorer/shared';
-import { saveGame } from '@gameexplorer/db';
+import { CHESS_RULES } from '@gameexplorer/client/game/localRules';
 import type { LocalGameAdapter } from './useLocalGame';
 import {
   getEngineBestMove,
@@ -55,23 +53,16 @@ const HINT_ENGINE_WAIT_MS = 20_000;
  * with a promotion move.
  */
 export const chessAdapter: LocalGameAdapter<ChessGameState> = {
-  gameType: 'chess',
+  // Rules and writer shared with anything that replays or resigns a saved chess
+  // game away from this screen. Only the engine is this binary's own.
+  ...CHESS_RULES,
   newGame: () => {
     // Abandon whatever the bot was thinking about — its answer applies to a
     // position that no longer exists — then clear the engine's tables (both
     // no-ops when it isn't running).
     cancelEngineSearch('New game started');
     engineNewGame();
-    return ChessEngine.newGame();
-  },
-  currentTurn: (s) => s.currentTurn,
-  isGameOver: (s) => s.isCheckmate || s.isStalemate || s.isDraw,
-  // Checkmate = the side to move is mated → the other color wins. Stalemate /
-  // draw → null (no winner).
-  winner: (s) => (s.isCheckmate ? (s.currentTurn === 'white' ? 'black' : 'white') : null),
-  validateMove: (s, from, to, promotion) => {
-    const r = ChessEngine.validateMove(s, from, to, false, promotion as PieceType | undefined);
-    return { valid: r.valid, resultingState: r.resultingState };
+    return CHESS_RULES.newGame();
   },
   getBotMove: async (s, elo) => {
     // Ratings the ladder assigns to the in-house engine, plus any rating at all
@@ -95,6 +86,4 @@ export const chessAdapter: LocalGameAdapter<ChessGameState> = {
     return bestMove;
   },
   thinkTimeForElo,
-  save: ({ state, playerColor, result, difficulty, userId, options }) =>
-    saveGame(state, playerColor, result, difficulty, userId, options),
 };

@@ -16,6 +16,8 @@ interface UseChessEngineReturn extends EngineState {
   makeMove:      (from: Position, to: Position, promotion?: PieceType) => void;
   getBotMove:    (elo: number) => Promise<BotMoveResult>;
   reset:         () => void;
+  /** Replace the worker's position — a resumed game's last one. */
+  load:          (state: ChessGameState) => void;
   onBotMove:     (cb: (move: BotMoveResult) => void) => () => void;
 }
 
@@ -92,5 +94,9 @@ export function useChessEngine(initialState?: ChessGameState): UseChessEngineRet
     workerRef.current?.postMessage({ type: 'INIT', state: null });
   }, []);
 
-  return { ...engineState, makeMove, getBotMove, reset, onBotMove };
+  const load = useCallback((state: ChessGameState) => {
+    workerRef.current?.postMessage({ type: 'INIT', state });
+  }, []);
+
+  return { ...engineState, makeMove, getBotMove, reset, load, onBotMove };
 }

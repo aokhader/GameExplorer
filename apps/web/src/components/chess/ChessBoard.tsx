@@ -783,6 +783,9 @@ export const ChessBoard = React.memo(function ChessBoard({
         <div
           className={`chess-board${myTurn ? ' my-turn' : ''}`}
           ref={boardRef}
+          // An inert board says so — to assistive tech, and to anything waiting
+          // for it to take a move.
+          aria-disabled={interactive ? undefined : true}
           // The animation duration is owned by BOARD_ANIM_MS in shared, which
           // usePuzzle also times the opponent's reply against. Handing it to CSS
           // as a variable keeps one number authoritative instead of two that
