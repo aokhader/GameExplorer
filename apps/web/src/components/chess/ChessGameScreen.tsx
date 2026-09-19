@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial, timelineToSan } from '@gameexplorer/shared';
+import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial, timelineToSan, illegalMoveReason, ILLEGAL_MOVE_COPY, MODE_COPY } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { useChessReviewAdapter } from '@/hooks/useChessReviewAdapter';
 import { ChessBoard } from '@/components/chess/ChessBoard';
@@ -16,7 +16,8 @@ import { saveGame, getUserRating, upsertUserRating } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
-import { GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { GAME_SIDEBAR_ID, GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { MoveStrip, numberedStripItems } from '@/components/game/MoveStrip';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { CapturedTray } from '@/components/game/CapturedTray';
 import { GameActions } from '@/components/game/GameActions';
@@ -33,6 +34,10 @@ import { CHESS_RULES, actionsFromHistory } from '@gameexplorer/client/game/local
 import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
+import { useStartLink } from '@/hooks/useStartLink';
+import { useOnceTip } from '@/hooks/useOnceTip';
+import { BoardTip } from '@/components/game/BoardTip';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -142,6 +147,29 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
     update({ elo, custom: !ELO_PRESETS.some((preset) => preset.elo === elo) });
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  useMarkPlayed('chess', isLocal ? 'pass-and-play' : 'bot', gameStarted);
+
+  // One-time tips where the thing happens (`ux-fix-ideas.md` §4.4): what check
+  // means the first time the player is in it, and why the first refused move
+  // was refused. A tip is about the position it arrived in, so the next move
+  // retires it — which is why that effect runs first.
+  const { tip, offer: offerTip, dismiss: dismissTip } = useOnceTip();
+  const moveCount = liveState.moveHistory.length;
+  useEffect(() => {
+    dismissTip();
+  }, [moveCount, dismissTip]);
+  useEffect(() => {
+    if (!gameStarted || !liveState.isCheck || liveState.isCheckmate) return;
+    // In pass-and-play whoever is to move is a player in check.
+    if (isLocal || liveState.currentTurn === playerColor) offerTip('check');
+  }, [gameStarted, liveState, isLocal, playerColor, offerTip]);
+  const handleIllegalMove = (from: Position, to: Position) => {
+    const reason = illegalMoveReason(liveState, from, to);
+    // "Can't get there" is what the destination dots already show; the tip is
+    // for the rules about the king, which nothing on the board explains.
+    if (reason && reason !== 'cantReach') offerTip('illegal-move', ILLEGAL_MOVE_COPY[reason]);
+  };
+
   const [userId, setUserId] = useState<string | null>(null);
   // Player-initiated end (design's ½ Draw / Resign pair) — the engine state
   // stays live, but the game is over from the UI's point of view.
@@ -197,18 +225,16 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   const ratedRef        = useRef(rated);
   ratedRef.current      = rated;
 
-  // Deep link from onboarding (?elo=1200&start=1) — preselect strength and skip
-  // the setup screen. Read off the URL like /chess/play does for ?invite.
-  // Layout effect (not useEffect) so the flip to the game screen commits before
-  // the browser paints: on the onboarding navigation the setup screen never
-  // flashes, avoiding a layout shift.
+  // A link's strength (?elo=1200, from the tour or the first-run picker) wins
+  // over the remembered one and is then remembered itself. Its `start=1` is
+  // `useStartLink`'s, below. A layout effect, so the form never paints the old
+  // strength first.
   useIsomorphicLayoutEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const elo = Number(params.get('elo'));
     if (Number.isFinite(elo) && elo > 0) {
       setTargetElo(Math.min(3000, Math.max(400, Math.round(elo / 25) * 25)));
     }
-    if (params.get('start') === '1') setGameStarted(true);
   }, []);
 
   // ── Sync confirmed worker state → timeline ──────────────────────────────────
@@ -525,6 +551,8 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   const handleStartGame = () => {
     setGameStarted(true);
   };
+  // `?start=1`: start once it is known no unfinished game is waiting.
+  const awaitingStart = useStartLink(unfinished, handleStartGame);
 
   const movePairs  = buildMovePairs(timeline);
   const canGoBack  = viewIndex > 0;
@@ -555,7 +583,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
 
   // ── Setup screen ──────────────────────────────────────────────────────────────
 
-  if (!gameStarted && (awaitingResume || pendingResume)) {
+  if (!gameStarted && (awaitingResume || pendingResume || awaitingStart)) {
     return <div className="min-h-svh" />;
   }
 
@@ -568,7 +596,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
 
         <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
           <h1 className="text-2xl font-bold text-fg mb-4">
-            {isLocal ? 'Pass & Play' : 'Play vs Bot'}
+            {isLocal ? MODE_COPY.local.label : MODE_COPY.bot.label}
           </h1>
 
           {unfinished.saved && (
@@ -791,25 +819,29 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
           />
         }
         board={
-          <ChessBoard
-            gameState={displayState}
-            onMove={handleMove}
-            playerColor={playerColor}
-            orientation={orientation}
-            showCoordinates={true}
-            legalMovesMap={isAtLive && !isThinking ? legalMovesMap : undefined}
-            // Inert until the worker has sent its first position. Before that the
-            // timeline is empty, so `handleMove` drops every move — but without a
-            // legal-move map the board works its own out and lets a piece be
-            // picked up and put down, and on a slow load a first move vanished
-            // as if it had never been made.
-            interactive={engineReady && timeline.length > 0}
-            // Line up a reply while the bot thinks. Off while reviewing history
-            // (the board isn't showing the live position) or after a manual end.
-            // Nobody to pre-empt in pass-and-play: the next mover is sitting
-            // right there and moves on the same board.
-            allowPremoves={!isLocal && isAtLive && !manualEnd}
-          />
+          <div className="relative">
+            <ChessBoard
+              gameState={displayState}
+              onMove={handleMove}
+              playerColor={playerColor}
+              orientation={orientation}
+              showCoordinates={true}
+              legalMovesMap={isAtLive && !isThinking ? legalMovesMap : undefined}
+              // Inert until the worker has sent its first position. Before that the
+              // timeline is empty, so `handleMove` drops every move — but without a
+              // legal-move map the board works its own out and lets a piece be
+              // picked up and put down, and on a slow load a first move vanished
+              // as if it had never been made.
+              interactive={engineReady && timeline.length > 0}
+              // Line up a reply while the bot thinks. Off while reviewing history
+              // (the board isn't showing the live position) or after a manual end.
+              // Nobody to pre-empt in pass-and-play: the next mover is sitting
+              // right there and moves on the same board.
+              allowPremoves={!isLocal && isAtLive && !manualEnd}
+              onIllegalMove={isAtLive ? handleIllegalMove : undefined}
+            />
+            {tip && <BoardTip message={tip.message} onDismiss={dismissTip} />}
+          </div>
         }
         bottomCard={
           <PlayerCard
@@ -832,6 +864,23 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
                 ownerLabel={isLocal ? capitalize(bottomColor) : 'You'}
               />
             }
+          />
+        }
+        actions={
+          <GameActions
+            className="shrink-0"
+            onDraw={() => endManually('draw')}
+            onResign={() => endManually('resign')}
+            onFlip={() => setFlipped(f => !f)}
+            disabled={!!gameOverMsg}
+          />
+        }
+        moveStrip={
+          <MoveStrip
+            items={numberedStripItems(movePairs.flatMap((p) => [p.white?.text, p.black?.text].filter((t): t is string => !!t)))}
+            current={viewIndex}
+            onJump={setViewIndex}
+            fullListId={GAME_SIDEBAR_ID}
           />
         }
         sidebar={
@@ -882,14 +931,6 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
               emptyMessage="No moves yet — make your first move"
             />
 
-            {/* ½ Draw / Resign — as in the design's in-game sidebar. */}
-            <GameActions
-              className="shrink-0"
-              onDraw={() => endManually('draw')}
-              onResign={() => endManually('resign')}
-              onFlip={() => setFlipped(f => !f)}
-              disabled={!!gameOverMsg}
-            />
           </>
         }
       />

@@ -16,15 +16,23 @@ test('training page redirects anonymous users to sign-in', async ({ page }) => {
   expect(page.url()).toContain('next=');
 });
 
-test('profile page redirects anonymous users to sign-in', async ({ page }) => {
+// You is a place for guests too (ux-fix-ideas.md §3.1): it used to bounce them
+// to sign-in, which left a guest's Settings behind an account they did not have.
+test('profile shows a guest what an account adds, and their settings', async ({ page }) => {
   await page.goto('/profile');
-  await page.waitForURL(/\/auth\/signin/);
+  await expect(page.getByRole('heading', { name: 'Playing as a guest' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Playing as a guest' }).getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute(
+    'href',
+    /\/auth\/signin\?next=%2Fprofile/,
+  );
+  await expect(page.getByRole('link', { name: /^Settings/ })).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe('/profile');
 });
 
 test('bot play does NOT require sign-in', async ({ page }) => {
   await page.goto('/reversi/bot');
   // Setup screen renders instead of a redirect.
-  await expect(page.getByRole('heading', { name: 'Play vs Bot' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Play the bot' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start Game' })).toBeVisible();
   expect(page.url()).toContain('/reversi/bot');
 });

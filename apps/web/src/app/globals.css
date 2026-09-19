@@ -815,6 +815,19 @@ html {
   }
 }
 
+/* Below `lg`, a playing screen puts its action row and move strip under the
+ * board (`ux-fix-ideas.md` §8.2), and those have to stay on screen: at move
+ * twenty the old stacked layout needed 35% of the board scrolled away to reach
+ * Resign on a 360×740 phone. So a shell with rows under its board publishes a
+ * phone budget — the viewport less its chrome, cards and rows, never below a
+ * floor that keeps a landscape phone's board playable — and the board takes it.
+ * Screens with nothing under the board keep the frame's own cap, as above. */
+@media (width < 64rem) {
+  .gx-board-column[data-phone-fit] {
+    --gx-board-cap: var(--gx-board-budget-phone);
+  }
+}
+
 /* ────────────────────────────────────────────────────────────────────────────
  * Surfaces and state motion. Quiet Arcade keeps depth and state; the glass,
  * glows, washes, grain, gradient text and ambient loops that lived here are gone

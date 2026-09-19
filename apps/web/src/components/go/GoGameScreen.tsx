@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
+  MODE_COPY,
   GoEngine,
   detectDeadStones,
   goBoardWithoutStones,
@@ -50,6 +51,8 @@ import { localRulesFor } from '@gameexplorer/client/game/localRules';
 import type { UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
+import { useStartLink } from '@/hooks/useStartLink';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import { authHref } from '@/components/auth/returnTo';
 
@@ -100,6 +103,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   const { setup, update } = useRememberedSetup({ store: webLocalStore, game: 'go', mode: loopMode });
   const { elo: targetElo, color: playerColor, rated, size, komi, scoring } = setup;
   const [started, setStarted] = useState(false);
+  useMarkPlayed('go', loopMode, started);
   const unfinished = useUnfinishedGame('go');
   const router = useRouter();
   // `?resume=1` from a Continue card on another route: blank until it is known
@@ -221,6 +225,8 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   const hintPos = hintMove && !hintIsPass ? hintMove.to : null;
 
   const handleStart = () => setStarted(true);
+  // `?start=1`: start once it is known no unfinished game is waiting.
+  const awaitingStart = useStartLink(unfinished, handleStart);
   /**
    * Back to the setup form (header New Game, result card Change setup). A game
    * left unfinished stays saved, and the Continue card reads it back.
@@ -271,7 +277,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
 
   // ── Setup screen ────────────────────────────────────────────────────────────
 
-  if (!started && awaitingResume) {
+  if (!started && (awaitingResume || awaitingStart)) {
     return <div className="min-h-svh" />;
   }
 
@@ -286,7 +292,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
 
         <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
           <h1 className="text-2xl font-bold text-fg mb-1">
-            {isLocal ? 'Pass & Play' : isTraining ? 'Training' : 'Play vs Bot'}
+            {isLocal ? MODE_COPY.local.label : isTraining ? MODE_COPY.training.label : MODE_COPY.bot.label}
           </h1>
           <p className="text-fg-muted mb-4">
             {goRulesetSummary(size, komi, scoring)}
@@ -558,6 +564,14 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
             }
           />
         }
+        actions={
+          // Go has no draw offers — the players agree a score, not a draw.
+          <GameActions
+            className="shrink-0"
+            onResign={resign}
+            disabled={gameOver || awaitingReview}
+          />
+        }
         sidebar={
           <>
             <div className="shrink-0 bg-white/[0.04] rounded-xl border border-white/10 p-4">
@@ -703,12 +717,6 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
               </Button>
             )}
 
-            {/* Go has no draw offers — the players agree a score, not a draw. */}
-            <GameActions
-              className="shrink-0"
-              onResign={resign}
-              disabled={gameOver || awaitingReview}
-            />
           </>
         }
       />

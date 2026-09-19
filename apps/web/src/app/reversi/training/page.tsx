@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  MODE_COPY,
   ReversiEngine,
   ReversiGameState,
   getBestReversiMove,
@@ -16,7 +17,8 @@ import { saveReversiGame, getUserRating, upsertUserRating } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
-import { GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { GAME_SIDEBAR_ID, GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { MoveStrip, numberedStripItems } from '@/components/game/MoveStrip';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { StatusBanner } from '@/components/game/StatusBanner';
@@ -31,6 +33,8 @@ import { REVERSI_RULES, actionsFromHistory } from '@gameexplorer/client/game/loc
 import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
+import { useStartLink } from '@/hooks/useStartLink';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import { signInRequiredHref } from '@/components/auth/returnTo';
 
@@ -92,6 +96,7 @@ export default function ReversiTrainingPage() {
   const [viewIndex, setViewIndex] = useState(0);
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  useMarkPlayed('reversi', 'training', gameStarted);
   const [passMsg, setPassMsg] = useState<string | null>(null);
 
   const [hintPos, setHintPos] = useState<string | null>(null);
@@ -410,6 +415,8 @@ export default function ReversiTrainingPage() {
   const handleStartGame = () => {
     setGameStarted(true);
   };
+  // `?start=1`: start once it is known no unfinished game is waiting.
+  const awaitingStart = useStartLink(unfinished, handleStartGame);
 
   const canGoBack = viewIndex > 0;
   const canGoForward = viewIndex < timeline.length - 1;
@@ -428,7 +435,7 @@ export default function ReversiTrainingPage() {
 
   // ── Setup screen ──────────────────────────────────────────────────────────
 
-  if (!gameStarted && (awaitingResume || pendingResume)) {
+  if (!gameStarted && (awaitingResume || pendingResume || awaitingStart)) {
     return <div className="min-h-svh" />;
   }
 
@@ -441,7 +448,7 @@ export default function ReversiTrainingPage() {
 
         <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
           <h1 className="text-2xl font-bold text-fg mb-1">
-            Training Mode
+            {MODE_COPY.training.label}
           </h1>
           <p className="text-fg-muted mb-4">
             Play rated games against a bot matched to your skill level
@@ -637,6 +644,22 @@ export default function ReversiTrainingPage() {
             subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
           />
         }
+        actions={
+          // Resign only — reversi has no draw offers.
+          <GameActions
+            className="shrink-0"
+            onResign={handleResign}
+            disabled={!!gameOverMsg}
+          />
+        }
+        moveStrip={
+          <MoveStrip
+            items={numberedStripItems(liveState.moveHistory.map(formatMoveNotation))}
+            current={viewIndex}
+            onJump={setViewIndex}
+            fullListId={GAME_SIDEBAR_ID}
+          />
+        }
         sidebar={
           <>
               {/* Turn / result status — the accent banner from the design. */}
@@ -752,12 +775,6 @@ export default function ReversiTrainingPage() {
                 </div>
               </div>
 
-              {/* Resign — reversi has no draw offers, per the design. */}
-              <GameActions
-                className="shrink-0"
-                onResign={handleResign}
-                disabled={!!gameOverMsg}
-              />
           </>
         }
       />

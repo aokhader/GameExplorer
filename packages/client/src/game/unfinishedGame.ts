@@ -25,7 +25,7 @@
  * and `localResult.ts` settles them.
  */
 
-import type { GameOutcome } from '@gameexplorer/shared';
+import { MODE_COPY, type GameOutcome } from '@gameexplorer/shared';
 import type { Color, LocalGameMode } from '../hooks/useLocalGame';
 
 /** The four games that run through `useLocalGame`. Liquidate keeps its own snapshot. */
@@ -205,15 +205,15 @@ export function unfinishedGameName(game: UnfinishedGameType): string {
  *
  * Shared so a Continue card reads the same on both platforms. It leads with what
  * the player chose, and says *Rated* whenever the game is, because that is the
- * fact that changes what Discard does.
+ * fact that changes what Discard does. Rated practice says it in its name.
  */
 export function unfinishedGameSummary(game: UnfinishedGame): string {
   const parts: string[] = [];
-  if (game.mode === 'pass-and-play') parts.push('Pass & Play');
-  else if (game.mode === 'training') parts.push('Training');
+  if (game.mode === 'pass-and-play') parts.push(MODE_COPY.local.label);
+  else if (game.mode === 'training') parts.push(MODE_COPY.training.label);
   else parts.push(`vs Bot ${game.botElo}`);
 
-  if (game.rated) parts.push('Rated');
+  if (game.rated && game.mode !== 'training') parts.push('Rated');
   if (game.game === 'go' && typeof game.setup.size === 'number' && game.setup.size !== 9) {
     parts.push(`${game.setup.size}×${game.setup.size}`);
   }

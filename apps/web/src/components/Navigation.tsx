@@ -4,27 +4,52 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Suspense, useRef, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePlayHref } from '@/hooks/usePlayHref';
 import { authHref, useAuthSwitchHref } from '@/components/auth/returnTo';
 import { isAuthPath } from '@/lib/returnPath';
 import { isImmersiveGameRoute } from '@/lib/routes';
+import { markReturning } from '@/lib/returning';
 import { cn } from '@/lib/utils';
-import { GAME_LIST } from '@gameexplorer/shared';
-import { Icon } from '@gameexplorer/ui';
+import { Icon, type IconName } from '@gameexplorer/ui';
 
-// The games come from the catalog so a new one appears in the nav by existing,
-// not by someone remembering this file. Home and Watch are not games.
-const NAV_ITEMS = [
-  { href: '/', label: 'Home' },
-  ...GAME_LIST.filter((g) => g.available).map((g) => ({ href: `/${g.slug}`, label: g.name })),
-  { href: '/spectate', label: 'Watch' },
-];
+/**
+ * The web app's navigation: **Home · Play · You**, the model native has always
+ * had (`project-docs/ux-fix-ideas.md` §3.1), with Learn and Watch beside it.
+ *
+ * It used to list the five games plus Home and Watch, so every journey crossed
+ * a game's hub and a phone had to open a menu to go anywhere. Now:
+ * - **Home** is the launcher for anyone who has played, the landing page for a
+ *   stranger (`/`, see `lib/returning.ts`).
+ * - **Play** goes to a board: the game left unfinished, else the last game's
+ *   setup, filled in with what was chosen last time (`usePlayHref`).
+ * - **You** is the player's numbers, games and settings — for guests too.
+ *
+ * Below `md` the three sit in a bar at the bottom of the screen, where a thumb
+ * reaches them, as on native; the top bar keeps the wordmark, Learn and Watch.
+ * The games themselves are on Home.
+ */
+
+const isActive = (pathname: string, key: string) => {
+  switch (key) {
+    case 'home':
+      return pathname === '/' || pathname === '/home';
+    case 'you':
+      return pathname.startsWith('/profile') || pathname.startsWith('/settings');
+    case 'learn':
+      return pathname === '/learn' || /^\/[a-z]+\/learn$/.test(pathname);
+    case 'watch':
+      return pathname.startsWith('/spectate');
+    default:
+      return false;
+  }
+};
 
 export function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useAuth();
+  const playHref = usePlayHref();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -38,8 +63,10 @@ export function Navigation() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close the mobile menu whenever the route changes.
-  useEffect(() => { setMobileOpen(false); }, [pathname]);
+  // A signed-in player has history somewhere, so `/` is their launcher.
+  useEffect(() => {
+    if (user) markReturning();
+  }, [user]);
 
   const handleSignOut = async () => {
     setDropdownOpen(false);
@@ -50,170 +77,172 @@ export function Navigation() {
     router.push('/');
   };
 
-  const isActive = (href: string) =>
-    href === '/spectate' ? pathname.startsWith('/spectate') : pathname === href;
-
-  // In-game screens run without the global bar: it costs 64px off the top of a
-  // square board, and each of those screens carries its own header with a back
-  // link. Bailing out AFTER the hooks above keeps the hook order stable across
-  // a client-side navigation into and out of a game.
+  // In-game screens run without the global bars: they cost height off a square
+  // board, and each of those screens carries its own header with a way home.
+  // Bailing out AFTER the hooks above keeps the hook order stable across a
+  // client-side navigation into and out of a game.
   if (isImmersiveGameRoute(pathname)) return null;
 
+  const primary: { key: string; href: string; label: string; icon: IconName; activeIcon: IconName }[] = [
+    { key: 'home', href: '/', label: 'Home', icon: 'house', activeIcon: 'house-fill' },
+    { key: 'play', href: playHref, label: 'Play', icon: 'play-fill', activeIcon: 'play-fill' },
+    { key: 'you', href: '/profile', label: 'You', icon: 'user', activeIcon: 'user-fill' },
+  ];
+  const secondary = [
+    { key: 'learn', href: '/learn', label: 'Learn' },
+    { key: 'watch', href: '/spectate', label: 'Watch' },
+  ];
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-surface/70 backdrop-blur-xl backdrop-saturate-150 border-b border-border shadow-[0_1px_0_0_rgba(255,255,255,0.04)]">
-      <div className="container mx-auto px-4">
-        {/* 3-column grid: equal-width outer columns keep the center nav truly
-            viewport-centered regardless of how wide the logo / auth area are
-            (a plain justify-between would let the side widths shift it off-center). */}
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="touch-target flex items-center space-x-2 group justify-self-start">
-            <span className="font-display text-2xl font-bold text-fg transition-colors">
-              Game<span className="text-accent group-hover:text-accent-hover transition-colors">Explorer</span>
-            </span>
-          </Link>
+    <>
+      <nav
+        aria-label="Main"
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-surface"
+      >
+        <div className="container mx-auto px-4">
+          {/* Equal outer columns keep the centre links truly centred, whatever
+              the width of the wordmark or the account area. */}
+          <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center">
+            <Link href="/" className="touch-target flex items-center justify-self-start">
+              <span className="font-display text-xl font-bold text-fg sm:text-2xl">
+                Game<span className="text-accent">Explorer</span>
+              </span>
+            </Link>
 
-          {/* Navigation Links (desktop) */}
-          <div className="hidden md:flex items-center space-x-8 justify-self-center">
-            {NAV_ITEMS.map((item) => (
-              <NavLink key={item.href} href={item.href} active={isActive(item.href)}>
-                {item.label}
-              </NavLink>
-            ))}
-          </div>
+            <div className="hidden items-center gap-8 justify-self-center md:flex">
+              {primary.map((item) => (
+                <NavLink key={item.key} href={item.href} active={isActive(pathname, item.key)}>
+                  {item.label}
+                </NavLink>
+              ))}
+              <span className="h-5 w-px bg-border" aria-hidden="true" />
+              {secondary.map((item) => (
+                <NavLink key={item.key} href={item.href} active={isActive(pathname, item.key)} quiet>
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
 
-          {/* Auth area + mobile toggle */}
-          <div className="flex items-center gap-3 justify-self-end">
-            {!loading && (
-              user ? (
-                /* Avatar + dropdown */
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setDropdownOpen(o => !o)}
-                    className="touch-target w-9 h-9 rounded-full bg-accent hover:bg-accent-hover flex items-center justify-center text-on-accent text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-                    aria-label="Account menu"
-                  >
-                    {user.email[0].toUpperCase()}
-                  </button>
+            {/* Pinned to the last column: below md the centre links are not
+                drawn, and without this the grid slid these left against the
+                wordmark. */}
+            <div className="col-start-3 flex items-center gap-4 justify-self-end">
+              {/* Below md the three primary places are in the bottom bar. */}
+              <div className="flex items-center gap-4 md:hidden">
+                {secondary.map((item) => (
+                  <NavLink key={item.key} href={item.href} active={isActive(pathname, item.key)} quiet>
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+              {!loading &&
+                (user ? (
+                  <div className="relative hidden md:block" ref={dropdownRef}>
+                    <button
+                      onClick={() => setDropdownOpen((o) => !o)}
+                      className="touch-target flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface-muted text-sm font-bold text-fg transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                      aria-label="Account menu"
+                      aria-expanded={dropdownOpen}
+                    >
+                      {user.email[0].toUpperCase()}
+                    </button>
 
-                  {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-surface-alt border border-border shadow-lg py-1 z-50">
-                      <div className="px-4 py-2 border-b border-border">
-                        <p className="text-xs text-fg-subtle truncate">{user.email}</p>
+                    {dropdownOpen && (
+                      <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-border bg-surface-alt py-1 shadow-lg">
+                        <div className="border-b border-border px-4 py-2">
+                          <p className="truncate text-xs text-fg-subtle">{user.email}</p>
+                        </div>
+                        <MenuLink href="/profile" icon="user" onClick={() => setDropdownOpen(false)}>
+                          Profile
+                        </MenuLink>
+                        <MenuLink href="/settings" icon="gear" onClick={() => setDropdownOpen(false)}>
+                          Settings
+                        </MenuLink>
+                        <div className="mt-1 border-t border-border pt-1">
+                          <button
+                            onClick={handleSignOut}
+                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-danger-hover transition-colors hover:bg-danger-muted"
+                          >
+                            <Icon name="arrow-right" className="text-base" />
+                            Log out
+                          </button>
+                        </div>
                       </div>
-                      <Link
-                        href="/profile"
-                        onClick={() => setDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg hover:bg-surface-hover transition-colors"
-                      >
-                        <svg className="w-4 h-4 text-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        Profile
-                      </Link>
-                      <Link
-                        href="/settings"
-                        onClick={() => setDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg hover:bg-surface-hover transition-colors"
-                      >
-                        <svg className="w-4 h-4 text-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Settings
-                      </Link>
-                      <div className="border-t border-border mt-1 pt-1">
-                        <button
-                          onClick={handleSignOut}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-danger-hover hover:bg-danger-muted transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                          </svg>
-                          Log out
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  {/* Settings is device-level (theme, sound, motion), so a guest
-                      needs it as much as anyone — it used to live only in the
-                      signed-in account menu. Below sm it's in the menu panel. */}
-                  <Link
-                    href="/settings"
-                    aria-label="Settings"
-                    className="touch-target hidden sm:inline-flex items-center justify-center w-10 h-10 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                  >
-                    <Icon name="gear" className="text-xl" />
-                  </Link>
-                  <SignInNavLink className="touch-target hidden sm:inline text-sm text-fg-muted hover:text-fg transition-colors" />
-                  {/* Outlined, not gold: gold is the page's own primary action,
-                      one per screen (ux-fix-ideas.md §6.2). A gold button up
-                      here made every page open on two. */}
-                  <Link
-                    href="/chess"
-                    className="touch-target px-4 py-2 border border-border-strong text-fg hover:bg-surface-muted font-semibold rounded-lg motion-control motion-safe:active:scale-[0.98] text-sm"
-                  >
-                    Play Now
-                  </Link>
-                </>
-              )
-            )}
-
-            {/* Mobile menu toggle */}
-            <button
-              onClick={() => setMobileOpen(o => !o)}
-              className="touch-target md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-              aria-label="Toggle navigation menu"
-              aria-expanded={mobileOpen}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                {mobileOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    )}
+                  </div>
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
-                )}
-              </svg>
-            </button>
+                  <SignInNavLink className="touch-target hidden text-sm font-medium text-fg-muted transition-colors hover:text-fg md:inline" />
+                ))}
+            </div>
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Mobile menu panel */}
-      {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-surface/95 backdrop-blur-md animate-fade-in">
-          <div className="container mx-auto px-4 py-2 flex flex-col">
-            {NAV_ITEMS.map((item) => (
+      {/* The phone bar: the same three places, where a thumb reaches them. */}
+      <nav
+        aria-label="Main (bottom)"
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        <div className="grid h-16 grid-cols-3">
+          {primary.map((item) => {
+            const active = isActive(pathname, item.key);
+            return (
               <Link
-                key={item.href}
+                key={item.key}
                 href={item.href}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'py-3 px-2 text-base font-medium rounded-lg transition-colors',
-                  isActive(item.href) ? 'text-accent' : 'text-fg-muted hover:text-fg hover:bg-surface-muted',
+                  'flex flex-col items-center justify-center gap-0.5 text-caption font-semibold motion-control motion-safe:active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus',
+                  active ? 'text-fg' : 'text-fg-subtle hover:text-fg',
                 )}
               >
+                <Icon
+                  name={active ? item.activeIcon : item.icon}
+                  // Play is an action, not a place: the accent says so without
+                  // a gold button competing with the page's own.
+                  className={cn('text-2xl', item.key === 'play' && 'text-accent')}
+                />
                 {item.label}
               </Link>
-            ))}
-            <div className="my-1 border-t border-border" />
-            <Link
-              href="/settings"
-              className={cn(
-                'py-3 px-2 text-base font-medium rounded-lg transition-colors',
-                isActive('/settings') ? 'text-accent' : 'text-fg-muted hover:text-fg hover:bg-surface-muted',
-              )}
-            >
-              Settings
-            </Link>
-            {!loading && !user && (
-              <SignInNavLink className="py-3 px-2 text-base font-medium rounded-lg transition-colors text-fg-muted hover:text-fg hover:bg-surface-muted" />
-            )}
-          </div>
+            );
+          })}
         </div>
-      )}
-    </nav>
+      </nav>
+    </>
+  );
+}
+
+/**
+ * Room under the page for the phone bar, which is fixed over the bottom of the
+ * screen. Rendered after the page in the root layout; nothing on the routes
+ * that draw no bar.
+ */
+export function BottomNavSpacer() {
+  const pathname = usePathname();
+  if (isImmersiveGameRoute(pathname)) return null;
+  return <div aria-hidden="true" className="h-[calc(4rem+env(safe-area-inset-bottom))] md:hidden" />;
+}
+
+function MenuLink({
+  href,
+  icon,
+  onClick,
+  children,
+}: {
+  href: string;
+  icon: IconName;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg transition-colors hover:bg-surface-hover"
+    >
+      <Icon name={icon} className="text-base text-fg-muted" />
+      {children}
+    </Link>
   );
 }
 
@@ -262,23 +291,27 @@ function CarriedSignInLink({ className }: { className: string }) {
 function NavLink({
   href,
   active,
+  quiet = false,
   children,
 }: {
   href: string;
   active: boolean;
+  /** Learn and Watch: a step down from the three primary places. */
+  quiet?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
-      className={`touch-target inline-block py-1 text-sm font-medium transition-colors ${
-        active ? 'text-accent' : 'text-fg-muted hover:text-fg'
-      }`}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'touch-target inline-block py-1 font-medium transition-colors',
+        quiet ? 'text-sm' : 'text-base',
+        active ? 'text-fg' : quiet ? 'text-fg-subtle hover:text-fg' : 'text-fg-muted hover:text-fg',
+      )}
     >
       {children}
-      {active && (
-        <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-accent" />
-      )}
+      {active && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-accent" />}
     </Link>
   );
 }

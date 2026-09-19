@@ -8,6 +8,8 @@ import {
   type UnfinishedGame,
 } from '@gameexplorer/client/game/unfinishedGame';
 import { Button } from '@/components/ui';
+import { GameIcon } from '@/components/game/GameIcon';
+import { cn } from '@/lib/utils';
 
 type Settle = (options: { resign: boolean }) => Promise<SettleOutcome>;
 
@@ -30,11 +32,19 @@ export function ContinueCard({
   onResume,
   onSettle,
   settling,
+  showGame = false,
+  className = 'mb-6',
 }: {
   saved: UnfinishedGame;
   onResume: () => void;
   onSettle: Settle;
   settling: boolean;
+  /**
+   * Name the game and draw its piece art — on a screen that is not already that
+   * game's, like the launcher or a game page's Play panel.
+   */
+  showGame?: boolean;
+  className?: string;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -50,16 +60,25 @@ export function ContinueCard({
   };
 
   const owed = !!saved.end;
+  const name = unfinishedGameName(saved.game);
+  const title = owed ? `${name} result not saved` : showGame ? `Continue ${name}` : 'Game in progress';
 
   return (
     <section
       aria-label="Unfinished game"
-      className="mb-6 rounded-2xl border border-white/10 bg-surface-alt p-6"
+      className={cn('rounded-2xl border border-border bg-surface-alt p-6', className)}
     >
-      <h2 className="text-lg font-semibold text-fg">
-        {owed ? `${unfinishedGameName(saved.game)} result not saved` : 'Game in progress'}
-      </h2>
-      <p className="mt-1 text-sm text-fg-muted">{unfinishedGameSummary(saved)}</p>
+      <div className="flex items-center gap-3">
+        {showGame && (
+          <span className="inline-flex shrink-0 items-center text-3xl" aria-hidden="true">
+            <GameIcon game={saved.game} />
+          </span>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold text-fg">{title}</h2>
+          <p className="mt-1 text-sm text-fg-muted">{unfinishedGameSummary(saved)}</p>
+        </div>
+      </div>
 
       <div className="mt-4">
         {owed ? (
@@ -163,7 +182,7 @@ export function GuardedStartButton({
   };
 
   return (
-    <div className="space-y-3 rounded-2xl border border-white/10 bg-surface-alt p-4">
+    <div className="space-y-3 rounded-2xl border border-border bg-surface-alt p-4">
       <p className="text-center text-sm font-semibold text-fg">
         {owed ? `Your last rated ${name} result isn't saved yet.` : `You have an unfinished rated ${name} game.`}
       </p>

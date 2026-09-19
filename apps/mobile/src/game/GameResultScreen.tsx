@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { TIP_COPY } from '@gameexplorer/shared';
 import { COLORS, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
@@ -12,6 +13,7 @@ import { FONTS } from '@/theme/typography';
 import { springTo, timing } from '@/theme/motion';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { markFinished } from '@/lib/lastPlayed';
+import { claimTip } from './useOnceTip';
 
 export type GameResult = 'win' | 'loss' | 'draw' | 'aborted';
 
@@ -160,6 +162,8 @@ export function GameResultScreen({
   const cardOpacity = useSharedValue(0);
   const emojiScale = useSharedValue(reducedMotion ? 1 : 0.4);
 
+  const [reviewTip, setReviewTip] = useState(false);
+
   // Fire the chime/haptic + entrance animation once per open.
   const wasOpen = useRef(false);
   useEffect(() => {
@@ -168,6 +172,12 @@ export function GameResultScreen({
       // Every local game on every board ends here, so this is where the launcher
       // learns the device has finished one.
       if (result !== 'aborted') markFinished();
+      // The first finished game says, once, that review exists (§4.4).
+      if (result !== 'aborted' && onReview) {
+        void claimTip('review').then((fresh) => {
+          if (fresh) setReviewTip(true);
+        });
+      }
       if (result !== 'aborted') sfx.play(result);
       cardOpacity.value = withTiming(1, timing('moderate', 'out'));
       if (reducedMotion) {
@@ -353,6 +363,13 @@ export function GameResultScreen({
                     </View>
                   )}
                 </Pressable>
+              )}
+              {onReview && reviewTip && (
+                <Text
+                  style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, textAlign: 'center' }}
+                >
+                  {TIP_COPY.review}
+                </Text>
               )}
               {secondaryActions}
             </View>

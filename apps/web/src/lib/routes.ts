@@ -25,6 +25,8 @@ export function isImmersiveGameRoute(pathname: string): boolean {
   return (
     /\/(play|bot|training|analysis|local|puzzles)(\/|$)/.test(pathname) ||
     /\/learn\/[^/]+/.test(pathname) ||
-    pathname.startsWith('/spectate/')
+    pathname.startsWith('/spectate/') ||
+    // A saved game's review is the whole page, with its own way home.
+    pathname.startsWith('/review/')
   );
 }

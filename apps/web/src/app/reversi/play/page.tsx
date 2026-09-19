@@ -5,6 +5,7 @@ import { redirect }  from 'next/navigation';
 import { ReversiBoard }   from '@/components/reversi/ReversiBoard';
 import { DiscCountBar }   from '@/components/reversi/DiscCountBar';
 import { useGameSession } from '@gameexplorer/client';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
 import { GameLayout }     from '@/components/game/GameLayout';
 import { formatClockShort } from '@gameexplorer/shared';
 import type { ReversiGameState, TimeControl } from '@gameexplorer/shared';
@@ -17,6 +18,7 @@ const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
 
 export default function ReversiPlayPage() {
   const s = useGameSession('reversi', 'movetime');
+  useMarkPlayed('reversi', 'online', !!s.gameState);
   const { sendMove } = s;
 
   // Stable identity so the memoized board skips the 100 ms clock re-renders.

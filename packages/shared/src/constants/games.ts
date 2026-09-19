@@ -29,6 +29,33 @@ export type GameId = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 /** Play modes a game can offer. Not every game supports every mode. */
 export type GameModeId = 'bot' | 'training' | 'online' | 'local' | 'learn' | 'puzzles';
 
+export interface ModeCopy {
+  /** Names what happens to the player, not the feature. */
+  label: string;
+  /** One line, checkable against the product. */
+  description: string;
+}
+
+/**
+ * What each way of playing is called, on every surface of both platforms
+ * (`project-docs/ux-fix-ideas.md` §3.3).
+ *
+ * "Play vs Bot" and "Training Mode" both meant "play a bot" — the difference
+ * lived only in the small print — so the names now say what happens to you:
+ * you pick the bot's strength, or you play a bot matched to your rating for
+ * rating. Pass-and-play had two names ("Local 2-Player" on web, "Pass & Play"
+ * on native). Every string here is true today: hints do cost rating in rated
+ * practice, and an online game does run on a clock.
+ */
+export const MODE_COPY: Record<GameModeId, ModeCopy> = {
+  bot: { label: 'Play the bot', description: 'You pick the strength' },
+  training: { label: 'Rated practice', description: 'A bot matched to your rating. Hints cost rating' },
+  online: { label: 'Play online', description: 'A real opponent, on a clock' },
+  local: { label: 'Pass & Play', description: 'Two players, one device' },
+  puzzles: { label: 'Puzzles', description: 'Set positions, solved one move at a time' },
+  learn: { label: 'How to play', description: 'The rules in a few minutes' },
+};
+
 export interface GameCatalogEntry {
   id: GameId;
   name: string;
@@ -189,8 +216,8 @@ export function gameNameList(games: readonly GameCatalogEntry[] = GAME_LIST): st
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 /**
- * The catalog's size, spelled out and capitalised for prose — "Five games. One
- * board. Endless rematches."
+ * The catalog's size, spelled out and capitalised for prose — "Five games,
+ * free, with no sign-up to play."
  *
  * Same reason as {@link gameNameList}: that tagline shipped reading "Three
  * games" and was still saying it after Go and Liquidate launched. A hand-typed

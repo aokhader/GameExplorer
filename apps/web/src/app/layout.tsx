@@ -3,7 +3,7 @@ import { DM_Sans, Space_Grotesk, Spectral, Nunito_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
-import { Navigation } from '@/components/Navigation';
+import { BottomNavSpacer, Navigation } from '@/components/Navigation';
 import { ClientConfig } from '@/components/ClientConfig';
 import { ToastProvider } from '@/components/ui';
 import { PageTransition } from '@/components/visual';
@@ -103,6 +103,7 @@ export default function RootLayout({
             <ClientConfig />
             <Navigation />
             <PageTransition>{children}</PageTransition>
+            <BottomNavSpacer />
           </ToastProvider>
         </SettingsProvider>
         <Analytics />

@@ -10,7 +10,8 @@ import { useRouter } from 'next/navigation';
 import { BlockedPlayers } from '@/components/multiplayer/BlockedPlayers';
 import { Skeleton } from '@/components/ui';
 import { ratingDelta, summarizePlayer } from '@gameexplorer/client/game/playerStats';
-import { signInRequiredHref } from '@/components/auth/returnTo';
+import { authHref } from '@/components/auth/returnTo';
+import { LinkRow } from '@/components/home/LauncherParts';
 
 type Tab = 'all' | GameType;
 
@@ -99,6 +100,53 @@ function StatTile({ label, value, valueClass = 'text-fg' }: { label: string; val
   );
 }
 
+const PRIMARY_LINK =
+  'inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-lg bg-accent px-3 font-semibold text-on-accent motion-control motion-safe:active:scale-[0.98] hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface';
+const SECONDARY_LINK =
+  'inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-lg border border-border-strong px-3 font-semibold text-fg motion-control motion-safe:active:scale-[0.98] hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus';
+
+/** You, for a guest: what an account adds, and the settings every device has. */
+function GuestYou() {
+  return (
+    <div className="relative min-h-svh pt-16">
+      <div className="container mx-auto max-w-2xl px-4 pt-8 pb-12">
+        <h1 className="text-3xl font-bold tracking-tight text-fg">You</h1>
+        <section className="mt-6 rounded-2xl border border-border bg-surface-alt p-5" aria-labelledby="guest-heading">
+          <h2 id="guest-heading" className="text-lg font-semibold text-fg">
+            Playing as a guest
+          </h2>
+          <p className="mt-1 text-sm text-fg-muted">
+            Sign in to save your games, climb the ratings, and carry your streaks across devices.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Link href={authHref('/auth/signin', '/profile')} className={PRIMARY_LINK}>
+              Sign in
+            </Link>
+            <Link href={authHref('/auth/signup', '/profile')} className={SECONDARY_LINK}>
+              Create account
+            </Link>
+          </div>
+        </section>
+        <div className="mt-6 space-y-3">
+          <LinkRow icon="gear" title="Settings" detail="Theme, sound and the board" href="/settings" />
+          <LinkRow icon="sparkle" title="Take a quick tour" detail="A few questions, then a game" href="/welcome" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A game page's *Your games* opens this list on that game: `?game=checkers`.
+ * Read in the initializer, which is safe here: the first render on both sides
+ * is the loading skeleton, which draws no tabs.
+ */
+function initialTab(): Tab {
+  if (typeof window === 'undefined') return 'all';
+  const wanted = new URLSearchParams(window.location.search).get('game');
+  return wanted === 'chess' || wanted === 'checkers' || wanted === 'reversi' || wanted === 'go' ? wanted : 'all';
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -108,7 +156,8 @@ export default function ProfilePage() {
   const [checkersRating, setCheckersRating] = useState<UserRating | null>(null);
   const [reversiRating, setReversiRating] = useState<UserRating | null>(null);
   const [goRating, setGoRating] = useState<UserRating | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('all');
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+  const [guest, setGuest] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -120,7 +169,11 @@ export default function ProfilePage() {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
         if (!user) {
-          router.replace(signInRequiredHref('/profile'));
+          // You is a place for guests too (`ux-fix-ideas.md` §3.1, §3.4): it
+          // used to bounce them to sign-in, which left a guest's Settings
+          // behind an account they did not have.
+          setGuest(true);
+          setLoading(false);
           return;
         }
         setUser({ id: user.id, email: user.email! });
@@ -176,8 +229,10 @@ export default function ProfilePage() {
     );
   }
 
+  if (guest) return <GuestYou />;
+
   if (!user || !profile) {
-    return null; // redirect is in flight
+    return null;
   }
 
   const ratings: { type: GameType; rating: UserRating | null }[] = [
@@ -338,6 +393,10 @@ export default function ProfilePage() {
               <p className="text-fg-muted text-sm">
                 {activeTab === 'all' ? 'No games played yet' : `No ${activeTab} games yet`}
               </p>
+              {/* Say what would be here, then the one action that fills it. */}
+              <p className="mt-1 text-fg-muted text-sm">
+                Every game you finish while signed in is listed here, with the rating it moved.
+              </p>
               <Link
                 href={activeTab === 'all' ? '/chess/bot' : `/${activeTab}/bot`}
                 className="mt-3 inline-block text-accent hover:underline text-sm"
@@ -350,7 +409,8 @@ export default function ProfilePage() {
               {visibleGames.map((game, i) => {
                 const gameType = (game.game_type ?? 'chess') as GameType;
                 const meta = GAME_META[gameType];
-                const replayHref = gameType === 'chess' ? `/chess/replays/${game.id}` : null;
+                // Chess opens on the analysis board; the other three on their review.
+                const replayHref = gameType === 'chess' ? `/chess/replays/${game.id}` : `/review/${game.id}`;
                 const delta = ratingDelta(game);
 
                 const detail = [

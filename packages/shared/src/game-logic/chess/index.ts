@@ -11,3 +11,4 @@ export * from './uci';
 export * from './strength';
 export * from './material';
 export * from './san';
+export * from './explain';

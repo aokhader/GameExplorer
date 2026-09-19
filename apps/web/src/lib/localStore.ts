@@ -1,4 +1,5 @@
 import type { LocalStore } from '@gameexplorer/client/storage';
+import { markReturning } from '@/lib/returning';
 
 /**
  * `localStorage` behind the client layer's `LocalStore` — remembered setups and
@@ -25,6 +26,9 @@ export const webLocalStore: LocalStore = {
     if (typeof window === 'undefined') return;
     try {
       window.localStorage.setItem(key, value);
+      // Everything written here is history the launcher reads: a remembered
+      // setup, a game in progress, what was played (`lib/returning.ts`).
+      if (key.startsWith('gx:')) markReturning();
     } catch {
       /* full or blocked — not remembered this time */
     }

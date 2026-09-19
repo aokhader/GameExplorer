@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Pass-and-play was mobile-only: web's hubs said "Local 2-Player — Coming Soon".
+// Both platforms now call it "Pass & Play" (`MODE_COPY`, ux-fix-ideas.md §3.3).
 // It is now a mode of the same game screen rather than its own, so what needs
 // pinning is that the mode actually changes behaviour — no bot replies, nothing
 // is rated, and both colours can move.
@@ -10,7 +11,7 @@ const GAMES = ['chess', 'checkers', 'reversi'] as const;
 for (const game of GAMES) {
   test(`${game} hub links to pass-and-play`, async ({ page }) => {
     await page.goto(`/${game}`);
-    await expect(page.getByRole('link', { name: /Local 2-Player/ })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: /Pass & Play/ })).toHaveAttribute(
       'href',
       `/${game}/local`,
     );

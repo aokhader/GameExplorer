@@ -5,6 +5,7 @@ import { redirect }  from 'next/navigation';
 import { ChessBoard } from '@/components/chess/ChessBoard';
 import '@/components/chess/ChessBoard.css';
 import { useGameSession } from '@gameexplorer/client';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
 import { GameLayout } from '@/components/game/GameLayout';
 import { GameSkeleton } from '@/components/game/GameSkeleton';
 import { formatClockLong } from '@gameexplorer/shared';
@@ -20,6 +21,7 @@ const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
 
 export default function ChessPlayPage() {
   const s = useGameSession('chess', 'blitz');
+  useMarkPlayed('chess', 'online', !!s.gameState);
   const { sendMove } = s;
 
   // Stable identity so the memoized board skips the 100 ms clock re-renders.

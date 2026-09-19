@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
+import { MODE_COPY } from '@gameexplorer/shared';
 import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Toggle, Icon, type IconName } from '@/components/ui';
 import { useSettings } from '@/providers/SettingsProvider';
@@ -38,37 +39,22 @@ export interface OpponentPickerProps {
   modes?: readonly SetupMode[];
 }
 
+/**
+ * The names and lines come from the catalog's `MODE_COPY`, which web's game
+ * pages read too (`ux-fix-ideas.md` §3.3): "vs Bot" and "Training" both meant
+ * "play a bot", and the two platforms had different names for pass-and-play.
+ */
 const OPTIONS: { mode: SetupMode; icon: IconName; label: string; description: string }[] = [
-  { mode: 'bot', icon: 'robot', label: 'vs Bot', description: 'Challenge the computer' },
-  {
-    mode: 'online',
-    icon: 'globe',
-    label: 'Online',
-    description: 'Real opponent, live clock',
-  },
-  {
-    mode: 'training',
-    icon: 'target',
-    label: 'Training',
-    description: 'Rated, matched to you',
-  },
-  {
-    mode: 'pass-and-play',
-    icon: 'users',
-    label: 'Pass & Play',
-    description: 'Two players, one device',
-  },
-  {
-    mode: 'puzzles',
-    icon: 'puzzle-piece',
-    label: 'Puzzles',
-    description: 'Set positions, one answer',
-  },
+  { mode: 'bot', icon: 'robot', ...MODE_COPY.bot },
+  { mode: 'online', icon: 'globe', ...MODE_COPY.online },
+  { mode: 'training', icon: 'target', ...MODE_COPY.training },
+  { mode: 'pass-and-play', icon: 'users', ...MODE_COPY.local },
+  { mode: 'puzzles', icon: 'puzzle-piece', ...MODE_COPY.puzzles },
 ];
 
 /**
- * Setup-screen mode selector — vs Bot, Online, Training, Pass & Play, or
- * Puzzles. Shared by all three game screens so the tiles look identical; only
+ * Setup-screen mode selector — play the bot, online, rated practice, pass &
+ * play, or puzzles. Shared by all three game screens so the tiles look identical; only
  * the accent differs per game. The tiles wrap 2-up like the bot strength grid
  * below them; the fifth grows to fill its row rather than sitting in a half-
  * width gap, which is `flexGrow: 1` doing its job.

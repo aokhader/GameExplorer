@@ -71,6 +71,12 @@ interface ChessBoardProps {
    * that the parent has looked at the move and said no.
    */
   rejectedMoves?: number;
+  /**
+   * A move the board refused: a selected piece tapped or dropped onto a square
+   * it may not go to (not a premove, not a re-pick of another piece). The game
+   * screen explains the first one (`illegalMoveReason`, `ux-fix-ideas.md` §4.4).
+   */
+  onIllegalMove?: (from: Position, to: Position) => void;
   /** When true, clicks call onSquareClick instead of the normal move logic */
   editMode?: boolean;
   onSquareClick?: (position: Position) => void;
@@ -228,6 +234,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   arrows,
   highlightSquares,
   rejectedMoves,
+  onIllegalMove,
   editMode = false,
   onSquareClick,
   allowSelectAnyColor = false,
@@ -398,6 +405,8 @@ export const ChessBoard = React.memo(function ChessBoard({
       } else if (canSelect) {
         selectPiece(position);
       } else {
+        // A tap somewhere the selected piece may not go, other than on itself.
+        if (!premoveMode && position !== selectedSquare) onIllegalMove?.(selectedSquare, position);
         setSelectedSquare(null);
         setValidMoves([]);
         // A click that neither aims nor re-picks is how a queued premove is
@@ -620,6 +629,7 @@ export const ChessBoard = React.memo(function ChessBoard({
         setShakeSquare(drag.from);
         sfx.play('illegal');
         setTimeout(() => setShakeSquare(null), 350);
+        if (!premoveMode && !editMode) onIllegalMove?.(drag.from, target);
       }
       setSelectedSquare(null);
       setValidMoves([]);

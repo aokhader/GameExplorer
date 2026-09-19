@@ -44,16 +44,31 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // API proxy to backend (development only)
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_API_URL 
-          ? `${process.env.NEXT_PUBLIC_API_URL}/:path*`
-          : 'http://localhost:4000/api/:path*', // Fallback for dev
-      },
-    ];
+    return {
+      beforeFiles: [
+        {
+          // One address, two Homes (ux-fix-ideas.md §4.1): a visitor who has
+          // played here gets the launcher at `/`, a stranger the landing page.
+          // The server cannot read localStorage, so the first game, saved setup
+          // or solve sets this cookie (src/lib/returning.ts). A rewrite rather
+          // than a cookie read in the page keeps both pages static.
+          source: '/',
+          has: [{ type: 'cookie', key: 'gx_returning' }],
+          destination: '/home',
+        },
+      ],
+      afterFiles: [
+        // API proxy to backend (development only)
+        {
+          source: '/api/:path*',
+          destination: process.env.NEXT_PUBLIC_API_URL
+            ? `${process.env.NEXT_PUBLIC_API_URL}/:path*`
+            : 'http://localhost:4000/api/:path*', // Fallback for dev
+        },
+      ],
+      fallback: [],
+    };
   },
   
   // Image optimization

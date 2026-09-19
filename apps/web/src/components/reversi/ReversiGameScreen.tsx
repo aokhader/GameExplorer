@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToReversi } from '@gameexplorer/shared';
+import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToReversi, MODE_COPY } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
@@ -11,7 +11,8 @@ import { saveReversiGame, getUserRating, upsertUserRating } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
-import { GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { GAME_SIDEBAR_ID, GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { MoveStrip, numberedStripItems } from '@/components/game/MoveStrip';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
@@ -27,6 +28,8 @@ import { REVERSI_RULES, actionsFromHistory } from '@gameexplorer/client/game/loc
 import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
+import { useStartLink } from '@/hooks/useStartLink';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -107,6 +110,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   const [viewIndex, setViewIndex]     = useState(0);
   const [isThinking, setIsThinking]   = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  useMarkPlayed('reversi', isLocal ? 'pass-and-play' : 'bot', gameStarted);
   const [userId, setUserId]           = useState<string | null>(null);
   const [passMsg, setPassMsg]         = useState<string | null>(null);
   const [userRating, setUserRating]   = useState<UserRating | null>(null);
@@ -169,7 +173,6 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
       );
       update({ elo: nearest.elo });
     }
-    if (params.get('start') === '1') setGameStarted(true);
   }, []);
 
   // Load rating when user is available
@@ -405,6 +408,10 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
     // If player is white, black (bot) moves first
     if (playerColor === 'white') setTimeout(makeBotMove, 500);
   };
+  // `?start=1`: start once it is known no unfinished game is waiting — through
+  // the Start button's own handler, which the tour's link used to skip, so a
+  // linked game as White never got the bot's first move.
+  const awaitingStart = useStartLink(unfinished, handleStartGame);
 
   const canGoBack    = viewIndex > 0;
   const canGoForward = viewIndex < timeline.length - 1;
@@ -412,7 +419,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
 
   // ── Setup screen ──────────────────────────────────────────────────────────────
 
-  if (!gameStarted && awaitingResume) {
+  if (!gameStarted && (awaitingResume || awaitingStart)) {
     return <div className="min-h-svh" />;
   }
 
@@ -424,7 +431,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
         </div>
 
         <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
-          <h1 className="text-2xl font-bold text-fg mb-4">{isLocal ? 'Pass & Play' : 'Play vs Bot'}</h1>
+          <h1 className="text-2xl font-bold text-fg mb-4">{isLocal ? MODE_COPY.local.label : MODE_COPY.bot.label}</h1>
 
           {unfinished.saved && (
             <ContinueCard
@@ -628,6 +635,22 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
             }
           />
         }
+        actions={
+          // Resign only — reversi has no draw offers.
+          <GameActions
+            className="shrink-0"
+            onResign={handleResign}
+            disabled={!!gameOverMsg}
+          />
+        }
+        moveStrip={
+          <MoveStrip
+            items={numberedStripItems(liveState.moveHistory.map(formatMoveNotation))}
+            current={viewIndex}
+            onJump={setViewIndex}
+            fullListId={GAME_SIDEBAR_ID}
+          />
+        }
         sidebar={
           <>
               {/* No status banner: the player cards flanking the board already
@@ -716,12 +739,6 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
                 </div>
               </div>
 
-              {/* Resign — reversi has no draw offers, per the design. */}
-              <GameActions
-                className="shrink-0"
-                onResign={handleResign}
-                disabled={!!gameOverMsg}
-              />
           </>
         }
       />

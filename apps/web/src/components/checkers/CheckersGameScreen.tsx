@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome, checkersAnalysis, moveHistoryToPdn } from '@gameexplorer/shared';
+import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome, checkersAnalysis, moveHistoryToPdn, MODE_COPY } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +10,8 @@ import { saveCheckersGame, getUserRating, upsertUserRating } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
-import { GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { GAME_SIDEBAR_ID, GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { MoveStrip, numberedStripItems } from '@/components/game/MoveStrip';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
@@ -27,6 +28,8 @@ import { CHECKERS_RULES, actionsFromHistory } from '@gameexplorer/client/game/lo
 import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
+import { useStartLink } from '@/hooks/useStartLink';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -141,6 +144,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   const [viewIndex, setViewIndex]   = useState(0);
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  useMarkPlayed('checkers', isLocal ? 'pass-and-play' : 'bot', gameStarted);
   const [userId, setUserId]         = useState<string | null>(null);
   const [userRating, setUserRating] = useState<UserRating | null>(null);
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
@@ -202,10 +206,9 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
 
   useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
-  // Deep link from onboarding (?elo=1100&start=1) — snap to the nearest
-  // difficulty level and skip the setup screen. Layout effect so the flip to
-  // the game screen commits before paint: the setup screen never flashes on the
-  // onboarding navigation, avoiding a layout shift.
+  // A link's strength (?elo=1100, from the tour or the first-run picker) snaps
+  // to the nearest level, wins over the remembered one and is then remembered.
+  // Its `start=1` is `useStartLink`'s, below.
   useIsomorphicLayoutEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const elo = Number(params.get('elo'));
@@ -215,7 +218,6 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
       );
       update({ elo: nearest.elo });
     }
-    if (params.get('start') === '1') setGameStarted(true);
   }, []);
 
   // Load rating when user is available
@@ -438,6 +440,8 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
     // The useEffect watching liveState/gameStarted handles triggering the first
     // bot move when the player picks black — no setTimeout needed.
   };
+  // `?start=1`: start once it is known no unfinished game is waiting.
+  const awaitingStart = useStartLink(unfinished, handleStartGame);
 
   const canGoBack    = viewIndex > 0;
   const canGoForward = viewIndex < timeline.length - 1;
@@ -446,7 +450,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
 
   // ── Setup screen ──────────────────────────────────────────────────────────────
 
-  if (!gameStarted && awaitingResume) {
+  if (!gameStarted && (awaitingResume || awaitingStart)) {
     return <div className="min-h-svh" />;
   }
 
@@ -459,7 +463,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
 
         <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
           <h1 className="text-2xl font-bold text-fg mb-4">
-            {isLocal ? 'Pass & Play' : 'Play vs Bot'}
+            {isLocal ? MODE_COPY.local.label : MODE_COPY.bot.label}
           </h1>
 
           {unfinished.saved && (
@@ -663,6 +667,23 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
             }
           />
         }
+        actions={
+          <GameActions
+            className="shrink-0"
+            onDraw={() => endManually('draw')}
+            onResign={() => endManually('resign')}
+            onFlip={() => setFlipped(f => !f)}
+            disabled={!!gameOverMsg}
+          />
+        }
+        moveStrip={
+          <MoveStrip
+            items={numberedStripItems(liveState.moveHistory.map(formatMove))}
+            current={viewIndex}
+            onJump={setViewIndex}
+            fullListId={GAME_SIDEBAR_ID}
+          />
+        }
         sidebar={
           <>
               {/* No status banner: the player cards flanking the board already
@@ -778,14 +799,6 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
                 </div>
               </div>
 
-              {/* ½ Draw / Resign — as in the design's in-game sidebar. */}
-              <GameActions
-                className="shrink-0"
-                onDraw={() => endManually('draw')}
-                onResign={() => endManually('resign')}
-                onFlip={() => setFlipped(f => !f)}
-                disabled={!!gameOverMsg}
-              />
           </>
         }
       />

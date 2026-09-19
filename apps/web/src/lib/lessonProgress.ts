@@ -5,6 +5,7 @@ import {
   serializeLessonProgress,
 } from '@gameexplorer/shared';
 import type { LessonProgress, LessonProgressStore } from '@gameexplorer/shared';
+import { markReturning } from '@/lib/returning';
 
 /**
  * Lesson progress in `localStorage`, under `ge:lessons` alongside `ge:puzzles`
@@ -32,6 +33,7 @@ export const webLessonProgressStore: LessonProgressStore = {
     if (typeof window === 'undefined') return;
     try {
       window.localStorage.setItem(WEB_LESSON_PROGRESS_KEY, serializeLessonProgress(next));
+      markReturning();
     } catch {
       // Quota or blocked storage. The lesson itself is unaffected.
     }

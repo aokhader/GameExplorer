@@ -15,7 +15,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/auth/', '/profile', '/settings', '/delete-account', '/spectate/'],
+      // `/home` is the launcher, which returning visitors reach at `/`.
+      disallow: ['/auth/', '/home', '/profile', '/settings', '/delete-account', '/spectate/'],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

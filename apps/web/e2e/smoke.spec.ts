@@ -1,24 +1,22 @@
 import { test, expect } from '@playwright/test';
 
-test('home page renders and links to all three games', async ({ page }) => {
-  // A brand-new guest is redirected to the /welcome tour — mark this browser
-  // as already onboarded so we land on the home page itself.
-  await page.addInitScript(() => localStorage.setItem('ge:onboarded', '1'));
+test('the landing page asks which game, and every game can be picked', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'GameExplorer' })).toBeVisible();
-  for (const game of ['chess', 'checkers', 'reversi']) {
-    await expect(page.locator(`a[href="/${game}"]`).first()).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /free, with no sign-up to play/ })).toBeVisible();
+  for (const name of ['Chess', 'Checkers', 'Reversi', 'Go', 'Liquidate']) {
+    await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
   }
 });
 
 for (const game of ['chess', 'checkers', 'reversi'] as const) {
-  test(`${game} landing page shows the three play modes`, async ({ page }) => {
+  test(`${game} game page ranks its ways to play`, async ({ page }) => {
     await page.goto(`/${game}`);
-    await expect(page.getByText('Play vs Bot')).toBeVisible();
-    await expect(page.getByText('Training Mode')).toBeVisible();
-    await expect(page.getByText('Online Multiplayer')).toBeVisible();
-    // Bot mode is reachable from the card.
-    await expect(page.locator(`a[href="/${game}/bot"]`).first()).toBeVisible();
+    // The Play panel leads, with the page's one Start.
+    await expect(page.getByRole('heading', { name: 'Play the bot' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Start', exact: true })).toHaveAttribute('href', `/${game}/bot?start=1`);
+    await expect(page.getByRole('link', { name: 'Change', exact: true })).toHaveAttribute('href', `/${game}/bot`);
+    await expect(page.getByRole('link', { name: /Play online/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Rated practice/ })).toBeVisible();
     // The How to Play tutorial is reachable from the hub.
     await expect(page.locator(`a[href="/${game}/learn"]`).first()).toBeVisible();
   });

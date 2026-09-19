@@ -1,144 +1,89 @@
-'use client';
-
-import Link from 'next/link';
-import { useEffect, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { ONBOARDED_KEY } from '@/lib/onboarding';
-import { SUPPORT_EMAIL } from '@/lib/support';
-import { GAME_LIST, gameNameList, type GameCatalogEntry } from '@gameexplorer/shared';
-import { Icon } from '@gameexplorer/ui';
-import { GameIcon } from '@/components/game/GameIcon';
+import { CHESS_PUZZLES, GAME_LIST, gameNameList, type Puzzle } from '@gameexplorer/shared';
+import '@/components/chess/ChessBoard.css';
+import { DailyPuzzle } from '@/components/home/DailyPuzzle';
+import { FirstRunPicker } from '@/components/home/FirstRunPicker';
+import { ReturningCheck } from '@/components/home/ReturningCheck';
+import { SiteFooter } from '@/components/home/SiteFooter';
+import chessIndex from '../../public/puzzles/chess/index.json';
+import checkersIndex from '../../public/puzzles/checkers/index.json';
+import reversiIndex from '../../public/puzzles/reversi/index.json';
+import goIndex from '../../public/puzzles/go/index.json';
 
 /**
- * Home, drawn in the Quiet Arcade direction (`project-docs/ux-fix-ideas.md`
- * §6.4): a heading rather than a hero, one gold action, and the five games as
- * flat cards whose identity is their piece art. It used to open on a 128px
- * gradient wordmark over a route-wide aurora, with staggered entrances and
- * per-game neon cards that glowed, lifted, scaled and rotated on hover — the
- * audit counted 22 treatments on this page that signalled nothing.
+ * The stranger's landing page (`project-docs/ux-fix-ideas.md` §4.1, §4.2). A
+ * visitor with any history never sees it: the `gx_returning` cookie rewrites
+ * `/` to the launcher at `/home` (`next.config.ts`), and `ReturningCheck`
+ * catches the players whose history predates the cookie.
  *
- * Splitting it into a stranger's landing page and a returning player's
- * launcher is wave 4 (§4.1–§4.3); this is the purge that comes first.
+ * Top to bottom, one viewport on a desktop: a headline every clause of which
+ * can be checked, the one question a first visit asks (which game, and do you
+ * know it), and the product itself — today's puzzle, on a board you can solve.
+ * Then only true numbers. It used to open on a gradient wordmark over an
+ * aurora, with a Features grid that made claims the app did not keep.
+ *
+ * Server-rendered, and nothing enters on first load: that rule was bought with
+ * a measured LCP regression (`05-ui-web.md`, Motion). Regenerated hourly so
+ * the puzzle follows the date without making the page dynamic.
  */
-export default function HomePage() {
-  const router = useRouter();
-  const { user, loading } = useAuth();
 
-  // Brand-new visitors land in the first-time tour instead of the marketing
-  // page (Arcade Glow onboarding: play first, sign up later). Signed-in users
-  // have nothing to onboard — just mark them as seen.
-  useEffect(() => {
-    if (loading) return;
-    if (localStorage.getItem(ONBOARDED_KEY)) return;
-    if (user) {
-      localStorage.setItem(ONBOARDED_KEY, '1');
-    } else {
-      router.replace('/welcome');
-    }
-  }, [loading, user, router]);
+export const revalidate = 3600;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * One puzzle a day from the hand-written set — each of those explains its
+ * answer — and not the hardest, since this is someone's first board here.
+ */
+function todaysPuzzle(now: number): Puzzle {
+  const pool = CHESS_PUZZLES.filter((p) => p.difficulty !== 'hard');
+  return pool[Math.floor(now / DAY_MS) % pool.length];
+}
+
+/** Every puzzle the puzzle screens can serve, read from the corpus at build time. */
+function puzzleCount(): number {
+  return [chessIndex, checkersIndex, reversiIndex, goIndex].reduce(
+    (sum, index) => sum + Object.values(index.bands).reduce((n, band) => n + band.total, 0),
+    0,
+  );
+}
+
+export default function LandingPage() {
+  // A server component, rendered once per revalidation: reading the clock is the
+  // point — it is what makes the puzzle follow the date.
+  // eslint-disable-next-line react-hooks/purity
+  const puzzle = todaysPuzzle(Date.now());
+  const puzzles = puzzleCount();
 
   return (
     <div className="min-h-svh pt-16">
+      <ReturningCheck />
       <div className="container mx-auto max-w-5xl px-4 pt-6 pb-12">
-        <header>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-fg">GameExplorer</h1>
-          {/* Every clause here can be checked against the product. The names come
-              from the catalog, so a new game joins the sentence by existing. */}
-          <p className="mt-1 text-lg text-fg-muted">
-            {gameNameList()} — free, and no sign-up to start.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            {/* The screen's one gold element. */}
-            <Link
-              href="/chess"
-              className="inline-flex min-h-11 items-center rounded-lg bg-accent px-6 font-semibold text-on-accent motion-control motion-safe:active:scale-[0.98] hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-            >
-              Play Now
-            </Link>
-            {/* The tour used to be reachable only by being redirected into it on a
-                first visit. Native Home has always had this link. */}
-            <Link
-              href="/welcome"
-              className="touch-target motion-control motion-safe:active:scale-[0.98] inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-fg-muted motion-control hover:bg-surface-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            >
-              Take a quick tour
-            </Link>
+        <div className="grid items-start gap-8 lg:grid-cols-2">
+          <div>
+            {/* Every clause here can be checked against the product. The names
+                come from the catalog, so a new game joins the sentence by
+                existing. */}
+            <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-4xl sm:font-bold">
+              {gameNameList()} — free, with no sign-up to play.
+            </h1>
+
+            <div className="mt-6">
+              <FirstRunPicker />
+            </div>
+
+            {/* Numbers that are facts about the product, not adjectives about
+                it. One quiet line: they support the choice above rather than
+                compete with it. */}
+            <p className="mt-6 text-sm text-fg-muted" data-testid="landing-facts">
+              {GAME_LIST.length} games · {puzzles.toLocaleString('en-US')} puzzles · no account needed to play
+            </p>
           </div>
-        </header>
 
-        <section id="games" className="mt-8" aria-labelledby="games-heading">
-          <h2 id="games-heading" className="text-lg font-semibold text-fg">
-            Choose your game
-          </h2>
-          <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {GAME_LIST.map((game) => (
-              <li key={game.id}>
-                {game.available ? (
-                  <Link
-                    href={`/${game.slug}`}
-                    className="group block h-full rounded-xl border border-border bg-surface-alt p-4 motion-control motion-safe:active:scale-[0.98] hover:border-border-strong hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                  >
-                    <GameCard game={game} />
-                  </Link>
-                ) : (
-                  <div className="h-full rounded-xl border border-border bg-surface-alt p-4 opacity-60" aria-disabled="true">
-                    <GameCard game={game} />
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
+          <DailyPuzzle puzzle={puzzle} />
+        </div>
 
-        <footer className="mt-12 text-center text-sm text-fg-muted">
-          {/* 44px rows rather than 20px lines of text: the audit measured these
-              at 20px tall, under every touch-target floor (§8.3). */}
-          <nav aria-label="Legal and support" className="flex flex-wrap items-center justify-center gap-x-2">
-            <FooterLink href="/terms">Terms</FooterLink>
-            <FooterLink href="/privacy">Privacy</FooterLink>
-            {/* Google Play requires the account-deletion URL be reachable without
-                signing in — the footer is the one place a reviewer will look. */}
-            <FooterLink href="/delete-account">Delete account</FooterLink>
-            <FooterLink href="/licenses">Licenses</FooterLink>
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="inline-flex min-h-11 items-center px-2 transition-colors hover:text-fg"
-            >
-              Contact
-            </a>
-          </nav>
-          <p className="mt-2">© 2026 GameExplorer</p>
-        </footer>
+        <SiteFooter />
       </div>
-    </div>
-  );
-}
-
-function FooterLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link href={href} className="inline-flex min-h-11 items-center px-2 transition-colors hover:text-fg">
-      {children}
-    </Link>
-  );
-}
-
-/** One game: its piece art, its name and its one-line blurb, and a way in. */
-function GameCard({ game }: { game: GameCatalogEntry }) {
-  return (
-    <div className="flex items-center gap-4">
-      <span className="text-5xl inline-flex shrink-0 items-center" aria-hidden="true">
-        <GameIcon game={game.id} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <h3 className="text-lg font-semibold text-fg">{game.name}</h3>
-        <p className="text-sm text-fg-muted">{game.blurb}</p>
-      </div>
-      {game.available ? (
-        <Icon name="caret-right" className="shrink-0 text-xl text-fg-subtle group-hover:text-fg" />
-      ) : (
-        <span className="shrink-0 text-xs font-semibold text-fg-muted">Coming soon</span>
-      )}
     </div>
   );
 }

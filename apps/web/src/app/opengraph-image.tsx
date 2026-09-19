@@ -84,7 +84,10 @@ export default function Image() {
         </div>
 
         <div style={{ display: 'flex', marginTop: 18, fontSize: 32, color: SLATE_400 }}>
-          {gameCountWord()} games. One board. Endless rematches.
+          {/* The landing page's promise, and nothing it does not keep
+              (ux-fix-ideas.md §4.2): a shared link is a stranger's first sight
+              of the app. */}
+          {gameCountWord()} games, free, with no sign-up to play.
         </div>
 
         <div style={{ display: 'flex', marginTop: 34, fontSize: 26, color: GOLD }}>

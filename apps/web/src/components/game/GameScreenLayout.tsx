@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { useWideLayout } from '@/hooks/useWideLayout';
 import { BOARD_MAX_PX } from '@/components/board/BoardFrame';
 import { ShellNav } from '@/components/game/ShellNav';
 
@@ -27,8 +30,16 @@ export interface GameScreenLayoutProps {
   bottomCard?: React.ReactNode;
   /** The board element (already sized by its own BoardFrame). */
   board: React.ReactNode;
-  /** The right-hand panel contents (info, move list, controls). */
+  /** The right-hand panel contents (info, move list). */
   sidebar: React.ReactNode;
+  /**
+   * The in-game action row (`GameActions`). At the foot of the sidebar from `lg`
+   * up; directly under the bottom card on a phone, where it used to sit below
+   * the whole move list (`ux-fix-ideas.md` §8.2).
+   */
+  actions?: React.ReactNode;
+  /** The move list as one scrolling line — phones only (`MoveStrip`). */
+  moveStrip?: React.ReactNode;
   /**
    * Width of the board column. The board is the page, so the default takes as
    * much of the shell as it can while leaving the sidebar usable; boards with
@@ -64,6 +75,22 @@ const PLAYER_CARD_PX = 58;
 /** The disc-count strip (40px) plus its `gap-3`. */
 const TOP_EXTRAS_PX = 52;
 
+/** The action row (40px buttons) plus its `gap-3` — under the board on a phone. */
+const ACTIONS_PX = 52;
+
+/** The move strip (44px) plus its `gap-3`. */
+const MOVE_STRIP_PX = 56;
+
+/**
+ * A phone's board never shrinks below this to make room for the rows under it:
+ * on a landscape phone the rows would leave it a postage stamp, and scrolling a
+ * little is the better trade there.
+ */
+const PHONE_BOARD_FLOOR_PX = 280;
+
+/** The sidebar's id — where a phone's move strip sends *All moves*. */
+export const GAME_SIDEBAR_ID = 'game-sidebar';
+
 /**
  * The single-player in-game shell (bot / training / analysis). Mirrors the
  * multiplayer `GameLayout` in-game view: a fixed board column with player cards
@@ -80,6 +107,8 @@ export function GameScreenLayout({
   bottomCard,
   board,
   sidebar,
+  actions,
+  moveStrip,
   // Grow into whatever width the sidebar leaves, up to `--gx-board-budget` below.
   // The fixed breakpoint widths this replaced gave every 1280–1535px-wide
   // screen a 600px board regardless of the height it had to spare.
@@ -98,10 +127,18 @@ export function GameScreenLayout({
     (topExtras ? TOP_EXTRAS_PX : 0) +
     (bottomCard ? PLAYER_CARD_PX : 0);
 
+  // One column below `lg`: opponent, board, you, then the actions and the move
+  // strip — lila's phone layout. The board is sized so all of it fits in the
+  // viewport with the URL bar showing (`svh`), which is what keeps Resign on
+  // screen at move twenty without scrolling the board away.
+  const wide = useWideLayout();
+  const phoneReservedPx =
+    reservedPx + (actions ? ACTIONS_PX : 0) + (moveStrip ? MOVE_STRIP_PX : 0);
+
   return (
     <div
       className={cn(
-        'min-h-svh lg:h-svh flex flex-col lg:overflow-hidden',
+        'min-h-svh lg:h-svh flex flex-col lg:overflow-hidden',
         className,
       )}
     >
@@ -146,18 +183,28 @@ export function GameScreenLayout({
               // 80% of the viewport while this budget offered ~91%.
               style={{
                 '--gx-board-budget': `min(calc(100svh - ${reservedPx}px), ${boardMaxPx}px)`,
+                // Read below `lg` only, and only on a screen with rows under the
+                // board (`data-phone-fit`; see globals.css).
+                '--gx-board-budget-phone': `max(calc(100svh - ${phoneReservedPx}px), ${PHONE_BOARD_FLOOR_PX}px)`,
               } as React.CSSProperties}
+              data-phone-fit={actions || moveStrip ? '' : undefined}
             >
               {topCard}
               {topExtras}
               {board}
               {bottomCard}
+              {!wide && actions}
+              {!wide && moveStrip}
             </div>
             {/* The sidebar takes what the board leaves: at least 280px, at most
                 460px. The board column's much larger grow factor means it fills
                 first, up to its cap, and the sidebar absorbs the rest. */}
-            <div className="w-full lg:grow lg:basis-[280px] lg:min-w-[280px] lg:max-w-[460px] flex flex-col gap-3 lg:min-h-0 lg:h-full">
+            <div
+              id={GAME_SIDEBAR_ID}
+              className="w-full lg:grow lg:basis-[280px] lg:min-w-[280px] lg:max-w-[460px] flex flex-col gap-3 lg:min-h-0 lg:h-full scroll-mt-4"
+            >
               {sidebar}
+              {wide && actions}
             </div>
           </div>
         </div>

@@ -75,7 +75,8 @@ export function LiquidateScreen() {
 
   const router = useRouter();
   // The launcher's Continue opens a saved match directly: `?resume=bot|local`.
-  const params = useLocalSearchParams<{ resume?: string }>();
+  // Home's first-run *Play* starts one: `?start=1`.
+  const params = useLocalSearchParams<{ resume?: string; start?: string }>();
   const resumeSlot = params.resume === 'bot' || params.resume === 'local' ? params.resume : null;
 
   // The form remembers each mode's choices, and which mode was used last
@@ -112,6 +113,7 @@ export function LiquidateScreen() {
     markPlayed('liquidate');
   }, [resumeSlot, game.hydrated, savedMatch, resumeSaved]);
   const awaitingResume = resumeSlot !== null && (!game.hydrated || (!!savedMatch && !game.state));
+  const [startPending, setStartPending] = useState(params.start === '1' && resumeSlot === null);
 
   const start = () => {
     markPlayed('liquidate');
@@ -126,13 +128,23 @@ export function LiquidateScreen() {
     game.newGame({ players: seats, mode: boardMode, debtRule });
   };
 
+  // A start link starts with the form's remembered choices once they are read —
+  // and never over a saved match, which the form's Resume card then offers.
+  useEffect(() => {
+    if (!startPending || !game.hydrated || !setupReady) return;
+    setStartPending(false);
+    if (!savedMatch) start();
+    // Once, when both are known; `start` reads the form they describe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startPending, game.hydrated, setupReady]);
+
   if (game.state) {
     return <LiquidateGame game={game} mode={mode} onQuit={game.quit} onRematch={start} />;
   }
 
   // Nothing to show until the remembered setup is known, or while a link is about
   // to open a saved match.
-  if (!setupReady || awaitingResume) {
+  if (!setupReady || awaitingResume || startPending) {
     return <Screen scroll={false}>{null}</Screen>;
   }
 

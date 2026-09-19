@@ -5,10 +5,9 @@
 // — see ONBOARDING_KEYS there for what each flag means and why the two
 // platforms deliberately use different prefixes.
 //
-// The reads stay synchronous and inline at the call sites: the home page checks
-// `ONBOARDED_KEY` in its mount effect and redirects, and routing that through a
-// promise would show a brand-new visitor a frame of the home page before the
-// tour replaced it.
+// Nothing redirects on this flag any more: a stranger's `/` is the landing
+// page, which asks its one first-run question itself (ux-fix-ideas.md §4.4).
+// The tour still sets it.
 import { ONBOARDING_KEYS } from '@gameexplorer/shared';
 
 export const ONBOARDED_KEY = ONBOARDING_KEYS.web.onboarded;

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  MODE_COPY,
   CHESS_HINT_SEARCH_MS,
   ChessGameState,
   Position,
@@ -22,7 +23,8 @@ import { saveGame, getUserRating, upsertUserRating } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
-import { GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { GAME_SIDEBAR_ID, GameScreenLayout } from '@/components/game/GameScreenLayout';
+import { MoveStrip, numberedStripItems } from '@/components/game/MoveStrip';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { CapturedTray } from '@/components/game/CapturedTray';
 import { GameActions } from '@/components/game/GameActions';
@@ -37,6 +39,8 @@ import { CHESS_RULES, actionsFromHistory } from '@gameexplorer/client/game/local
 import { replayActions, type UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
+import { useStartLink } from '@/hooks/useStartLink';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 import { signInRequiredHref } from '@/components/auth/returnTo';
 
@@ -95,6 +99,7 @@ export default function ChessTrainingPage() {
   const [viewIndex, setViewIndex] = useState(0);
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  useMarkPlayed('chess', 'training', gameStarted);
   // Player-initiated end (½ Draw / Resign) — still applies the rated outcome.
   const [manualEnd, setManualEnd] = useState<'resign' | 'draw' | null>(null);
 
@@ -499,6 +504,8 @@ export default function ChessTrainingPage() {
     // the required engine is ready — no manual kick-off needed.
     setGameStarted(true);
   };
+  // `?start=1`: start once it is known no unfinished game is waiting.
+  const awaitingStart = useStartLink(unfinished, handleStartGame);
 
   const movePairs = buildMovePairs(timeline);
   const canGoBack = viewIndex > 0;
@@ -516,7 +523,7 @@ export default function ChessTrainingPage() {
 
   // ── Setup screen ──────────────────────────────────────────────────────────
 
-  if (!gameStarted && (awaitingResume || pendingResume)) {
+  if (!gameStarted && (awaitingResume || pendingResume || awaitingStart)) {
     return <div className="min-h-svh" />;
   }
 
@@ -529,7 +536,7 @@ export default function ChessTrainingPage() {
 
         <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
           <h1 className="text-2xl font-bold text-fg mb-1">
-            Training Mode
+            {MODE_COPY.training.label}
           </h1>
           <p className="text-fg-muted mb-4">
             Play rated games against a bot matched to your skill level
@@ -733,6 +740,23 @@ export default function ChessTrainingPage() {
             }
           />
         }
+        actions={
+          <GameActions
+            className="shrink-0"
+            onDraw={() => endManually('draw')}
+            onResign={() => endManually('resign')}
+            onFlip={() => setFlipped(f => !f)}
+            disabled={!!gameOverMsg}
+          />
+        }
+        moveStrip={
+          <MoveStrip
+            items={numberedStripItems(movePairs.flatMap((p) => [p.white?.text, p.black?.text].filter((t): t is string => !!t)))}
+            current={viewIndex}
+            onJump={setViewIndex}
+            fullListId={GAME_SIDEBAR_ID}
+          />
+        }
         sidebar={
           <>
             {/* Turn / result status — the accent banner from the design. */}
@@ -804,14 +828,6 @@ export default function ChessTrainingPage() {
               emptyMessage="No moves yet — make your first move"
             />
 
-            {/* ½ Draw / Resign — as in the design's in-game sidebar. */}
-            <GameActions
-              className="shrink-0"
-              onDraw={() => endManually('draw')}
-              onResign={() => endManually('resign')}
-              onFlip={() => setFlipped(f => !f)}
-              disabled={!!gameOverMsg}
-            />
           </>
         }
       />

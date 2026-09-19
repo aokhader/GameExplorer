@@ -1,22 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@gameexplorer/client';
-import { GAME_CATALOG, type GameId } from '@gameexplorer/shared';
+import { GAME_CATALOG, LESSONS, firstGameElo, type GameId } from '@gameexplorer/shared';
 import { settleUnfinishedGame } from '@gameexplorer/client/game/settleUnfinishedGame';
 import { unfinishedGameSummary } from '@gameexplorer/client/game/unfinishedGame';
 import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 
-import { hasOnboarded } from '@/lib/onboarding';
 import { nativeLocalStore } from '@/lib/localStore';
 import { continueRoute, type ContinueItem } from '@/lib/continueGame';
 import { nativeLiquidateStore } from '@/liquidate/useLiquidateGame';
 import { ContinueCard } from '@/game/ContinueCard';
-import { useLauncher } from '@/home/useLauncher';
+import { tryNewRoute, useLauncher } from '@/home/useLauncher';
 import {
   AlsoUnfinishedRow,
-  FirstGameCard,
+  FirstRunCard,
   GamesRow,
   LinkRow,
   LiquidateContinueCard,
@@ -44,8 +43,9 @@ import { FONTS } from '@/theme/typography';
  *    step into it.
  * 5. Watching and learning, as plain rows.
  *
- * Guest-browsable. First-run visitors are still sent to the welcome tour once;
- * replacing the tour is later work (§4.4).
+ * Guest-browsable. A first visit is not sent into the tour any more: the top
+ * card asks one question instead — which game, and whether the player knows it
+ * (§4.4) — and the tour is a link at the bottom.
  */
 export default function HomeScreen() {
   // Repaint when the theme changes; the tokens below are live views.
@@ -54,24 +54,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const userId = user?.id ?? null;
-  const [checkedOnboarding, setCheckedOnboarding] = useState(false);
   const { local, stats, reload, tryNew } = useLauncher(userId, !loading);
   const [settling, setSettling] = useState(false);
-
-  // One-time first-run redirect into the tour. Runs after auth resolves so a
-  // returning signed-in user (who has clearly onboarded) is never bounced.
-  useEffect(() => {
-    if (loading || checkedOnboarding) return;
-    let active = true;
-    hasOnboarded().then((seen) => {
-      if (!active) return;
-      setCheckedOnboarding(true);
-      if (!seen && !user) router.replace('/welcome' as never);
-    });
-    return () => {
-      active = false;
-    };
-  }, [loading, user, checkedOnboarding, router]);
 
   const openGame = (game: GameId) => router.push({ pathname: '/play/[game]', params: { game } } as never);
   const openContinue = (item: ContinueItem) => router.push(continueRoute(item) as never);
@@ -126,7 +110,25 @@ export default function HomeScreen() {
       />
     );
   } else {
-    top = <FirstGameCard onStart={() => openGame('chess')} />;
+    top = (
+      <FirstRunCard
+        onPlay={(game) =>
+          router.push({
+            pathname: '/play/[game]',
+            // The middle of the game's ladder, started at once; Liquidate's
+            // form opens on its usual table and starts the same way.
+            params:
+              game === 'liquidate'
+                ? { game, start: '1' }
+                : { game, elo: String(firstGameElo(game)), start: '1' },
+          } as never)
+        }
+        onLearn={(game) => {
+          const first = game === 'liquidate' ? undefined : LESSONS[game].lessons[0];
+          router.push((first ? `/lesson/${game}/${first.id}` : `/learn/${game}`) as never);
+        }}
+      />
+    );
   }
 
   return (
@@ -260,7 +262,7 @@ export default function HomeScreen() {
                   : `Back to ${GAME_CATALOG[tryNew.game].name}?`
               }
               detail={tryNew.action}
-              onPress={() => router.push(tryNew.route as never)}
+              onPress={() => router.push(tryNewRoute(tryNew) as never)}
             />
           </View>
         )}

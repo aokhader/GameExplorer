@@ -1,48 +1,18 @@
 import {
-  UNFINISHED_GAME_TYPES,
-  parseUnfinishedGame,
-  unfinishedGameKey,
-  type UnfinishedGame,
-} from '@gameexplorer/client/game/unfinishedGame';
-import type { SavedLiquidateGame } from '@gameexplorer/client/liquidate/useLiquidateGame';
+  readContinueItems as readSharedContinueItems,
+  type ContinueItem,
+} from '@gameexplorer/client/game/launcher';
 import { nativeLiquidateStore } from '@/liquidate/useLiquidateGame';
 import { nativeLocalStore } from './localStore';
 
+export type { ContinueItem };
+
 /**
- * The most recent game this device was in the middle of, whichever kind it is.
- *
- * Two stores feed it: the board games' `gx:inprogress` slots, one per game and
- * account, and Liquidate's own snapshots, one per mode. Liquidate is casual only
- * and keeps no account, so its saves belong to whoever holds the device.
+ * The games this device was in the middle of, the most recent first — the shared
+ * rule in `@gameexplorer/client/game/launcher`, over this app's two stores.
  */
-export type ContinueItem =
-  | { kind: 'board'; savedAt: number; saved: UnfinishedGame }
-  | { kind: 'liquidate'; savedAt: number; slot: 'bot' | 'local'; save: SavedLiquidateGame };
-
-export async function readContinueItems(userId: string | null): Promise<ContinueItem[]> {
-  const boards = await Promise.all(
-    UNFINISHED_GAME_TYPES.map(async (game) =>
-      parseUnfinishedGame(
-        await nativeLocalStore.get(unfinishedGameKey(game, userId)).catch(() => null),
-        { game, userId },
-      ),
-    ),
-  );
-  const liquidate = await Promise.all(
-    (['bot', 'local'] as const).map(async (slot) => ({
-      slot,
-      save: await nativeLiquidateStore.read(slot).catch(() => null),
-    })),
-  );
-
-  const items: ContinueItem[] = [];
-  for (const saved of boards) {
-    if (saved) items.push({ kind: 'board', savedAt: saved.savedAt, saved });
-  }
-  for (const { slot, save } of liquidate) {
-    if (save && !save.state.isGameOver) items.push({ kind: 'liquidate', savedAt: save.savedAt, slot, save });
-  }
-  return items.sort((a, b) => b.savedAt - a.savedAt);
+export function readContinueItems(userId: string | null): Promise<ContinueItem[]> {
+  return readSharedContinueItems(nativeLocalStore, nativeLiquidateStore, userId);
 }
 
 /**

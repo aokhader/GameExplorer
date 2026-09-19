@@ -44,6 +44,8 @@ import { nativeLocalStore } from '@/lib/localStore';
 import type { UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useIsOnline } from '@/lib/useIsOnline';
+import { useOnceTip } from '@/game/useOnceTip';
+import { BoardTip } from '@/game/BoardTip';
 import { FONTS } from '@/theme/typography';
 
 
@@ -242,6 +244,21 @@ export function ChessScreen() {
     // position would fail with "Engine not ready".
     enabled: reviewing && engine.isReady,
   });
+
+  // The first time the player is in check, one line on the board says what it
+  // means (`ux-fix-ideas.md` §4.4). The next move retires it, which is why that
+  // effect runs first.
+  const { tip, offer: offerTip, dismiss: dismissTip } = useOnceTip();
+  const tipState = game.liveState;
+  const tipMoveCount = tipState.moveHistory.length;
+  useEffect(() => {
+    dismissTip();
+  }, [tipMoveCount, dismissTip]);
+  useEffect(() => {
+    if (!started || !isLocalMode || !tipState.isCheck || tipState.isCheckmate) return;
+    // In pass-and-play whoever is to move is a player in check.
+    if (isPassAndPlay || tipState.currentTurn === playerColor) offerTip('check');
+  }, [started, isLocalMode, tipState, isPassAndPlay, playerColor, offerTip]);
 
   // ── Online ──────────────────────────────────────────────────────────────────
   // Mounted only once online play has started, so a bot game never opens a
@@ -683,17 +700,20 @@ export function ChessScreen() {
           )
         }
         board={
-          <ChessBoard
-            gameState={displayState}
-            onMove={(from, to, promotion) => game.handleMove(from, to, promotion)}
-            playerColor={boardColor}
-            interactive={interactive}
-            hintMove={isAtLive ? game.hintMove : null}
-            // Line up a reply while the bot thinks. Pass-and-play has no
-            // "opponent's turn" to queue against — both sides are this device.
-            // Note this is the player's SIDE, not `boardColor` (orientation).
-            premoveColor={isPassAndPlay ? undefined : playerColor}
-          />
+          <View>
+            <ChessBoard
+              gameState={displayState}
+              onMove={(from, to, promotion) => game.handleMove(from, to, promotion)}
+              playerColor={boardColor}
+              interactive={interactive}
+              hintMove={isAtLive ? game.hintMove : null}
+              // Line up a reply while the bot thinks. Pass-and-play has no
+              // "opponent's turn" to queue against — both sides are this device.
+              // Note this is the player's SIDE, not `boardColor` (orientation).
+              premoveColor={isPassAndPlay ? undefined : playerColor}
+            />
+            {tip && <BoardTip message={tip.message} onDismiss={dismissTip} />}
+          </View>
         }
         bottomCard={
           isPassAndPlay ? (

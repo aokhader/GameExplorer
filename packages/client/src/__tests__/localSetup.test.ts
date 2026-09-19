@@ -90,7 +90,7 @@ describe('localSetup — parsing', () => {
     expect(setupSummary('chess', 'bot', { elo: 1200, color: 'white', rated: true, custom: false })).toBe(
       'vs Bot 1200 · White · Rated',
     );
-    expect(setupSummary('reversi', 'training', { elo: 1100, color: 'black', rated: true })).toBe('Training · Black');
+    expect(setupSummary('reversi', 'training', { elo: 1100, color: 'black', rated: true })).toBe('Rated practice · Black');
     expect(
       setupSummary('go', 'pass-and-play', { elo: 1100, color: 'black', rated: true, size: 13, komi: 6.5, scoring: 'area' }),
     ).toBe('Pass & Play · 13×13');

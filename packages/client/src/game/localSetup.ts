@@ -32,6 +32,7 @@ import {
   LIQUIDATE_BOT_LEVELS,
   LIQUIDATE_MAX_PLAYERS,
   LIQUIDATE_MIN_PLAYERS,
+  MODE_COPY,
   type DebtRule,
   type GoScoring,
   type LiquidateBotLevel,
@@ -280,15 +281,15 @@ export function setupSummary<G extends SetupGame>(game: G, mode: SetupMode, setu
   if (game === 'liquidate') {
     const s = setup as LiquidateSetup;
     return [
-      mode === 'pass-and-play' ? 'Pass & Play' : `vs ${s.players - 1} ${s.players === 2 ? 'bot' : 'bots'}`,
+      mode === 'pass-and-play' ? MODE_COPY.local.label : `vs ${s.players - 1} ${s.players === 2 ? 'bot' : 'bots'}`,
       `${s.players} players`,
       s.board === 'quick' ? 'Quick board' : 'Full board',
     ].join(' · ');
   }
   const s = setup as BotGameSetup;
   const parts: string[] = [];
-  if (mode === 'pass-and-play') parts.push('Pass & Play');
-  else if (mode === 'training') parts.push('Training');
+  if (mode === 'pass-and-play') parts.push(MODE_COPY.local.label);
+  else if (mode === 'training') parts.push(MODE_COPY.training.label);
   else parts.push(`vs Bot ${s.elo}`);
   if (game === 'go') {
     const size = (setup as GoSetup).size;

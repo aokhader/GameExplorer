@@ -13,7 +13,7 @@ const GAME = '(;FF[4]GM[1]SZ[19]KM[6.5]RU[Japanese];B[pd];W[dp];B[qp];W[dd])';
 
 test('the Go hub offers the analysis board', async ({ page }) => {
   await page.goto('/go');
-  await page.getByRole('link', { name: /Analysis Board/ }).click();
+  await page.getByRole('link', { name: /Analysis board/ }).click();
   await expect(page.getByLabel('SGF')).toBeVisible();
 });
 

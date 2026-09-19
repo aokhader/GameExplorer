@@ -1,5 +1,10 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { TIP_COPY } from '@gameexplorer/shared';
 import { Button } from '@/components/ui';
+import { claimTip } from '@/hooks/useOnceTip';
 
 export interface ResultActionsProps {
   /** Start the next game with the same setup, without leaving the board. */
@@ -40,6 +45,16 @@ export function ResultActions({
   backHref,
   backLabel,
 }: ResultActionsProps) {
+  // The first finished game says, once, that review exists (§4.4) — the moment
+  // it is useful, rather than in a tour before the player has a game to review.
+  const canReview = !!onReview || !!reviewHref;
+  const [reviewTip, setReviewTip] = useState(false);
+  useEffect(() => {
+    if (canReview && claimTip('review')) setReviewTip(true);
+    // Once, when the card first shows.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <>
       <Button size="lg" fullWidth onClick={onRematch}>
@@ -54,6 +69,11 @@ export function ResultActions({
           {reviewLabel}
         </Link>
       ) : null}
+      {reviewTip && (
+        <p className="text-center text-sm text-fg-muted" data-testid="review-tip">
+          {TIP_COPY.review}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-2">
         <Button size="lg" variant="ghost" className="text-sm" onClick={onChangeSetup}>
           Change setup

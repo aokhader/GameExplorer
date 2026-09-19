@@ -11,21 +11,14 @@ import { ONBOARDING_KEYS } from '@gameexplorer/shared';
  * looks like a bug and must not be "fixed".
  *
  * The accessors stay here rather than being shared: AsyncStorage is async and
- * web's localStorage is not, and web reads the onboarded flag synchronously in
- * its redirect effect. Sharing four one-line wrappers is not worth putting a
- * frame of the wrong screen in front of every new web visitor.
+ * web's localStorage is not.
+ *
+ * Nothing reads the onboarded flag any more — Home used to, to send a first
+ * launch into the tour, and now asks its one first-run question instead
+ * (`ux-fix-ideas.md` §4.4). The tour still sets it, for the record.
  */
 const ONBOARDED_KEY = ONBOARDING_KEYS.native.onboarded;
 const SAVE_PROGRESS_PENDING_KEY = ONBOARDING_KEYS.native.saveProgressPending;
-
-export async function hasOnboarded(): Promise<boolean> {
-  try {
-    return (await AsyncStorage.getItem(ONBOARDED_KEY)) === '1';
-  } catch {
-    // If storage is unavailable, don't trap the user in the tour on every launch.
-    return true;
-  }
-}
 
 export async function markOnboarded(): Promise<void> {
   try {

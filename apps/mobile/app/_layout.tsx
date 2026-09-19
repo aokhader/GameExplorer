@@ -30,7 +30,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { COLORS, getActiveTheme, useThemeName } from '@gameexplorer/ui';
 
 import { bootstrapConfig } from '@/config/env';
-import { SettingsProvider } from '@/providers/SettingsProvider';
+import { SettingsProvider, useFeedbackPrefs } from '@/providers/SettingsProvider';
 import { AuthBootstrap } from '@/providers/AuthBootstrap';
 import { EngineHost } from '@/engine/EngineHost';
 
@@ -52,6 +52,35 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
  * load before first paint; the splash stays up until they resolve so text
  * never flashes from the system font.
  */
+/**
+ * The root stack. A pushed screen slides in from the right and swipes back the
+ * way it came, so going deeper and coming back read as directions; sign-in rises
+ * from the bottom, over whatever asked for it. Every push used to cross-fade,
+ * which said nothing about where the new screen sat. Tab switches are instant
+ * (the tab bar's default). Reduced motion cuts straight to the new screen.
+ */
+function RootStack() {
+  // Repaint when the theme changes; the surface colour below is a live view.
+  useThemeName();
+  const { reducedMotion } = useFeedbackPrefs();
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: COLORS.surface },
+        animation: reducedMotion ? 'none' : 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="(tabs)" />
+      {/* Auth screens present modally over the hub. */}
+      <Stack.Screen
+        name="(auth)"
+        options={{ presentation: 'modal', animation: reducedMotion ? 'none' : 'slide_from_bottom' }}
+      />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
@@ -99,18 +128,7 @@ export default function RootLayout() {
             {/* Cozy is a light theme — light status-bar glyphs would vanish
                 against parchment, so the style follows the active theme. */}
             <StatusBar style={getActiveTheme() === 'cozy' ? 'dark' : 'light'} />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: COLORS.surface },
-                animation: 'fade',
-              }}
-            >
-              <Stack.Screen name="(tabs)" />
-              {/* Auth screens present modally over the hub. */}
-              <Stack.Screen name="(auth)" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
-            </Stack>
+            <RootStack />
           </AuthBootstrap>
         </SettingsProvider>
       </SafeAreaProvider>

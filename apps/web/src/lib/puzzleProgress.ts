@@ -5,6 +5,7 @@ import {
   serializeProgress,
 } from '@gameexplorer/shared';
 import type { PuzzleProgress, PuzzleProgressStore } from '@gameexplorer/shared';
+import { markReturning } from '@/lib/returning';
 
 /**
  * Puzzle progress in `localStorage`, under `ge:puzzles` alongside the
@@ -37,6 +38,8 @@ export const webPuzzleProgressStore: PuzzleProgressStore = {
     if (typeof window === 'undefined') return;
     try {
       window.localStorage.setItem(WEB_PUZZLE_PROGRESS_KEY, serializeProgress(next));
+      // A solve is history; opening a puzzle writes `lastSeen` and is not.
+      if (next.solved.length > 0) markReturning();
     } catch {
       // Quota or blocked storage. The run itself is unaffected.
     }

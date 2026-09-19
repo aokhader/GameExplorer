@@ -1,13 +1,15 @@
 import { test, expect } from '@playwright/test';
 
-// First-time onboarding tour (Arcade Glow "play first, sign up later"):
-// brand-new guests land on /welcome from the home page, and four taps drop
-// them straight into a bot game at the difficulty they picked.
+// The first-run tour ("play first, sign up later"): four taps drop a guest
+// into a bot game at the difficulty they picked. It is optional now — a first
+// visit to `/` gets the landing page's one question instead (ux-fix-ideas.md
+// §4.4) — so nothing redirects into it.
 
-test('brand-new visitor is redirected from home to the tour', async ({ page }) => {
+test('a brand-new visitor gets the landing page, not the tour', async ({ page }) => {
   await page.goto('/');
-  await page.waitForURL('**/welcome');
-  await expect(page.getByRole('heading', { name: /Welcome to GameExplorer/ })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /free, with no sign-up to play/ })).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(new URL(page.url()).pathname).toBe('/');
 });
 
 test('tour flows into a reversi bot game at the picked difficulty', async ({ page }) => {
@@ -35,17 +37,11 @@ test('tour flows into a reversi bot game at the picked difficulty', async ({ pag
   await expect(page.locator('[data-disc]')).toHaveCount(4);
 });
 
-test('skipping the tour goes home and does not redirect again', async ({ page }) => {
+test('skipping the tour goes home', async ({ page }) => {
   await page.goto('/welcome');
   await page.getByRole('link', { name: /Skip the tour/ }).click();
   await page.waitForURL(/\/$/);
-  await expect(page.getByRole('heading', { name: 'GameExplorer' })).toBeVisible();
-
-  // Reload — the onboarded flag now suppresses the first-visit redirect.
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'GameExplorer' })).toBeVisible();
-  await page.waitForTimeout(500);
-  expect(new URL(page.url()).pathname).toBe('/');
+  await expect(page.getByRole('heading', { level: 1, name: /free, with no sign-up to play/ })).toBeVisible();
 });
 
 test('friend/online paths skip difficulty and go to multiplayer', async ({ page }) => {

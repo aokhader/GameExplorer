@@ -99,7 +99,7 @@ async function renderScreen() {
       <GoScreen />
     </SettingsProvider>,
   );
-  await screen.findByRole('button', { name: /vs Bot/ });
+  await screen.findByRole('button', { name: /Play the bot/ });
   return view;
 }
 
@@ -128,7 +128,7 @@ beforeEach(async () => {
 });
 
 /** Walk the setup screen into a started game in the given mode. */
-async function startGame(mode: 'vs Bot' | 'Pass & Play') {
+async function startGame(mode: 'Play the bot' | 'Pass & Play') {
   await renderScreen();
   fireEvent.press(screen.getByRole('button', { name: new RegExp(mode) }));
   fireEvent.press(screen.getByRole('button', { name: /Start Game/ }));
@@ -138,13 +138,13 @@ async function startGame(mode: 'vs Bot' | 'Pass & Play') {
 describe('GoScreen — setup', () => {
   it('offers only the modes Go supports', async () => {
     await renderScreen();
-    expect(screen.getByRole('button', { name: /vs Bot/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Training/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Play the bot/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Rated practice/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Pass & Play/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Puzzles/ })).toBeTruthy();
     // Still no online: the socket protocol seats two known game types and Go
     // is not one of them.
-    expect(screen.queryByRole('button', { name: /Online/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Play online/ })).toBeNull();
   });
 
   it('sends the puzzles mode to its own route rather than setting up a game', async () => {
@@ -199,7 +199,7 @@ describe('GoScreen — setup', () => {
 
   it('blocks training for a guest, since training is always rated', async () => {
     await renderScreen();
-    fireEvent.press(screen.getByRole('button', { name: /Training/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Rated practice/ }));
     expect(screen.getByRole('button', { name: /Start Rated Game/ })).toBeDisabled();
   });
 });
@@ -297,7 +297,7 @@ describe('GoScreen — playing', () => {
   });
 
   it('does not let the marks be edited against the bot', async () => {
-    await startGame('vs Bot');
+    await startGame('Play the bot');
     const pass = screen.getByRole('button', { name: /^Pass$/ });
     fireEvent.press(pass);
 

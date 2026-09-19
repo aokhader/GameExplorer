@@ -3,6 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import {
+  MODE_COPY,
   LIQUIDATE_BOT_LABELS,
   LIQUIDATE_BOT_LEVELS,
   LIQUIDATE_MAX_PLAYERS,
@@ -31,6 +32,8 @@ import { LiquidateBoard } from './LiquidateBoard';
 import { PlayerPanel } from './PlayerPanel';
 import { TurnRail, railPanel } from './TurnRail';
 import { LQ } from './theme';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
 
 /** Section heading shared by the rail's cards. */
 const RAIL_HEADING = 'mb-2.5 text-2xs font-bold uppercase tracking-[0.1em]';
@@ -80,8 +83,20 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
     newGame,
     resume,
     savedGame,
+    hydrated,
     quit,
   } = useLiquidateGame({ storageKey: mode, botLevel });
+  useMarkPlayed('liquidate', mode === 'local' ? 'pass-and-play' : 'bot', !!state);
+
+  // `?resume=1` (the launcher's Continue) and `?start=1` (a Play link), acted
+  // on once the saved slot has been read. A start link never replaces a saved
+  // game: the Resume card shows instead, as it would for a Start press.
+  const [linkIntent, setLinkIntent] = React.useState<'start' | 'resume' | null>(null);
+  useIsomorphicLayoutEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('resume') === '1') setLinkIntent('resume');
+    else if (params.get('start') === '1') setLinkIntent('start');
+  }, []);
 
   /**
    * Sound + haptics, driven off the newest log line rather than off individual
@@ -129,7 +144,24 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
     quit();
   };
 
+  React.useEffect(() => {
+    if (!linkIntent || !hydrated) return;
+    setLinkIntent(null);
+    if (linkIntent === 'resume') {
+      if (savedGame) {
+        setSelectedTile(null);
+        resume();
+      }
+    } else if (!savedGame) {
+      start();
+    }
+    // Read once, when the slot is known; `start` and `resume` close over it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkIntent, hydrated]);
+
   // ── Setup ────────────────────────────────────────────────────────────────
+  if (!state && linkIntent) return <div className="min-h-svh" />;
+
   if (!state) {
     return (
       <div className=" min-h-svh">
@@ -141,7 +173,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
         </div>
         <div className="container mx-auto max-w-2xl px-4 pt-6 pb-10">
           <h1 className="mb-1 text-3xl font-bold text-fg">
-            {mode === 'bot' ? 'Liquidate vs Bots' : 'Liquidate — Pass & Play'}
+            {mode === 'bot' ? 'Liquidate — play the bots' : `Liquidate — ${MODE_COPY.local.label}`}
           </h1>
           <p className="mb-6 text-fg-muted">
             Claim planets, charge rent, and squeeze everyone else out of the sector.

@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { GAME_CATALOG, type GameId } from '@gameexplorer/shared';
+import { GAME_CATALOG, GAME_LIST, type GameId } from '@gameexplorer/shared';
 import type { PlayerStats } from '@gameexplorer/client/game/playerStats';
 import { RATED_GAME_TYPES } from '@gameexplorer/client/game/playerStats';
-import type { SavedLiquidateGame } from '@gameexplorer/client/liquidate/useLiquidateGame';
+import type { SavedLiquidateGame } from '@gameexplorer/client/liquidate/saveStore';
 import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Button, Icon, PressableScale, Skeleton, type IconName } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
@@ -80,14 +80,70 @@ export function PlayAgainCard({
   );
 }
 
-export function FirstGameCard({ onStart }: { onStart: () => void }) {
+/**
+ * A first visit's one question (`ux-fix-ideas.md` §4.4): which game, and whether
+ * the player already knows it. *Play* starts a game at once against the middle
+ * of the game's ladder; *I'm new* opens its first lesson. It replaces a redirect
+ * into a four-step tour, which is still a link further down Home.
+ *
+ * All five games are offered — the tour could only offer the rated three,
+ * because it ended on a rating ladder.
+ */
+export function FirstRunCard({
+  onPlay,
+  onLearn,
+}: {
+  onPlay: (game: GameId) => void;
+  onLearn: (game: GameId) => void;
+}) {
+  useThemeName();
+  const [game, setGame] = useState<GameId>('chess');
+  const name = GAME_CATALOG[game].name;
   return (
     <Panel>
       <View>
-        <Title>Start a game</Title>
-        <Detail>No account needed to start.</Detail>
+        <Title>Pick a game</Title>
+        <Detail>No account needed to play.</Detail>
       </View>
-      <Button label="Play chess" onPress={onStart} />
+      <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
+        {GAME_LIST.map((entry) => {
+          const selected = entry.id === game;
+          return (
+            <PressableScale
+              key={entry.id}
+              onPress={() => setGame(entry.id)}
+              accessibilityRole="button"
+              accessibilityLabel={entry.name}
+              accessibilityState={{ selected }}
+              style={{ flex: 1 }}
+            >
+              <View
+                style={{
+                  alignItems: 'center',
+                  gap: SPACING[1],
+                  paddingVertical: 10,
+                  borderRadius: RADIUS.xl,
+                  borderWidth: 1,
+                  borderColor: selected ? COLORS.accent : COLORS.border,
+                  backgroundColor: selected ? COLORS.accentMuted : COLORS.surface,
+                }}
+              >
+                <GamePieceIcon game={entry.id} size={26} />
+                <Text
+                  numberOfLines={1}
+                  style={{ color: selected ? COLORS.fg : COLORS.fgMuted, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.caption }}
+                >
+                  {entry.name}
+                </Text>
+              </View>
+            </PressableScale>
+          );
+        })}
+      </View>
+      <View style={{ flexDirection: 'row', gap: SPACING['2.5'] }}>
+        <Button label={`Play ${name}`} onPress={() => onPlay(game)} style={{ flex: 1 }} />
+        <Button label={`I’m new to ${name}`} variant="secondary" onPress={() => onLearn(game)} style={{ flex: 1 }} />
+      </View>
     </Panel>
   );
 }

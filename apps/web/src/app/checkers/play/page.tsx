@@ -4,6 +4,7 @@ import { useCallback, useEffect } from 'react';
 import { redirect }  from 'next/navigation';
 import { CheckersBoard }  from '@/components/checkers/CheckersBoard';
 import { useGameSession } from '@gameexplorer/client';
+import { useMarkPlayed } from '@/hooks/useMarkPlayed';
 import { GameLayout }     from '@/components/game/GameLayout';
 import { formatClockShort } from '@gameexplorer/shared';
 import type { CheckersGameState, TimeControl } from '@gameexplorer/shared';
@@ -16,6 +17,7 @@ const TIME_CONTROLS: { id: TimeControl; label: string; desc: string }[] = [
 
 export default function CheckersPlayPage() {
   const s = useGameSession('checkers', 'movetime');
+  useMarkPlayed('checkers', 'online', !!s.gameState);
   const { sendMove } = s;
 
   // Stable identity so the memoized board skips the 100 ms clock re-renders.

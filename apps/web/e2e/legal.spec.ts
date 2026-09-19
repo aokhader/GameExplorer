@@ -10,9 +10,6 @@ import { test, expect } from '@playwright/test';
  */
 
 test('terms and privacy are reachable from the landing footer', async ({ page }) => {
-  // A brand-new guest is redirected to the /welcome tour — mark this browser as
-  // already onboarded so we land on the home page itself.
-  await page.addInitScript(() => localStorage.setItem('ge:onboarded', '1'));
   await page.goto('/');
 
   const footer = page.locator('footer');

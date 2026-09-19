@@ -12,6 +12,7 @@ import { useGameSfx } from '@/hooks/useGameSfx';
 import { celebratePop, springSoft, easeOut } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { SaveProgressPrompt } from './SaveProgressPrompt';
+import { markFinished } from '@/lib/playHistory';
 import { Icon, type IconName } from '@gameexplorer/ui';
 
 const loadMotionFeatures = () =>
@@ -86,7 +87,12 @@ export function GameResultScreen({
   React.useEffect(() => {
     if (!open) return;
     const sound = result === 'win' ? 'win' : result === 'loss' ? 'loss' : 'draw';
-    if (result !== 'aborted') sfx.play(sound);
+    if (result !== 'aborted') {
+      sfx.play(sound);
+      // The launcher tells a guest that a rating needs an account only once a
+      // game has actually ended here.
+      markFinished();
+    }
 
     if (result === 'win' && !reducedMotion) {
       // confetti needs real color strings, so resolve the theme's accent + the

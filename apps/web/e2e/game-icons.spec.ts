@@ -18,13 +18,13 @@ const ART: Record<string, string> = {
   liquidate: 'planet',
 };
 
-test('every home tile draws its shared vector art, not a glyph', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('ge:onboarded', '1'));
+test('every game on the landing page draws its shared vector art, not a glyph', async ({ page }) => {
   await page.goto('/');
 
   for (const [game, label] of Object.entries(ART)) {
-    const card = page.locator(`a[href="/${game}"]`).filter({ has: page.locator('svg') }).first();
-    await expect(card.locator(`svg[aria-label="${label}"]`)).toBeVisible();
+    const name = game[0].toUpperCase() + game.slice(1);
+    const tile = page.getByRole('button', { name, exact: true });
+    await expect(tile.locator(`svg[aria-label="${label}"]`)).toBeVisible();
   }
 
   // The glyphs these replaced. Any one reappearing means a map came back.
@@ -62,7 +62,6 @@ const DECORATION = [
 
 for (const route of ['/', '/go', '/liquidate', '/chess/bot', '/welcome']) {
   test(`${route} paints no glow, wash, glass or aurora`, async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem('ge:onboarded', '1'));
     await page.goto(route);
     await expect(page.locator('h1').first()).toBeVisible();
     await expect(page.locator(DECORATION)).toHaveCount(0);

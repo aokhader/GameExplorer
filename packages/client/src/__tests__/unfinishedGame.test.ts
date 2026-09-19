@@ -184,7 +184,7 @@ describe('unfinishedGame — summary', () => {
       ),
     ).toBe('Pass & Play · 13×13 · 1 move in');
     expect(unfinishedGameSummary(saved({ mode: 'training', playerColor: 'black' }))).toBe(
-      'Training · Rated · You play Black · move 1',
+      'Rated practice · You play Black · move 1',
     );
   });
 });

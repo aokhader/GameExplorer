@@ -166,7 +166,8 @@ test('a lesson renders as a board screen, not under the global navbar', async ({
   const header = page.getByTestId('lesson-progress');
   expect((await header.boundingBox())?.y ?? -1).toBeGreaterThanOrEqual(0);
 
-  // The index that lists the lessons is an ordinary page and keeps its nav.
+  // The index that lists the lessons is an ordinary page and keeps its nav —
+  // the top bar, and the phone bar that CSS hides at this width.
   await page.goto('/chess/learn');
-  await expect(page.locator('nav')).toHaveCount(1);
+  await expect(page.getByRole('navigation', { name: 'Main', exact: true })).toBeVisible();
 });

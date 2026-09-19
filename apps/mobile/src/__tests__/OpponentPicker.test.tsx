@@ -13,9 +13,9 @@ const tint = GAME_ACCENTS.chess.tintBg;
 describe('OpponentPicker', () => {
   it('renders all five modes and marks the current one selected', () => {
     render(<OpponentPicker value="bot" onChange={() => {}} accent={accent} tint={tint} />);
-    expect(screen.getByRole('button', { name: /vs Bot/ })).toBeSelected();
-    expect(screen.getByRole('button', { name: /Online/ })).not.toBeSelected();
-    expect(screen.getByRole('button', { name: /Training/ })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: /Play the bot/ })).toBeSelected();
+    expect(screen.getByRole('button', { name: /Play online/ })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: /Rated practice/ })).not.toBeSelected();
     expect(screen.getByRole('button', { name: /Pass & Play/ })).not.toBeSelected();
     expect(screen.getByRole('button', { name: /Puzzles/ })).not.toBeSelected();
   });
@@ -28,7 +28,7 @@ describe('OpponentPicker', () => {
   it('selects online, which is a mode here but not a local game mode', () => {
     const onChange = jest.fn();
     render(<OpponentPicker value="bot" onChange={onChange} accent={accent} tint={tint} />);
-    fireEvent.press(screen.getByRole('button', { name: /Online/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Play online/ }));
     expect(onChange).toHaveBeenCalledWith('online');
   });
 
@@ -42,7 +42,7 @@ describe('OpponentPicker', () => {
   it('shows puzzles as the selected tile when it is the value', () => {
     render(<OpponentPicker value="puzzles" onChange={() => {}} accent={accent} tint={tint} />);
     expect(screen.getByRole('button', { name: /Puzzles/ })).toBeSelected();
-    expect(screen.getByRole('button', { name: /vs Bot/ })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: /Play the bot/ })).not.toBeSelected();
   });
 
   it('reports the tapped mode', () => {
@@ -55,7 +55,7 @@ describe('OpponentPicker', () => {
   it('selects training', () => {
     const onChange = jest.fn();
     render(<OpponentPicker value="bot" onChange={onChange} accent={accent} tint={tint} />);
-    fireEvent.press(screen.getByRole('button', { name: /Training/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Rated practice/ }));
     expect(onChange).toHaveBeenCalledWith('training');
   });
 });
