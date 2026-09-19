@@ -6,7 +6,7 @@ import './globals.css';
 import { Navigation } from '@/components/Navigation';
 import { ClientConfig } from '@/components/ClientConfig';
 import { ToastProvider } from '@/components/ui';
-import { RouteAmbient, PageTransition } from '@/components/visual';
+import { PageTransition } from '@/components/visual';
 import { SettingsProvider } from '@/components/providers/SettingsProvider';
 import { gameNameList } from '@gameexplorer/shared';
 import { SITE_URL } from '@/lib/site';
@@ -101,7 +101,6 @@ export default function RootLayout({
         <SettingsProvider>
           <ToastProvider>
             <ClientConfig />
-            <RouteAmbient />
             <Navigation />
             <PageTransition>{children}</PageTransition>
           </ToastProvider>

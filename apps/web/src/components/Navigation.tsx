@@ -67,7 +67,7 @@ export function Navigation() {
             (a plain justify-between would let the side widths shift it off-center). */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group justify-self-start">
+          <Link href="/" className="touch-target flex items-center space-x-2 group justify-self-start">
             <span className="font-display text-2xl font-bold text-fg transition-colors">
               Game<span className="text-accent group-hover:text-accent-hover transition-colors">Explorer</span>
             </span>
@@ -90,7 +90,7 @@ export function Navigation() {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(o => !o)}
-                    className="w-9 h-9 rounded-full bg-accent hover:bg-accent-hover flex items-center justify-center text-on-accent text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+                    className="touch-target w-9 h-9 rounded-full bg-accent hover:bg-accent-hover flex items-center justify-center text-on-accent text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
                     aria-label="Account menu"
                   >
                     {user.email[0].toUpperCase()}
@@ -144,14 +144,17 @@ export function Navigation() {
                   <Link
                     href="/settings"
                     aria-label="Settings"
-                    className="hidden sm:inline-flex items-center justify-center w-10 h-10 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    className="touch-target hidden sm:inline-flex items-center justify-center w-10 h-10 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   >
                     <Icon name="gear" className="text-xl" />
                   </Link>
-                  <SignInNavLink className="hidden sm:inline text-sm text-fg-muted hover:text-fg transition-colors" />
+                  <SignInNavLink className="touch-target hidden sm:inline text-sm text-fg-muted hover:text-fg transition-colors" />
+                  {/* Outlined, not gold: gold is the page's own primary action,
+                      one per screen (ux-fix-ideas.md §6.2). A gold button up
+                      here made every page open on two. */}
                   <Link
                     href="/chess"
-                    className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
+                    className="touch-target px-4 py-2 border border-border-strong text-fg hover:bg-surface-muted font-semibold rounded-lg motion-control motion-safe:active:scale-[0.98] text-sm"
                   >
                     Play Now
                   </Link>
@@ -162,7 +165,7 @@ export function Navigation() {
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileOpen(o => !o)}
-              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="touch-target md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileOpen}
             >
@@ -268,13 +271,13 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`relative text-sm font-medium transition-colors ${
+      className={`touch-target inline-block py-1 text-sm font-medium transition-colors ${
         active ? 'text-accent' : 'text-fg-muted hover:text-fg'
       }`}
     >
       {children}
       {active && (
-        <span className="absolute -bottom-1.5 left-0 right-0 h-0.5 rounded-full bg-accent shadow-[0_0_8px_var(--c-accent)]" />
+        <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-accent" />
       )}
     </Link>
   );

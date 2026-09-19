@@ -272,23 +272,23 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   // ── Setup screen ────────────────────────────────────────────────────────────
 
   if (!started && awaitingResume) {
-    return <div className="min-h-svh page-glow-go" />;
+    return <div className="min-h-svh" />;
   }
 
   if (!started) {
     const guestBlocked = isTraining && !userId;
 
     return (
-      <div className="min-h-svh page-glow-go">
-        <div className="container mx-auto px-4 pt-8">
+      <div className="min-h-svh">
+        <div className="container mx-auto px-4 pt-4">
           <ShellNav backHref="/go" />
         </div>
 
-        <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-fg mb-2 text-center">
+        <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
+          <h1 className="text-2xl font-bold text-fg mb-1">
             {isLocal ? 'Pass & Play' : isTraining ? 'Training' : 'Play vs Bot'}
           </h1>
-          <p className="text-center text-fg-muted mb-8">
+          <p className="text-fg-muted mb-4">
             {goRulesetSummary(size, komi, scoring)}
           </p>
 
@@ -303,7 +303,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
 
           {/* Training matches the bot to you, so there is no tier to pick. */}
           {isTraining && (
-            <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+            <div className="rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4">
               <h2 className="text-2xl font-semibold text-fg mb-2">Matched to your rating</h2>
               {guestBlocked ? (
                 <p className="text-fg-muted">
@@ -322,8 +322,8 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
           )}
 
           {mode === 'bot' && (
-            <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
-              <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
+            <div className="rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4">
+              <h2 className="text-lg font-semibold text-fg mb-3">Bot Strength</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {GO_DIFFICULTY_LEVELS.map((level, i) => {
                   const selected = targetElo === level.elo;
@@ -333,7 +333,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                       onClick={() => update({ elo: level.elo })}
                       className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                         selected
-                          ? 'border-accent bg-accent-muted [box-shadow:var(--shadow-glow-accent)] scale-[1.02]'
+                          ? 'border-accent bg-accent-muted'
                           : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                       }`}
                     >
@@ -358,7 +358,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
               over halfway through. */}
           <Link
             href="/go/analysis"
-            className="mb-6 flex w-full items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-3 text-sm font-semibold text-fg-muted transition-colors hover:bg-white/[0.06] hover:text-fg"
+            className="touch-target motion-control motion-safe:active:scale-[0.98] mb-6 flex w-full items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-3 text-sm font-semibold text-fg-muted hover:bg-white/[0.06] hover:text-fg"
           >
             Have an SGF? Analyse it move by move →
           </Link>
@@ -375,8 +375,8 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
 
           {/* Nothing to choose in pass-and-play: the board never flips and black starts. */}
           {!isLocal && (
-            <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
-              <h2 className="text-2xl font-semibold text-fg mb-6">Choose Your Colour</h2>
+            <div className="rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4">
+              <h2 className="text-lg font-semibold text-fg mb-3">Choose Your Colour</h2>
               <div className="grid grid-cols-2 gap-4">
                 {(['black', 'white'] as const).map(color => (
                   <button
@@ -384,7 +384,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                     onClick={() => update({ color })}
                     className={`p-6 rounded-lg transition-all ${
                       playerColor === color
-                        ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                        ? 'border border-accent bg-accent-muted text-fg'
                         : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                     }`}
                   >
@@ -404,7 +404,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                       </svg>
                     </div>
                     <div className="font-semibold capitalize">{color}</div>
-                    <div className={`text-sm ${playerColor === color ? 'text-on-accent/80' : 'text-fg-muted'}`}>
+                    <div className={`text-sm ${playerColor === color ? 'text-fg-muted' : 'text-fg-muted'}`}>
                       {color === 'black'
                         ? 'You move first'
                         : komi === 0
@@ -488,7 +488,6 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   return (
     <>
       <GameScreenLayout
-        accent="go"
         backHref="/go"
         headerActions={
           <>
@@ -503,12 +502,12 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
             {!isAtLive && (
               <button
                 onClick={() => setViewIndex(timeline.length - 1)}
-                className="text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg transition-colors font-medium"
+                className="touch-target motion-control motion-safe:active:scale-[0.98] text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg font-medium"
               >
                 Live ⇥
               </button>
             )}
-            <button onClick={handleNewGame} className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm">
+            <button onClick={handleNewGame} className="touch-target motion-control motion-safe:active:scale-[0.98] px-4 py-2 border border-border-strong text-fg hover:bg-surface-muted font-semibold rounded-lg text-sm">
               New Game
             </button>
           </>

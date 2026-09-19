@@ -17,11 +17,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const LIFT = 'motion-safe:hover:-translate-y-0.5';
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  // Gold — the single primary action per screen. Gradient fill + glow-on-hover
-  // + a small lift give it real presence (the flat pass had none).
+  // Gold — the single primary action per screen, and gold is what says so.
+  // Flat: the gradient fill and hover glow it had were a second and a third way
+  // of saying "this is the gold one" (ux-fix-ideas.md §6.1).
   primary:
-    `text-on-accent bg-accent [background-image:var(--gradient-accent)] shadow-sm ` +
-    `hover:[box-shadow:var(--shadow-glow-accent)] ${LIFT} ` +
+    `text-on-accent bg-accent hover:bg-accent-hover shadow-sm ${LIFT} ` +
     'focus-visible:ring-focus',
   // Steel-blue, tonal — secondary actions.
   secondary:
@@ -73,7 +73,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center font-semibold select-none',
+        'inline-flex items-center justify-center font-semibold select-none touch-target',
         'motion-control motion-safe:active:scale-[0.98]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
         'disabled:opacity-50 disabled:pointer-events-none',

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { GameBar } from '@/game/GameBar';
 import { SettingsProvider } from '@/providers/SettingsProvider';
@@ -122,6 +123,23 @@ describe('GameBar — resign flag', () => {
   it('is disabled once the game is over', async () => {
     await renderBar(4, { gameOver: true });
     expect(screen.getByRole('button', { name: 'Resign' })).toBeDisabled();
+  });
+
+  it('forfeits on the first tap when the player switched confirmation off', async () => {
+    // "Confirm resignation" in Settings. The provider hydrates from storage
+    // after its first paint, so wait for the stored value to be the live one.
+    await AsyncStorage.setItem('gx:settings', JSON.stringify({ confirmResign: false }));
+    try {
+      const { onResign } = await renderBar(4);
+      // Let the storage read resolve and the provider re-render with it.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      fireEvent.press(screen.getByRole('button', { name: 'Resign' }));
+      expect(onResign).toHaveBeenCalledTimes(1);
+    } finally {
+      await AsyncStorage.clear();
+    }
   });
 });
 

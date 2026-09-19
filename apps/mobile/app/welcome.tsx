@@ -215,7 +215,7 @@ export default function WelcomeScreen() {
             {gameNameList()} — ready in seconds.
           </Text>
           <View style={{ width: '100%', gap: SPACING[3], marginTop: 16 }}>
-            <Button label="Let's play →" onPress={advance} glow />
+            <Button label="Let's play →" onPress={advance} />
             <Pressable
               onPress={() => router.replace('/(auth)/sign-in' as never)}
               style={{ alignItems: 'center', paddingVertical: 8 }}
@@ -285,7 +285,6 @@ export default function WelcomeScreen() {
           <Button
             label={opponent === 'bot' ? 'Continue →' : 'Start playing →'}
             onPress={advance}
-            glow={opponent !== 'bot'}
             style={{ marginTop: 20 }}
           />
         </>
@@ -312,7 +311,7 @@ export default function WelcomeScreen() {
               />
             ))}
           </View>
-          <Button label="Start playing →" onPress={advance} glow style={{ marginTop: 20 }} />
+          <Button label="Start playing →" onPress={advance} style={{ marginTop: 20 }} />
         </>
       )}
 

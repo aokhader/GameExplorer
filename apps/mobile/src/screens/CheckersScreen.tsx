@@ -8,7 +8,7 @@ import {
   type CheckersGameState,
 } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
-import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
+import { Screen, BackHeader, Button, Toggle } from '@/components/ui';
 import { DifficultyMeter } from '@/game/DifficultyMeter';
 import { CheckersBoard } from '@/board/CheckersBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
@@ -17,7 +17,7 @@ import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
 import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
-import { SetupHero } from '@/game/SetupHero';
+import { SetupHeading } from '@/game/SetupHeading';
 import { LearnLink } from '@/game/LearnLink';
 import { LessonsCard } from '@/game/LessonsCard';
 import { MoveBand } from '@/game/MoveBand';
@@ -236,11 +236,8 @@ export function CheckersScreen() {
 
     return (
       <Screen footer={startButton}>
-        <GlowBackdrop
-          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.checkers.base, opacity: 0.16 }]}
-        />
         <BackHeader fallbackHref="/" />
-        <SetupHero game="checkers" />
+        <SetupHeading game="checkers" />
 
         {unfinished.saved && (
           <View style={{ marginBottom: 24 }}>
@@ -679,7 +676,7 @@ export function CheckersScreen() {
         saveError={game.saveError}
         onRetrySave={game.retrySave}
         onReview={() => setReviewing(true)}
-        actions={<Button label="Rematch" onPress={handleRematch} glow />}
+        actions={<Button label="Rematch" onPress={handleRematch} />}
         secondaryActions={
           <>
             <ChangeSetupButton onPress={handleNewGame} />

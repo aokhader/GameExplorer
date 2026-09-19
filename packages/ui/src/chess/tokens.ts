@@ -10,43 +10,68 @@
 
 import { liveView } from '../themeRuntime';
 
+/*
+ * The board's state budget — four hues, all translucent, none glowing, none
+ * moving (`project-docs/ux-fix-ideas.md` §5.1):
+ *
+ *   what just happened   last move            gold (Arcade) / olive-gold (Cozy)
+ *   what you can do      selection, dots,     teal (Arcade) / forest green (Cozy)
+ *                        capture corners
+ *   what you asked for   queued premove       violet (Arcade) / slate blue (Cozy)
+ *   what is wrong        check                red
+ *
+ * Every state tint is laid OVER the square's own colour — never swapped in for
+ * it — so the ΔE figures below are between the tinted and the plain square.
+ * Contrast is tuned per board, not per state: on walnut, gold washes out
+ * (ΔE2000 ≈ 7 against the light square), so Cozy's last move leans olive.
+ * Selection no longer shares a hue with the last move, which used to paint a
+ * selected piece standing on a last-move square gold on gold.
+ *
+ * The same values serve the checkers board — one budget for both grids.
+ */
 const DARK_BOARD_COLORS = {
   lightSquare: '#445576',
   darkSquare: '#2a3550',
-  selectedSquare: '#cda43f',
+  /** Selection tint — ΔE ≈ 30 / 34 on the light / dark square, 25 from last move. */
+  selectedSquare: 'rgba(34,211,170,0.50)',
   lastMoveLight: 'rgba(205,164,63,0.42)',
   lastMoveDark: 'rgba(205,164,63,0.52)',
-  // Legal-move hints glow teal on the dark board (was dark-on-light).
-  moveIndicator: 'rgba(34,211,170,0.85)',
-  moveIndicatorCapture: 'rgba(34,211,170,0.55)',
+  /** Legal-move dot, drawn at 22% of the square. */
+  moveIndicator: 'rgba(34,211,170,0.60)',
+  /** Capture target: the square's corners, clear to 80% of its half-diagonal. */
+  moveIndicatorCapture: 'rgba(34,211,170,0.45)',
   /**
    * Queued premove — violet, deliberately outside the gold last-move / teal
    * legal-move families: "what I've asked for" must never read as "what just
    * happened" or "what I can do now". Web pairs these with `--gx-board-premove`.
    */
-  premove: 'rgba(139,92,246,0.55)',
+  premove: 'rgba(139,92,246,0.60)',
   premoveHint: 'rgba(139,92,246,0.75)',
+  /** Centre of the still radial gradient under a king in check. */
+  check: 'rgba(239,68,68,0.95)',
   /** Board frame. Web reads `--gx-board-frame`; native draws a real border. */
   frame: '#2b3652',
 } as const;
 
 /**
  * Cozy Tabletop chess board — the walnut table from the design doc: warm wood
- * squares in a dark frame, with forest green (the theme's action color) carrying
- * selection, last move and legal-move hints.
+ * squares in a dark frame. Forest green (the theme's action colour) carries
+ * what you can do; the last move is olive-gold so it never matches it
+ * (ΔE ≥ 15 against both squares, ≥ 18 against the selection).
  */
 const COZY_BOARD_COLORS = {
   lightSquare: '#e7c9a0',
   darkSquare: '#a9743f',
-  selectedSquare: '#2f6e4e',
-  lastMoveLight: 'rgba(47,110,78,0.38)',
-  lastMoveDark: 'rgba(47,110,78,0.50)',
+  selectedSquare: 'rgba(47,110,78,0.55)',
+  lastMoveLight: 'rgba(150,150,20,0.55)',
+  lastMoveDark: 'rgba(150,150,20,0.60)',
   moveIndicator: 'rgba(47,110,78,0.65)',
   moveIndicatorCapture: 'rgba(47,110,78,0.50)',
   // Slate blue rather than Arcade's violet: on walnut it stays clearly apart
   // from the green "your move" family without going neon.
-  premove: 'rgba(45,90,140,0.50)',
+  premove: 'rgba(45,90,140,0.55)',
   premoveHint: 'rgba(45,90,140,0.70)',
+  check: 'rgba(190,30,30,0.9)',
   frame: '#6e4a2a',
 } as const;
 

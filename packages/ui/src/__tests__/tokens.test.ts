@@ -16,7 +16,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { setActiveTheme, getActiveTheme, liveView, type ThemeName } from '../themeRuntime';
-import { COLORS, THEMES, GAME_ACCENTS, SHADOWS_NATIVE, GLOWS_NATIVE, GRADIENTS_NATIVE } from '../tokens';
+import { COLORS, THEMES, GAME_ACCENTS, SHADOWS_NATIVE } from '../tokens';
 import { BOARD_COLORS, CHESS_PIECE_STYLE } from '../chess/tokens';
 import { CHECKERS_BOARD_COLORS, CHECKERS_PIECE_STYLE } from '../checkers/tokens';
 import { REVERSI_BOARD_COLORS, REVERSI_DISC_STYLE } from '../reversi/tokens';
@@ -35,8 +35,6 @@ const LIVE_VIEWS: Record<string, object> = {
   COLORS,
   GAME_ACCENTS,
   SHADOWS_NATIVE,
-  GLOWS_NATIVE,
-  GRADIENTS_NATIVE,
   BOARD_COLORS,
   CHESS_PIECE_STYLE,
   CHECKERS_BOARD_COLORS,
@@ -147,7 +145,7 @@ describe('no module-scope theme token capture in packages/ui', () => {
     'REVERSI_BOARD_COLORS', 'LIQUIDATE_BOARD_COLORS', 'LIQUIDATE_PANEL_COLORS',
     'LIQUIDATE_SYSTEM_COLORS', 'CHESS_PIECE_STYLE', 'CHECKERS_PIECE_STYLE',
     'REVERSI_DISC_STYLE', 'GO_BOARD_COLORS', 'GO_STONE_STYLE',
-    'LIQUIDATE_PLANET_STYLE', 'SHADOWS_NATIVE', 'GLOWS_NATIVE', 'GRADIENTS_NATIVE',
+    'LIQUIDATE_PLANET_STYLE', 'SHADOWS_NATIVE',
   ];
   const TOKEN_READ = new RegExp(`\\b(${TOKENS.join('|')})\\s*[.[]`);
   const TOP_LEVEL_DECL = /^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_]\w*)\s*[:=]/;

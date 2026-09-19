@@ -211,7 +211,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
               onSelect={setBand}
               rating={rating}
             />
-            {!empty && <Button label="Start over" onPress={startOver} glow />}
+            {!empty && <Button label="Start over" onPress={startOver} />}
           </View>
         }
       />

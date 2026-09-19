@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { BOARD_ANIM_MS, PIECE_ANIMATION_MS, boardAnimMs } from './board/transition';
 import {
   SETTINGS_DEFAULTS,
   parseSettings,
@@ -60,5 +61,44 @@ describe('parseSettings', () => {
   it('round-trips through serialize', () => {
     const settings: Settings = { ...SETTINGS_DEFAULTS, sound: true, theme: 'cozy' };
     expect(parseSettings(serializeSettings(settings))).toEqual(settings);
+  });
+});
+
+/**
+ * The three board preferences from `ux-fix-ideas.md` §5.4. Defaults are the
+ * behaviour every existing install already has, so an upgrade changes nothing
+ * until the player opens Settings.
+ */
+describe('board preferences', () => {
+  it('default to the behaviour that shipped before they existed', () => {
+    const upgraded = parseSettings(JSON.stringify({ sound: true }));
+    expect(upgraded.pieceAnimation).toBe('normal');
+    expect(upgraded.showDestinations).toBe(true);
+    expect(upgraded.confirmResign).toBe(true);
+  });
+
+  it('reject a piece animation this build does not know', () => {
+    // A duration lookup on an unknown key comes back undefined.
+    expect(parseSettings(JSON.stringify({ pieceAnimation: 'ludicrous' })).pieceAnimation).toBe('normal');
+    expect(parseSettings(JSON.stringify({ pieceAnimation: 'slow' })).pieceAnimation).toBe('slow');
+  });
+});
+
+describe('boardAnimMs', () => {
+  it('keeps normal at the tempo the puzzle and lesson replies are timed against', () => {
+    expect(PIECE_ANIMATION_MS.normal).toBe(BOARD_ANIM_MS);
+    expect(boardAnimMs({ pieceAnimation: 'normal' }, false)).toBe(BOARD_ANIM_MS);
+  });
+
+  it('orders the speeds and lets none switch travel off', () => {
+    expect(boardAnimMs({ pieceAnimation: 'fast' }, false)).toBeLessThan(BOARD_ANIM_MS);
+    expect(boardAnimMs({ pieceAnimation: 'slow' }, false)).toBeGreaterThan(BOARD_ANIM_MS);
+    expect(boardAnimMs({ pieceAnimation: 'none' }, false)).toBe(0);
+  });
+
+  it('lets reduced motion win over any speed', () => {
+    for (const speed of ['fast', 'normal', 'slow'] as const) {
+      expect(boardAnimMs({ pieceAnimation: speed }, true)).toBe(0);
+    }
   });
 });

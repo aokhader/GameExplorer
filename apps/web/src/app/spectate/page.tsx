@@ -51,14 +51,14 @@ export default function SpectateLobby() {
       <div className="w-full max-w-2xl">
         <div className="flex items-center justify-between mb-6 mt-6">
           <h1 className="flex items-center gap-2 text-2xl font-bold"><Icon name="eye" className="text-fg-muted" /> Watch Live Games</h1>
-          <Link href="/" className="text-fg-muted hover:text-fg text-sm">← Home</Link>
+          <Link href="/" className="inline-flex min-h-11 items-center px-2 text-fg-muted hover:text-fg text-sm">← Home</Link>
         </div>
 
         {/* Live games list */}
         <div className="bg-surface-alt rounded-2xl p-6 shadow-2xl mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">Live now {games.length > 0 && <span className="text-fg-muted">({games.length})</span>}</h2>
-            <button onClick={loadGames} className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg"><Icon name="arrows-clockwise" /> Refresh</button>
+            <button onClick={loadGames} className="inline-flex min-h-11 items-center gap-1 px-2 text-sm text-fg-muted hover:text-fg"><Icon name="arrows-clockwise" /> Refresh</button>
           </div>
 
           {loading ? (
@@ -94,7 +94,7 @@ export default function SpectateLobby() {
                 // the chunk statically imports all three boards + engine code,
                 // so on-click download+compile was the spectate INP cost.
                 <Link key={g.gameId} href={`/spectate/${g.gameId}`}
-                  className="w-full flex items-center justify-between bg-surface-muted hover:bg-surface-hover rounded-lg px-4 py-3 text-left transition-colors">
+                  className="touch-target motion-control motion-safe:active:scale-[0.98] w-full flex items-center justify-between bg-surface-muted hover:bg-surface-hover rounded-lg px-4 py-3 text-left">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-2xl inline-flex items-center"><GameIcon game={g.gameType} /></span>
                     <div className="min-w-0">
@@ -118,9 +118,9 @@ export default function SpectateLobby() {
             <input value={gameId} onChange={e => setGameId(e.target.value.trim())}
               onKeyDown={e => e.key === 'Enter' && gameId && router.push(`/spectate/${gameId}`)}
               placeholder="game id…"
-              className="flex-1 min-w-0 bg-surface-muted rounded px-3 py-2 outline-none" />
+              className="flex-1 min-w-0 min-h-11 bg-surface-muted rounded px-3 py-2 outline-none" />
             <button onClick={() => gameId && router.push(`/spectate/${gameId}`)} disabled={!gameId}
-              className="px-4 py-2 bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50 rounded font-semibold">Watch</button>
+              className="min-h-11 px-4 py-2 bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50 rounded font-semibold motion-control motion-safe:active:scale-[0.98]">Watch</button>
           </div>
         </div>
       </div>

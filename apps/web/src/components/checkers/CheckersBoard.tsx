@@ -6,6 +6,7 @@ import {
   CheckersEngine,
   getCheckersPremoveDestinations,
   isCheckersPremoveLegal,
+  boardAnimMs,
   // The engine's own rule, not a copy of it: these are the squares play happens
   // on, so the colour drawn here and the squares the engine fills can never
   // drift apart.
@@ -19,6 +20,7 @@ import { CheckersPiece, CHECKERS_BOARD_COLORS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
 import { BoardMark, markMap } from '@/components/board/BoardMark';
 import { PieceSlot } from '@/components/board/PieceSlot';
+import { captureCorners, tintedSquare } from '@/components/board/squareTint';
 import { useBoardDrag } from '@/hooks/useBoardDrag';
 import { useGameSfx } from '@/hooks/useGameSfx';
 import { useSettings } from '@/components/providers/SettingsProvider';
@@ -45,8 +47,8 @@ const SQUARE: Record<
   capture:      `var(--gx-checkers-board-capture, ${CHECKERS_BOARD_COLORS.captureIndicator})`,
   // Queued premove — a different hue from the last-move highlight on purpose:
   // "what I've asked for" must not read as "what just happened".
-  premove:      'var(--gx-checkers-board-premove, rgba(139, 92, 246, 0.55))',
-  premoveHint:  'var(--gx-checkers-board-premove-hint, rgba(139, 92, 246, 0.75))',
+  premove:      `var(--gx-checkers-board-premove, ${CHECKERS_BOARD_COLORS.premove})`,
+  premoveHint:  `var(--gx-checkers-board-premove-hint, ${CHECKERS_BOARD_COLORS.premoveHint})`,
 };
 
 /**
@@ -169,6 +171,10 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   const sfx = useGameSfx();
   const { settings, reducedMotion } = useSettings();
   const coordsOn = showCoordinates && settings.showCoordinates;
+  // Travel time on this device (speed setting, or 0 under reduced motion).
+  const animMs = boardAnimMs(settings, reducedMotion);
+  const animates = animMs > 0;
+  const showDests = settings.showDestinations;
 
   const boardRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
@@ -226,9 +232,6 @@ export const CheckersBoard = React.memo(function CheckersBoard({
     }
     return legalCache.current.moves;
   };
-  // Whose-turn signifier — the board lifts with an ember glow on the player's move.
-  const isMyTurn = !gameState.isGameOver && gameState.currentTurn === playerColor;
-
   // What travelled to get here. A multi-jump is one long slide with a fade per
   // victim, which is what makes a chain read as a chain rather than as pieces
   // blinking out of existence.
@@ -236,7 +239,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
     ...CHECKERS_DIFF,
     historyLength: gameState.moveHistory.length,
     isFlipped,
-    enabled: !reducedMotion,
+    enabled: animates,
   });
 
   /**
@@ -390,14 +393,16 @@ export const CheckersBoard = React.memo(function CheckersBoard({
       const isLastMoveSquare = lastMove && (lastMove.from === pos || lastMove.to === pos);
       const isPremoveSquare = !!premove && (premove.from === pos || premove.to === pos);
 
-      let bg = dark ? SQUARE.dark : SQUARE.light;
-      if (isSelected) bg = SQUARE.selected;
-      // The queued move outranks the last move: the opponent's reply frequently
-      // lands on one of these two squares, and the pending intent is what the
-      // player needs to see there.
-      else if (isPremoveSquare) bg = SQUARE.premove;
-      else if (isLastMoveSquare && dark)  bg = SQUARE.lastMoveDark;
-      else if (isLastMoveSquare && !dark) bg = SQUARE.lastMoveLight;
+      // One tint over the square. The queued move outranks the last move: the
+      // opponent's reply frequently lands on one of these two squares, and the
+      // pending intent is what the player needs to see there.
+      const tint = isSelected
+        ? SQUARE.selected
+        : isPremoveSquare
+          ? SQUARE.premove
+          : isLastMoveSquare
+            ? dark ? SQUARE.lastMoveDark : SQUARE.lastMoveLight
+            : null;
 
       // For coord labels: rank on leftmost screen column, file on bottommost screen row
       const showRank = coordsOn && screenCol === 0;
@@ -409,7 +414,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
       squares.push(
         <div
           key={pos}
-          style={{ backgroundColor: bg, aspectRatio: '1 / 1' }}
+          style={{ ...tintedSquare(dark ? SQUARE.dark : SQUARE.light, tint), aspectRatio: '1 / 1' }}
           className={`relative flex items-center justify-center ${
             dark ? (canGrab(piece) ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer') : 'cursor-default'
           }`}
@@ -442,22 +447,22 @@ export const CheckersBoard = React.memo(function CheckersBoard({
 
           {/* Premove candidates — dimmer than the legal-move dots, because these
               are squares the move may be aimed at, not moves known to be playable. */}
-          {dark && isValidDest && premoveMode && (
+          {dark && isValidDest && showDests && premoveMode && (
             <div className="absolute w-[22%] h-[22%] rounded-full pointer-events-none z-10"
               style={{ backgroundColor: SQUARE.premoveHint, opacity: 0.55 }} />
           )}
 
           {/* Move indicator dot (empty dark square) */}
-          {dark && isValidDest && !premoveMode && !piece && (
-            <div className="absolute w-[28%] h-[28%] rounded-full pointer-events-none z-10"
+          {dark && isValidDest && showDests && !premoveMode && !piece && (
+            <div className="absolute w-[22%] h-[22%] rounded-full pointer-events-none z-10"
               style={{ backgroundColor: SQUARE.move }} />
           )}
 
-          {/* Capture ring (valid dest that has an enemy piece) — shouldn't normally show
-              since in checkers you land on empty squares, but guard anyway */}
-          {dark && isValidDest && !premoveMode && piece && (
-            <div className="absolute inset-1 rounded-full border-4 pointer-events-none z-10"
-              style={{ borderColor: SQUARE.capture }} />
+          {/* Occupied destination — shouldn't normally show, since in checkers
+              you land on empty squares, but guard anyway. Corners, as chess. */}
+          {dark && isValidDest && showDests && !premoveMode && piece && (
+            <div className="absolute inset-0 pointer-events-none z-10"
+              style={{ background: captureCorners(SQUARE.capture) }} />
           )}
 
         </div>,
@@ -484,7 +489,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
         row={screenRow}
         offset={null}
         fading
-        reducedMotion={reducedMotion}
+        animMs={animMs}
       >
         <CheckersPiece type={fade.piece.type} color={fade.piece.color} size="100%" />
       </PieceSlot>,
@@ -511,11 +516,11 @@ export const CheckersBoard = React.memo(function CheckersBoard({
           col={screenCol}
           row={screenRow}
           offset={offset}
-          reducedMotion={reducedMotion}
+          animMs={animMs}
           // A piece that slid has already announced itself; popping it too
           // reads as a stutter at the end of the travel.
           pieceClassName={`transition-transform duration-200 ease-out ${
-            lastMoveTo === pos && !offset ? 'scale-110' : 'scale-100'
+            animates && lastMoveTo === pos && !offset ? 'scale-110' : 'scale-100'
           } ${drag.from === pos ? 'opacity-40' : ''}`}
         >
           <CheckersPiece type={piece.type} color={piece.color} size="100%" />
@@ -528,7 +533,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
     <BoardFrame className="select-none">
       <div
         ref={boardRef}
-        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg transition-shadow duration-300"
+        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg"
         // Right-click anywhere takes back a queued premove — the shortcut
         // players expect from other boards.
         onContextMenu={(e) => {
@@ -542,9 +547,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
           // The browser must not claim the gesture for scroll or zoom — this is
           // what makes drag work on touch at all.
           touchAction: 'none',
-          boxShadow: isMyTurn
-            ? 'var(--gx-checkers-board-turn-glow, 0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(236,72,153,0.6), 0 0 30px -2px rgba(236,72,153,0.5))'
-            : undefined,
+          // No turn glow: the player cards say whose move it is.
         }}
       >
         {squares}

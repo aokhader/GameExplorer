@@ -4,7 +4,6 @@ export { Card, type CardVariant } from './Card';
 export { Toggle } from './Toggle';
 export { Screen, BackHeader, TAB_BAR_OVERLAP } from './Screen';
 export { Sheet, type SheetProps } from './Sheet';
-export { GlowBackdrop, type GlowBloom } from './GlowBackdrop';
 export { Icon, type IconName, type IconProps } from './Icon';
 export { PressableScale, type PressableScaleProps } from './PressableScale';
 export { Entrance } from './Entrance';

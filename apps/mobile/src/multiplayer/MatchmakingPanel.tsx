@@ -137,7 +137,6 @@ export function MatchmakingPanel({ session: s, accent, timeControls, onExit }: M
         label={s.connected ? 'Find Game' : s.connectionError ? 'Connection failed' : 'Connecting…'}
         onPress={s.joinQueue}
         disabled={!s.connected}
-        glow
       />
 
       {s.connectionError && !s.connected && (

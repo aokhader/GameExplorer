@@ -35,26 +35,26 @@ function relativeTime(iso: string) {
 // END_REASON_LABELS now lives in @gameexplorer/shared — mobile's history list
 // reads the same table (it used to show no end reason at all).
 
-// Per-game accents: a tinted rating card with a matching bloom, and an accent
-// color for the big rating numeral. Every value reads the theme's tint ramp
-// (`--c-game-*-tint*` in globals.css) rather than a literal, so the cards follow
-// the active theme — they were the last neon left on this page under Cozy.
+// Per-game accents: one — the big rating numeral's colour, from the theme's
+// tint ramp (`--c-game-*` in globals.css). The rating cards themselves are flat
+// surfaces; they used to carry a per-game gradient and a matching glow as
+// well, which repeated the label printed on each (ux-fix-ideas.md §6.1).
 const GAME_META: Record<GameType, { label: string; text: string; card: string }> = {
   chess: {
     label: 'Chess', text: 'text-[var(--c-game-chess-light)]',
-    card: 'bg-[linear-gradient(180deg,var(--c-game-chess-tint),var(--c-game-tint-tail))] border-[var(--c-game-chess-tint-border)] [box-shadow:var(--c-game-chess-card-glow)]',
+    card: 'bg-surface-alt border-border',
   },
   checkers: {
     label: 'Checkers', text: 'text-[var(--c-game-checkers-light)]',
-    card: 'bg-[linear-gradient(180deg,var(--c-game-checkers-tint),var(--c-game-tint-tail))] border-[var(--c-game-checkers-tint-border)] [box-shadow:var(--c-game-checkers-card-glow)]',
+    card: 'bg-surface-alt border-border',
   },
   reversi: {
     label: 'Reversi', text: 'text-[var(--c-game-reversi-light)]',
-    card: 'bg-[linear-gradient(180deg,var(--c-game-reversi-tint),var(--c-game-tint-tail))] border-[var(--c-game-reversi-tint-border)] [box-shadow:var(--c-game-reversi-card-glow)]',
+    card: 'bg-surface-alt border-border',
   },
   go: {
     label: 'Go', text: 'text-[var(--c-game-go-light)]',
-    card: 'bg-[linear-gradient(180deg,var(--c-game-go-tint),var(--c-game-tint-tail))] border-[var(--c-game-go-tint-border)] [box-shadow:var(--c-game-go-card-glow)]',
+    card: 'bg-surface-alt border-border',
   },
 };
 
@@ -146,7 +146,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="relative min-h-svh pt-16 page-glow-profile">
+      <div className="relative min-h-svh pt-16">
         <div className="container mx-auto px-4 pt-8 pb-8 max-w-5xl">
           <HomeLink />
           {/* Avatar + username */}
@@ -221,13 +221,13 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="relative min-h-svh pt-16 page-glow-profile">
+    <div className="relative min-h-svh pt-16">
       <div className="container mx-auto px-4 pt-8 pb-8 max-w-5xl">
         <HomeLink />
 
         {/* Header — avatar, identity, settings */}
         <div className="flex items-center gap-5 mb-8 flex-wrap">
-          <div className="w-20 h-20 rounded-3xl bg-[image:var(--c-avatar-gradient)] [box-shadow:var(--c-avatar-glow)] flex items-center justify-center text-white font-display text-4xl font-bold shrink-0 select-none">
+          <div className="w-16 h-16 rounded-2xl bg-surface-muted border border-border flex items-center justify-center text-fg font-display text-3xl font-bold shrink-0 select-none">
             {profile.username[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-[200px]">
@@ -241,7 +241,7 @@ export default function ProfilePage() {
           </div>
           <Link
             href="/settings"
-            className="shrink-0 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-5 py-2.5 text-sm font-bold text-fg transition-colors"
+            className="touch-target motion-control motion-safe:active:scale-[0.98] shrink-0 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-5 py-2.5 text-sm font-bold text-fg"
           >
             Settings
           </Link>

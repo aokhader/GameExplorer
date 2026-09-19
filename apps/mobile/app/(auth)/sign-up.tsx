@@ -156,7 +156,6 @@ export default function SignUpScreen() {
           onPress={handleSignUp}
           loading={loading}
           disabled={!email || !password || !username}
-          glow
         />
 
         <LegalNotice />

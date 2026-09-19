@@ -12,7 +12,6 @@ import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { GoBoard } from '@/components/go/GoBoard';
 import { GoSgfLoad } from '@/components/go/GoSgfLoad';
 import { ReviewPanel } from '@/components/game/ReviewPanel';
-import { GradientText, Reveal } from '@/components/visual';
 import { ShellNav } from '@/components/game/ShellNav';
 
 /**
@@ -48,18 +47,15 @@ export default function GoAnalysisPage() {
           onExit={() => setTimeline(null)}
         />
       ) : (
-        <div className="container mx-auto px-4 py-12">
-          <div className="mb-10 text-center">
-            <Reveal as="h1" className="mb-3 text-4xl font-bold tracking-tight md:text-5xl">
-              <GradientText>Go Analysis</GradientText>
-            </Reveal>
-            <Reveal as="p" delay={80} className="mx-auto max-w-2xl text-lg text-fg-muted">
+        <div className="container mx-auto px-4 pt-6 pb-12">
+          {/* A heading, not a hero: the SGF box is the page's job (§6.3). */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold tracking-tight text-fg">Go Analysis</h1>
+            <p className="text-fg-muted">
               Bring a game in from anywhere and have the engine grade every move
-            </Reveal>
+            </p>
           </div>
-          <Reveal delay={160}>
-            <GoSgfLoad onLoad={setTimeline} />
-          </Reveal>
+          <GoSgfLoad onLoad={setTimeline} />
         </div>
       )}
     </div>

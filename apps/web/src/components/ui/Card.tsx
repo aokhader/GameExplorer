@@ -1,45 +1,26 @@
 import React from 'react';
-import type { GameId } from '@gameexplorer/shared';
 import { cn } from '@/lib/utils';
-
-export type CardGlow = 'accent' | GameId;
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Remove inner padding (e.g. when the card hosts its own header/scroll regions). */
   flush?: boolean;
-  /** Visual emphasis: `raised` adds the top-lit sheen + elevation shadow. */
+  /** Visual emphasis: `raised` adds the elevation shadow. */
   elevation?: 'flat' | 'raised';
-  /** Hover-lift + emphasized border for clickable cards. */
+  /** A clickable card: a stronger border under a mouse, and a press on touch. */
   interactive?: boolean;
-  /** Colored glow halo on hover (per-game identity / brand). */
-  glow?: CardGlow;
 }
 
 /**
- * Keyed by the catalog's `GameId`, so a game added there without a glow here
- * fails to compile. The union used to be written out by hand and had quietly
- * missed Go and Liquidate.
- */
-const GLOW_HOVER: Record<CardGlow, string> = {
-  accent:    'hover:[box-shadow:var(--shadow-glow-accent)]',
-  chess:     'hover:[box-shadow:var(--shadow-glow-chess)]',
-  checkers:  'hover:[box-shadow:var(--shadow-glow-checkers)]',
-  reversi:   'hover:[box-shadow:var(--shadow-glow-reversi)]',
-  go:        'hover:[box-shadow:var(--shadow-glow-go)]',
-  liquidate: 'hover:[box-shadow:var(--shadow-glow-liquidate)]',
-};
-
-/**
  * The one panel/card surface — replaces the ~30 inline
- * `bg-surface-alt rounded-xl border shadow` repetitions. `raised` adds the
- * Apple-style top-lit sheen + elevation; `interactive`/`glow` give clickable
- * cards a lift and a per-game glow halo on hover.
+ * `bg-surface-alt rounded-xl border shadow` repetitions.
  *
- * An interactive card lifts 4px on hover over `base` and presses to 98% over
- * `micro` — motion-spec.md §5.1 and §5.2 — both only when motion is allowed.
+ * An interactive card answers a press, not a hover: it presses to 98% over
+ * `micro` (motion-spec.md §5.1), which is the response a finger can see. The
+ * 4px hover lift and the per-game hover glow it used to carry fired only under
+ * a mouse, and the glow had no caller left (`ux-fix-ideas.md` §6.1, §8.4).
  */
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(function Card(
-  { flush = false, elevation = 'flat', interactive = false, glow, className, children, ...props },
+  { flush = false, elevation = 'flat', interactive = false, className, children, ...props },
   ref,
 ) {
   return (
@@ -48,8 +29,8 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(function Card(
       className={cn(
         'bg-surface-alt border border-border rounded-xl',
         elevation === 'raised' && 'surface-raised',
-        interactive && 'hover-lift cursor-pointer hover:border-border-strong motion-safe:active:scale-[0.98]',
-        glow && GLOW_HOVER[glow],
+        interactive &&
+          'cursor-pointer motion-control hover:border-border-strong motion-safe:active:scale-[0.98]',
         !flush && 'p-4',
         className,
       )}

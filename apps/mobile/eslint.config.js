@@ -50,6 +50,25 @@ const EMOJI_GUARDS = [
   { selector: `JSXText[value=${EMOJI}]`, message: EMOJI_MESSAGE },
 ];
 
+/**
+ * Emphasis is a budget (`project-docs/ux-fix-ideas.md` §6.1–§6.2): no neon
+ * glow tokens, no gradient fills, no zero-offset halo shadows. Wave 3 removed
+ * every one of them from the app — the Play button's gold bloom, the setup
+ * screens' glowing hero badge and accent blooms, the boards' turn glows, the
+ * primary button's gradient — and this is how they would come back. A state
+ * gets one flat hue; a primary action is flat gold.
+ */
+const DECORATION_MESSAGE =
+  'No glow, gradient fill or halo shadow (ux-fix-ideas.md §6.1). Mark a state with one flat hue; the primary action is flat gold.';
+const HALO = String.raw`/(^|,\s*|inset\s+)0 0 [1-9]\d*px/`;
+const DECORATION_GUARDS = [
+  { selector: "Identifier[name=/^(GLOWS_NATIVE|GRADIENTS_NATIVE)$/]", message: DECORATION_MESSAGE },
+  { selector: "MemberExpression[object.name='SHADOWS_NATIVE'][property.name=/^glow/]", message: DECORATION_MESSAGE },
+  { selector: "JSXIdentifier[name='LinearGradient']", message: DECORATION_MESSAGE },
+  { selector: `Literal[value=${HALO}]`, message: DECORATION_MESSAGE },
+  { selector: `TemplateElement[value.raw=${HALO}]`, message: DECORATION_MESSAGE },
+];
+
 module.exports = [
   ...expoConfig,
   {
@@ -60,7 +79,13 @@ module.exports = [
   {
     files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-syntax': ['error', ...SCALE_GUARDS, ...MOTION_GUARDS, ...EMOJI_GUARDS],
+      'no-restricted-syntax': [
+        'error',
+        ...SCALE_GUARDS,
+        ...MOTION_GUARDS,
+        ...EMOJI_GUARDS,
+        ...DECORATION_GUARDS,
+      ],
     },
   },
   {
@@ -70,7 +95,15 @@ module.exports = [
     // tests hold emotes and notation as fixtures. The size and motion guards
     // still apply — a flat-config override replaces the whole rule, so they are
     // restated here.
-    files: ['src/liquidate/**/*.{ts,tsx}', 'src/__tests__/**/*.{ts,tsx}'],
+    files: ['src/liquidate/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': ['error', ...SCALE_GUARDS, ...MOTION_GUARDS, ...DECORATION_GUARDS],
+    },
+  },
+  {
+    // Tests hold emotes and notation as fixtures, and the theme-runtime suite
+    // asserts on the (now unused) glow tokens themselves.
+    files: ['src/__tests__/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-syntax': ['error', ...SCALE_GUARDS, ...MOTION_GUARDS],
     },

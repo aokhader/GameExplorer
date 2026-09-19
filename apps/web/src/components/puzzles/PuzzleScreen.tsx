@@ -191,7 +191,7 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
             {!empty && (
               <button
                 onClick={startOver}
-                className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
+                className="touch-target motion-control motion-safe:active:scale-[0.98] px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg text-sm"
               >
                 Start over
               </button>
@@ -207,7 +207,6 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
 
   return (
     <GameScreenLayout
-      accent={game}
       backHref={`/${game}`}
       backLabel={GAME_LABEL[game]}
       headerCenter={
@@ -312,21 +311,21 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
             <button
               onClick={showHint}
               disabled={phase !== 'playing'}
-              className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="touch-target motion-control motion-safe:active:scale-[0.98] flex-1 px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Hint
             </button>
             <button
               onClick={retry}
               disabled={isSolved}
-              className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="touch-target motion-control motion-safe:active:scale-[0.98] flex-1 px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed"
               data-testid="puzzle-retry"
             >
               Retry
             </button>
             <button
               onClick={next}
-              className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent transition-colors"
+              className="touch-target motion-control motion-safe:active:scale-[0.98] flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent"
               data-testid="puzzle-next"
             >
               Next
@@ -373,7 +372,7 @@ function EmptyState({
           {action}
           <Link
             href={`/${game}`}
-            className="px-4 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] transition-colors"
+            className="touch-target motion-control motion-safe:active:scale-[0.98] px-4 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08]"
           >
             Back to {GAME_LABEL[game]}
           </Link>

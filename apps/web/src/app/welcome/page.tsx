@@ -33,20 +33,6 @@ const DIFFICULTIES: { id: Difficulty; name: string; icon: IconName; tagline: str
 // DIFFICULTY_ELO now lives in @gameexplorer/shared — mobile's tour reads the
 // same ladder (it used to ignore the choice entirely).
 
-// Selection accent per option, as CSS color / glow pairs. Games glow in their
-// signature hue; opponents in gold; difficulties cool → hot.
-const GAME_ACCENT: Record<GameId, { color: string; glow: string }> = {
-  chess:    { color: 'var(--c-game-chess)',    glow: 'var(--c-game-chess-glow)' },
-  checkers: { color: 'var(--c-game-checkers)', glow: 'var(--c-game-checkers-glow)' },
-  reversi:  { color: 'var(--c-game-reversi)',  glow: 'var(--c-game-reversi-glow)' },
-};
-const GOLD_ACCENT = { color: 'var(--c-accent)', glow: 'var(--c-accent-glow)' };
-const DIFFICULTY_ACCENT: Record<Difficulty, { color: string; glow: string }> = {
-  relaxed:  { color: 'var(--c-success-hover)', glow: 'rgba(34, 211, 170, 0.45)' },
-  balanced: { color: 'var(--c-info)',          glow: 'var(--c-info-glow)' },
-  sharp:    { color: 'var(--c-danger)',        glow: 'rgba(244, 63, 94, 0.45)' },
-};
-
 export default function WelcomePage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -55,11 +41,6 @@ export default function WelcomePage() {
   const [game, setGame] = useState<GameId>('chess');
   const [opponent, setOpponent] = useState<Opponent>('bot');
   const [difficulty, setDifficulty] = useState<Difficulty>('relaxed');
-  // True once the user moves between steps. The step card only animates on
-  // those transitions — on first paint it must be visible immediately: this is
-  // the page's LCP element, and stacking opacity-0 entrances on top of the
-  // route-level PageTransition fade pushed LCP past 6s for new visitors.
-  const [navigated, setNavigated] = useState(false);
 
   // Seeing the tour counts as taking it — never bounce this visitor here again.
   useEffect(() => {
@@ -77,7 +58,6 @@ export default function WelcomePage() {
   };
 
   const advance = () => {
-    setNavigated(true);
     if (step === 2 && opponent !== 'bot') {
       startPlaying(); // friend/online games pick their own terms — no bot difficulty
     } else if (step === 3) {
@@ -92,30 +72,17 @@ export default function WelcomePage() {
   return (
     <div className="min-h-svh pt-16 flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
-        {/* Step card — re-keyed so each step change animates in. `page-enter`
-            only fires when `data-animate` is present (see globals.css); we mark
-            it once the user steps, so the first paint stays static (this is the
-            LCP element) but step transitions still animate — even on a direct
-            onboarding landing where no route-level navigation has occurred. */}
-        <div
-          key={step}
-          data-animate={navigated ? '' : undefined}
-          className="page-enter relative rounded-3xl border border-white/10 bg-surface-alt surface-raised-lg p-8 sm:p-9 flex flex-col"
-          style={
-            step === 0
-              ? {
-                  backgroundImage:
-                    'var(--c-welcome-wash), var(--gradient-surface)',
-                }
-              : undefined
-          }
-        >
+        {/* One flat card per step. It used to slide in on every step, over a
+            gold wash on the first — but the heading and the progress dots
+            already change, so the movement said nothing they did not
+            (ux-fix-ideas.md §6.1). */}
+        <div className="relative rounded-2xl border border-border bg-surface-alt p-6 sm:p-8 flex flex-col">
           {/* Back (steps 2+) */}
           {step > 0 && (
             <button
               onClick={() => setStep(s => s - 1)}
               aria-label="Back"
-              className="absolute left-4 top-4 w-8 h-8 rounded-full flex items-center justify-center text-fg-muted hover:text-fg hover:bg-white/5 transition-colors"
+              className="absolute left-2 top-2 w-11 h-11 rounded-full flex items-center justify-center text-fg-muted hover:text-fg hover:bg-white/5 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -150,15 +117,15 @@ export default function WelcomePage() {
                 </p>
               </div>
               <div className="mt-auto flex flex-col gap-3">
-                <button
-                  onClick={advance}
-                  className="w-full py-3.5 rounded-2xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-base [box-shadow:var(--c-accent-bloom)] hover:brightness-110 transition-all"
-                >
+                <ContinueButton onClick={advance} flush>
                   Let&rsquo;s play →
-                </button>
+                </ContinueButton>
                 <p className="text-sm text-fg-muted text-center">
                   Already have an account?{' '}
-                  <Link href="/auth/signin" className="text-info-hover font-semibold hover:underline">
+                  <Link
+                    href="/auth/signin"
+                    className="inline-flex min-h-11 items-center px-1 text-info-hover font-semibold hover:underline"
+                  >
                     Sign in
                   </Link>
                 </p>
@@ -179,7 +146,6 @@ export default function WelcomePage() {
                     name={g.name}
                     tagline={g.tagline}
                     selected={game === g.id}
-                    accent={GAME_ACCENT[g.id]}
                     onSelect={() => setGame(g.id)}
                   />
                 ))}
@@ -201,12 +167,11 @@ export default function WelcomePage() {
                     name={o.name}
                     tagline={o.tagline}
                     selected={opponent === o.id}
-                    accent={GOLD_ACCENT}
                     onSelect={() => setOpponent(o.id)}
                   />
                 ))}
               </div>
-              <ContinueButton onClick={advance} glow={opponent !== 'bot'}>
+              <ContinueButton onClick={advance}>
                 {opponent === 'bot' ? 'Continue →' : 'Start playing →'}
               </ContinueButton>
             </>
@@ -225,12 +190,11 @@ export default function WelcomePage() {
                     name={d.name}
                     tagline={d.tagline}
                     selected={difficulty === d.id}
-                    accent={DIFFICULTY_ACCENT[d.id]}
                     onSelect={() => setDifficulty(d.id)}
                   />
                 ))}
               </div>
-              <ContinueButton onClick={advance} glow>
+              <ContinueButton onClick={advance}>
                 Start playing →
               </ContinueButton>
             </>
@@ -238,8 +202,11 @@ export default function WelcomePage() {
         </div>
 
         {/* Every step is skippable */}
-        <p className="text-center mt-5">
-          <Link href="/" className="text-sm text-fg-subtle hover:text-fg-muted transition-colors">
+        <p className="text-center mt-3">
+          <Link
+            href="/"
+            className="inline-flex min-h-11 items-center px-3 text-sm text-fg-muted hover:text-fg transition-colors"
+          >
             Skip the tour — browse on my own
           </Link>
         </p>
@@ -254,7 +221,6 @@ function OptionRow({
   name,
   tagline,
   selected,
-  accent,
   onSelect,
 }: {
   icon: ReactNode;
@@ -262,26 +228,18 @@ function OptionRow({
   name: string;
   tagline: string;
   selected: boolean;
-  accent: { color: string; glow: string };
   onSelect: () => void;
 }) {
+  // One selected style for every question: an accent border, a muted fill and
+  // a check. Each option used to glow in its own colour — a game's neon, gold,
+  // or cool-to-hot for difficulty — which the option's name already carried.
   return (
     <button
       onClick={onSelect}
       aria-pressed={selected}
-      className="flex items-center gap-3.5 px-4 py-[15px] rounded-2xl border text-left transition-all"
-      style={
-        selected
-          ? {
-              background: `linear-gradient(180deg, color-mix(in srgb, ${accent.color} 16%, transparent), var(--c-game-tint-tail))`,
-              borderColor: accent.color,
-              boxShadow: `0 0 24px -8px ${accent.glow}`,
-            }
-          : {
-              background: 'var(--c-surface-alt)',
-              borderColor: 'var(--c-border)',
-            }
-      }
+      className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl border text-left motion-control motion-safe:active:scale-[0.98] ${
+        selected ? 'border-accent bg-accent-muted' : 'border-border bg-surface-alt hover:border-border-strong'
+      }`}
     >
       <span className="w-9 text-center leading-none" style={{ fontSize: iconSize }}>
         {icon}
@@ -291,10 +249,7 @@ function OptionRow({
         <span className="block text-label text-fg-muted">{tagline}</span>
       </span>
       {selected && (
-        <span
-          className="w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-label font-bold text-white"
-          style={{ background: accent.color, color: accent.color === 'var(--c-accent)' ? 'var(--c-on-accent)' : '#fff' }}
-        >
+        <span className="w-[22px] h-[22px] shrink-0 rounded-full flex items-center justify-center text-label font-bold bg-accent text-on-accent">
           <Icon name="check" />
         </span>
       )}
@@ -302,20 +257,21 @@ function OptionRow({
   );
 }
 
+/** The step's one gold element. `flush` drops the top margin where the button
+ *  sits in a column that already spaces it. */
 function ContinueButton({
   onClick,
-  glow = false,
+  flush = false,
   children,
 }: {
   onClick: () => void;
-  glow?: boolean;
-  children: React.ReactNode;
+  flush?: boolean;
+  children: ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
-      className="mt-5 w-full py-3.5 rounded-2xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-bold text-base hover:brightness-110 transition-all"
-      style={glow ? { boxShadow: 'var(--c-accent-bloom)' } : undefined}
+      className={`${flush ? '' : 'mt-5 '}w-full min-h-11 py-3.5 rounded-xl bg-accent text-on-accent font-bold text-base motion-control motion-safe:active:scale-[0.98] hover:bg-accent-hover`}
     >
       {children}
     </button>

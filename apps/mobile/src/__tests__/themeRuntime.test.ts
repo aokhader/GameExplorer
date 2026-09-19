@@ -13,7 +13,6 @@ import {
   REVERSI_BOARD_COLORS,
   CHESS_PIECE_STYLE,
   LIQUIDATE_BOARD_COLORS,
-  GRADIENTS_NATIVE,
   SHADOWS_NATIVE,
   getActiveTheme,
   setActiveTheme,
@@ -56,14 +55,12 @@ describe('theme runtime', () => {
     expect(CHESS_PIECE_STYLE.white.stroke).not.toBeNull();
   });
 
-  it('switches per-game accents, native shadows and gradients', () => {
+  it('switches per-game accents and native shadows', () => {
     setActiveTheme('cozy');
     expect(GAME_ACCENTS.chess.base).toBe('#8b5a2b');
     expect(GAME_ACCENTS.checkers.base).toBe('#2f6e4e');
-    // Arcade glows are pure-black/neon; Cozy's are warm and offset downward.
+    // Arcade's shadows are pure black; Cozy's are warm brown.
     expect(SHADOWS_NATIVE.md.shadowColor).not.toBe('#000');
-    expect(SHADOWS_NATIVE.glowAccent.shadowOffset.height).toBeGreaterThan(0);
-    expect(GRADIENTS_NATIVE.accent.colors[0]).toBe('#337157');
   });
 
   it('switches the type pairing', () => {
@@ -71,13 +68,6 @@ describe('theme runtime', () => {
     setActiveTheme('cozy');
     expect(FONTS.body).toBe('NunitoSans_400Regular');
     expect(FONTS.display).toBe('Spectral_800ExtraBold');
-  });
-
-  it('keeps gradient colors a tuple so LinearGradient still accepts them', () => {
-    // Widening tuples to string[] typechecks here but breaks the native call.
-    expect(GRADIENTS_NATIVE.accent.colors.length).toBeGreaterThanOrEqual(2);
-    setActiveTheme('cozy');
-    expect(GRADIENTS_NATIVE.accent.colors.length).toBeGreaterThanOrEqual(2);
   });
 
   it('restores Arcade Glow on switch back', () => {

@@ -52,7 +52,7 @@ export default function ReplaysPage() {
   }, [user]);
 
   return (
-    <div className="min-h-svh pt-16 page-glow-chess">
+    <div className="min-h-svh pt-16">
       <div className="container mx-auto px-4 pt-8 max-w-3xl">
         {/* Back link */}
         <Link
@@ -82,7 +82,7 @@ export default function ReplaysPage() {
             action={
               <Link
                 href="/chess/bot"
-                className="inline-block px-6 py-3 rounded-xl bg-accent [background-image:var(--gradient-accent)] text-on-accent font-semibold [box-shadow:var(--shadow-glow-accent)] hover:brightness-110 transition-all"
+                className="touch-target motion-control motion-safe:active:scale-[0.98] inline-block px-6 py-3 rounded-xl bg-accent text-on-accent font-semibold hover:brightness-110"
               >
                 Play your first game
               </Link>
@@ -94,7 +94,7 @@ export default function ReplaysPage() {
               <Link
                 key={game.id}
                 href={`/chess/replays/${game.id}`}
-                className="flex items-center gap-4 p-4 bg-white/[0.04] rounded-xl border border-white/10 hover:bg-white/[0.07] hover:border-white/20 transition-all hover:-translate-y-0.5"
+                className="flex items-center gap-4 p-4 bg-white/[0.04] rounded-xl border border-white/10 motion-control motion-safe:active:scale-[0.98] hover:bg-white/[0.07] hover:border-white/20 transition-all hover:-translate-y-0.5"
               >
                 {/* Color indicator — which side you played. Takes the theme's own
                     piece fills so the swatch matches the board, and always sets a

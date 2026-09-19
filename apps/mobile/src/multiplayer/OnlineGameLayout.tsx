@@ -3,7 +3,7 @@ import { ActivityIndicator, Share, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
-import { Button, Screen, BackHeader, GlowBackdrop } from '@/components/ui';
+import { Button, Screen, BackHeader } from '@/components/ui';
 import { GameScreenLayout, type GameAccent } from '@/game/GameScreenLayout';
 import { PlayerCard } from '@/game/PlayerCard';
 import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
@@ -104,11 +104,6 @@ export function OnlineGameLayout({
   if (!inGame) {
     return (
       <Screen>
-        <GlowBackdrop
-          blooms={[
-            { cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS[accent].base, opacity: 0.16 },
-          ]}
-        />
         <BackHeader fallbackHref={backHref} />
         <Text
           style={{
@@ -432,7 +427,7 @@ function OnlineResult({ session: s, onExit }: { session: GameSession; onExit: ()
       rating={rating}
       actions={
         <>
-          <Button label="Play Again" onPress={s.playAgain} glow />
+          <Button label="Play Again" onPress={s.playAgain} />
           <Button label="Back to Setup" variant="secondary" onPress={onExit} />
         </>
       }

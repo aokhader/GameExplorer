@@ -60,7 +60,7 @@ export function ResultActions({
         </Button>
         <Link
           href={backHref}
-          className="inline-flex h-12 items-center justify-center rounded-lg px-3 text-sm font-semibold text-fg-muted hover:bg-surface-muted hover:text-fg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="touch-target motion-control motion-safe:active:scale-[0.98] inline-flex h-12 items-center justify-center rounded-lg px-3 text-sm font-semibold text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           {backLabel}
         </Link>

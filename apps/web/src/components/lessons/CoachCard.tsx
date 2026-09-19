@@ -100,7 +100,7 @@ export function CoachCard({
         {canAdvance ? (
           <button
             onClick={onAdvance}
-            className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent transition-colors"
+            className="touch-target motion-control motion-safe:active:scale-[0.98] flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent"
             data-testid="coach-continue"
           >
             Continue
@@ -109,7 +109,7 @@ export function CoachCard({
           <button
             onClick={onHint}
             disabled={!canHint}
-            className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="touch-target motion-control motion-safe:active:scale-[0.98] flex-1 px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed"
             data-testid="coach-hint-button"
           >
             {hintShown ? 'Hint shown' : 'Hint'}
@@ -118,7 +118,7 @@ export function CoachCard({
         {canRetry && (
           <button
             onClick={onRetry}
-            className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] transition-colors"
+            className="touch-target motion-control motion-safe:active:scale-[0.98] flex-1 px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08]"
             data-testid="coach-retry"
           >
             Reset step

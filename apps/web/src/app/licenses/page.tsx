@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { GradientText } from '@/components/visual';
 
 export const metadata: Metadata = {
   title: 'Open Source & Licenses — GameExplorer',
@@ -38,9 +37,9 @@ export default function LicensesPage() {
   return (
     // pt-16 clears the fixed nav, the same shell every other page uses.
     <div className="relative min-h-svh pt-16">
-      <main className="max-w-2xl mx-auto px-6 py-14">
+      <main className="max-w-2xl mx-auto px-6 pt-6 pb-12">
         <h1 className="text-3xl font-bold mb-2">
-          <GradientText>Open Source &amp; Licenses</GradientText>
+          Open Source &amp; Licenses
         </h1>
         <p className="text-fg-muted text-sm mb-10">Last updated: August 18, 2026</p>
 

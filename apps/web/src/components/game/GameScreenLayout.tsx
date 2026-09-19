@@ -6,8 +6,6 @@ import { ShellNav } from '@/components/game/ShellNav';
 export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
 export interface GameScreenLayoutProps {
-  /** Per-game neon accent — paints the ambient page glow (chess blue, checkers pink, reversi lime). */
-  accent?: GameAccent;
   /** Where the header's back link points. */
   backHref: string;
   backLabel?: string;
@@ -73,7 +71,6 @@ const TOP_EXTRAS_PX = 52;
  * back link and page-specific actions (New Game, Analyze/Edit, …).
  */
 export function GameScreenLayout({
-  accent,
   backHref,
   backLabel = 'Back',
   headerCenter,
@@ -104,13 +101,12 @@ export function GameScreenLayout({
   return (
     <div
       className={cn(
-        'reveal-up min-h-svh lg:h-svh flex flex-col lg:overflow-hidden',
-        accent && `page-glow-${accent}`,
+        'min-h-svh lg:h-svh flex flex-col lg:overflow-hidden',
         className,
       )}
     >
       {/* Header */}
-      <div className="shrink-0 px-4 py-2 border-b border-border bg-surface-alt/50 backdrop-blur-sm">
+      <div className="shrink-0 px-4 py-2 border-b border-border bg-surface-alt">
         <div className="container mx-auto flex items-center justify-between gap-3">
           <ShellNav backHref={backHref} backLabel={backLabel} />
           {headerCenter}

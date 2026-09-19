@@ -39,7 +39,7 @@ export default function Image() {
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: INK_900,
-          // The gold bloom the app's own pages sit on (RouteAmbient).
+          // A soft gold bloom — the share card's own backdrop, not a page's.
           backgroundImage: `radial-gradient(circle at 50% 42%, rgba(205,164,63,0.22), rgba(11,14,23,0) 62%)`,
         }}
       >

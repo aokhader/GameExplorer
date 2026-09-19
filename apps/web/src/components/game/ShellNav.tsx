@@ -32,13 +32,13 @@ export function ShellNav({ backHref, backLabel = 'Back', className }: ShellNavPr
       <Link
         href="/"
         aria-label="Home"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted hover:text-fg hover:bg-white/5 transition-colors"
+        className="touch-target inline-flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted hover:text-fg hover:bg-white/5 transition-colors"
       >
         <Icon name="house" className="w-4 h-4" />
       </Link>
       <Link
         href={backHref}
-        className="inline-flex h-9 items-center gap-1.5 px-1 text-sm text-fg-muted hover:text-fg transition-colors"
+        className="touch-target inline-flex h-9 items-center gap-1.5 px-1 text-sm text-fg-muted hover:text-fg transition-colors"
       >
         <BackArrow />
         {backLabel}

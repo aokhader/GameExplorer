@@ -40,7 +40,7 @@ export function GoScoreBar({ score, captured }: GoScoreBarProps) {
       <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-[var(--gx-go-board-border,#0b1220)]">
         <div
           className="transition-all duration-300"
-          style={{ width: `${blackShare}%`, background: 'linear-gradient(90deg, var(--gx-go-stone-black-2,#2b3448), var(--gx-go-stone-black-1,#5c6a85))' }}
+          style={{ width: `${blackShare}%`, background: 'var(--gx-go-stone-black-1,#5c6a85)' }}
         />
         <div className="flex-1 bg-[var(--gx-go-stone-white-2,#e8e2d6)]" />
       </div>
@@ -53,11 +53,7 @@ export function GoScoreBar({ score, captured }: GoScoreBarProps) {
         <span className="sr-only">
           points for white, komi included, {score.scoring} scoring
         </span>
-        <span
-          className="inline-flex rounded-full"
-          style={{ boxShadow: '0 0 8px var(--c-game-go-glow)' }}
-          aria-hidden="true"
-        >
+        <span className="inline-flex" aria-hidden="true">
           <GoStone color="white" size={16} />
         </span>
       </span>

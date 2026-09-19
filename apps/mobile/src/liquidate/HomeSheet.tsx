@@ -302,8 +302,8 @@ export function HomeSheet({
               paddingHorizontal: 14,
               height: CTA_HEIGHT,
               borderRadius: RADIUS['2xl'],
+              // Flat: the gold is already the one action on the sheet.
               backgroundColor: cta.tone === 'danger' ? P.danger : P.accent,
-              boxShadow: cta.tone === 'danger' ? undefined : '0 8px 22px rgba(231,182,78,0.32)',
             }}
           >
             {({ pressed }) => (

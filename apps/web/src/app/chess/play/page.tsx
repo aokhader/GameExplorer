@@ -51,7 +51,6 @@ export default function ChessPlayPage() {
   return (
     <GameLayout
       session={s}
-      accent="chess"
       title="Online Chess"
       backHref="/chess"
       timeControls={TIME_CONTROLS}

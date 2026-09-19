@@ -72,7 +72,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
           </p>
           <Link
             href={`/${game}/learn`}
-            className="px-4 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent transition-colors"
+            className="touch-target motion-control motion-safe:active:scale-[0.98] px-4 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent"
           >
             Back to the {GAME_LABEL[game]} guide
           </Link>
@@ -90,7 +90,6 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
 
   return (
     <GameScreenLayout
-      accent={game}
       backHref={`/${game}/learn`}
       backLabel={GAME_LABEL[game]}
       headerCenter={
@@ -150,7 +149,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
                 {nextLesson ? (
                   <Link
                     href={`/${game}/learn/${nextLesson.id}`}
-                    className="px-3 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent text-center transition-colors"
+                    className="touch-target motion-control motion-safe:active:scale-[0.98] px-3 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent text-center"
                     data-testid="lesson-next"
                   >
                     Next: {nextLesson.title}
@@ -158,7 +157,7 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
                 ) : (
                   <Link
                     href={`/${game}/puzzles`}
-                    className="px-3 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent text-center transition-colors"
+                    className="touch-target motion-control motion-safe:active:scale-[0.98] px-3 py-2 rounded-lg text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent text-center"
                     data-testid="lesson-next"
                   >
                     Try the {GAME_LABEL[game]} puzzles
@@ -166,14 +165,14 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
                 )}
                 <button
                   onClick={restart}
-                  className="px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] transition-colors"
+                  className="touch-target motion-control motion-safe:active:scale-[0.98] px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08]"
                   data-testid="lesson-restart"
                 >
                   Play this lesson again
                 </button>
                 <Link
                   href={`/${game}/learn`}
-                  className="px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] text-center transition-colors"
+                  className="touch-target motion-control motion-safe:active:scale-[0.98] px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/[0.04] text-fg hover:bg-white/[0.08] text-center"
                 >
                   All {GAME_LABEL[game]} lessons
                 </Link>

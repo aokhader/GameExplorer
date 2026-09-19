@@ -42,7 +42,6 @@ export default function CheckersPlayPage() {
   return (
     <GameLayout
       session={s}
-      accent="checkers"
       title="Online Checkers"
       backHref="/checkers"
       timeControls={TIME_CONTROLS}

@@ -413,18 +413,18 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   // ── Setup screen ──────────────────────────────────────────────────────────────
 
   if (!gameStarted && awaitingResume) {
-    return <div className="min-h-svh page-glow-reversi" />;
+    return <div className="min-h-svh" />;
   }
 
   if (!gameStarted) {
     return (
-      <div className="min-h-svh page-glow-reversi">
-        <div className="container mx-auto px-4 pt-8">
+      <div className="min-h-svh">
+        <div className="container mx-auto px-4 pt-4">
           <ShellNav backHref="/reversi" />
         </div>
 
-        <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-fg mb-8 text-center">{isLocal ? 'Pass & Play' : 'Play vs Bot'}</h1>
+        <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
+          <h1 className="text-2xl font-bold text-fg mb-4">{isLocal ? 'Pass & Play' : 'Play vs Bot'}</h1>
 
           {unfinished.saved && (
             <ContinueCard
@@ -436,8 +436,8 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
           )}
 
           {/* Difficulty selector — no bot in pass-and-play, so nothing to calibrate. */}
-          <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
-            <h2 className="text-2xl font-semibold text-fg mb-6">Bot Strength</h2>
+          <div className={`rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4 ${isLocal ? 'hidden' : ''}`}>
+            <h2 className="text-lg font-semibold text-fg mb-3">Bot Strength</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {DIFFICULTY_LEVELS.map((level, i) => {
                 const selected = targetElo === level.elo;
@@ -447,7 +447,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
                     onClick={() => update({ elo: level.elo })}
                     className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                       selected
-                        ? 'border-accent bg-accent-muted [box-shadow:var(--shadow-glow-accent)] scale-[1.02]'
+                        ? 'border-accent bg-accent-muted'
                         : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                     }`}
                   >
@@ -475,8 +475,8 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
 
           {/* Color selector — nothing to choose in pass-and-play: the board never
               flips (see the note on the mode prop) and black always starts. */}
-          <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
-            <h2 className="text-2xl font-semibold text-fg mb-6">Choose Your Colour</h2>
+          <div className={`rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4 ${isLocal ? 'hidden' : ''}`}>
+            <h2 className="text-lg font-semibold text-fg mb-3">Choose Your Colour</h2>
             <div className="grid grid-cols-2 gap-4">
               {(['black', 'white'] as const).map(color => (
                 <button
@@ -484,7 +484,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
                   onClick={() => update({ color })}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
-                      ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                      ? 'border border-accent bg-accent-muted text-fg'
                       : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                   }`}
                 >
@@ -496,7 +496,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
                     </svg>
                   </div>
                   <div className="font-semibold capitalize">{color}</div>
-                  <div className={`text-sm ${playerColor === color ? 'text-on-accent/80' : 'text-fg-muted'}`}>
+                  <div className={`text-sm ${playerColor === color ? 'text-fg-muted' : 'text-fg-muted'}`}>
                     {isLocal ? (color === 'black' ? 'Moves first' : 'Moves second') : color === 'black' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
@@ -569,7 +569,6 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   return (
     <>
       <GameScreenLayout
-        accent="reversi"
         backHref="/reversi"
         headerActions={
           <>
@@ -581,12 +580,12 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
             {!isAtLive && (
               <button
                 onClick={() => setViewIndex(timeline.length - 1)}
-                className="text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg transition-colors font-medium"
+                className="touch-target motion-control motion-safe:active:scale-[0.98] text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg font-medium"
               >
                 Live ⇥
               </button>
             )}
-            <button onClick={handleNewGame} className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm">
+            <button onClick={handleNewGame} className="touch-target motion-control motion-safe:active:scale-[0.98] px-4 py-2 border border-border-strong text-fg hover:bg-surface-muted font-semibold rounded-lg text-sm">
               New Game
             </button>
           </>

@@ -15,8 +15,8 @@ import {
   type LiquidateSeat,
 } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
-import { Screen, BackHeader, Button, GlowBackdrop, Icon, type IconName } from '@/components/ui';
-import { SetupHero } from '@/game/SetupHero';
+import { Screen, BackHeader, Button, Icon, type IconName } from '@/components/ui';
+import { SetupHeading } from '@/game/SetupHeading';
 import { useLiquidateGame } from '@/liquidate/useLiquidateGame';
 import { LiquidateGame } from '@/liquidate/LiquidateGame';
 import { FONTS } from '@/theme/typography';
@@ -144,12 +144,9 @@ export function LiquidateScreen() {
 
   return (
     // Start pinned under the scrolling form rather than at its end.
-    <Screen footer={<Button label="Start Match" onPress={start} glow />}>
-      <GlowBackdrop
-        blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: accent.base, opacity: 0.16 }]}
-      />
+    <Screen footer={<Button label="Start Match" onPress={start} />}>
       <BackHeader fallbackHref="/" />
-      <SetupHero game="liquidate" />
+      <SetupHeading game="liquidate" />
 
       <Pressable
         onPress={() => router.push('/learn/liquidate' as never)}
@@ -198,7 +195,6 @@ export function LiquidateScreen() {
                 game.resume();
                 markPlayed('liquidate');
               }}
-              glow
               style={{ flex: 1 }}
             />
             <Button

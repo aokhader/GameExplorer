@@ -34,7 +34,7 @@ export function Toggle({ checked, onChange, label, disabled = false }: TogglePro
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        'w-12 h-7 rounded-full transition-colors shrink-0',
+        'w-12 h-7 rounded-full transition-colors shrink-0 touch-target',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ring-offset-2 ring-offset-surface-alt',
         checked ? 'bg-accent' : 'bg-surface-muted',
         disabled && 'opacity-50 cursor-not-allowed',

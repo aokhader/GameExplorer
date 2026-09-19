@@ -147,6 +147,27 @@
    `scale` and `translate` properties, not `transform`, so all three are listed.
    A transition naming only `transform`, which is what the buttons had, let the
    press scale and the hover lift jump. */
+/* `touch-target` — on a coarse pointer, a control's hit area reaches 44×44px
+   (WCAG 2.5.5, Apple HIG) without changing its drawn size (ux-fix-ideas.md
+   §8.3). An invisible `::after` extends the element by however much it falls
+   short on each axis, and not at all where it is already big enough; a tap on
+   the extension is a tap on the control. With a mouse, which can hit a 32px
+   button, nothing changes. Rows of these need at least their shortfall between
+   them, or two extensions overlap and the later one takes the tap. */
+@utility touch-target {
+  position: relative;
+  @media (pointer: coarse) {
+    &::after {
+      content: '';
+      position: absolute;
+      top: min(0px, calc((100% - 2.75rem) / 2));
+      bottom: min(0px, calc((100% - 2.75rem) / 2));
+      left: min(0px, calc((100% - 2.75rem) / 2));
+      right: min(0px, calc((100% - 2.75rem) / 2));
+    }
+  }
+}
+
 @utility motion-control {
   transition-property: color, background-color, border-color, box-shadow, transform, translate, scale;
   transition-duration: var(--duration-fast), var(--duration-fast), var(--duration-fast),
@@ -204,63 +225,24 @@
   --c-info-hover:     #7db1ff;
   --c-info-muted:     rgba(59, 130, 246, 0.16);
 
-  /* Translucent brand glows for ambient blooms (gold + neon-blue chrome). */
-  --c-accent-glow:    rgba(205, 164, 63, 0.32);
-  --c-info-glow:      rgba(59, 130, 246, 0.30);
-
-  /* Per-game signature hues + translucent glow (pair: GAME_ACCENTS in tokens.ts). */
+  /* Per-game signature hues (pair: GAME_ACCENTS in tokens.ts). */
   --c-game-chess:          #3b82f6;
-  --c-game-chess-glow:     rgba(59, 130, 246, 0.45);
   --c-game-checkers:       #ec4899;
-  --c-game-checkers-glow:  rgba(236, 72, 153, 0.45);
   --c-game-reversi:        #a3e635;
-  --c-game-reversi-glow:   rgba(163, 230, 53, 0.42);
   --c-game-go:             #22d3ee;
-  --c-game-go-glow:        rgba(34, 211, 238, 0.42);
   --c-game-liquidate:      #8b5cf6;
-  --c-game-liquidate-glow: rgba(139, 92, 246, 0.45);
 
-  /* Per-game TINT ramp — the tinted-card treatment (profile rating cards): a hue
-     wash fading to a tail, a hue hairline, a matching bloom, and a lightened hue
-     for the numeral sitting on it. Mirrors `GAME_ACCENTS.tint*` / `.light` in
-     tokens.ts, which mobile reads; the alphas here are the web page's own and run
-     a touch softer. */
+  /* A lightened per-game hue, for a rating numeral or a chevron sitting on a
+     surface (pair: GAME_ACCENTS `.light` in tokens.ts). */
   --c-game-chess-light:        #7db1ff;
-  --c-game-chess-tint:         rgba(59, 130, 246, 0.14);
-  --c-game-chess-tint-border:  rgba(59, 130, 246, 0.35);
-  --c-game-chess-card-glow:    0 0 30px -16px rgba(59, 130, 246, 0.7);
   --c-game-checkers-light:       #ff8fc4;
-  --c-game-checkers-tint:        rgba(236, 72, 153, 0.14);
-  --c-game-checkers-tint-border: rgba(236, 72, 153, 0.35);
-  --c-game-checkers-card-glow:   0 0 30px -16px rgba(236, 72, 153, 0.7);
   --c-game-reversi-light:        #bef264;
-  --c-game-reversi-tint:         rgba(163, 230, 53, 0.12);
-  --c-game-reversi-tint-border:  rgba(163, 230, 53, 0.32);
-  --c-game-reversi-card-glow:    0 0 30px -16px rgba(163, 230, 53, 0.6);
   --c-game-go-light:             #67e8f9;
-  --c-game-go-tint:              rgba(34, 211, 238, 0.12);
-  --c-game-go-tint-border:       rgba(34, 211, 238, 0.32);
-  --c-game-go-card-glow:         0 0 30px -16px rgba(34, 211, 238, 0.6);
   --c-game-liquidate-light:       #c4b5fd;
-  --c-game-liquidate-tint:        rgba(139, 92, 246, 0.14);
-  --c-game-liquidate-tint-border: rgba(139, 92, 246, 0.35);
-  --c-game-liquidate-card-glow:   0 0 30px -16px rgba(139, 92, 246, 0.7);
-  /* Shared tail the tint fades into — a white lift on dark, a warm shade on light. */
-  --c-game-tint-tail:            rgba(255, 255, 255, 0.02);
 
   /* Brand accent tuned for use AS TEXT (big numerals, active pills), where the
      accent fill color itself is either too dim or too loud. */
   --c-accent-text:    #f0d589;
-  /* Ringless accent bloom under a primary CTA — `--shadow-glow-accent` with its
-     1px ring dropped, for buttons that already have their own edge. */
-  --c-accent-bloom:   0 0 30px -6px rgba(205, 164, 63, 0.7);
-  /* Hero wash on the onboarding welcome card (step 1 only). */
-  --c-welcome-wash:
-    radial-gradient(600px 300px at 50% -10%, rgba(59,130,246,0.20), transparent 60%),
-    radial-gradient(500px 260px at 90% 10%,  rgba(236,72,153,0.14), transparent 60%);
-  /* Profile avatar monogram tile. */
-  --c-avatar-gradient: linear-gradient(160deg, #3b82f6, #8b5cf6);
-  --c-avatar-glow:     0 0 40px -8px rgba(99, 102, 241, 0.8);
 
   --c-danger:         #f43f5e;
   --c-danger-hover:   #fb7185;
@@ -282,67 +264,43 @@
   --font-body:    var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-space-grotesk), 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
 
-  /* Elevation + neon glow shadows (pair: SHADOWS in tokens.ts). */
+  /* Elevation shadows (pair: SHADOWS in tokens.ts). */
   --shadow-elevation:     inset 0 1px 0 0 rgba(255,255,255,0.06), 0 10px 30px -10px rgba(0,0,0,0.7);
   --shadow-elevation-lg:  inset 0 1px 0 0 rgba(255,255,255,0.07), 0 40px 80px -30px rgba(0,0,0,0.9);
-  --shadow-glow-accent:   0 0 0 1px rgba(205,164,63,0.30), 0 0 34px -4px rgba(205,164,63,0.65);
-  --shadow-glow-chess:    0 0 0 1px rgba(59,130,246,0.35), 0 0 40px -8px rgba(59,130,246,0.65);
-  --shadow-glow-checkers: 0 0 0 1px rgba(236,72,153,0.35), 0 0 40px -8px rgba(236,72,153,0.65);
-  --shadow-glow-reversi:  0 0 0 1px rgba(163,230,53,0.32), 0 0 40px -8px rgba(163,230,53,0.55);
-  --shadow-glow-go:       0 0 0 1px rgba(34,211,238,0.32), 0 0 40px -8px rgba(34,211,238,0.55);
-  --shadow-glow-liquidate: 0 0 0 1px rgba(139,92,246,0.35), 0 0 40px -8px rgba(139,92,246,0.65);
-
-  /* Gradients (pair: GRADIENTS in tokens.ts). */
-  --gradient-accent:  linear-gradient(180deg, #dcb456 0%, #cda43f 55%, #b8923a 100%);
-  --gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 40%);
-
-  /* Richness-layer knobs — the parts of `.glass`, `.grain`, the gradient text and
-     the per-route page glows that are theme-dependent. Pulled out as vars so a
-     theme block can retheme the expression, not just the palette. */
-  --glass-sheen:  linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --grain-opacity: 0.04;
-  --gradient-text-accent: linear-gradient(135deg, #f0d589 0%, #cda43f 55%, #b8923a 100%);
-  --gradient-text-brand:  linear-gradient(90deg, #3b82f6 0%, #ec4899 100%);
-  --page-glow-chess:     radial-gradient(900px 500px at 20% 0%, rgba(59,130,246,0.12),  transparent 55%);
-  --page-glow-checkers:  radial-gradient(900px 500px at 20% 0%, rgba(236,72,153,0.13),  transparent 55%);
-  --page-glow-reversi:   radial-gradient(900px 500px at 20% 0%, rgba(163,230,53,0.12),  transparent 55%);
-  --page-glow-go:        radial-gradient(900px 500px at 20% 0%, rgba(34,211,238,0.11),  transparent 55%);
-  --page-glow-liquidate: radial-gradient(900px 500px at 20% 0%, rgba(139,92,246,0.13),  transparent 55%);
-  --page-glow-gold:      radial-gradient(900px 500px at 50% 0%, rgba(205,164,63,0.10),  transparent 55%);
-  --page-glow-profile:
-    radial-gradient(900px 480px at 15% -10%, rgba(59,130,246,0.13), transparent 55%),
-    radial-gradient(700px 400px at 95% 0%,   rgba(236,72,153,0.10), transparent 55%);
 
   /* Boards & pieces — Arcade Glow. These pair with `BOARD_COLORS`,
      `CHECKERS_BOARD_COLORS` and `REVERSI_BOARD_COLORS` in the per-game token
      files under `packages/ui/src` (mobile reads those directly). Only the board
      squares live here; the piece slots are declared per-theme, since each web
      piece component already carries its Arcade token as the CSS fallback. */
+  /* The state budget — four translucent hues laid over the square, no glow, no
+     motion (`chess/tokens.ts` has the contrast figures). Gold is what just
+     happened, teal what you can do, violet what you queued, red what is wrong. */
   --gx-board-light:          #445576;
   --gx-board-dark:           #2a3550;
   --gx-board-frame:          var(--c-border-strong);
-  --gx-board-selected:       #cda43f;
+  --gx-board-selected:       rgba(34, 211, 170, 0.50);
   --gx-board-lastmove-light: rgba(205, 164, 63, 0.42);
   --gx-board-lastmove-dark:  rgba(205, 164, 63, 0.52);
-  --gx-board-move:           rgba(34, 211, 170, 0.85);
-  --gx-board-move-capture:   rgba(34, 211, 170, 0.55);
-  --gx-board-turn-glow:      0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(59,130,246,0.6), 0 0 30px -2px rgba(59,130,246,0.55);
+  --gx-board-move:           rgba(34, 211, 170, 0.60);
+  --gx-board-move-capture:   rgba(34, 211, 170, 0.45);
+  /* A legal destination under a hovering pointer (never on touch). */
+  --gx-board-move-hover:     rgba(34, 211, 170, 0.30);
+  --gx-board-check:          rgba(239, 68, 68, 0.95);
   /* Queued (pre)move — deliberately a different hue from the last-move gold, so
      "what I've asked for" never reads as "what just happened". */
-  --gx-board-premove:        rgba(139, 92, 246, 0.55);
+  --gx-board-premove:        rgba(139, 92, 246, 0.60);
   --gx-board-premove-hint:   rgba(139, 92, 246, 0.75);
 
   --gx-checkers-board-light:          #445576;
   --gx-checkers-board-dark:           #2a3550;
   --gx-checkers-board-frame:          var(--c-border-strong);
-  --gx-checkers-board-selected:       #cda43f;
+  --gx-checkers-board-selected:       rgba(34, 211, 170, 0.50);
   --gx-checkers-board-lastmove-light: rgba(205, 164, 63, 0.42);
   --gx-checkers-board-lastmove-dark:  rgba(205, 164, 63, 0.52);
-  --gx-checkers-board-move:           rgba(236, 72, 153, 0.85);
-  --gx-checkers-board-capture:        rgba(236, 72, 153, 0.75);
-  --gx-checkers-board-turn-glow:      0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(236,72,153,0.6), 0 0 30px -2px rgba(236,72,153,0.5);
-  --gx-checkers-board-premove:        rgba(139, 92, 246, 0.55);
+  --gx-checkers-board-move:           rgba(34, 211, 170, 0.60);
+  --gx-checkers-board-capture:        rgba(34, 211, 170, 0.45);
+  --gx-checkers-board-premove:        rgba(139, 92, 246, 0.60);
   --gx-checkers-board-premove-hint:   rgba(139, 92, 246, 0.75);
 
   --gx-reversi-board-cell:        #12503a;
@@ -350,8 +308,7 @@
   --gx-reversi-board-frame:       #0c3324;
   --gx-reversi-board-valid-black: rgba(0, 0, 0, 0.35);
   --gx-reversi-board-valid-white: rgba(255, 255, 255, 0.32);
-  --gx-reversi-board-lastmove-ring: rgba(190, 242, 100, 0.85);
-  --gx-reversi-board-turn-glow:   0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(163,230,53,0.6), 0 0 30px -2px rgba(163,230,53,0.5);
+  --gx-reversi-board-lastmove-ring: rgba(205, 164, 63, 0.95);
 
   /* Go board — pairs with GO_BOARD_COLORS in the ui package. A Go board has no
      cells to colour: it is a wood field with a grid ruled across it, and stones
@@ -364,6 +321,9 @@
   --gx-go-board-border:        #15100b;
   --gx-go-board-coordinate:    rgba(226, 205, 168, 0.65);
   --gx-go-board-last-move:     rgba(103, 232, 249, 0.95);
+  --gx-go-board-last-move-on-black: rgba(245, 240, 230, 0.9);
+  --gx-go-board-last-move-on-white: rgba(12, 16, 24, 0.85);
+  --gx-go-board-aim-line:      rgba(226, 205, 168, 0.6);
   --gx-go-board-ghost:         rgba(226, 205, 168, 0.35);
   --gx-go-board-hint:          rgba(245, 158, 11, 0.95);
 
@@ -465,64 +425,25 @@
   --c-info-hover:     #6e4a2a;
   --c-info-muted:     rgba(139, 90, 43, 0.12);
 
-  /* Ambient blooms are warm washes, not neon — the AmbientBackground blooms sit
-     on cream, where anything above ~10% alpha turns muddy. */
-  --c-accent-glow:    rgba(169, 116, 63, 0.20);
-  --c-info-glow:      rgba(47, 110, 78, 0.12);
-
   /* Per-game hues: walnut chess, forest checkers, dark-wood reversi, pine go, clay
      liquidate (pair: COZY_GAME_ACCENTS in tokens.ts). */
   --c-game-chess:          #8b5a2b;
-  --c-game-chess-glow:     rgba(169, 116, 63, 0.30);
   --c-game-checkers:       #2f6e4e;
-  --c-game-checkers-glow:  rgba(47, 110, 78, 0.24);
   --c-game-reversi:        #3b2e21;
-  --c-game-reversi-glow:   rgba(59, 46, 33, 0.22);
   --c-game-go:             #2c6360;
-  --c-game-go-glow:        rgba(44, 99, 96, 0.24);
   --c-game-liquidate:      #b8724a;
-  --c-game-liquidate-glow: rgba(184, 114, 74, 0.26);
-  /* Shade the home page's game cards deepen toward — dark walnut, not the
-     Arcade ink, so the warm hues stay warm. */
-  --c-game-card-shade:     #2c1a0c;
 
-  /* Tint ramp: the numeral takes the SATURATED hue, not a lightened one — on
-     parchment the Arcade "light" step (#7db1ff etc.) is what made these cards
-     read as neon. The bloom becomes a soft warm drop shadow; a colored halo on
-     cream just looks like a printing error. */
+  /* The numeral takes the SATURATED hue, not a lightened one — on parchment the
+     Arcade "light" step (#7db1ff etc.) read as neon. */
   --c-game-chess-light:        #74491f;
-  --c-game-chess-tint:         rgba(139, 90, 43, 0.10);
-  --c-game-chess-tint-border:  rgba(169, 116, 63, 0.45);
-  --c-game-chess-card-glow:    0 8px 20px -14px rgba(124, 82, 48, 0.5);
   --c-game-checkers-light:       #23543b;
-  --c-game-checkers-tint:        rgba(47, 110, 78, 0.10);
-  --c-game-checkers-tint-border: rgba(47, 110, 78, 0.42);
-  --c-game-checkers-card-glow:   0 8px 20px -14px rgba(47, 110, 78, 0.5);
   --c-game-reversi-light:        #3b2e21;
-  --c-game-reversi-tint:         rgba(59, 46, 33, 0.09);
-  --c-game-reversi-tint-border:  rgba(59, 46, 33, 0.38);
-  --c-game-reversi-card-glow:    0 8px 20px -14px rgba(59, 46, 33, 0.45);
   --c-game-go-light:             #22504e;
-  --c-game-go-tint:              rgba(44, 99, 96, 0.10);
-  --c-game-go-tint-border:       rgba(44, 99, 96, 0.42);
-  --c-game-go-card-glow:         0 8px 20px -14px rgba(44, 99, 96, 0.5);
   --c-game-liquidate-light:       #8a4526;
-  --c-game-liquidate-tint:        rgba(184, 114, 74, 0.11);
-  --c-game-liquidate-tint-border: rgba(184, 114, 74, 0.42);
-  --c-game-liquidate-card-glow:   0 8px 20px -14px rgba(184, 114, 74, 0.5);
-  --c-game-tint-tail:            rgba(139, 90, 43, 0.02);
 
   /* Deeper than `--c-accent` — this tone also carries 12px pill labels sitting on
      an `accent-muted` fill, where the button green itself lands at ~4.1:1. */
   --c-accent-text:     #23543b;
-  --c-accent-bloom:    0 8px 22px -10px rgba(47, 110, 78, 0.55);
-  --c-welcome-wash:
-    radial-gradient(600px 300px at 50% -10%, rgba(169,116,63,0.16), transparent 60%),
-    radial-gradient(500px 260px at 90% 10%,  rgba(47,110,78,0.10),  transparent 60%);
-  /* Deeper than the walnut elsewhere: this tile carries a white monogram down to
-     14px, and the lighter walnut put it at 4.0:1. */
-  --c-avatar-gradient: linear-gradient(160deg, #96622f, #5e3f22);
-  --c-avatar-glow:     0 10px 24px -12px rgba(110, 74, 42, 0.65);
 
   --c-danger:         #a2482e;
   --c-danger-hover:   #85391f;
@@ -559,72 +480,40 @@
      faint, since a lit edge on cream is a hint rather than a rim. */
   --shadow-elevation:     inset 0 1px 0 0 rgba(255,255,255,0.75), 0 12px 26px -18px rgba(60,40,20,0.55);
   --shadow-elevation-lg:  inset 0 1px 0 0 rgba(255,255,255,0.85), 0 40px 80px -30px rgba(60,40,20,0.45);
-  --shadow-glow-accent:   0 0 0 1px rgba(47,110,78,0.45),  0 10px 22px -10px rgba(47,110,78,0.55);
-  --shadow-glow-chess:    0 0 0 1px rgba(139,90,43,0.45),  0 10px 24px -10px rgba(124,82,48,0.50);
-  --shadow-glow-checkers: 0 0 0 1px rgba(47,110,78,0.45),  0 10px 24px -10px rgba(47,110,78,0.50);
-  --shadow-glow-reversi:  0 0 0 1px rgba(59,46,33,0.40),   0 10px 24px -10px rgba(59,46,33,0.45);
-  --shadow-glow-go:       0 0 0 1px rgba(44,99,96,0.45),   0 10px 24px -10px rgba(44,99,96,0.50);
-  --shadow-glow-liquidate:0 0 0 1px rgba(184,114,74,0.45), 0 10px 24px -10px rgba(184,114,74,0.50);
 
-  /* Top stop is darker than the hover green: this gradient is a CTA fill carrying
-     `on-accent` cream down to 14px, and a lighter lit edge dropped it to 3.5:1. */
-  --gradient-accent:  linear-gradient(180deg, #337157 0%, #2f6e4e 55%, #275c41 100%);
-  /* Sheen inverts: on a light card the lit edge comes from white, but the *body*
-     needs a faint warm shade at the bottom or the card floats with no volume. */
-  --gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(139,90,43,0.03) 100%);
-
-  --glass-sheen:  linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(250,244,232,0.45) 100%);
-  --glass-border: rgba(139, 90, 43, 0.16);
-  /* Paper tooth — the grain reads as fibre on parchment, so it can be stronger. */
-  --grain-opacity: 0.06;
-  --gradient-text-accent: linear-gradient(135deg, #8b5a2b 0%, #2f6e4e 60%, #275c41 100%);
-  --gradient-text-brand:  linear-gradient(90deg, #8b5a2b 0%, #2f6e4e 100%);
-  /* Ambient washes run lighter than Arcade Glow's. A dark theme's glow ADDS light,
-     so text contrast improves under it; on parchment the wash subtracts light from
-     an already-light surface, and at the design doc's ~0.22 it pulled `fg-muted`
-     under AA at the hot spot. These are the strongest values that keep every text
-     tone legible at the peak of the bloom. */
-  --page-glow-chess:     radial-gradient(900px 500px at 20% 0%, rgba(169,116,63,0.15), transparent 60%);
-  --page-glow-checkers:  radial-gradient(900px 500px at 20% 0%, rgba(47,110,78,0.12),  transparent 60%);
-  --page-glow-reversi:   radial-gradient(900px 500px at 20% 0%, rgba(59,46,33,0.10),   transparent 60%);
-  --page-glow-go:        radial-gradient(900px 500px at 20% 0%, rgba(44,99,96,0.11),   transparent 60%);
-  --page-glow-liquidate: radial-gradient(900px 500px at 20% 0%, rgba(184,114,74,0.13), transparent 60%);
-  --page-glow-gold:      radial-gradient(1000px 500px at 50% -10%, rgba(169,116,63,0.14), transparent 60%);
-  --page-glow-profile:
-    radial-gradient(900px 480px at 15% -10%, rgba(169,116,63,0.13), transparent 58%),
-    radial-gradient(700px 400px at 95% 0%,   rgba(47,110,78,0.09),  transparent 58%);
 
   /* ── Boards & pieces ──────────────────────────────────────────────────────
    * The board/piece components carry their Arcade Glow values as literal CSS
    * fallbacks (sourced from `chess|checkers|reversi/tokens.ts`), so a theme only
    * declares what it changes. Cozy is the wood-and-felt table: walnut squares in
-   * a dark frame for chess and checkers, green felt for reversi, and every
-   * highlight is the forest green the design uses for "your move".
+   * a dark frame for chess and checkers, green felt for reversi. Forest green
+   * (the theme's "your move") carries what you can do; the last move is
+   * olive-gold, because gold washes out on walnut.
    * ──────────────────────────────────────────────────────────────────────── */
   --gx-board-light:          #e7c9a0;
   --gx-board-dark:           #a9743f;
   --gx-board-frame:          #6e4a2a;
-  --gx-board-selected:       #2f6e4e;
-  --gx-board-lastmove-light: rgba(47, 110, 78, 0.38);
-  --gx-board-lastmove-dark:  rgba(47, 110, 78, 0.50);
+  --gx-board-selected:       rgba(47, 110, 78, 0.55);
+  --gx-board-lastmove-light: rgba(150, 150, 20, 0.55);
+  --gx-board-lastmove-dark:  rgba(150, 150, 20, 0.60);
   --gx-board-move:           rgba(47, 110, 78, 0.65);
   --gx-board-move-capture:   rgba(47, 110, 78, 0.50);
-  --gx-board-turn-glow:      0 12px 28px -6px rgba(60,40,20,0.35), 0 0 0 2px rgba(47,110,78,0.75);
+  --gx-board-move-hover:     rgba(47, 110, 78, 0.30);
+  --gx-board-check:          rgba(190, 30, 30, 0.90);
   /* Slate blue rather than Arcade's violet: on walnut it stays clearly apart
      from the green "your move" family without going neon. */
-  --gx-board-premove:        rgba(45, 90, 140, 0.50);
+  --gx-board-premove:        rgba(45, 90, 140, 0.55);
   --gx-board-premove-hint:   rgba(45, 90, 140, 0.70);
 
   --gx-checkers-board-light:          #e7c9a0;
   --gx-checkers-board-dark:           #a9743f;
   --gx-checkers-board-frame:          #6e4a2a;
-  --gx-checkers-board-selected:       #2f6e4e;
-  --gx-checkers-board-lastmove-light: rgba(47, 110, 78, 0.38);
-  --gx-checkers-board-lastmove-dark:  rgba(47, 110, 78, 0.50);
-  --gx-checkers-board-move:           rgba(47, 110, 78, 0.85);
-  --gx-checkers-board-capture:        rgba(47, 110, 78, 0.90);
-  --gx-checkers-board-turn-glow:      0 12px 28px -6px rgba(60,40,20,0.35), 0 0 0 2px rgba(47,110,78,0.75);
-  --gx-checkers-board-premove:        rgba(45, 90, 140, 0.50);
+  --gx-checkers-board-selected:       rgba(47, 110, 78, 0.55);
+  --gx-checkers-board-lastmove-light: rgba(150, 150, 20, 0.55);
+  --gx-checkers-board-lastmove-dark:  rgba(150, 150, 20, 0.60);
+  --gx-checkers-board-move:           rgba(47, 110, 78, 0.65);
+  --gx-checkers-board-capture:        rgba(47, 110, 78, 0.50);
+  --gx-checkers-board-premove:        rgba(45, 90, 140, 0.55);
   --gx-checkers-board-premove-hint:   rgba(45, 90, 140, 0.70);
 
   --gx-reversi-board-cell:        #2f6e4e;
@@ -633,7 +522,6 @@
   --gx-reversi-board-valid-black: rgba(0, 0, 0, 0.35);
   --gx-reversi-board-valid-white: rgba(255, 255, 255, 0.35);
   --gx-reversi-board-lastmove-ring: rgba(250, 244, 232, 0.90);
-  --gx-reversi-board-turn-glow:   0 12px 28px -6px rgba(60,40,20,0.35), 0 0 0 2px rgba(47,110,78,0.75);
 
   /* Go board — real kaya-board yellow with brown-black lines. Like Liquidate's
      tabletop board this is LIGHTER than the page, which is what a Go board
@@ -647,6 +535,9 @@
   --gx-go-board-border:        #8b5a2b;
   --gx-go-board-coordinate:    rgba(45, 30, 15, 0.7);
   --gx-go-board-last-move:     rgba(162, 72, 46, 0.95);
+  --gx-go-board-last-move-on-black: rgba(255, 253, 247, 0.92);
+  --gx-go-board-last-move-on-white: rgba(18, 12, 7, 0.85);
+  --gx-go-board-aim-line:      rgba(45, 30, 15, 0.6);
   --gx-go-board-ghost:         rgba(45, 30, 15, 0.28);
   --gx-go-board-hint:          rgba(138, 102, 29, 0.95);
 
@@ -803,21 +694,25 @@
 [data-theme='cozy'] [class~='border-white/10'] { border-color: rgba(139, 90, 43, 0.20); }
 [data-theme='cozy'] [class~='border-white/15'] { border-color: rgba(139, 90, 43, 0.28); }
 [data-theme='cozy'] [class~='border-white/20'] { border-color: rgba(139, 90, 43, 0.36); }
-[data-theme='cozy'] [class~='hover:border-white/15']:hover { border-color: rgba(139, 90, 43, 0.28); }
-[data-theme='cozy'] [class~='hover:border-white/20']:hover { border-color: rgba(139, 90, 43, 0.36); }
 [data-theme='cozy'] [class~='bg-white/5']      { background-color: rgba(139, 90, 43, 0.05); }
 [data-theme='cozy'] [class~='bg-white/10']     { background-color: rgba(139, 90, 43, 0.08); }
 [data-theme='cozy'] [class~='bg-white/15']     { background-color: rgba(139, 90, 43, 0.11); }
 [data-theme='cozy'] [class~='bg-white/20']     { background-color: rgba(139, 90, 43, 0.14); }
-[data-theme='cozy'] [class~='hover:bg-white/5']:hover  { background-color: rgba(139, 90, 43, 0.06); }
-[data-theme='cozy'] [class~='hover:bg-white/10']:hover { background-color: rgba(139, 90, 43, 0.10); }
 /* Arbitrary-value spellings of the same gesture (`bg-white/[0.04]`). Tailwind
    treats these as distinct classes, so they need their own entries. */
 [data-theme='cozy'] [class~='border-white/[0.06]'] { border-color: rgba(139, 90, 43, 0.14); }
 [data-theme='cozy'] [class~='border-white/[0.08]'] { border-color: rgba(139, 90, 43, 0.17); }
 [data-theme='cozy'] [class~='bg-white/[0.03]']     { background-color: rgba(139, 90, 43, 0.035); }
 [data-theme='cozy'] [class~='bg-white/[0.04]']     { background-color: rgba(139, 90, 43, 0.045); }
-[data-theme='cozy'] [class~='hover:bg-white/[0.07]']:hover { background-color: rgba(139, 90, 43, 0.075); }
+/* The hover half of the same gesture, gated like Tailwind's own `hover:`: on
+   touch a hand-written `:hover` sticks to whatever was tapped last (§8.4). */
+@media (hover: hover) {
+  [data-theme='cozy'] [class~='hover:bg-white/5']:hover  { background-color: rgba(139, 90, 43, 0.06); }
+  [data-theme='cozy'] [class~='hover:border-white/15']:hover { border-color: rgba(139, 90, 43, 0.28); }
+  [data-theme='cozy'] [class~='hover:border-white/20']:hover { border-color: rgba(139, 90, 43, 0.36); }
+  [data-theme='cozy'] [class~='hover:bg-white/10']:hover { background-color: rgba(139, 90, 43, 0.10); }
+  [data-theme='cozy'] [class~='hover:bg-white/[0.07]']:hover { background-color: rgba(139, 90, 43, 0.075); }
+}
 
 /* In-game emote reactions (multiplayer) */
 @keyframes emoteFloat {
@@ -921,40 +816,19 @@ html {
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
- * Richness layer — the "expression" of the tokens (depth, glass, glow, motion).
- * All ambient/continuous animation is gated behind prefers-reduced-motion.
+ * Surfaces and state motion. Quiet Arcade keeps depth and state; the glass,
+ * glows, washes, grain, gradient text and ambient loops that lived here are gone
+ * (ux-fix-ideas.md §6.1). Anything continuous is gated behind reduced motion.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-/* Real glass — blur + saturate, top-edge highlight, faint gradient. For nav,
- * overlays, and floating panels (scope to panels, not full-page, for perf). */
-.glass {
-  background:
-    var(--glass-sheen),
-    color-mix(in srgb, var(--c-surface-alt) 72%, transparent);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-elevation);
-}
-
-/* Raised surface — top-lit gradient sheen + inset highlight + elevation. The
- * default premium card body (compose over bg-surface-alt). */
+/* Raised surface — inset highlight + elevation. Compose over bg-surface-alt. */
 .surface-raised {
-  background-image: var(--gradient-surface);
   box-shadow: var(--shadow-elevation);
 }
+/* The deeper lift of a dialog floating over its scrim. */
 .surface-raised-lg {
-  background-image: var(--gradient-surface);
   box-shadow: var(--shadow-elevation-lg);
 }
-
-/* Per-game / accent glow halos (compose on hover or for focal elements). */
-.glow-accent   { box-shadow: var(--shadow-glow-accent); }
-.glow-chess    { box-shadow: var(--shadow-glow-chess); }
-.glow-checkers { box-shadow: var(--shadow-glow-checkers); }
-.glow-reversi  { box-shadow: var(--shadow-glow-reversi); }
-.glow-go       { box-shadow: var(--shadow-glow-go); }
-.glow-liquidate { box-shadow: var(--shadow-glow-liquidate); }
 
 /* A captured Go stone, leaving the board. Mounted where the stone stood and
  * played once — a `transition` cannot do this, because the element only appears
@@ -964,75 +838,8 @@ html {
   to   { opacity: 0;    transform: scale(0.6); }
 }
 
-/* Per-game ambient page glow — the in-game screens each carry a soft radial
- * wash of their accent at the top-left, per the Arcade Glow design. */
-.page-glow-chess,
-.page-glow-checkers,
-.page-glow-reversi,
-.page-glow-go,
-.page-glow-liquidate,
-.page-glow-gold,
-.page-glow-profile {
-  background-repeat: no-repeat;
-}
-.page-glow-chess     { background-image: var(--page-glow-chess); }
-.page-glow-checkers  { background-image: var(--page-glow-checkers); }
-.page-glow-reversi   { background-image: var(--page-glow-reversi); }
-.page-glow-go        { background-image: var(--page-glow-go); }
-.page-glow-liquidate { background-image: var(--page-glow-liquidate); }
-.page-glow-gold      { background-image: var(--page-glow-gold); }
-/* Profile carries the design's dual wash: blue top-left + pink top-right. */
-.page-glow-profile   { background-image: var(--page-glow-profile); }
 
-/* Two-tone gradient display text. Pair with a base text color for fallback. */
-.text-gradient-gold {
-  background: var(--gradient-text-accent);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
 
-/* Neon brand gradient (blue → pink) — the Arcade Glow hero-word treatment. */
-.text-gradient-brand {
-  background: var(--gradient-text-brand);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* Faint grain overlay — kills banding on the ambient gradients, adds tactile
- * texture. Apply to a fixed full-bleed layer (see AmbientBackground). */
-.grain::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: var(--grain-opacity);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* Hover-lift — a small spring on interactive cards (motion-safe only). `scale`
-   is listed because `Card`'s press uses Tailwind's `scale-*`, a property of its
-   own; while pressed everything runs at `micro`, per motion-spec.md §5.1. */
-.hover-lift {
-  transition: transform var(--duration-base) var(--ease-overshoot),
-              scale var(--duration-base) var(--ease-overshoot),
-              box-shadow var(--duration-base) var(--ease-standard),
-              border-color var(--duration-base) var(--ease-standard);
-  will-change: transform;
-}
-.hover-lift:active { transition-duration: var(--duration-micro); }
-
-/* ── Keyframes ───────────────────────────────────────────────────────────── */
-@keyframes aurora-drift {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  50%  { transform: translate3d(4%, -3%, 0) scale(1.08); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.6; }
-  50%      { opacity: 1; }
-}
 /* A state indicator announcing a change: a turn dot, a hint ring, a lesson mark,
    a "pass" badge. It plays three times and then holds its lit state (0% and
    100% are lit), so nothing on a board screen is still animating five seconds
@@ -1049,10 +856,6 @@ html {
 @keyframes reveal-up {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-8px); }
 }
 /* Liquidate: the dice landing. Short and non-looping — it replays on every new
    roll via a React key, so anything longer would stack up during a bot's turn. */
@@ -1126,16 +929,11 @@ html {
 [data-animate].page-enter,      [data-animate] .page-enter      { animation: page-enter var(--duration-moderate) var(--ease-out) both; }
 [data-animate].page-enter-fade, [data-animate] .page-enter-fade { animation: page-enter-fade var(--duration-moderate) var(--ease-out) both; }
 
-/* Ambient and decorative motion runs only when neither the OS nor Settings' own
-   "Reduce motion" asks for less. The attribute is stamped on <html> by the
-   bootstrap script and SettingsProvider; the media query alone ignored the
-   in-app toggle, so the aurora kept drifting for a user who had turned it off. */
+/* State motion runs only when neither the OS nor Settings' own "Reduce motion"
+   asks for less. The attribute is stamped on <html> by the bootstrap script and
+   SettingsProvider; the media query alone ignored the in-app toggle. */
 @media (prefers-reduced-motion: no-preference) {
-  :root:not([data-reduced-motion]) .hover-lift:hover    { transform: translateY(-4px); }
-  :root:not([data-reduced-motion]) .animate-aurora      { animation: aurora-drift 18s ease-in-out infinite; }
-  :root:not([data-reduced-motion]) .animate-glow-pulse  { animation: glow-pulse 4s ease-in-out infinite; }
   :root:not([data-reduced-motion]) .animate-state-pulse { animation: state-pulse calc(var(--duration-slower) * 2) var(--ease-standard) 3; }
-  :root:not([data-reduced-motion]) .animate-float       { animation: float 6s ease-in-out infinite; }
   /* Two breaths, then the resting ring — the same count mobile's overlay plays. */
   :root:not([data-reduced-motion]) .lq-you-ring         { animation: lq-pulse 1.8s ease-in-out 2; }
   :root:not([data-reduced-motion]) .lq-hop              { animation: lq-hop var(--lq-step, 150ms) ease-in-out infinite; }

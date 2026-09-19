@@ -517,21 +517,21 @@ export default function ChessTrainingPage() {
   // ── Setup screen ──────────────────────────────────────────────────────────
 
   if (!gameStarted && (awaitingResume || pendingResume)) {
-    return <div className="min-h-svh page-glow-chess" />;
+    return <div className="min-h-svh" />;
   }
 
   if (!gameStarted) {
     return (
-      <div className="min-h-svh page-glow-chess">
-        <div className="container mx-auto px-4 pt-8">
+      <div className="min-h-svh">
+        <div className="container mx-auto px-4 pt-4">
           <ShellNav backHref="/chess" />
         </div>
 
-        <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-fg mb-2 text-center">
+        <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
+          <h1 className="text-2xl font-bold text-fg mb-1">
             Training Mode
           </h1>
-          <p className="text-fg-muted text-center mb-8">
+          <p className="text-fg-muted mb-4">
             Play rated games against a bot matched to your skill level
           </p>
 
@@ -545,7 +545,7 @@ export default function ChessTrainingPage() {
           )}
 
           {/* Rating card */}
-          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+          <div className="rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4">
             <h2 className="text-lg font-semibold text-fg-muted mb-4 uppercase tracking-wide text-center">
               Your Rating
             </h2>
@@ -553,7 +553,7 @@ export default function ChessTrainingPage() {
               <div className="text-center text-fg-muted animate-pulse py-4">Loading…</div>
             ) : (
               <div className="text-center">
-                <div className="font-display text-7xl font-bold tabular-nums text-fg leading-none mb-2">
+                <div className="font-display text-5xl font-bold tabular-nums text-fg leading-none mb-2">
                   {userRating?.rating ?? 1200}
                 </div>
                 <div className="text-lg font-semibold text-accent mb-1">
@@ -596,7 +596,7 @@ export default function ChessTrainingPage() {
           </div>
 
           {/* Color selector */}
-          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
+          <div className="rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4">
             <h2 className="text-xl font-semibold text-fg mb-4">
               Choose Your Color
             </h2>
@@ -607,13 +607,13 @@ export default function ChessTrainingPage() {
                   onClick={() => update({ color })}
                   className={`p-6 rounded-lg transition-all ${
                     playerColor === color
-                      ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                      ? 'border border-accent bg-accent-muted text-fg'
                       : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                   }`}
                 >
                   <div className="flex justify-center mb-2"><ChessPiece type="king" color={color} size={40} /></div>
                   <div className="font-semibold capitalize">{color}</div>
-                  <div className={`text-sm ${playerColor === color ? 'text-on-accent/80' : 'text-fg-muted'}`}>
+                  <div className={`text-sm ${playerColor === color ? 'text-fg-muted' : 'text-fg-muted'}`}>
                     {color === 'white' ? 'You move first' : 'Bot moves first'}
                   </div>
                 </button>
@@ -662,7 +662,6 @@ export default function ChessTrainingPage() {
   return (
     <>
       <GameScreenLayout
-        accent="chess"
         backHref="/chess"
         headerCenter={
           <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
@@ -675,14 +674,14 @@ export default function ChessTrainingPage() {
             {!isAtLive && (
               <button
                 onClick={() => setViewIndex(timeline.length - 1)}
-                className="text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg transition-colors font-medium"
+                className="touch-target motion-control motion-safe:active:scale-[0.98] text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg font-medium"
               >
                 Live ⇥
               </button>
             )}
             <button
               onClick={handleNewGame}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
+              className="touch-target motion-control motion-safe:active:scale-[0.98] px-4 py-2 border border-border-strong text-fg hover:bg-surface-muted font-semibold rounded-lg text-sm"
             >
               New Game
             </button>
@@ -782,11 +781,7 @@ export default function ChessTrainingPage() {
               <button
                 onClick={handleHint}
                 disabled={!isPlayerTurn || isHinting}
-                className={`shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
-                  isPlayerTurn && !isHinting
-                    ? 'bg-warning/15 border-warning/40 text-warning-hover hover:bg-warning/25'
-                    : 'bg-white/5 border-white/10 text-fg-subtle cursor-not-allowed'
-                }`}
+                className={`touch-target motion-control motion-safe:active:scale-[0.98] shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm border ${ isPlayerTurn && !isHinting ? 'bg-warning/15 border-warning/40 text-warning-hover hover:bg-warning/25' : 'bg-white/5 border-white/10 text-fg-subtle cursor-not-allowed' }`}
               >
                 <Icon name="lightbulb" />
                 <span>{isHinting ? 'Thinking…' : 'Show Hint'}</span>

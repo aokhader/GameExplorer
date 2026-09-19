@@ -27,7 +27,7 @@ import {
   makeGoAdapter,
 } from '@gameexplorer/client/game/goAdapter';
 import { COLORS, GAME_ACCENTS, GO_STONE_STYLE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
-import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
+import { Screen, BackHeader, Button, Toggle } from '@/components/ui';
 import { DifficultyMeter } from '@/game/DifficultyMeter';
 import { GoBoard } from '@/board/GoBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
@@ -36,7 +36,7 @@ import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
 import { OpponentPicker, type SetupMode } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
-import { SetupHero } from '@/game/SetupHero';
+import { SetupHeading } from '@/game/SetupHeading';
 import { LearnLink } from '@/game/LearnLink';
 import { LessonsCard } from '@/game/LessonsCard';
 import { AnalysisCard } from '@/game/AnalysisCard';
@@ -278,11 +278,8 @@ export function GoScreen() {
 
     return (
       <Screen footer={startButton}>
-        <GlowBackdrop
-          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.go.base, opacity: 0.16 }]}
-        />
         <BackHeader fallbackHref="/" />
-        <SetupHero game="go" />
+        <SetupHeading game="go" />
 
         {unfinished.saved && (
           <View style={{ marginBottom: 24 }}>
@@ -755,7 +752,7 @@ export function GoScreen() {
         hintsUsed={ratingResult?.hintsUsed}
         saveError={game.saveError}
         onRetrySave={game.retrySave}
-        actions={<Button label="Rematch" onPress={handleRematch} glow />}
+        actions={<Button label="Rematch" onPress={handleRematch} />}
         secondaryActions={
           <>
             <Button label="Share as SGF" onPress={shareSgf} variant="secondary" />

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  BOARD_ANIM_MS,
   CHESS_DIFF,
+  boardAnimMs,
   ChessEngine,
   ChessGameState,
   Position,
@@ -137,7 +137,7 @@ function PromotionPicker({
             <button
               key={type}
               onClick={() => onSelect(type)}
-              className="w-14 h-14 flex items-center justify-center rounded-lg bg-surface-muted hover:bg-accent-muted hover:scale-110 transition-all shadow-sm"
+              className="w-14 h-14 flex items-center justify-center rounded-lg bg-surface-muted hover:bg-accent-muted motion-control motion-safe:active:scale-[0.98]"
               title={type.charAt(0).toUpperCase() + type.slice(1)}
             >
               <ChessPiece type={type} color={color} size={48} />
@@ -274,6 +274,10 @@ export const ChessBoard = React.memo(function ChessBoard({
   const { settings, reducedMotion } = useSettings();
   // The page can force coordinates off; the user setting can also hide them.
   const coordsOn = showCoordinates && settings.showCoordinates;
+  // Travel time on this device: the player's speed setting, or 0 under reduced
+  // motion. 0 also switches off the arrival pop and the capture burst.
+  const animMs = boardAnimMs(settings, reducedMotion);
+  const animates = animMs > 0;
 
   // What travelled to get to this position. Animates only between consecutive
   // positions — stepping through a game's history or loading a new one snaps.
@@ -283,15 +287,13 @@ export const ChessBoard = React.memo(function ChessBoard({
     // Inline rather than the `isFlipped` below it: that is declared further
     // down with the refs, and this hook has to run before the first render use.
     isFlipped: (orientation ?? playerColor) === 'black',
-    enabled: !reducedMotion,
+    enabled: animates,
   });
 
-  // Whose-turn signifier + check highlight. Computed each render (cheap).
+  // Check highlight. Computed each render (cheap). Whose turn it is is not
+  // drawn on the board — the player cards and status line carry it.
   const gameOver =
     effectiveState.isCheckmate || effectiveState.isStalemate || effectiveState.isDraw;
-  const myTurn =
-    !editMode && !allowSelectAnyColor && !gameOver &&
-    effectiveState.currentTurn === playerColor;
   const kingInCheckPos = effectiveState.isCheck
     ? findKing(effectiveState.board, effectiveState.currentTurn)
     : null;
@@ -688,15 +690,16 @@ export const ChessBoard = React.memo(function ChessBoard({
               <div className="file-label">{String.fromCharCode(97 + displayCol)}</div>
             )}
 
-            {isValidMove && premoveMode && <div className="premove-indicator" />}
-            {isValidMove && !premoveMode && (!editMode || allowSelectAnyColor) && (
+            {/* Destinations, unless the player has switched them off. */}
+            {isValidMove && premoveMode && settings.showDestinations && <div className="premove-indicator" />}
+            {isValidMove && !premoveMode && settings.showDestinations && (!editMode || allowSelectAnyColor) && (
               <div className={`move-indicator ${piece ? 'capture' : 'empty'}`} />
             )}
 
             {marks.has(position) && <BoardMark mark={marks.get(position)!} />}
 
             {isCheckKing && <div className="check-ring" />}
-            {captureFlash === position && <div className="capture-flash" />}
+            {animates && captureFlash === position && <div className="capture-flash" />}
           </div>
         );
       }
@@ -728,7 +731,7 @@ export const ChessBoard = React.memo(function ChessBoard({
           row={screenRow}
           offset={null}
           fading
-          reducedMotion={reducedMotion}
+          animMs={animMs}
           pieceClassName="piece"
         >
           <ChessPiece type={fade.piece.type} color={fade.piece.color} size="100%" />
@@ -749,7 +752,7 @@ export const ChessBoard = React.memo(function ChessBoard({
         const offset = motion.offsets.get(motionKey(displayRow, displayCol)) ?? null;
         // A piece that slid has already announced itself; popping it as well
         // reads as a stutter at the end of the travel.
-        const justArrived = lastMoveTo === position && !offset;
+        const justArrived = animates && lastMoveTo === position && !offset;
         const isShaking = shakeSquare === position;
 
         slots.push(
@@ -762,7 +765,7 @@ export const ChessBoard = React.memo(function ChessBoard({
             col={screenCol}
             row={screenRow}
             offset={offset}
-            reducedMotion={reducedMotion}
+            animMs={animMs}
             pieceClassName={`piece${justArrived ? ' just-arrived' : ''}${
               isShaking ? ' shake' : ''
             }${dragging?.from === position ? ' lifted' : ''}`}
@@ -781,21 +784,12 @@ export const ChessBoard = React.memo(function ChessBoard({
       <BoardFrame maxPx={compact ? 520 : BOARD_MAX_PX} vhCap={compact ? 70 : 80}>
         <div className="relative w-full h-full">
         <div
-          className={`chess-board${myTurn ? ' my-turn' : ''}`}
+          className="chess-board"
           ref={boardRef}
           // An inert board says so — to assistive tech, and to anything waiting
           // for it to take a move.
           aria-disabled={interactive ? undefined : true}
-          // The animation duration is owned by BOARD_ANIM_MS in shared, which
-          // usePuzzle also times the opponent's reply against. Handing it to CSS
-          // as a variable keeps one number authoritative instead of two that
-          // drift.
-          style={
-            {
-              touchAction: 'none',
-              '--gx-board-anim': `${BOARD_ANIM_MS}ms`,
-            } as React.CSSProperties
-          }
+          style={{ touchAction: 'none' }}
           onPointerMove={handleBoardPointerMove}
           onPointerUp={handleBoardPointerUp}
           onPointerCancel={handleBoardPointerCancel}

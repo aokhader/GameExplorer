@@ -1,25 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Reveal } from '@/components/visual';
 import { ONBOARDED_KEY } from '@/lib/onboarding';
 import { SUPPORT_EMAIL } from '@/lib/support';
-import { GAME_LIST, gameCountWord, gameNameList, type GameCatalogEntry, type GameId } from '@gameexplorer/shared';
+import { GAME_LIST, gameNameList, type GameCatalogEntry } from '@gameexplorer/shared';
+import { Icon } from '@gameexplorer/ui';
 import { GameIcon } from '@/components/game/GameIcon';
 
-const GAME_CARD_GLOW: Record<GameId, string> = {
-  chess: 'group-hover:[box-shadow:var(--shadow-glow-chess)]',
-  checkers: 'group-hover:[box-shadow:var(--shadow-glow-checkers)]',
-  reversi: 'group-hover:[box-shadow:var(--shadow-glow-reversi)]',
-  go: 'group-hover:[box-shadow:var(--shadow-glow-go)]',
-  liquidate: 'group-hover:[box-shadow:var(--shadow-glow-liquidate)]',
-};
-
+/**
+ * Home, drawn in the Quiet Arcade direction (`project-docs/ux-fix-ideas.md`
+ * §6.4): a heading rather than a hero, one gold action, and the five games as
+ * flat cards whose identity is their piece art. It used to open on a 128px
+ * gradient wordmark over a route-wide aurora, with staggered entrances and
+ * per-game neon cards that glowed, lifted, scaled and rotated on hover — the
+ * audit counted 22 treatments on this page that signalled nothing.
+ *
+ * Splitting it into a stranger's landing page and a returning player's
+ * launcher is wave 4 (§4.1–§4.3); this is the purge that comes first.
+ */
 export default function HomePage() {
-  const [hoveredGame, setHoveredGame] = useState<string | null>(null);
   const router = useRouter();
   const { user, loading } = useAuth();
 
@@ -36,162 +38,107 @@ export default function HomePage() {
     }
   }, [loading, user, router]);
 
-  const games = GAME_LIST;
-
   return (
-    <div className="relative min-h-svh pt-16">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <Reveal as="h1" className="text-4xl sm:text-6xl md:text-8xl font-bold tracking-tight mb-4 break-words">
-            <span className="text-fg">Game</span>
-            <span className="text-gradient-brand text-info">Explorer</span>
-          </Reveal>
+    <div className="min-h-svh pt-16">
+      <div className="container mx-auto max-w-5xl px-4 pt-6 pb-12">
+        <header>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-fg">GameExplorer</h1>
           {/* Every clause here can be checked against the product. The names come
               from the catalog, so a new game joins the sentence by existing. */}
-          <Reveal as="p" delay={120} className="text-xl md:text-2xl text-fg-muted mb-8">
+          <p className="mt-1 text-lg text-fg-muted">
             {gameNameList()} — free, and no sign-up to start.
-          </Reveal>
-          <Reveal delay={220} className="flex justify-center gap-4">
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {/* The screen's one gold element. */}
             <Link
               href="/chess"
-              className="px-8 py-3 bg-accent [background-image:var(--gradient-accent)] text-on-accent font-semibold rounded-lg shadow-lg transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:[box-shadow:var(--shadow-glow-accent)]"
+              className="inline-flex min-h-11 items-center rounded-lg bg-accent px-6 font-semibold text-on-accent motion-control motion-safe:active:scale-[0.98] hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               Play Now
             </Link>
-            <a
-              href="#games"
-              className="px-8 py-3 bg-surface-muted/70 backdrop-blur-sm hover:bg-surface-hover text-fg font-semibold rounded-lg shadow-lg transition-all duration-200 motion-safe:hover:-translate-y-0.5"
-            >
-              Browse Games
-            </a>
-          </Reveal>
-          {/* The tour used to be reachable only by being redirected into it on a
-              first visit. Native Home has always had this link. */}
-          <div className="mt-3">
+            {/* The tour used to be reachable only by being redirected into it on a
+                first visit. Native Home has always had this link. */}
             <Link
               href="/welcome"
-              className="inline-flex min-h-11 items-center px-2 text-sm text-fg-muted hover:text-fg transition-colors"
+              className="touch-target motion-control motion-safe:active:scale-[0.98] inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-fg-muted motion-control hover:bg-surface-muted hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
               Take a quick tour
             </Link>
           </div>
-        </div>
+        </header>
 
-        {/* Game Cards */}
-        <div id="games" className="max-w-6xl mx-auto">
-          <Reveal as="h2" className="text-4xl font-bold text-fg text-center mb-12">
-            Choose Your Game
-          </Reveal>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {games.map((game, i) => (
-              <Reveal
-                key={game.id}
-                delay={i * 90}
-                className="relative group"
-                onMouseEnter={() => setHoveredGame(game.id)}
-                onMouseLeave={() => setHoveredGame(null)}
-              >
+        <section id="games" className="mt-8" aria-labelledby="games-heading">
+          <h2 id="games-heading" className="text-lg font-semibold text-fg">
+            Choose your game
+          </h2>
+          <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {GAME_LIST.map((game) => (
+              <li key={game.id}>
                 {game.available ? (
-                  <Link href={`/${game.slug}`}>
-                    <GameCard game={game} isHovered={hoveredGame === game.id} />
+                  <Link
+                    href={`/${game.slug}`}
+                    className="group block h-full rounded-xl border border-border bg-surface-alt p-4 motion-control motion-safe:active:scale-[0.98] hover:border-border-strong hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  >
+                    <GameCard game={game} />
                   </Link>
                 ) : (
-                  <div className="cursor-not-allowed">
-                    <GameCard game={game} isHovered={hoveredGame === game.id} />
+                  <div className="h-full rounded-xl border border-border bg-surface-alt p-4 opacity-60" aria-disabled="true">
+                    <GameCard game={game} />
                   </div>
                 )}
-              </Reveal>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
 
-        {/* Footer */}
-        <footer className="mt-24 text-center text-fg-muted">
-          <p className="mb-4">{gameCountWord()} games. One board. Endless rematches.</p>
-          <div className="mb-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
-            <Link href="/terms" className="hover:text-fg transition-colors">
-              Terms
-            </Link>
-            <Link href="/privacy" className="hover:text-fg transition-colors">
-              Privacy
-            </Link>
+        <footer className="mt-12 text-center text-sm text-fg-muted">
+          {/* 44px rows rather than 20px lines of text: the audit measured these
+              at 20px tall, under every touch-target floor (§8.3). */}
+          <nav aria-label="Legal and support" className="flex flex-wrap items-center justify-center gap-x-2">
+            <FooterLink href="/terms">Terms</FooterLink>
+            <FooterLink href="/privacy">Privacy</FooterLink>
             {/* Google Play requires the account-deletion URL be reachable without
                 signing in — the footer is the one place a reviewer will look. */}
-            <Link href="/delete-account" className="hover:text-fg transition-colors">
-              Delete account
-            </Link>
-            <Link href="/licenses" className="hover:text-fg transition-colors">
-              Licenses
-            </Link>
-            <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-fg transition-colors">
+            <FooterLink href="/delete-account">Delete account</FooterLink>
+            <FooterLink href="/licenses">Licenses</FooterLink>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="inline-flex min-h-11 items-center px-2 transition-colors hover:text-fg"
+            >
               Contact
             </a>
-          </div>
-          <p className="text-sm">© 2026 GameExplorer</p>
+          </nav>
+          <p className="mt-2">© 2026 GameExplorer</p>
         </footer>
       </div>
     </div>
   );
 }
 
-// Game Card Component
-function GameCard({
-  game,
-  isHovered,
-}: {
-  game: GameCatalogEntry;
-  isHovered: boolean;
-}) {
-  // Jewel-tone gradient re-toned to the steel+gold scheme, deepened toward the
-  // base so it reads as a rich surface, not a flat saturated rectangle. The card
-  // stays dark in every theme (the label on it is static white), so it deepens
-  // toward the theme's own shade — mixing warm walnut into a cold navy muddies it.
-  const gradient = `linear-gradient(135deg, var(--c-game-${game.accent}) 0%, color-mix(in srgb, var(--c-game-${game.accent}) 50%, var(--c-game-card-shade, #0b1120)) 100%)`;
-  // Keyed off the accent rather than chained, because the chain this replaced
-  // ended in an `else` that meant "reversi" — so Go, added later, hovered lime.
-  // A Record makes the next game a compile error instead of a silent wrong glow.
-  // Written out in full rather than interpolated: Tailwind only emits classes it
-  // can see as complete literals in the source.
-  const glowClass = GAME_CARD_GLOW[game.accent];
-
+function FooterLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <div
-      className={`
-        relative overflow-hidden rounded-2xl border border-white/10 surface-raised hover-lift
-        ${glowClass}
-        ${game.available ? 'cursor-pointer' : 'opacity-60'}
-      `}
-      style={{ backgroundImage: gradient }}
-    >
-      {/* Top-lit sheen */}
-      <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+    <Link href={href} className="inline-flex min-h-11 items-center px-2 transition-colors hover:text-fg">
+      {children}
+    </Link>
+  );
+}
 
-      {/* Content */}
-      <div className="relative p-8 h-64 flex flex-col justify-between">
-        {/* Icon */}
-        <div
-          className="text-8xl text-center mb-4 flex items-center justify-center transition-transform duration-300 drop-shadow-lg"
-          style={{ transform: isHovered ? 'scale(1.12) rotate(5deg)' : 'scale(1)' }}
-        >
-          <GameIcon game={game.id} />
-        </div>
-
-        {/* Text — static light on the saturated per-game card. */}
-        <div className="text-white">
-          <h3 className="text-2xl font-bold mb-2">{game.name}</h3>
-          <p className="text-white/80 text-sm">{game.blurb}</p>
-        </div>
-
-        {/* Status Badge */}
-        {!game.available && (
-          <div className="absolute top-4 right-4 bg-surface/80 backdrop-blur-sm text-fg px-3 py-1 rounded-full text-xs font-semibold">
-            Coming Soon
-          </div>
-        )}
+/** One game: its piece art, its name and its one-line blurb, and a way in. */
+function GameCard({ game }: { game: GameCatalogEntry }) {
+  return (
+    <div className="flex items-center gap-4">
+      <span className="text-5xl inline-flex shrink-0 items-center" aria-hidden="true">
+        <GameIcon game={game.id} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-lg font-semibold text-fg">{game.name}</h3>
+        <p className="text-sm text-fg-muted">{game.blurb}</p>
       </div>
+      {game.available ? (
+        <Icon name="caret-right" className="shrink-0 text-xl text-fg-subtle group-hover:text-fg" />
+      ) : (
+        <span className="shrink-0 text-xs font-semibold text-fg-muted">Coming soon</span>
+      )}
     </div>
   );
 }

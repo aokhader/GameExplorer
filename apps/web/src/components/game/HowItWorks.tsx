@@ -33,12 +33,12 @@ export interface HowItWorksProps {
  */
 export function HowItWorks({ points, learnHref, learnLabel = 'Read the full guide' }: HowItWorksProps) {
   return (
-    <section className="max-w-4xl mx-auto mt-16 p-8 rounded-2xl glass" data-testid="how-it-works">
-      <h3 className="text-xl font-semibold text-fg mb-4 text-center">How It Works</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+    <section className="mt-8 rounded-xl border border-border bg-surface-alt p-6" data-testid="how-it-works">
+      <h2 className="text-lg font-semibold text-fg mb-4">How it works</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {points.map((point) => (
           <div key={point.title}>
-            <div className="text-2xl mb-2 text-accent">
+            <div className="text-2xl mb-2 text-fg-muted" aria-hidden="true">
               <Icon name={point.icon} />
             </div>
             <div className="text-sm font-medium text-fg">{point.title}</div>
@@ -46,13 +46,13 @@ export function HowItWorks({ points, learnHref, learnLabel = 'Read the full guid
           </div>
         ))}
       </div>
-      <div className="text-center mt-6">
+      <div className="mt-4">
         {/* `min-h-11` (44px) rather than the bare text link this replaces: the
             audit measured the old one at 20px, under every touch-target floor
             we hold ourselves to. */}
         <Link
           href={learnHref}
-          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-accent transition-colors hover:text-accent-hover hover:underline"
+          className="-mx-3 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-accent transition-colors hover:text-accent-hover hover:underline"
           data-testid="how-it-works-guide"
         >
           {learnLabel}

@@ -112,7 +112,7 @@ export function DeleteAccountCard() {
                 onClick={handleDelete}
                 disabled={!canConfirm}
                 className={cn(
-                  'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
+                  'touch-target motion-control motion-safe:active:scale-[0.98] rounded-lg px-4 py-2 text-sm font-semibold',
                   'bg-danger text-on-accent hover:bg-danger/90',
                   'disabled:opacity-40 disabled:cursor-not-allowed',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger',

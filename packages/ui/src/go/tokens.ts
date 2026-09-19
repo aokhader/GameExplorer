@@ -28,8 +28,21 @@ const DARK_GO_BOARD_COLORS = {
   boardBorder: '#15100b',
   /** Coordinate labels around the edge. */
   coordinate:  'rgba(226,205,168,0.65)',
-  /** Ring on the stone just played. */
+  /**
+   * Accent ring for a diagram's target point. The live board's last move no
+   * longer uses it — see `lastMoveOnBlack`.
+   */
   lastMoveRing: 'rgba(103,232,249,0.95)',
+  /**
+   * The ring on the stone just played, in the colour of the OTHER stone, so it
+   * reads on its own stone without borrowing an accent: white on black, ink on
+   * white — the pattern OGS and most Go clients use. The board keeps the app's
+   * state budget by using no hue of its own here.
+   */
+  lastMoveOnBlack: 'rgba(245,240,230,0.9)',
+  lastMoveOnWhite: 'rgba(12,16,24,0.85)',
+  /** The crosshairs through an aimed point (confirm-to-place). Board ink. */
+  aimLine:     'rgba(226,205,168,0.6)',
   /** The ghost stone shown under the cursor on a legal point. */
   ghost:       'rgba(226,205,168,0.35)',
   /** Training hint ring. */
@@ -54,6 +67,9 @@ const COZY_GO_BOARD_COLORS = {
   boardBorder: '#8b5a2b',
   coordinate:  'rgba(45,30,15,0.7)',
   lastMoveRing: 'rgba(162,72,46,0.95)',
+  lastMoveOnBlack: 'rgba(255,253,247,0.92)',
+  lastMoveOnWhite: 'rgba(18,12,7,0.85)',
+  aimLine:     'rgba(45,30,15,0.6)',
   ghost:       'rgba(45,30,15,0.28)',
   hintRing:    'rgba(138,102,29,0.95)',
   territoryBlack: 'rgba(18,12,7,0.88)',

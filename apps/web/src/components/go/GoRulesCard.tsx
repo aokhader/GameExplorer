@@ -46,9 +46,9 @@ function Choice<T extends string | number>({
             type="button"
             aria-pressed={value === option.value}
             onClick={() => onChange(option.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${
+            className={`touch-target px-4 py-2 rounded-lg text-sm font-semibold motion-control motion-safe:active:scale-[0.98] border ${
               value === option.value
-                ? 'border-transparent bg-accent text-on-accent [box-shadow:var(--shadow-glow-accent)]'
+                ? 'border-accent bg-accent-muted text-fg'
                 : 'border-white/10 bg-white/5 text-fg hover:bg-white/10'
             }`}
           >

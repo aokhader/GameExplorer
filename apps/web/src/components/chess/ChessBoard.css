@@ -31,7 +31,6 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s ease;
 }
 
 /* Board palette comes from the --gx-board-* variables, declared once per theme in
@@ -48,44 +47,50 @@
   background-color: var(--gx-board-dark, #2a3550);
 }
 
-.square:hover {
-  filter: brightness(0.95);
+/* ── State tints ───────────────────────────────────────────────────────────
+   Every state is a translucent tint laid OVER the square's own colour, as a
+   one-colour gradient in `background-image`, never a swap of
+   `background-color`. Swapping put the translucent tint over whatever was
+   behind the board instead of over the square, so a last-move light square
+   came out darker than a plain dark one. One hue per state, no ring, no glow:
+   see the state budget in `packages/ui/src/chess/tokens.ts`. Later rules win,
+   so a selection outranks the last move it stands on. */
+.square.last-move.light {
+  background-image: linear-gradient(
+    var(--gx-board-lastmove-light, rgba(205, 164, 63, 0.42)),
+    var(--gx-board-lastmove-light, rgba(205, 164, 63, 0.42))
+  );
+}
+
+.square.last-move.dark {
+  background-image: linear-gradient(
+    var(--gx-board-lastmove-dark, rgba(205, 164, 63, 0.52)),
+    var(--gx-board-lastmove-dark, rgba(205, 164, 63, 0.52))
+  );
 }
 
 .square.selected {
-  background-color: var(--gx-board-selected, #cda43f) !important;
-  box-shadow: inset 0 0 0 3px #9a7a26;
+  background-image: linear-gradient(
+    var(--gx-board-selected, rgba(34, 211, 170, 0.5)),
+    var(--gx-board-selected, rgba(34, 211, 170, 0.5))
+  );
 }
 
 /* The square a piece was lifted from. The dimming is on the piece itself
    (`.piece.lifted`) now that pieces are not children of squares — dimming the
    square would fade the board colour instead. */
 
-/* Last move highlighting */
-.square.last-move {
-  background-color: var(--gx-board-lastmove-light, rgba(205, 164, 63, 0.40)) !important;
-}
-
-.square.last-move.light {
-  background-color: var(--gx-board-lastmove-light, rgba(205, 164, 63, 0.40)) !important;
-}
-
-.square.last-move.dark {
-  background-color: var(--gx-board-lastmove-dark, rgba(205, 164, 63, 0.50)) !important;
-}
-
 /* Queued premove — the two squares of a move waiting for the opponent to
-   finish. A tinted overlay rather than a background swap so it layers over the
+   finish. An overlay rather than a background tint so it layers over the
    last-move gold underneath it (the opponent's move often lands on one of
-   these squares). */
+   these squares). Flat: the violet is the whole signal. */
 .square.premove::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 1;
-  background-color: var(--gx-board-premove, rgba(139, 92, 246, 0.55));
-  box-shadow: inset 0 0 0 3px var(--gx-board-premove-hint, rgba(139, 92, 246, 0.75));
+  background-color: var(--gx-board-premove, rgba(139, 92, 246, 0.6));
 }
 
 /* Where a premove may be aimed. Dimmer than the legal-move dots: these are
@@ -132,31 +137,29 @@
   color: var(--gx-board-light, #445576);
 }
 
-/* Valid Move Indicators */
+/* Legal destinations — a solid dot on an empty square, and the square's
+   corners on a capture (clear to 80% of the half-diagonal, which is past the
+   inscribed circle, so only the corners take the tint and the piece stays
+   untouched). */
 .move-indicator {
   position: absolute;
   pointer-events: none;
   z-index: 2;
-  opacity: 0.8;
 }
 
 .move-indicator.empty {
-  width: 28%;
-  height: 28%;
-  background-color: var(--gx-board-move, rgba(34, 211, 170, 0.85));
+  width: 22%;
+  height: 22%;
+  background-color: var(--gx-board-move, rgba(34, 211, 170, 0.6));
   border-radius: 50%;
-  box-shadow: 0 0 10px rgba(34, 211, 170, 0.6);
 }
 
 .move-indicator.capture {
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: radial-gradient(
-    circle,
-    transparent 70%,
-    var(--gx-board-move-capture, rgba(34, 211, 170, 0.55)) 70%,
-    var(--gx-board-move-capture, rgba(34, 211, 170, 0.55)) 85%,
-    transparent 85%
+    transparent 0%,
+    transparent 79%,
+    var(--gx-board-move-capture, rgba(34, 211, 170, 0.45)) 80%
   );
 }
 
@@ -164,8 +167,16 @@
   cursor: pointer;
 }
 
-.square.valid-move:hover {
-  filter: brightness(0.9);
+/* The destination under a mouse fills in, so the square a click will land on
+   is unambiguous. Only where a pointer can hover: on touch, `:hover` sticks
+   to the last square tapped. */
+@media (hover: hover) {
+  .square.valid-move:hover {
+    background-image: linear-gradient(
+      var(--gx-board-move-hover, rgba(34, 211, 170, 0.3)),
+      var(--gx-board-move-hover, rgba(34, 211, 170, 0.3))
+    );
+  }
 }
 
 /* ── Piece layer ───────────────────────────────────────────────────────────
@@ -273,35 +284,25 @@
   100% { opacity: 0; transform: scale(1.25); }
 }
 
-/* Check highlight — a red ring + glow on the king under attack. Static on
-   purpose: a check lasts as long as the player takes to answer it, and the loop
-   that used to pulse here repainted the board at 60fps for that whole time. */
+/* Check — a still red radial under the king, solid at the centre and clear
+   before the square's edge. Still on purpose: a check lasts as long as the
+   player takes to answer it, and the ring-glow-and-pulse it replaces repainted
+   the board at 60fps for that whole time. Nothing else marks it: the king's
+   square is the whole signal. */
 .check-ring {
   position: absolute;
-  inset: 6%;
-  border-radius: 50%;
+  inset: 0;
   pointer-events: none;
   z-index: 2;
-  box-shadow:
-    0 0 0 3px rgba(220, 38, 38, 0.9),
-    0 0 18px 4px rgba(220, 38, 38, 0.65);
-}
-
-/* Whose-turn signifier — the player's board edge lifts with a neon-blue glow
-   when it's their move. Reinforces "your move" without nagging. */
-.chess-board {
-  transition: box-shadow 0.3s ease;
-}
-/* "It's your move" halo. Pairs with the checkers/reversi turn glows, which take
-   the same var treatment (see their board components). */
-.chess-board.my-turn {
-  box-shadow: var(
-    --gx-board-turn-glow,
-    0 12px 28px -6px rgba(0, 0, 0, 0.5),
-    0 0 0 2px rgba(59, 130, 246, 0.6),
-    0 0 30px -2px rgba(59, 130, 246, 0.55)
+  background: radial-gradient(
+    var(--gx-board-check, rgba(239, 68, 68, 0.95)) 0%,
+    color-mix(in srgb, var(--gx-board-check, rgba(239, 68, 68, 0.95)) 80%, transparent) 25%,
+    transparent 89%
   );
 }
+
+/* Whose move it is lives on the player cards and the status line, not on the
+   board: a halo round the whole board repeated what the card already said. */
 
 /* Responsive label/indicator tuning (board size itself is handled by BoardFrame) */
 @media (max-width: 768px) {
@@ -316,58 +317,10 @@
   .file-label {
     font-size: 0.5rem;
   }
-
-  .move-indicator.empty {
-    width: 25%;
-    height: 25%;
-  }
 }
 
 /* Loading/disabled state */
 .chess-board.disabled {
   opacity: 0.6;
   pointer-events: none;
-}
-
-/* Promotion dialog (for future use) */
-.promotion-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.promotion-dialog {
-  background: white;
-  border: 3px solid #374151;
-  border-radius: 0.5rem;
-  padding: 2rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-}
-
-.promotion-pieces {
-  display: flex;
-  gap: 1rem;
-}
-
-.promotion-piece {
-  font-size: 4rem;
-  cursor: pointer;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  transition: all 0.2s;
-  background: transparent;
-  border: 2px solid transparent;
-}
-
-.promotion-piece:hover {
-  background-color: #f3f4f6;
-  border-color: #3b82f6;
-  transform: scale(1.1);
 }

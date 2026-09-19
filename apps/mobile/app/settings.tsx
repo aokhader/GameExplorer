@@ -3,6 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import { COLORS, RADIUS, type ThemeName, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Card, Toggle, Icon } from '@/components/ui';
+import type { PieceAnimation } from '@gameexplorer/shared';
 import { useSettings, type Settings } from '@/providers/SettingsProvider';
 import { playSfx } from '@/audio/sfxPlayer';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
@@ -266,6 +267,83 @@ function ThemePicker() {
   );
 }
 
+const PIECE_ANIMATION_OPTIONS: { id: PieceAnimation; label: string }[] = [
+  { id: 'none', label: 'None' },
+  { id: 'fast', label: 'Fast' },
+  { id: 'normal', label: 'Normal' },
+  { id: 'slow', label: 'Slow' },
+];
+
+/** How pieces travel — four speeds in one segmented row, as on web. */
+function PieceAnimationRow() {
+  const { settings, setSetting, reducedMotion } = useSettings();
+  return (
+    <View style={{ paddingVertical: 16, borderTopWidth: 1, borderTopColor: COLORS.border }}>
+      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold }}>
+        Piece animation
+      </Text>
+      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 2 }}>
+        {reducedMotion
+          ? 'Reduce motion is on, so pieces move without animating.'
+          : 'How pieces travel between squares.'}
+      </Text>
+      <View
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Piece animation"
+        style={{
+          flexDirection: 'row',
+          gap: SPACING[1],
+          marginTop: 12,
+          padding: 4,
+          borderRadius: RADIUS.xl,
+          borderWidth: 1,
+          borderColor: COLORS.border,
+        }}
+      >
+        {PIECE_ANIMATION_OPTIONS.map((option) => {
+          const selected = settings.pieceAnimation === option.id;
+          return (
+            <Pressable
+              key={option.id}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected }}
+              accessibilityLabel={option.label}
+              onPress={() => setSetting('pieceAnimation', option.id)}
+              style={{ flex: 1 }}
+            >
+              {({ pressed }) => (
+                <View
+                  style={{
+                    minHeight: 44,
+                    borderRadius: RADIUS.lg,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: selected
+                      ? COLORS.surfaceMuted
+                      : pressed
+                        ? COLORS.surfaceHover
+                        : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: selected ? COLORS.fg : COLORS.fgMuted,
+                      fontSize: FONT_SIZES.sm,
+                      fontFamily: FONTS.bodyBold,
+                    }}
+                  >
+                    {option.label}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 function SectionLabel({ children }: { children: string }) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
@@ -360,6 +438,17 @@ export default function SettingsScreen() {
           title="Confirm Go placements"
           description="Press to aim, then press again to play. Always on above 9×9, where a point is smaller than a fingertip."
           settingKey="confirmMove"
+        />
+        <PieceAnimationRow />
+        <SettingRow
+          title="Show legal moves"
+          description="Mark where a piece you pick up can go."
+          settingKey="showDestinations"
+        />
+        <SettingRow
+          title="Confirm resignation"
+          description="Resign and draw take a second tap, so a stray touch never ends a game."
+          settingKey="confirmResign"
         />
       </Card>
 

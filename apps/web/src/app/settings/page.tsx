@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, Toggle } from '@/components/ui';
-import { GradientText } from '@/components/visual';
+import type { PieceAnimation } from '@gameexplorer/shared';
 import {
   useSettings,
   type Settings,
@@ -125,11 +125,11 @@ function ThemeCard({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        'group relative flex-1 rounded-xl p-3 text-left transition-all',
+        'group relative flex-1 rounded-xl p-3 text-left motion-control motion-safe:active:scale-[0.98]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ring-offset-2 ring-offset-surface-alt',
         selected
           ? 'ring-2 ring-accent'
-          : 'ring-1 ring-border hover:ring-border-strong motion-safe:hover:-translate-y-0.5',
+          : 'ring-1 ring-border hover:ring-border-strong',
       )}
     >
       {/* Miniature of the theme: page, a card, a board corner and a button. */}
@@ -186,6 +186,57 @@ function ThemeCard({
   );
 }
 
+// ── Piece animation ───────────────────────────────────────────────────────────
+const PIECE_ANIMATION_OPTIONS: { id: PieceAnimation; label: string }[] = [
+  { id: 'none', label: 'None' },
+  { id: 'fast', label: 'Fast' },
+  { id: 'normal', label: 'Normal' },
+  { id: 'slow', label: 'Slow' },
+];
+
+/** How pieces travel — lichess's four speeds, as one segmented row. */
+function PieceAnimationRow() {
+  const { settings, setSetting, reducedMotion } = useSettings();
+  return (
+    <div className="py-4">
+      <p className="font-semibold text-fg" id="piece-animation-label">
+        Piece animation
+      </p>
+      <p className="text-sm text-fg-muted">
+        {reducedMotion
+          ? 'Reduce motion is on, so pieces move without animating.'
+          : 'How pieces travel between squares.'}
+      </p>
+      <div
+        role="radiogroup"
+        aria-labelledby="piece-animation-label"
+        className="mt-3 grid grid-cols-4 gap-1 rounded-xl border border-border p-1"
+      >
+        {PIECE_ANIMATION_OPTIONS.map((option) => {
+          const selected = settings.pieceAnimation === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => setSetting('pieceAnimation', option.id)}
+              className={cn(
+                'min-h-11 rounded-lg px-2 text-sm font-semibold',
+                'motion-control motion-safe:active:scale-[0.98]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                selected ? 'bg-surface-muted text-fg shadow-sm' : 'text-fg-muted hover:text-fg',
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ThemePicker() {
   const { settings, setSetting } = useSettings();
   return (
@@ -209,9 +260,9 @@ function ThemePicker() {
 export default function SettingsPage() {
   return (
     <div className="relative min-h-svh pt-16">
-      <div className="container mx-auto max-w-2xl px-4 py-12">
+      <div className="container mx-auto max-w-2xl px-4 pt-6 pb-12">
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
-          <GradientText>Settings</GradientText>
+          Settings
         </h1>
         <p className="text-fg-muted mb-8">
           Preferences are saved on this device.
@@ -291,6 +342,22 @@ export default function SettingsPage() {
               title="Flip board in pass & play"
               description="Turn the board around between turns so the player to move is always at the bottom."
               settingKey="flipBoardPassAndPlay"
+            />
+            <SettingRow
+              title="Confirm Go placements"
+              description="On a touch screen: tap to aim, then tap again to play. Always on above 9×9, where a point is smaller than a fingertip."
+              settingKey="confirmMove"
+            />
+            <PieceAnimationRow />
+            <SettingRow
+              title="Show legal moves"
+              description="Mark where a piece you pick up can go."
+              settingKey="showDestinations"
+            />
+            <SettingRow
+              title="Confirm resignation"
+              description="Resign and draw take a second tap, so a stray click never ends a game."
+              settingKey="confirmResign"
             />
           </div>
         </Card>

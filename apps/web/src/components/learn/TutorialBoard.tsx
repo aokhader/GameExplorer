@@ -12,6 +12,7 @@ import {
   GO_BOARD_COLORS,
   GO_STAR_POINTS_9,
 } from '@gameexplorer/ui';
+import { captureCorners, tintedSquare } from '@/components/board/squareTint';
 
 /**
  * Static, server-renderable board diagram for the "How to play" pages.
@@ -322,14 +323,16 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
       const kinds = highlightsBySquare.get(pos) ?? [];
       const piece = pieceFor(diagram, pos);
 
-      let bg: string;
-      if (isReversi) {
-        bg = `var(--gx-reversi-board-cell, ${REVERSI_BOARD_COLORS.cell})`;
-      } else if (kinds.includes('origin') || kinds.includes('target')) {
-        bg = isLight ? palette.lastMoveLight : palette.lastMoveDark;
-      } else {
-        bg = isLight ? palette.light : palette.dark;
-      }
+      // A diagram's origin and target are tinted over the square, as the live
+      // boards do it (see `components/board/squareTint`).
+      const squareStyle = isReversi
+        ? { backgroundColor: `var(--gx-reversi-board-cell, ${REVERSI_BOARD_COLORS.cell})` }
+        : tintedSquare(
+            isLight ? palette.light : palette.dark,
+            kinds.includes('origin') || kinds.includes('target')
+              ? isLight ? palette.lastMoveLight : palette.lastMoveDark
+              : null,
+          );
 
       const showRank = diagram.coordinates && col === 0;
       const showFile = diagram.coordinates && screenRow === 7;
@@ -343,7 +346,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
         <div
           key={pos}
           className="relative"
-          style={{ backgroundColor: bg, aspectRatio: '1 / 1' } as CSSProperties}
+          style={{ ...squareStyle, aspectRatio: '1 / 1' } as CSSProperties}
         >
           {showRank && (
             <span
@@ -365,18 +368,22 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
           {/* Legal-move dot */}
           {kinds.includes('move') && !piece && (
             <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[30%] h-[30%] rounded-full z-10"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[22%] h-[22%] rounded-full z-10"
               style={{ backgroundColor: isReversi ? REVERSI_RING : palette.move }}
             />
           )}
 
-          {/* Capture ring */}
-          {kinds.includes('capture') && (
-            <div
-              className="absolute inset-[8%] rounded-full border-4 z-10"
-              style={{ borderColor: isReversi ? 'var(--c-danger)' : palette.capture }}
-            />
-          )}
+          {/* Capture target — the square's corners on a grid board; reversi
+              keeps its ring, since a disc fills the whole cell. */}
+          {kinds.includes('capture') &&
+            (isReversi ? (
+              <div
+                className="absolute inset-[8%] rounded-full border-4 z-10"
+                style={{ borderColor: 'var(--c-danger)' }}
+              />
+            ) : (
+              <div className="absolute inset-0 z-10" style={{ background: captureCorners(palette.capture) }} />
+            ))}
 
           {/* Reversi flip ring — a disc about to change color */}
           {isReversi && (kinds.includes('origin') || kinds.includes('target')) && (

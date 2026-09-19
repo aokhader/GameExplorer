@@ -1,11 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { GradientText, Reveal } from '@/components/visual';
-import { GameIcon } from '@/components/game/GameIcon';
-import { Icon, type IconName } from '@gameexplorer/ui';
-import { HowItWorks, type HowItWorksPoint } from '@/components/game/HowItWorks';
+import { GameHub, type HubMode } from '@/components/game/GameHub';
+import type { HowItWorksPoint } from '@/components/game/HowItWorks';
 
 const HOW_IT_WORKS: HowItWorksPoint[] = [
   {
@@ -25,161 +22,67 @@ const HOW_IT_WORKS: HowItWorksPoint[] = [
   },
 ];
 
-type GameMode = {
-  id: string;
-  title: string;
-  description: string;
-  icon: IconName;
-  href: string;
-  gradient: string;
-  available: boolean;
-  /** Card action label; defaults to "Start Playing". */
-  cta?: string;
-};
+const MODES: HubMode[] = [
+  {
+    id: 'bot',
+    title: 'Play vs Bot',
+    description: 'Six tiers, from a bot that plays almost at random to the engine at full strength',
+    icon: 'robot',
+    href: '/go/bot',
+    available: true,
+  },
+  {
+    id: 'training',
+    title: 'Training Mode',
+    description: 'Rated games against a bot matched to your skill level, with hints for sale',
+    icon: 'target',
+    href: '/go/training',
+    available: true,
+  },
+  {
+    id: 'local',
+    title: 'Pass & Play',
+    description: 'Two players, one screen — no account needed',
+    icon: 'users',
+    href: '/go/local',
+    available: true,
+  },
+  {
+    id: 'puzzles',
+    title: 'Puzzles',
+    description: 'Life and death, one shape at a time — find the point that settles the group',
+    icon: 'puzzle-piece',
+    href: '/go/puzzles',
+    available: true,
+  },
+  {
+    id: 'analysis',
+    title: 'Analysis Board',
+    description: 'Paste a game as SGF and have the engine grade every move',
+    icon: 'magnifying-glass',
+    href: '/go/analysis',
+    available: true,
+  },
+  {
+    id: 'learn',
+    title: 'How to Play',
+    description: 'New to Go? Liberties, capture, ko and scoring — the whole game in a few minutes',
+    icon: 'graduation-cap',
+    href: '/go/learn',
+    available: true,
+  },
+];
 
 export default function GoLandingPage() {
-  useAuth();
-
-  const gameModes: GameMode[] = [
-    {
-      id: 'bot',
-      title: 'Play vs Bot',
-      description: 'Six tiers, from a bot that plays almost at random to the engine at full strength',
-      icon: 'robot',
-      href: '/go/bot',
-      gradient: 'from-info to-info-hover',
-      available: true,
-    },
-    {
-      id: 'training',
-      title: 'Training Mode',
-      description: 'Rated games against a bot matched to your skill level, with hints for sale',
-      icon: 'target',
-      href: '/go/training',
-      gradient: 'from-success to-success-hover',
-      available: true,
-    },
-    {
-      id: 'local',
-      title: 'Pass & Play',
-      description: 'Two players, one screen — no account needed',
-      icon: 'users',
-      href: '/go/local',
-      gradient: 'from-accent to-accent-hover',
-      available: true,
-    },
-    {
-      id: 'puzzles',
-      title: 'Puzzles',
-      description: 'Life and death, one shape at a time — find the point that settles the group',
-      icon: 'puzzle-piece',
-      href: '/go/puzzles',
-      gradient: 'from-warning to-warning-hover',
-      available: true,
-      cta: 'Solve Puzzles',
-    },
-    {
-      id: 'analysis',
-      title: 'Analysis Board',
-      description: 'Paste a game as SGF and have the engine grade every move',
-      icon: 'magnifying-glass',
-      href: '/go/analysis',
-      gradient: 'from-warning to-danger',
-      available: true,
-      cta: 'Analyze a Game',
-    },
-    {
-      id: 'learn',
-      title: 'How to Play',
-      description: 'New to Go? Liberties, capture, ko and scoring — the whole game in a few minutes',
-      icon: 'graduation-cap',
-      href: '/go/learn',
-      gradient: 'from-accent to-accent-hover',
-      available: true,
-      cta: 'Start Learning',
-    },
-  ];
+  useAuth(); // initialise auth store
 
   return (
-    <div className="relative min-h-svh pt-16">
-      <div className="container mx-auto px-4 pt-8">
-        <Link
-          href="/"
-          className="inline-flex items-center text-fg-muted hover:text-fg transition-colors group"
-        >
-          <svg className="w-5 h-5 mr-2 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Home
-        </Link>
-      </div>
-
-      <div className="container mx-auto px-4 py-12 md:py-20">
-        {/* Hero */}
-        <div className="text-center mb-16">
-          <Reveal className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-surface-alt border border-border mb-6 motion-safe:animate-float [box-shadow:var(--shadow-glow-go)]">
-            <span className="text-4xl inline-flex items-center"><GameIcon game="go" /></span>
-          </Reveal>
-          <Reveal as="h1" delay={80} className="text-5xl md:text-6xl font-bold tracking-tight mb-4">
-            <GradientText>Play Go</GradientText>
-          </Reveal>
-          <Reveal as="p" delay={160} className="text-xl text-fg-muted max-w-2xl mx-auto">
-            Surround territory on a 9×9 board — the simplest rules here, and the deepest game
-          </Reveal>
-        </div>
-
-        {/* Game modes */}
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {gameModes.map((mode, i) => (
-              <Reveal key={mode.id} delay={i * 80} className="group relative">
-                {mode.available ? (
-                  <Link href={mode.href}>
-                    <div className="relative overflow-hidden rounded-2xl p-8 h-full bg-surface-alt border border-border surface-raised hover-lift group-hover:[box-shadow:var(--shadow-glow-go)]">
-                      <div className={`absolute inset-0 bg-linear-to-br ${mode.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
-                      <div className="relative z-10">
-                        <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} shadow-md group-hover:scale-110 transition-transform duration-300`}>
-                          <Icon name={mode.icon} className="text-4xl text-white" />
-                        </div>
-                        {/* Gradient text at rest too, in plain fg: hover only animates the stops. Turning
-                            bg-clip-text on at hover made the title vanish for a frame on the way out. */}
-                        <h2 className="text-2xl font-bold mb-2 bg-linear-to-r from-fg to-fg bg-clip-text text-transparent transition-colors group-hover:from-accent group-hover:to-accent-hover">
-                          {mode.title}
-                        </h2>
-                        <p className="text-fg-muted mb-4">{mode.description}</p>
-                        <div className="flex items-center text-accent font-medium">
-                          <span className="group-hover:mr-2 transition-all">{mode.cta ?? 'Start Playing'}</span>
-                          <svg className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <div className="relative overflow-hidden rounded-2xl p-8 h-full bg-surface-alt border border-border shadow-lg opacity-60 cursor-not-allowed">
-                    <div className="relative z-10">
-                      <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4 bg-linear-to-br ${mode.gradient} opacity-50`}>
-                        <Icon name={mode.icon} className="text-4xl text-white" />
-                      </div>
-                      <h2 className="text-2xl font-bold text-fg mb-2">{mode.title}</h2>
-                      <p className="text-fg-muted mb-4">{mode.description}</p>
-                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-surface-muted text-fg-muted text-sm font-medium">
-                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Coming Soon
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </Reveal>
-            ))}
-          </div>
-        </div>
-
-        <HowItWorks learnHref="/go/learn" points={HOW_IT_WORKS} />
-      </div>
-    </div>
+    <GameHub
+      game="go"
+      name="Go"
+      modes={MODES}
+      howItWorks={HOW_IT_WORKS}
+      learnHref="/go/learn"
+    />
   );
 }

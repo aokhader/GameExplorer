@@ -244,14 +244,12 @@ export const THEMES = {
 export const COLORS: Theme = liveView({ dark: DARK, cozy: COZY });
 
 /**
- * Per-game signature accent — a base hue + a translucent glow used for ambient
- * blooms, hovered cards, and hero gradients. Gold stays the shared brand/CTA;
- * these add per-game identity. Chess shares the neon-blue `info` hue. Mirrored
- * on web as `--c-game-*` / `--c-game-*-glow`.
+ * Per-game signature accent — the game's identity hue and its tint ramp. Gold
+ * stays the shared action colour; these mark which game a surface belongs to,
+ * and under Quiet Arcade they never glow. Mirrored on web as `--c-game-*`.
  */
 export interface GameAccent {
   base: string;
-  glow: string; // translucent, for radial blooms / glow rings
   /** Lightened hue — text/chevrons sitting on dark tinted fills. */
   light: string;
   /** Translucent tint fill (~16%) — card/icon-tile backgrounds. */
@@ -266,52 +264,51 @@ const DARK_GAME_ACCENTS: Record<'chess' | 'checkers' | 'reversi' | 'go' | 'liqui
   // The tint ramp (bg/bgSoft/border) powers the Arcade Glow card treatment on
   // mobile home/hub screens; web mirrors as `--c-game-*-tint*` vars if adopted.
   chess: {
-    base: PALETTE.blue, glow: 'rgba(59,130,246,0.45)', light: PALETTE.blueLight,
+    base: PALETTE.blue, light: PALETTE.blueLight,
     tintBg: 'rgba(59,130,246,0.16)', tintBgSoft: 'rgba(59,130,246,0.03)', tintBorder: 'rgba(59,130,246,0.40)',
   },
   checkers: {
-    base: PALETTE.pink, glow: 'rgba(236,72,153,0.45)', light: PALETTE.pinkLight,
+    base: PALETTE.pink, light: PALETTE.pinkLight,
     tintBg: 'rgba(236,72,153,0.16)', tintBgSoft: 'rgba(236,72,153,0.03)', tintBorder: 'rgba(236,72,153,0.40)',
   },
   reversi: {
-    base: PALETTE.lime, glow: 'rgba(163,230,53,0.42)', light: PALETTE.limeLight,
+    base: PALETTE.lime, light: PALETTE.limeLight,
     tintBg: 'rgba(163,230,53,0.15)', tintBgSoft: 'rgba(163,230,53,0.03)', tintBorder: 'rgba(163,230,53,0.38)',
   },
   go: {
-    base: PALETTE.cyan, glow: 'rgba(34,211,238,0.42)', light: PALETTE.cyanLight,
+    base: PALETTE.cyan, light: PALETTE.cyanLight,
     tintBg: 'rgba(34,211,238,0.15)', tintBgSoft: 'rgba(34,211,238,0.03)', tintBorder: 'rgba(34,211,238,0.38)',
   },
   liquidate: {
-    base: PALETTE.violet, glow: 'rgba(139,92,246,0.45)', light: PALETTE.violetLight,
+    base: PALETTE.violet, light: PALETTE.violetLight,
     tintBg: 'rgba(139,92,246,0.16)', tintBgSoft: 'rgba(139,92,246,0.03)', tintBorder: 'rgba(139,92,246,0.40)',
   },
 } as const;
 
 /**
  * Cozy Tabletop per-game hues — "walnut for chess, forest green for checkers,
- * slate for reversi" (design doc intro), plus clay for liquidate. Glows are far
- * weaker than Arcade Glow's: on a cream page a neon bloom reads as a smudge, so
- * these are tints that warm the surface rather than halos that radiate off it.
+ * slate for reversi" (design doc intro), plus clay for liquidate. On a cream page
+ * these are tints that warm the surface.
  */
 export const COZY_GAME_ACCENTS: Record<keyof typeof DARK_GAME_ACCENTS, GameAccent> = {
   chess: {
-    base: COZY_PALETTE.walnut, glow: 'rgba(169,116,63,0.30)', light: COZY_PALETTE.walnutLight,
+    base: COZY_PALETTE.walnut, light: COZY_PALETTE.walnutLight,
     tintBg: 'rgba(139,90,43,0.10)', tintBgSoft: 'rgba(139,90,43,0.02)', tintBorder: 'rgba(169,116,63,0.45)',
   },
   checkers: {
-    base: COZY_PALETTE.forest, glow: 'rgba(47,110,78,0.24)', light: COZY_PALETTE.forestLight,
+    base: COZY_PALETTE.forest, light: COZY_PALETTE.forestLight,
     tintBg: 'rgba(47,110,78,0.10)', tintBgSoft: 'rgba(47,110,78,0.02)', tintBorder: 'rgba(47,110,78,0.42)',
   },
   reversi: {
-    base: COZY_PALETTE.bark700, glow: 'rgba(59,46,33,0.22)', light: COZY_PALETTE.bark500,
+    base: COZY_PALETTE.bark700, light: COZY_PALETTE.bark500,
     tintBg: 'rgba(59,46,33,0.09)', tintBgSoft: 'rgba(59,46,33,0.02)', tintBorder: 'rgba(59,46,33,0.38)',
   },
   go: {
-    base: COZY_PALETTE.pine, glow: 'rgba(44,99,96,0.24)', light: COZY_PALETTE.pineLight,
+    base: COZY_PALETTE.pine, light: COZY_PALETTE.pineLight,
     tintBg: 'rgba(44,99,96,0.10)', tintBgSoft: 'rgba(44,99,96,0.02)', tintBorder: 'rgba(44,99,96,0.42)',
   },
   liquidate: {
-    base: COZY_PALETTE.claySoft, glow: 'rgba(184,114,74,0.26)', light: COZY_PALETTE.clayLight,
+    base: COZY_PALETTE.claySoft, light: COZY_PALETTE.clayLight,
     tintBg: 'rgba(184,114,74,0.11)', tintBgSoft: 'rgba(184,114,74,0.02)', tintBorder: 'rgba(184,114,74,0.42)',
   },
 } as const;
@@ -417,39 +414,12 @@ export const SHADOWS = {
   // above" surface). Inset highlight first, drop shadow after.
   elevation: 'inset 0 1px 0 0 rgba(255,255,255,0.06), 0 10px 30px -10px rgba(0,0,0,0.55)',
   elevationLg: 'inset 0 1px 0 0 rgba(255,255,255,0.07), 0 24px 60px -16px rgba(0,0,0,0.65)',
-  // Glow: a colored neon halo for primary actions / focal elements at rest+hover.
-  glowAccent:   '0 0 0 1px rgba(205,164,63,0.30), 0 0 34px -4px rgba(205,164,63,0.65)',
-  glowInfo:     '0 0 0 1px rgba(59,130,246,0.30), 0 0 32px -4px rgba(59,130,246,0.55)',
-  glowChess:    '0 0 0 1px rgba(59,130,246,0.35), 0 0 40px -8px rgba(59,130,246,0.65)',
-  glowCheckers: '0 0 0 1px rgba(236,72,153,0.35), 0 0 40px -8px rgba(236,72,153,0.65)',
-  glowReversi:  '0 0 0 1px rgba(163,230,53,0.32), 0 0 40px -8px rgba(163,230,53,0.55)',
-  glowGo:       '0 0 0 1px rgba(34,211,238,0.32), 0 0 40px -8px rgba(34,211,238,0.55)',
-  glowLiquidate:'0 0 0 1px rgba(139,92,246,0.35), 0 0 40px -8px rgba(139,92,246,0.65)',
-} as const;
-
-/**
- * Gradient strings (hero/per-game/surface sheen). Shared so RN can read the same
- * stops. Web also expresses these as `--gradient-*` vars in globals.css.
- */
-export const GRADIENTS = {
-  // Primary CTA fill — gold with a lit top edge.
-  accent:  'linear-gradient(180deg, #dcb456 0%, #cda43f 55%, #b8923a 100%)',
-  // Subtle top-lit panel sheen layered over surfaceAlt.
-  surface: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 40%)',
-  // Per-game hero washes (used at low opacity behind hero content).
-  heroChess:    'linear-gradient(135deg, #3b82f6 0%, #ec4899 100%)',
-  heroCheckers: 'linear-gradient(135deg, #ec4899 0%, #cda43f 100%)',
-  heroReversi:  'linear-gradient(135deg, #a3e635 0%, #22d3aa 100%)',
-  heroLiquidate:'linear-gradient(135deg, #8b5cf6 0%, #38bdf8 100%)',
-  heroBrand:    'linear-gradient(135deg, #3b82f6 0%, #ec4899 100%)',
 } as const;
 
 /**
  * React Native shadow equivalents of `SHADOWS`. RN cannot consume CSS box-shadow
  * strings, so these carry the same visual intent as `{ shadowColor, shadowOffset,
- * shadowOpacity, shadowRadius }` (iOS) + `elevation` (Android). The colored `glow*`
- * variants approximate the web neon halo with a tinted shadow; components that want
- * the crisp 1px ring should pair this with a `borderColor`/`borderWidth`.
+ * shadowOpacity, shadowRadius }` (iOS) + `elevation` (Android).
  */
 export interface NativeShadow {
   shadowColor: string;
@@ -468,22 +438,12 @@ const DARK_SHADOWS_NATIVE = {
   // depth with the drop-shadow half only. Pair with a top hairline border if needed.
   elevation:   { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.55, shadowRadius: 15, elevation: 8 },
   elevationLg: { shadowColor: '#000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.65, shadowRadius: 30, elevation: 14 },
-  // Neon glows: tinted shadow, offset 0 (halo radiates evenly), high radius.
-  glowAccent:   { shadowColor: PALETTE.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 17, elevation: 10 },
-  glowInfo:     { shadowColor: PALETTE.blue, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 16, elevation: 10 },
-  glowChess:    { shadowColor: PALETTE.blue, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
-  glowCheckers: { shadowColor: PALETTE.pink, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
-  glowReversi:  { shadowColor: PALETTE.lime, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 20, elevation: 12 },
-  glowGo:       { shadowColor: PALETTE.cyan, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 20, elevation: 12 },
-  glowLiquidate:{ shadowColor: PALETTE.violet, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.65, shadowRadius: 20, elevation: 12 },
 } as const satisfies Record<keyof typeof SHADOWS, NativeShadow>;
 
 /**
- * Cozy Tabletop's native shadows. Two differences from Arcade Glow, both because
- * the surface underneath is light: the drop shadows are warm brown at much lower
- * opacity (pure black on cream reads as grime), and the "glows" become ordinary
- * downward shadows — an evenly-radiating colored halo needs a dark backdrop to
- * bloom against, and on parchment just looks like a printing misregistration.
+ * Cozy Tabletop's native shadows. The surface underneath is light, so the drop
+ * shadows are warm brown at much lower opacity (pure black on cream reads as
+ * grime).
  */
 const COZY_SHADOW = '#5a3a1c';
 const COZY_SHADOWS_NATIVE = {
@@ -493,99 +453,10 @@ const COZY_SHADOWS_NATIVE = {
   xl: { shadowColor: COZY_SHADOW, shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.22, shadowRadius: 25, elevation: 12 },
   elevation:   { shadowColor: COZY_SHADOW, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 15, elevation: 8 },
   elevationLg: { shadowColor: COZY_SHADOW, shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.24, shadowRadius: 30, elevation: 14 },
-  glowAccent:   { shadowColor: COZY_PALETTE.forest,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 8 },
-  glowInfo:     { shadowColor: COZY_PALETTE.walnut,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.30, shadowRadius: 12, elevation: 8 },
-  glowChess:    { shadowColor: COZY_PALETTE.walnut,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 10 },
-  glowCheckers: { shadowColor: COZY_PALETTE.forest,  shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 10 },
-  glowReversi:  { shadowColor: COZY_PALETTE.bark700, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.30, shadowRadius: 14, elevation: 10 },
-  glowGo:       { shadowColor: COZY_PALETTE.pine,    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.30, shadowRadius: 14, elevation: 10 },
-  glowLiquidate:{ shadowColor: COZY_PALETTE.claySoft,shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 10 },
 } as const satisfies Record<keyof typeof SHADOWS, NativeShadow>;
 
 export const SHADOWS_NATIVE: Record<keyof typeof SHADOWS, NativeShadow> =
   liveView({ dark: DARK_SHADOWS_NATIVE, cozy: COZY_SHADOWS_NATIVE });
-
-/**
- * Neon glows for React Native as `boxShadow` strings, carrying the same blur and
- * negative spread as their `SHADOWS` counterparts (RN 0.76+ honors both).
- *
- * Prefer these over `SHADOWS_NATIVE.glow*` on rounded and circular views. The
- * elevation-based tokens draw an Android shadow that follows the view's outline
- * at full strength, so a circle reads as a hard halo ring rather than a bloom;
- * the negative spread here pulls the falloff inward and it dissolves instead.
- * The elevation tokens stay for square board tiles, where the plate is the
- * intended shape, and for anything needing real Android z-ordering.
- *
- * The `0 0 0 1px` ring from `SHADOWS` is omitted — pair with a borderColor.
- */
-const DARK_GLOWS_NATIVE = {
-  glowAccent:   '0 0 34px -4px rgba(205,164,63,0.65)',
-  glowInfo:     '0 0 32px -4px rgba(59,130,246,0.55)',
-  glowChess:    '0 0 40px -8px rgba(59,130,246,0.65)',
-  glowCheckers: '0 0 40px -8px rgba(236,72,153,0.65)',
-  glowReversi:  '0 0 40px -8px rgba(163,230,53,0.55)',
-  glowGo:       '0 0 40px -8px rgba(34,211,238,0.55)',
-  glowLiquidate:'0 0 40px -8px rgba(139,92,246,0.65)',
-} as const;
-
-/** Cozy: warm downward shadows rather than halos — see COZY_SHADOWS_NATIVE. */
-const COZY_GLOWS_NATIVE = {
-  glowAccent:   '0 8px 20px -10px rgba(47,110,78,0.55)',
-  glowInfo:     '0 8px 20px -10px rgba(139,90,43,0.50)',
-  glowChess:    '0 8px 22px -10px rgba(124,82,48,0.55)',
-  glowCheckers: '0 8px 22px -10px rgba(47,110,78,0.55)',
-  glowReversi:  '0 8px 22px -10px rgba(59,46,33,0.45)',
-  glowGo:       '0 8px 22px -10px rgba(44,99,96,0.45)',
-  glowLiquidate:'0 8px 22px -10px rgba(184,114,74,0.55)',
-} as const;
-
-export const GLOWS_NATIVE: Record<keyof typeof DARK_GLOWS_NATIVE, string> =
-  liveView({ dark: DARK_GLOWS_NATIVE, cozy: COZY_GLOWS_NATIVE });
-
-/**
- * React Native gradient equivalents of `GRADIENTS`, parsed into the shape
- * `expo-linear-gradient` / `react-native-linear-gradient` consume: a `colors`
- * array with matching `locations` (0–1) and `start`/`end` unit points. Angles are
- * converted to points — 180deg = top→bottom (0.5,0)→(0.5,1); 135deg = top-left→
- * bottom-right (0,0)→(1,1).
- */
-export interface NativeGradient {
-  colors: readonly string[];
-  locations: readonly number[];
-  start: { x: number; y: number };
-  end: { x: number; y: number };
-}
-
-const VERTICAL = { start: { x: 0.5, y: 0 }, end: { x: 0.5, y: 1 } } as const;
-const DIAGONAL = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
-
-const DARK_GRADIENTS_NATIVE = {
-  accent:  { colors: ['#dcb456', '#cda43f', '#b8923a'], locations: [0, 0.55, 1], ...VERTICAL },
-  surface: { colors: ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'], locations: [0, 0.4], ...VERTICAL },
-  heroChess:    { colors: ['#3b82f6', '#ec4899'], locations: [0, 1], ...DIAGONAL },
-  heroCheckers: { colors: ['#ec4899', '#cda43f'], locations: [0, 1], ...DIAGONAL },
-  heroReversi:  { colors: ['#a3e635', '#22d3aa'], locations: [0, 1], ...DIAGONAL },
-  heroLiquidate:{ colors: ['#8b5cf6', '#38bdf8'], locations: [0, 1], ...DIAGONAL },
-  heroBrand:    { colors: ['#3b82f6', '#ec4899'], locations: [0, 1], ...DIAGONAL },
-} as const satisfies Record<keyof typeof GRADIENTS, NativeGradient>;
-
-/**
- * Cozy gradients. The `surface` sheen flips sign — on a light card the lift comes
- * from white at the top fading to a faint warm shade, not a white wash — and the
- * hero pairs walk the wood-and-felt range instead of two neons.
- */
-const COZY_GRADIENTS_NATIVE = {
-  accent:  { colors: ['#337157', '#2f6e4e', '#275c41'], locations: [0, 0.55, 1], ...VERTICAL },
-  surface: { colors: ['rgba(255,255,255,0.55)', 'rgba(139,90,43,0.03)'], locations: [0, 1], ...VERTICAL },
-  heroChess:    { colors: ['#a9743f', '#6e4a2a'], locations: [0, 1], ...DIAGONAL },
-  heroCheckers: { colors: ['#3f8a63', '#23503a'], locations: [0, 1], ...DIAGONAL },
-  heroReversi:  { colors: ['#6f6350', '#3b2e21'], locations: [0, 1], ...DIAGONAL },
-  heroLiquidate:{ colors: ['#c0685a', '#7c2d1e'], locations: [0, 1], ...DIAGONAL },
-  heroBrand:    { colors: ['#a9743f', '#2f6e4e'], locations: [0, 1], ...DIAGONAL },
-} as const satisfies Record<keyof typeof GRADIENTS, NativeGradient>;
-
-export const GRADIENTS_NATIVE =
-  liveView({ dark: DARK_GRADIENTS_NATIVE, cozy: COZY_GRADIENTS_NATIVE });
 
 export const Z_INDEX = {
   base: 0,

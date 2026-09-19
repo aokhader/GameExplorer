@@ -30,7 +30,7 @@ export function PieceSlot({
   row,
   offset,
   fading = false,
-  reducedMotion = false,
+  animMs = BOARD_ANIM_MS,
   pieceClassName,
   children,
 }: {
@@ -47,7 +47,11 @@ export function PieceSlot({
   offset: PieceOffset | null;
   /** A captured piece, drawn where it stood while it fades out. */
   fading?: boolean;
-  reducedMotion?: boolean;
+  /**
+   * Travel and fade time for this device — `boardAnimMs(settings, reducedMotion)`.
+   * 0 means nothing moves: the piece is drawn where it lands.
+   */
+  animMs?: number;
   /** Classes for the inner wrapper — each board's own piece treatment. */
   pieceClassName?: string;
   children: React.ReactNode;
@@ -58,7 +62,7 @@ export function PieceSlot({
   // state — which would otherwise cancel the transition mid-flight and snap the
   // piece to its destination.
   const [from] = useState(() => offset);
-  const animates = (!!from || fading) && !reducedMotion;
+  const animates = (!!from || fading) && animMs > 0;
   const [settled, setSettled] = useState(!animates);
 
   useLayoutEffect(() => {
@@ -95,7 +99,7 @@ export function PieceSlot({
         // nothing to transition from.
         transition:
           animates && settled
-            ? `transform ${BOARD_ANIM_MS}ms ${MOTION.EASING_CSS.move}, opacity ${BOARD_ANIM_MS}ms ${MOTION.EASING_CSS.linear}`
+            ? `transform ${animMs}ms ${MOTION.EASING_CSS.move}, opacity ${animMs}ms ${MOTION.EASING_CSS.linear}`
             : undefined,
       }}
     >

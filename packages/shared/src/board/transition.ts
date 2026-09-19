@@ -16,6 +16,8 @@
 // generic signature covers chess, checkers and reversi. Row/column orientation
 // is the renderer's problem; nothing here knows which way is up.
 
+import type { PieceAnimation, Settings } from '../settings';
+
 /** A square in board coordinates. Orientation is the renderer's business. */
 export interface BoardSquare {
   row: number;
@@ -79,6 +81,31 @@ export interface DiffOptions<P> {
  * does not depend on `ui`. One number, three consumers.
  */
 export const BOARD_ANIM_MS = 200;
+
+/**
+ * Travel time for each `pieceAnimation` choice. `normal` IS `BOARD_ANIM_MS`, so
+ * a player who never opens settings sees exactly the tempo the puzzle and
+ * lesson reply delays are timed against.
+ */
+export const PIECE_ANIMATION_MS: Record<PieceAnimation, number> = {
+  none: 0,
+  fast: 120,
+  normal: BOARD_ANIM_MS,
+  slow: 320,
+};
+
+/**
+ * How long a piece should take to travel on this device right now, or 0 for
+ * "do not animate at all". Reduced motion — the OS's or the in-app toggle —
+ * always wins over the speed setting; a board reads one number instead of
+ * re-deriving that rule six times.
+ */
+export function boardAnimMs(
+  settings: Pick<Settings, 'pieceAnimation'>,
+  reducedMotion: boolean,
+): number {
+  return reducedMotion ? 0 : PIECE_ANIMATION_MS[settings.pieceAnimation] ?? BOARD_ANIM_MS;
+}
 
 function empty<P>(): BoardTransition<P> {
   return { moves: [], fades: [], appears: [], changes: [] };

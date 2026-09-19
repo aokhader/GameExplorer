@@ -10,7 +10,7 @@ import {
   type ChessGameState,
 } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, ChessPiece, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
-import { Screen, BackHeader, Button, GlowBackdrop, Icon, Toggle } from '@/components/ui';
+import { Screen, BackHeader, Button, Icon, Toggle } from '@/components/ui';
 import { DifficultyMeter } from '@/game/DifficultyMeter';
 import { ChessBoard } from '@/board/ChessBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
@@ -19,7 +19,7 @@ import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
 import { OpponentPicker, FlipBoardCard } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
-import { SetupHero } from '@/game/SetupHero';
+import { SetupHeading } from '@/game/SetupHeading';
 import { LearnLink } from '@/game/LearnLink';
 import { LessonsCard } from '@/game/LessonsCard';
 import { AnalysisCard } from '@/game/AnalysisCard';
@@ -284,11 +284,8 @@ export function ChessScreen() {
 
     return (
       <Screen footer={startButton}>
-        <GlowBackdrop
-          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.chess.base, opacity: 0.16 }]}
-        />
         <BackHeader fallbackHref="/" />
-        <SetupHero game="chess" />
+        <SetupHeading game="chess" />
 
         {unfinished.saved && (
           <View style={{ marginBottom: 24 }}>
@@ -833,7 +830,7 @@ export function ChessScreen() {
         saveError={game.saveError}
         onRetrySave={game.retrySave}
         onReview={() => setReviewing(true)}
-        actions={<Button label="Rematch" onPress={handleRematch} glow />}
+        actions={<Button label="Rematch" onPress={handleRematch} />}
         secondaryActions={
           <>
             <ChangeSetupButton onPress={handleNewGame} />

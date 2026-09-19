@@ -26,6 +26,16 @@
  */
 export type ThemeChoice = 'dark' | 'cozy';
 
+/**
+ * How pieces travel between squares. `normal` is the board's own tempo
+ * (`BOARD_ANIM_MS`); the others are lichess's offer — its players asked for
+ * speed control, not for colour pickers. Durations live beside the board's
+ * tempo in `board/transition.ts`.
+ */
+export type PieceAnimation = 'none' | 'fast' | 'normal' | 'slow';
+
+export const PIECE_ANIMATIONS: readonly PieceAnimation[] = ['none', 'fast', 'normal', 'slow'];
+
 export interface Settings {
   /** Play game sound effects (default off — opt-in). */
   sound: boolean;
@@ -51,9 +61,10 @@ export interface Settings {
    * every existing player to fix a problem they do not have would be the wrong
    * trade.
    *
-   * Read by the **mobile** board only. A mouse can hit a 19×19 intersection
-   * that a fingertip cannot, so the web board keeps click-to-place and this
-   * setting would be friction there rather than a fix.
+   * Read by the mobile board, and by the web board **only on a touch screen**
+   * (`pointer: coarse`). A mouse can hit a 19×19 intersection that a fingertip
+   * cannot, so a mouse keeps click-to-place — the step would be friction there
+   * rather than a fix — but a phone browser is a finger, not a mouse.
    */
   confirmMove: boolean;
   /**
@@ -62,6 +73,23 @@ export interface Settings {
    * board to face whoever is thinking.
    */
   flipBoardPassAndPlay: boolean;
+  /**
+   * How pieces travel. `reduceMotion` still wins: under it nothing travels,
+   * whatever this says — see `boardAnimMs`.
+   */
+  pieceAnimation: PieceAnimation;
+  /**
+   * Draw where the picked-up piece (or the side to move, in reversi and Go)
+   * may go. On by default; some players find the dots a crutch.
+   */
+  showDestinations: boolean;
+  /**
+   * Resign, and agree or offer a draw, only on a second tap — the button
+   * turns into its own confirmation for three seconds, so the board stays in
+   * view. On by default: a mis-tap that throws a game costs far more than the
+   * second tap.
+   */
+  confirmResign: boolean;
   /** Active visual theme. */
   theme: ThemeChoice;
 }
@@ -73,6 +101,9 @@ export const SETTINGS_DEFAULTS: Settings = {
   showCoordinates: true,
   confirmMove: false,
   flipBoardPassAndPlay: true,
+  pieceAnimation: 'normal',
+  showDestinations: true,
+  confirmResign: true,
   theme: 'dark',
 };
 
@@ -95,6 +126,11 @@ export function parseSettings(raw: string | null | undefined): Settings {
   try {
     const stored = { ...SETTINGS_DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) };
     if (stored.theme !== 'cozy') stored.theme = 'dark';
+    // Same hazard as the theme: an unknown value from a newer build would reach
+    // a duration lookup and come back undefined.
+    if (!PIECE_ANIMATIONS.includes(stored.pieceAnimation)) {
+      stored.pieceAnimation = SETTINGS_DEFAULTS.pieceAnimation;
+    }
     return stored;
   } catch {
     return { ...SETTINGS_DEFAULTS };

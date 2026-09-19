@@ -132,7 +132,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
   // ── Setup ────────────────────────────────────────────────────────────────
   if (!state) {
     return (
-      <div className="page-glow-liquidate min-h-svh">
+      <div className=" min-h-svh">
         <div className="container mx-auto px-4 pt-8">
           {/* This route renders no global navbar, and this screen had no link
               of its own — the browser's own Back button was the only way off
@@ -284,7 +284,6 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
   return (
     <>
       <GameScreenLayout
-        accent="liquidate"
         backHref="/liquidate"
         backLabel="Liquidate"
         // The ring caps at 760px (see `LiquidateBoard`), so the column stops

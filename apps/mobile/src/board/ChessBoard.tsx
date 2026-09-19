@@ -13,6 +13,7 @@ import {
   ChessEngine,
   getChessPremoveDestinations,
   isChessPremoveLegal,
+  boardAnimMs,
   // a1 dark, h1 light. One rule for every board in the app.
   isDarkSquare as isDark,
 } from '@gameexplorer/shared';
@@ -30,9 +31,10 @@ import {
   motionKey,
   useBoardMotion,
 } from '@gameexplorer/client/hooks/useBoardMotion';
-import { ChessPiece, BOARD_COLORS, COLORS, SHADOWS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { ChessPiece, BOARD_COLORS, COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
+import { CaptureCorners, CheckMarker, SquareTint } from './SquareState';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
@@ -88,7 +90,6 @@ interface ChessBoardProps {
 // The vector piece art fills ~89% of its viewBox; 0.9 seats it at play scale with
 // a small margin off the square edges (matches the web board's .piece sizing).
 const PIECE_RATIO = 0.9;
-const CHECK_RING = 'rgba(244,63,94,0.9)';
 /**
  * Beat between the opponent's move landing and a queued premove firing — long
  * enough for the arriving move to paint, short enough to still read as instant.
@@ -158,7 +159,7 @@ function BoardPiece({
   dimmed,
   pop,
   offset,
-  reduceMotion,
+  animMs,
 }: {
   x: number;
   y: number;
@@ -169,8 +170,10 @@ function BoardPiece({
   pop: boolean;
   /** Where this piece came from, in squares. Null means it did not travel. */
   offset: PieceOffset | null;
-  reduceMotion: boolean;
+  /** Travel time on this device; 0 means nothing moves. See `boardAnimMs`. */
+  animMs: number;
 }) {
+  const reduceMotion = animMs <= 0;
   const scale = useSharedValue(1);
   // Seeded at creation rather than in an effect, because an effect runs after
   // paint: the piece would show for one frame at its destination, then snap
@@ -182,8 +185,8 @@ function BoardPiece({
 
   useEffect(() => {
     if (!offset || reduceMotion) return;
-    tx.value = withTiming(0, TRAVEL);
-    ty.value = withTiming(0, TRAVEL);
+    tx.value = withTiming(0, { ...TRAVEL, duration: animMs });
+    ty.value = withTiming(0, { ...TRAVEL, duration: animMs });
     // Mount-only: `offset` describes the arrival that created this instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -239,18 +242,18 @@ function FadingPiece({
   y,
   sq,
   piece,
-  reduceMotion,
+  animMs,
 }: {
   x: number;
   y: number;
   sq: number;
   piece: Piece;
-  reduceMotion: boolean;
+  animMs: number;
 }) {
-  const opacity = useSharedValue(reduceMotion ? 0 : 1);
+  const opacity = useSharedValue(animMs > 0 ? 1 : 0);
 
   useEffect(() => {
-    if (!reduceMotion) opacity.value = withTiming(0, CAPTURE_FADE);
+    if (animMs > 0) opacity.value = withTiming(0, { ...CAPTURE_FADE, duration: animMs });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -372,10 +375,12 @@ function ChessBoardInner({
 
   const sfx = useGameSfx();
   const { settings, reducedMotion } = useSettings();
+  // Travel time on this device: the speed setting, or 0 under reduced motion.
+  const animMs = boardAnimMs(settings, reducedMotion);
+  const showDests = settings.showDestinations;
   const coordsOn = showCoordinates && settings.showCoordinates;
   const isFlipped = playerColor === 'black';
   const gameOver = gameState.isCheckmate || gameState.isStalemate || gameState.isDraw;
-  const isMyTurn = !gameOver && gameState.currentTurn === playerColor;
   // Premove mode: the opponent is on the clock, so picking a piece queues a
   // move instead of playing one.
   const premoveMode =
@@ -392,7 +397,7 @@ function ChessBoardInner({
     ...CHESS_DIFF,
     historyLength: gameState.moveHistory.length,
     isFlipped,
-    enabled: !reducedMotion,
+    enabled: animMs > 0,
   });
 
   const dragTX = useSharedValue(0);
@@ -724,13 +729,17 @@ function ChessBoardInner({
             const isHintSquare = !!hintMove && (hintMove.from === pos || hintMove.to === pos);
             const isPremoveSquare = !!premove && (premove.from === pos || premove.to === pos);
 
-            let bg: string = dark ? BOARD_COLORS.darkSquare : BOARD_COLORS.lightSquare;
-            if (isSelected) bg = BOARD_COLORS.selectedSquare;
-            // The queued move outranks the last move: the opponent's reply
-            // often lands on one of these two squares, and the pending intent
-            // is what the player needs to see there.
-            else if (isPremoveSquare) bg = BOARD_COLORS.premove;
-            else if (isLastMoveSquare) bg = dark ? BOARD_COLORS.lastMoveDark : BOARD_COLORS.lastMoveLight;
+            const bg = dark ? BOARD_COLORS.darkSquare : BOARD_COLORS.lightSquare;
+            // One tint over the square, as web's stylesheet does it: the
+            // selection outranks the last move it stands on. A queued premove
+            // stacks on top of either — the opponent's reply often lands on
+            // one of its squares, and the pending intent is what the player
+            // needs to see there.
+            const tint = isSelected
+              ? BOARD_COLORS.selectedSquare
+              : isLastMoveSquare
+                ? dark ? BOARD_COLORS.lastMoveDark : BOARD_COLORS.lastMoveLight
+                : null;
 
             const showRank = coordsOn && screenCol === 0;
             const showFile = coordsOn && screenRow === 7;
@@ -763,6 +772,8 @@ function ChessBoardInner({
                   justifyContent: 'center',
                 }}
               >
+                {tint && <SquareTint size={sq} color={tint} />}
+                {isPremoveSquare && <SquareTint size={sq} color={BOARD_COLORS.premove} />}
                 {marks.has(pos) && <BoardMark mark={marks.get(pos)!} size={sq} />}
 
                 {showRank && (
@@ -775,25 +786,12 @@ function ChessBoardInner({
                     {String.fromCharCode(97 + boardCol)}
                   </Text>
                 )}
-                {/* King-in-check ring. */}
-                {isCheckKing && (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      left: sq * 0.06,
-                      top: sq * 0.06,
-                      right: sq * 0.06,
-                      bottom: sq * 0.06,
-                      borderRadius: sq,
-                      borderWidth: 3,
-                      borderColor: CHECK_RING,
-                    }}
-                  />
-                )}
+                {/* King in check — a still radial under the king. */}
+                {isCheckKing && <CheckMarker id={`check-${pos}`} size={sq} color={BOARD_COLORS.check} />}
                 {/* Premove candidates — dimmer than the legal-move dots,
                     because these are squares the move may be aimed at, not
                     moves known to be playable. */}
-                {isValidDest && premoveMode && (
+                {isValidDest && showDests && premoveMode && (
                   <View
                     style={{
                       width: sq * 0.22,
@@ -805,30 +803,19 @@ function ChessBoardInner({
                   />
                 )}
                 {/* Legal-move dot on an empty destination. */}
-                {isValidDest && !premoveMode && !piece && (
+                {isValidDest && showDests && !premoveMode && !piece && (
                   <View
                     style={{
-                      width: sq * 0.28,
-                      height: sq * 0.28,
-                      borderRadius: sq * 0.14,
+                      width: sq * 0.22,
+                      height: sq * 0.22,
+                      borderRadius: sq * 0.11,
                       backgroundColor: BOARD_COLORS.moveIndicator,
                     }}
                   />
                 )}
-                {/* Capture ring on an occupied legal destination. */}
-                {isValidDest && !premoveMode && piece && (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      left: sq * 0.06,
-                      top: sq * 0.06,
-                      right: sq * 0.06,
-                      bottom: sq * 0.06,
-                      borderRadius: sq,
-                      borderWidth: 3,
-                      borderColor: BOARD_COLORS.moveIndicatorCapture,
-                    }}
-                  />
+                {/* Capture target — the square's corners, clear of the piece. */}
+                {isValidDest && showDests && !premoveMode && piece && (
+                  <CaptureCorners id={`cap-${pos}`} size={sq} color={BOARD_COLORS.moveIndicatorCapture} />
                 )}
                 {/* Training hint — square outline on both ends of the suggested
                     move. Drawn last so it reads over the other cues. */}
@@ -866,7 +853,7 @@ function ChessBoardInner({
                   dimmed={draggingFrom === pos}
                   pop={lastMoveTo === pos}
                   offset={motion.offsets.get(motionKey(boardRow, boardCol)) ?? null}
-                  reduceMotion={reducedMotion}
+                  animMs={animMs}
                 />,
               );
             }
@@ -884,7 +871,7 @@ function ChessBoardInner({
               y={y}
               sq={sq}
               piece={fade.piece}
-              reduceMotion={reducedMotion}
+              animMs={animMs}
             />
           );
         });
@@ -919,20 +906,19 @@ function ChessBoardInner({
         }
 
         return (
+          // Whose move it is lives on the player cards, not on the board — the
+          // turn glow that used to ring it repeated the card.
           <GestureDetector gesture={gesture}>
             <View
-              style={[
-                {
-                  width: size,
-                  height: size,
-                  borderRadius: RADIUS.xl,
-                  overflow: 'hidden',
-                  borderWidth: 2,
-                  borderColor: COLORS.borderStrong,
-                  backgroundColor: BOARD_COLORS.darkSquare,
-                },
-                isMyTurn && SHADOWS_NATIVE.glowChess,
-              ]}
+              style={{
+                width: size,
+                height: size,
+                borderRadius: RADIUS.xl,
+                overflow: 'hidden',
+                borderWidth: 2,
+                borderColor: COLORS.borderStrong,
+                backgroundColor: BOARD_COLORS.darkSquare,
+              }}
             >
               {squares}
               {fading}

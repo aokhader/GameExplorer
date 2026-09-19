@@ -4,6 +4,7 @@ import type { DiagramArrow, DiagramHighlight, TutorialDiagram } from '@gameexplo
 import { isDarkSquare } from '@gameexplorer/shared';
 import { ChessPiece, CheckersPiece, ReversiDisc, GoStone, BOARD_COLORS, CHECKERS_BOARD_COLORS, REVERSI_BOARD_COLORS, GO_BOARD_COLORS, GO_STAR_POINTS_9, COLORS, useThemeName, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/board/BoardFrame';
+import { CaptureCorners, SquareTint } from '@/board/SquareState';
 import { FONTS } from '@/theme/typography';
 
 /**
@@ -344,14 +345,15 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
               const kinds = highlightsBySquare.get(pos) ?? [];
               const piece = pieceFor(diagram, pos, pieceSize);
 
-              let bg: string;
-              if (isReversi) {
-                bg = REVERSI_BOARD_COLORS.cell;
-              } else if (kinds.includes('origin') || kinds.includes('target')) {
-                bg = isLight ? palette.lastMoveLight : palette.lastMoveDark;
-              } else {
-                bg = isLight ? palette.light : palette.dark;
-              }
+              const bg = isReversi
+                ? REVERSI_BOARD_COLORS.cell
+                : isLight ? palette.light : palette.dark;
+              // Origin and target are tinted over the square, as the live
+              // boards do it (see `board/SquareState`).
+              const tint =
+                !isReversi && (kinds.includes('origin') || kinds.includes('target'))
+                  ? isLight ? palette.lastMoveLight : palette.lastMoveDark
+                  : null;
 
               const showRank = diagram.coordinates && col === 0;
               const showFile = diagram.coordinates && screenRow === 7;
@@ -375,6 +377,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
                     }),
                   }}
                 >
+                  {tint && <SquareTint size={cell} color={tint} />}
                   {showRank && (
                     <Text
                       style={{
@@ -410,9 +413,9 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
                   {kinds.includes('move') && !piece && (
                     <View
                       style={{
-                        width: cell * 0.3,
-                        height: cell * 0.3,
-                        borderRadius: cell * 0.15,
+                        width: cell * 0.22,
+                        height: cell * 0.22,
+                        borderRadius: cell * 0.11,
                         backgroundColor: isReversi
                           ? REVERSI_BOARD_COLORS.lastMoveRing
                           : palette.move,
@@ -420,8 +423,12 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
                     />
                   )}
 
-                  {/* Capture ring */}
-                  {kinds.includes('capture') && (
+                  {/* Capture target — the square's corners on a grid board;
+                      reversi keeps its ring, since a disc fills the cell. */}
+                  {kinds.includes('capture') && !isReversi && (
+                    <CaptureCorners id={`cap-${pos}`} size={cell} color={palette.capture} />
+                  )}
+                  {kinds.includes('capture') && isReversi && (
                     <View
                       style={{
                         position: 'absolute',
@@ -431,7 +438,7 @@ export function TutorialBoard({ diagram }: { diagram: TutorialDiagram }) {
                         bottom: '8%',
                         borderRadius: cell,
                         borderWidth: 3,
-                        borderColor: isReversi ? COLORS.danger : palette.capture,
+                        borderColor: COLORS.danger,
                       }}
                     />
                   )}

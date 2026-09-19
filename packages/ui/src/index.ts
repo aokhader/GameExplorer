@@ -3,19 +3,16 @@ export {
   THEMES,
   GAME_ACCENTS,
   COZY_GAME_ACCENTS,
-  GRADIENTS,
-  GRADIENTS_NATIVE,
   SPACING,
   RADIUS,
   FONT_SIZES,
   FONT_WEIGHTS,
   SHADOWS,
   SHADOWS_NATIVE,
-  GLOWS_NATIVE,
   Z_INDEX,
   MOTION,
 } from './tokens';
-export type { Theme, GameAccent, NativeShadow, NativeGradient } from './tokens';
+export type { Theme, GameAccent, NativeShadow } from './tokens';
 export { setActiveTheme, getActiveTheme, subscribeTheme, liveView } from './themeRuntime';
 export type { ThemeName } from './themeRuntime';
 export { useThemeName } from './useThemeName';

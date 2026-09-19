@@ -9,7 +9,7 @@ import {
   type ReversiColor,
 } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, REVERSI_DISC_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
-import { Screen, BackHeader, Button, GlowBackdrop, Toggle } from '@/components/ui';
+import { Screen, BackHeader, Button, Toggle } from '@/components/ui';
 import { DifficultyMeter } from '@/game/DifficultyMeter';
 import { ReversiBoard } from '@/board/ReversiBoard';
 import { GameScreenLayout } from '@/game/GameScreenLayout';
@@ -18,7 +18,7 @@ import { GameResultScreen, type GameResult } from '@/game/GameResultScreen';
 import { BackToHomeButton, ChangeSetupButton } from '@/game/resultDismiss';
 import { OpponentPicker } from '@/game/OpponentPicker';
 import { PuzzlesCard } from '@/game/PuzzlesCard';
-import { SetupHero } from '@/game/SetupHero';
+import { SetupHeading } from '@/game/SetupHeading';
 import { LearnLink } from '@/game/LearnLink';
 import { LessonsCard } from '@/game/LessonsCard';
 import { MoveBand } from '@/game/MoveBand';
@@ -235,11 +235,8 @@ export function ReversiScreen() {
 
     return (
       <Screen footer={startButton}>
-        <GlowBackdrop
-          blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: GAME_ACCENTS.reversi.base, opacity: 0.16 }]}
-        />
         <BackHeader fallbackHref="/" />
-        <SetupHero game="reversi" />
+        <SetupHeading game="reversi" />
 
         {unfinished.saved && (
           <View style={{ marginBottom: 24 }}>
@@ -671,7 +668,7 @@ export function ReversiScreen() {
         saveError={game.saveError}
         onRetrySave={game.retrySave}
         onReview={() => setReviewing(true)}
-        actions={<Button label="Rematch" onPress={handleRematch} glow />}
+        actions={<Button label="Rematch" onPress={handleRematch} />}
         secondaryActions={
           <>
             <ChangeSetupButton onPress={handleNewGame} />

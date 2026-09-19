@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@gameexplorer/client';
 import { GAME_CATALOG, type GameId } from '@gameexplorer/shared';
 import { settleUnfinishedGame } from '@gameexplorer/client/game/settleUnfinishedGame';
 import { unfinishedGameSummary } from '@gameexplorer/client/game/unfinishedGame';
-import { COLORS, GRADIENTS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 
 import { hasOnboarded } from '@/lib/onboarding';
 import { nativeLocalStore } from '@/lib/localStore';
@@ -157,20 +156,24 @@ export default function HomeScreen() {
             accessibilityLabel="Your profile"
             hitSlop={8}
           >
-            <LinearGradient
-              {...GRADIENTS_NATIVE.accent}
+            {/* A neutral avatar: the screen's one gold element is its Play
+                action, not the corner badge. */}
+            <View
               style={{
                 width: 34,
                 height: 34,
                 borderRadius: RADIUS.full,
                 alignItems: 'center',
                 justifyContent: 'center',
+                backgroundColor: COLORS.surfaceMuted,
+                borderWidth: 1,
+                borderColor: COLORS.border,
               }}
             >
-              <Text style={{ fontFamily: FONTS.bodyBold, color: COLORS.onAccent, fontSize: FONT_SIZES.sm }}>
+              <Text style={{ fontFamily: FONTS.bodyBold, color: COLORS.fg, fontSize: FONT_SIZES.sm }}>
                 {initial}
               </Text>
-            </LinearGradient>
+            </View>
           </Pressable>
         ) : (
           <Pressable

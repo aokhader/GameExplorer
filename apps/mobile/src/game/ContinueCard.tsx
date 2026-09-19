@@ -175,7 +175,6 @@ export function SetupStartFooter({
         onPress={() => (blocks ? setAsking(true) : onStart())}
         disabled={disabled}
         variant={saved && !leavesGame ? 'secondary' : 'primary'}
-        glow={!saved || leavesGame}
       />
     );
   }

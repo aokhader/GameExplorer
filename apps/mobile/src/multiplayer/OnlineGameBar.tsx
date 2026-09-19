@@ -99,7 +99,7 @@ export function OnlineGameBar({
         />
 
         {/* Hairline between the talking and the conceding. */}
-        <View style={{ width: 1, marginVertical: 6, backgroundColor: COLORS.border }} />
+        <View style={{ width: 1, marginVertical: 6, marginHorizontal: SPACING[1], backgroundColor: COLORS.border }} />
 
         <BarButton
           icon="flag"

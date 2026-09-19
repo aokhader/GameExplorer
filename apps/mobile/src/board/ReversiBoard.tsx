@@ -8,9 +8,9 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { ReversiEngine } from '@gameexplorer/shared';
+import { ReversiEngine, boardAnimMs } from '@gameexplorer/shared';
 import type { LessonMark, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
-import { ReversiDisc, REVERSI_BOARD_COLORS, SHADOWS_NATIVE, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
+import { ReversiDisc, REVERSI_BOARD_COLORS, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
 import { useGameSfx } from '@/audio/useGameSfx.native';
@@ -46,12 +46,8 @@ interface ReversiBoardProps {
 }
 
 const DISC_RATIO = 0.86;
-// Amber, matching the warning treatment web's hint UI uses.
 /** Shared empty result, so skipping generation doesn't allocate per render. */
 const NO_MOVES: readonly string[] = [];
-
-const HINT_RING = 'rgba(245,158,11,0.95)';
-const HINT_FILL = 'rgba(245,158,11,0.28)';
 
 function posFromCoords(row: number, col: number): string {
   return String.fromCharCode(97 + col) + (row + 1);
@@ -338,12 +334,12 @@ function ReversiBoardInner({
                 )}
                 {mark && <BoardMark mark={mark} size={sq} round />}
                 {/* Legal-move ghost dot on an empty square. */}
-                {isLegal && !disc && (
+                {isLegal && !disc && settings.showDestinations && (
                   <View
                     style={{
-                      width: sq * 0.28,
-                      height: sq * 0.28,
-                      borderRadius: sq * 0.14,
+                      width: sq * 0.22,
+                      height: sq * 0.22,
+                      borderRadius: sq * 0.11,
                       backgroundColor:
                         gameState.currentTurn === 'black'
                           ? REVERSI_BOARD_COLORS.validMoveBlack
@@ -377,8 +373,8 @@ function ReversiBoardInner({
                       right: 0,
                       bottom: 0,
                       borderWidth: 3,
-                      borderColor: HINT_RING,
-                      backgroundColor: HINT_FILL,
+                      borderColor: REVERSI_BOARD_COLORS.hintRing,
+                      backgroundColor: REVERSI_BOARD_COLORS.hintFill,
                     }}
                   />
                 )}
@@ -395,7 +391,9 @@ function ReversiBoardInner({
                   color={disc.color}
                   placed={justPlaced === pos}
                   flipped={justFlipped.has(pos)}
-                  reduceMotion={reducedMotion}
+                  // The placement pop and flip are piece motion: off with
+                  // piece animation set to none, as well as reduced motion.
+                  reduceMotion={boardAnimMs(settings, reducedMotion) === 0}
                 />,
               );
             }
@@ -403,20 +401,18 @@ function ReversiBoardInner({
         }
 
         return (
+          // No turn glow: the player cards say whose move it is.
           <GestureDetector gesture={gesture}>
             <View
-              style={[
-                {
-                  width: size,
-                  height: size,
-                  borderRadius: RADIUS.xl,
-                  overflow: 'hidden',
-                  borderWidth: 2,
-                  borderColor: REVERSI_BOARD_COLORS.boardBorder,
-                  backgroundColor: REVERSI_BOARD_COLORS.cell,
-                },
-                isPlayerTurn && SHADOWS_NATIVE.glowReversi,
-              ]}
+              style={{
+                width: size,
+                height: size,
+                borderRadius: RADIUS.xl,
+                overflow: 'hidden',
+                borderWidth: 2,
+                borderColor: REVERSI_BOARD_COLORS.boardBorder,
+                backgroundColor: REVERSI_BOARD_COLORS.cell,
+              }}
             >
               {squares}
               {discs}

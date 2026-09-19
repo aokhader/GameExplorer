@@ -551,7 +551,7 @@ export function LiquidateGame({ game, mode, onQuit, onRematch }: LiquidateGamePr
         result={resultFor(state, youId, mode)}
         title={titleFor(state, youId, mode)}
         subtitle={subtitleFor(state, roundLabel)}
-        actions={<Button label="Rematch" onPress={rematch} glow />}
+        actions={<Button label="Rematch" onPress={rematch} />}
         secondaryActions={
           <>
             <ChangeSetupButton onPress={onQuit} />

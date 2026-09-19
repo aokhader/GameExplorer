@@ -78,7 +78,6 @@ export function TurnRail({
                   borderRadius: '50%',
                   flex: 'none',
                   background: seatColor(seat),
-                  boxShadow: `0 0 0 3px color-mix(in srgb, ${seatColor(seat)} 30%, transparent)`,
                 }}
                 aria-hidden="true"
               />

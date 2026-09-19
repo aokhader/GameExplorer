@@ -57,6 +57,24 @@ const VIEWPORT_GUARDS = [
   { selector: `TemplateElement[value.raw=${VIEWPORT}]`, message: VIEWPORT_MESSAGE },
 ];
 
+/**
+ * Emphasis is a budget (`project-docs/ux-fix-ideas.md` §6.1–§6.2). The audit
+ * found 48% of 320 treatments signalled nothing and 22% repeated another
+ * signal; wave 3 deleted them. These are the ways they came in: glow shadows
+ * and route washes, glass panels, gradient text and gradient gold, floating and
+ * glowing loops, hover lifts that fire only under a mouse, and a raw `0 0 Npx`
+ * box-shadow — a halo with no offset. A state that needs marking gets one flat
+ * hue (see the board's state budget in packages/ui/src/chess/tokens.ts).
+ * The share image (`opengraph-image.tsx`) is exempt: it is not a product route.
+ */
+const DECORATION = String.raw`/(shadow-glow-|page-glow-|animate-float|animate-glow-pulse|animate-aurora|gradient-accent|text-gradient-|hover-lift|bg-clip-text|c-accent-bloom|(^|[\s'"\x60])glass([\s'"\x60]|$)|(^|,\s*|inset\s+)0 0 [1-9]\d*px)/`;
+const DECORATION_MESSAGE =
+  "No decorative glow, wash, glass, gradient text or hover lift (ux-fix-ideas.md §6.1). Mark a state with one flat hue; a press answers with motion-control + active:scale-[0.98].";
+const DECORATION_GUARDS = [
+  { selector: `Literal[value=${DECORATION}]`, message: DECORATION_MESSAGE },
+  { selector: `TemplateElement[value.raw=${DECORATION}]`, message: DECORATION_MESSAGE },
+];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -91,6 +109,20 @@ const eslintConfig = defineConfig([
   {
     files: ["src/**/*.{ts,tsx}"],
     rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...SCALE_GUARDS,
+        ...EMOJI_GUARDS,
+        ...VIEWPORT_GUARDS,
+        ...DECORATION_GUARDS,
+      ],
+    },
+  },
+  {
+    // The social share image is drawn once, off-product, by next/og; its gold
+    // bloom is the card's own backdrop. Every other guard still applies.
+    files: ["src/app/opengraph-image.tsx"],
+    rules: {
       "no-restricted-syntax": ["error", ...SCALE_GUARDS, ...EMOJI_GUARDS, ...VIEWPORT_GUARDS],
     },
   },
@@ -102,7 +134,7 @@ const eslintConfig = defineConfig([
     // override replaces the whole rule, so they are restated here.
     files: ["src/components/liquidate/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-syntax": ["error", ...SCALE_GUARDS, ...VIEWPORT_GUARDS],
+      "no-restricted-syntax": ["error", ...SCALE_GUARDS, ...VIEWPORT_GUARDS, ...DECORATION_GUARDS],
     },
   },
 ]);

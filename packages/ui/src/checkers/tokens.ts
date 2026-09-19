@@ -1,41 +1,46 @@
 /**
  * Shared design tokens for the checkers board and pieces.
  *
- * "Arcade Glow" checkers: the same dark blue-slate arcade board as chess, but
- * framed by checkers' hot-pink signature glow (see GAME_ACCENTS) so the two
- * games never read alike. Discs are neon — warm gold vs electric blue — and jump
- * hints glow pink. Gold stays the shared selection/last-move brand. Pieces only
- * ever sit on dark squares, so both disc fills read with strong contrast on the
- * dark tone. Import in web + mobile.
+ * "Arcade Glow" checkers: the same dark blue-slate arcade board as chess, with
+ * the same state hues. The discs — warm gold vs electric blue — are what tell
+ * the two games apart. Pieces only ever sit on dark squares, so both disc fills
+ * read with strong contrast on the dark tone. Import in web + mobile.
  */
 
 import { liveView } from '../themeRuntime';
 
+/*
+ * The same four-hue state budget as the chess board (see `chess/tokens.ts`):
+ * gold for the last move, teal for what you can do, violet for a queued
+ * premove. Checkers' pink survives in its piece art and its accent, not on the
+ * squares — a destination means the same thing on every grid in the app.
+ * Every tint is laid over the square's own colour.
+ */
 const DARK_CHECKERS_BOARD_COLORS = {
   lightSquare: '#445576',          // arcade blue-slate (light)
   darkSquare:  '#2a3550',          // arcade blue-slate (dark)
-  selectedSquare: '#cda43f',       // gold (shared brand)
+  selectedSquare: 'rgba(34,211,170,0.50)',
   lastMoveLight: 'rgba(205,164,63,0.42)',
   lastMoveDark:  'rgba(205,164,63,0.52)',
-  moveIndicator: 'rgba(236,72,153,0.85)',   // pink hint on the dark board
-  captureIndicator: 'rgba(236,72,153,0.75)',
-  // Queued premove — violet, outside both the gold last-move and pink hint
+  moveIndicator: 'rgba(34,211,170,0.60)',
+  captureIndicator: 'rgba(34,211,170,0.45)',
+  // Queued premove — violet, outside both the gold last-move and teal hint
   // families so a pending intent never reads as either.
-  premove: 'rgba(139,92,246,0.55)',
+  premove: 'rgba(139,92,246,0.60)',
   premoveHint: 'rgba(139,92,246,0.75)',
   frame: '#2b3652',
 };
 
-/** Cozy: the same walnut table as chess, with green carrying every hint. */
+/** Cozy: the same walnut table and the same budget as the Cozy chess board. */
 const COZY_CHECKERS_BOARD_COLORS = {
   lightSquare: '#e7c9a0',
   darkSquare:  '#a9743f',
-  selectedSquare: '#2f6e4e',
-  lastMoveLight: 'rgba(47,110,78,0.38)',
-  lastMoveDark:  'rgba(47,110,78,0.50)',
-  moveIndicator: 'rgba(47,110,78,0.85)',
-  captureIndicator: 'rgba(47,110,78,0.90)',
-  premove: 'rgba(45,90,140,0.50)',
+  selectedSquare: 'rgba(47,110,78,0.55)',
+  lastMoveLight: 'rgba(150,150,20,0.55)',
+  lastMoveDark:  'rgba(150,150,20,0.60)',
+  moveIndicator: 'rgba(47,110,78,0.65)',
+  captureIndicator: 'rgba(47,110,78,0.50)',
+  premove: 'rgba(45,90,140,0.55)',
   premoveHint: 'rgba(45,90,140,0.70)',
   frame: '#6e4a2a',
 };

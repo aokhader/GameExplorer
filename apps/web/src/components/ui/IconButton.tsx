@@ -37,7 +37,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
       ref={ref}
       type={type}
       className={cn(
-        'inline-flex items-center justify-center motion-control motion-safe:active:scale-[0.98]',
+        'inline-flex items-center justify-center motion-control motion-safe:active:scale-[0.98] touch-target',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
         'disabled:opacity-50 disabled:pointer-events-none',
         SIZES[size],

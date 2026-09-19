@@ -72,7 +72,7 @@ export function PuzzleBandPicker({
               }
               onClick={() => onSelect(b.id)}
               data-testid={`puzzle-band-${b.id}`}
-              className={`rounded-lg border px-2 py-1.5 text-left transition-colors ${
+              className={`min-h-11 rounded-lg border px-2 py-1.5 text-left transition-colors motion-control motion-safe:active:scale-[0.98] ${
                 selected
                   ? 'border-accent bg-accent/15 text-fg'
                   : 'border-white/10 bg-white/[0.04] text-fg-muted hover:bg-white/[0.08]'

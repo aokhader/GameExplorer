@@ -37,22 +37,17 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
     <div
       className={cn(
         'flex items-center justify-between gap-2.5 rounded-xl px-2.5 py-1.5 border',
-        isYou ? 'bg-accent-muted border-accent/35' : 'glass border-white/10',
+        // Flat surfaces: the gold tint is what marks your card, so the
+        // opponent's needs no glass and your avatar no gradient.
+        isYou ? 'bg-accent-muted border-accent/35' : 'bg-surface-alt border-border',
       )}
     >
       <div className="flex items-center gap-2.5 min-w-0">
         <span
           className={cn(
             'font-display grid h-8 w-8 shrink-0 place-items-center rounded-lg text-sm font-bold',
-            isYou ? 'text-on-accent' : 'text-white',
+            isYou ? 'bg-accent text-on-accent' : 'bg-surface-muted text-fg',
           )}
-          style={{
-            // Your tile is the brand accent, the opponent's is the neutral avatar
-            // tile — both theme-driven so they stay in palette.
-            backgroundImage: isYou
-              ? 'var(--gradient-accent)'
-              : 'var(--c-avatar-gradient)',
-          }}
           aria-hidden="true"
         >
           {initial}
@@ -71,16 +66,14 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
       {captured}
       {right ??
         (active && (
+          // Whose move it is — the one place it is drawn now that the board
+          // has no turn halo. It pulses three times when the turn arrives and
+          // then holds; the glow it used to wear repeated the dot.
           <span
             className={cn(
-              'h-2.5 w-2.5 shrink-0 rounded-full animate-state-pulse',
+              'h-3 w-3 shrink-0 rounded-full animate-state-pulse',
               isYou ? 'bg-accent' : 'bg-success',
             )}
-            style={{
-              boxShadow: isYou
-                ? '0 0 10px color-mix(in srgb, var(--c-accent) 80%, transparent)'
-                : '0 0 10px color-mix(in srgb, var(--c-success-hover) 80%, transparent)',
-            }}
             aria-hidden="true"
           />
         ))}

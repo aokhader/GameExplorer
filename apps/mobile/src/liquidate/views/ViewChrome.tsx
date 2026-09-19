@@ -149,8 +149,8 @@ export function AccentButton({
             borderRadius: RADIUS['2xl'],
             alignItems: 'center',
             backgroundColor: P.accent,
+            // Flat: the gold is already the one action on the view.
             opacity: disabled ? 0.4 : pressed ? 0.85 : 1,
-            boxShadow: disabled ? undefined : '0 8px 22px rgba(231,182,78,0.32)',
           }}
         >
           <Text style={{ fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.body, color: P.accentInk }}>

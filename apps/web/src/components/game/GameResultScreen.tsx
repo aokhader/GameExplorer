@@ -35,7 +35,7 @@ export interface GameResultScreenProps {
 }
 
 const COPY: Record<GameResult, { icon: IconName; iconClass: string; heading: string; accentClass: string }> = {
-  win:     { icon: 'trophy',    iconClass: 'text-accent',   heading: 'You Won!',     accentClass: 'text-gradient-gold' },
+  win:     { icon: 'trophy',    iconClass: 'text-accent',   heading: 'You Won!',     accentClass: 'text-fg' },
   loss:    { icon: 'hand-fist', iconClass: 'text-fg-muted', heading: 'Good Game',    accentClass: 'text-fg' },
   draw:    { icon: 'handshake', iconClass: 'text-fg-muted', heading: 'Draw',         accentClass: 'text-fg' },
   aborted: { icon: 'x-circle',  iconClass: 'text-fg-muted', heading: 'Game Aborted', accentClass: 'text-fg' },

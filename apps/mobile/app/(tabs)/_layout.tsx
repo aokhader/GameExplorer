@@ -1,9 +1,8 @@
 import { Pressable, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Tabs, type BottomTabBarProps } from 'expo-router/tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, GLOWS_NATIVE, GRADIENTS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 
 import { useAuth } from '@gameexplorer/client';
 import { Icon, PressableScale, TAB_BAR_OVERLAP, type IconName } from '@/components/ui';
@@ -160,18 +159,17 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           hitSlop={6}
           haptic="impact"
         >
-          <LinearGradient
-            {...GRADIENTS_NATIVE.accent}
+          <View
             style={{
               width: PLAY_BUTTON,
               height: PLAY_BUTTON,
               borderRadius: RADIUS.full,
               alignItems: 'center',
               justifyContent: 'center',
-              // Gold bloom + the design's dark lift off the tab plate. Uses
-              // boxShadow, not SHADOWS_NATIVE.glowAccent: on a full circle the
-              // elevation shadow traces the outline as a hard gold ring.
-              boxShadow: `${GLOWS_NATIVE.glowAccent}, 0 8px 18px -6px rgba(0,0,0,0.6)`,
+              // Flat gold with the design's dark lift off the tab plate. The
+              // gold bloom it also wore said "primary" a second time.
+              backgroundColor: COLORS.accent,
+              boxShadow: '0 8px 18px -6px rgba(0,0,0,0.6)',
             }}
           >
             <Icon
@@ -180,7 +178,7 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               color={COLORS.onAccent}
               style={{ transform: [{ translateX: PLAY_ICON_SHIFT }] }}
             />
-          </LinearGradient>
+          </View>
         </PressableScale>
         {tabs[1]}
       </View>

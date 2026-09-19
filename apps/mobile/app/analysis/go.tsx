@@ -86,7 +86,7 @@ export default function GoAnalysisScreen() {
             </Text>
           )}
 
-          <Button label="Analyse game" onPress={load} glow disabled={text.trim().length === 0} />
+          <Button label="Analyse game" onPress={load} disabled={text.trim().length === 0} />
           <Button label="Back" variant="secondary" onPress={() => router.back()} />
         </ScrollView>
       </Screen>

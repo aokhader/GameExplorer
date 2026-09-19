@@ -52,7 +52,6 @@ export default function ReversiPlayPage() {
   return (
     <GameLayout
       session={s}
-      accent="reversi"
       title="Online Reversi"
       backHref="/reversi"
       timeControls={TIME_CONTROLS}

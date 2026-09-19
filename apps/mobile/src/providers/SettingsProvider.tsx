@@ -72,11 +72,17 @@ export function useSettings(): SettingsContextValue {
  * install's defaults: full motion, haptics off. The app root always has the
  * provider, so the app itself always reads the real values.
  */
-export function useFeedbackPrefs(): { reducedMotion: boolean; haptics: boolean } {
+export function useFeedbackPrefs(): {
+  reducedMotion: boolean;
+  haptics: boolean;
+  /** Resign and draw take a second tap. Defaults on, like a fresh install. */
+  confirmResign: boolean;
+} {
   const ctx = React.useContext(SettingsContext);
   return {
     reducedMotion: ctx?.reducedMotion ?? false,
     haptics: ctx?.settings.haptics ?? false,
+    confirmResign: ctx?.settings.confirmResign ?? true,
   };
 }
 

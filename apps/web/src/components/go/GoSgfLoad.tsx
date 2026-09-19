@@ -75,7 +75,7 @@ export function GoSgfLoad({ onLoad }: GoSgfLoadProps) {
           type="button"
           onClick={load}
           disabled={text.trim().length === 0}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-opacity disabled:opacity-40"
+          className="touch-target motion-control motion-safe:active:scale-[0.98] rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent disabled:opacity-40"
         >
           Analyze game
         </button>

@@ -6,7 +6,6 @@ import { useGameSession } from '@gameexplorer/client';
 import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 import type { TimeControl } from '@gameexplorer/shared';
 import { Button, Card, Input, useToast } from '@/components/ui';
-import { GradientText } from '@/components/visual';
 import { cn } from '@/lib/utils';
 import { SpectateLinkButton } from '@/components/multiplayer/SpectateLinkButton';
 import { EmoteBar } from '@/components/multiplayer/EmoteBar';
@@ -14,7 +13,6 @@ import { OpponentMenu } from '@/components/multiplayer/OpponentMenu';
 import { GameResultScreen, type GameResult } from '@/components/game/GameResultScreen';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
-import type { GameAccent } from '@/components/game/GameScreenLayout';
 import { BOARD_MAX_PX } from '@/components/board/BoardFrame';
 
 type GameSession = ReturnType<typeof useGameSession>;
@@ -35,8 +33,6 @@ const TOP_EXTRAS_PX = 52;
 
 export interface GameLayoutProps {
   session: GameSession;
-  /** Per-game neon accent — paints the ambient page glow. */
-  accent?: GameAccent;
   /** Page heading on the matchmaking panel, e.g. "Online Chess". */
   title: string;
   /** Where the Back / Exit links point, e.g. "/chess". */
@@ -77,9 +73,9 @@ function Clock({
       className={cn(
         'flex items-center gap-1.5 px-4 py-2 rounded-lg font-display text-2xl font-bold tabular-nums transition-colors',
         danger
-          ? 'bg-danger text-white shadow-[0_0_0_1px_rgba(220,38,38,0.3),0_8px_28px_-6px_rgba(220,38,38,0.5)]'
+          ? 'bg-danger text-white'
           : active
-            ? 'bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)]'
+            ? 'bg-accent text-on-accent'
             : 'bg-surface-muted text-fg-muted',
       )}
     >
@@ -114,9 +110,9 @@ function MatchmakingPanel({
   };
 
   return (
-    <Card elevation="raised" className="w-full max-w-md p-6 sm:p-8 [box-shadow:var(--shadow-glow-accent)]">
+    <Card elevation="raised" className="w-full max-w-md p-6 sm:p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold tracking-tight"><GradientText>{title}</GradientText></h1>
+        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         <Link href={backHref} className="text-fg-muted hover:text-fg text-sm transition-colors">
           ← Back
         </Link>
@@ -293,7 +289,6 @@ function GameOverModal({
 // ── Layout ───────────────────────────────────────────────────────────────────
 export function GameLayout({
   session: s,
-  accent,
   title,
   backHref,
   timeControls,
@@ -328,8 +323,7 @@ export function GameLayout({
         // No `pt-16`: multiplayer routes are immersive too, so the global navbar
         // is not rendered there (see `isImmersiveGameRoute`).
         'relative min-h-svh text-fg flex flex-col items-center px-3 sm:px-4 py-6',
-        inGame ? 'justify-start' : 'justify-center',
-        accent && `page-glow-${accent}`,
+        inGame ? 'justify-start' : 'justify-center',
       )}
     >
       {/* Joining via invite link */}

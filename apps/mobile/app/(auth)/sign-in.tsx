@@ -85,7 +85,6 @@ export default function SignInScreen() {
           onPress={handleSignIn}
           loading={loading}
           disabled={!identifier || !password}
-          glow
         />
 
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: SPACING['1.5'], marginTop: 4 }}>

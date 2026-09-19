@@ -129,14 +129,6 @@ export function GameBar({
         }}
       >
         <BarButton icon="list" label="Game menu" onPress={() => setMenuOpen(true)} />
-        <BarButton
-          icon="flag"
-          label={confirming ? 'Confirm resign' : 'Resign'}
-          hint={confirming ? undefined : 'Tap twice to resign the game'}
-          onPress={handleResign}
-          disabled={gameOver}
-          danger={confirming}
-        />
         {onPass && (
           <BarButton
             icon="arrow-line-right"
@@ -173,6 +165,19 @@ export function GameBar({
           label="Next move"
           onPress={() => seek(viewIndex + 1)}
           disabled={!canGoForward}
+        />
+
+        {/* Resign last, set apart: the harmless controls come first, and the
+            one that ends the game sits past a divider with extra room, as on
+            the online bar. It still asks twice unless the player said not to. */}
+        <View style={{ width: 1, marginVertical: 6, marginHorizontal: SPACING[1], backgroundColor: COLORS.border }} />
+        <BarButton
+          icon="flag"
+          label={confirming ? 'Confirm resign' : 'Resign'}
+          hint={confirming ? undefined : 'Tap twice to resign the game'}
+          onPress={handleResign}
+          disabled={gameOver}
+          danger={confirming}
         />
       </View>
 

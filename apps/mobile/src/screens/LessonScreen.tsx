@@ -146,7 +146,6 @@ export function LessonScreen({ game, lessonId }: LessonScreenProps) {
           <View style={{ gap: SPACING[2] }} testID="lesson-done">
             <Button
               label={nextLesson ? `Next: ${nextLesson.title}` : `${GAME_LABEL[game]} puzzles`}
-              glow
               onPress={() =>
                 router.replace(
                   (nextLesson

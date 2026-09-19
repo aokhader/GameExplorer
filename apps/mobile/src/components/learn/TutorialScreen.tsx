@@ -1,94 +1,50 @@
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { GameTutorial } from '@gameexplorer/shared';
-import { COLORS, GAME_ACCENTS, GLOWS_NATIVE, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
-import { Screen, BackHeader, Button, Card, GlowBackdrop } from '@/components/ui';
+import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { Screen, BackHeader, Button, Card } from '@/components/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
 import { FONTS } from '@/theme/typography';
 import { TutorialBoard } from './TutorialBoard';
 import { LessonList } from '@/lessons/LessonList';
 
-// Colors are looked up during render, never captured here — the token objects
-// are live views, so a module-scope read freezes them at import (see themeRuntime).
-const GLOW_KEY: Record<GameTutorial['game'], keyof typeof GLOWS_NATIVE> = {
-  chess: 'glowChess',
-  checkers: 'glowCheckers',
-  reversi: 'glowReversi',
-  go: 'glowGo',
-  liquidate: 'glowLiquidate',
-};
-
-/**
- * `GLOW_KEY` covers every game in the shared tutorial set, and TypeScript
- * enforces that: `Record<GameTutorial['game'], …>` fails to compile the day a
- * sixth game is added without an entry here.
- *
- * This used to be a runtime `in` guard with a `: 'chess'` fallback, which was
- * dead code that read as safety. It was not safe. `keyof typeof GLOW_KEY` was
- * already the whole union, so the fallback could never fire — and if a game
- * HAD slipped through it, the screen would have rendered that game's title and
- * prose under the chess knight, chess accent and chess glow, silently. This
- * screen has drawn a chess knight on the Go tutorial once already; a compile
- * error is the version of this check that actually works.
- */
-type MobileTutorialGame = GameTutorial['game'];
-
 /**
  * Scrollable "How to play" screen — the mobile rendering of the shared
- * tutorial content. Same shell language as the setup screens: accent bloom,
- * glowing icon badge, section headings, and a bot CTA at the end.
+ * tutorial content: the game's piece art beside its title, the rules sections,
+ * and a bot CTA at the end. The accent bloom and glowing 80pt icon badge it
+ * opened on went with the setup screens' hero (ux-fix-ideas.md §6.3).
+ *
+ * `GamePieceIcon` resolves every game through an exhaustive switch, so a
+ * sixth game without art fails to compile rather than drawing the chess
+ * knight on its tutorial — which this screen has done once already.
  */
 export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
   const router = useRouter();
-  const game: MobileTutorialGame = tutorial.game;
+  const game = tutorial.game;
+  // The tip numbers wear the game's colour — a small identity mark.
   const accent = GAME_ACCENTS[game];
 
   return (
     <Screen>
-      <GlowBackdrop
-        blooms={[{ cx: '50%', cy: '-8%', rx: '80%', ry: '30%', color: accent.base, opacity: 0.16 }]}
-      />
       <BackHeader title="How to play" fallbackHref={`/play/${tutorial.game}`} />
 
-      {/* Hero */}
-      <View style={{ alignItems: 'center', marginBottom: 26 }}>
-        <View
-          style={{
-            width: 80,
-            height: 80,
-            borderRadius: RADIUS['3xl'],
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: accent.tintBg,
-            borderWidth: 1,
-            borderColor: accent.tintBorder,
-            marginBottom: 16,
-            boxShadow: GLOWS_NATIVE[GLOW_KEY[game]],
-          }}
-        >
-          <GamePieceIcon game={game} size={48} />
+      <View style={{ marginBottom: 20 }}>
+        <View accessibilityRole="header" style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[3] }}>
+          <GamePieceIcon game={game} size={32} />
+          <Text style={{ flex: 1, fontFamily: FONTS.display, fontSize: FONT_SIZES['2xl'], color: COLORS.fg }}>
+            {tutorial.title}
+          </Text>
         </View>
-        <Text
-          style={{
-            fontFamily: FONTS.display,
-            fontSize: FONT_SIZES.display,
-            color: COLORS.fg,
-            textAlign: 'center',
-          }}
-        >
-          {tutorial.title}
-        </Text>
         <Text
           style={{
             fontFamily: FONTS.body,
             fontSize: FONT_SIZES.body,
             lineHeight: 22,
             color: COLORS.fgMuted,
-            marginTop: 8,
-            textAlign: 'center',
+            marginTop: 10,
           }}
         >
           {tutorial.intro}
@@ -196,7 +152,6 @@ export function TutorialScreen({ tutorial }: { tutorial: GameTutorial }) {
       <Button
         label={tutorial.ctaLabel}
         onPress={() => router.push(`/play/${tutorial.game}` as never)}
-        glow
       />
     </Screen>
   );

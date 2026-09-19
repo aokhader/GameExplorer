@@ -34,7 +34,7 @@ export function LessonIndex({ game }: { game: TutorialGame }) {
           <li key={lesson.id}>
             <Link
               href={`/${game}/learn/${lesson.id}`}
-              className="group flex h-full gap-3 rounded-xl border border-border bg-surface-alt p-4 transition-colors hover:border-accent/50 hover:bg-surface-hover"
+              className="touch-target motion-control motion-safe:active:scale-[0.98] group flex h-full gap-3 rounded-xl border border-border bg-surface-alt p-4 hover:border-accent/50 hover:bg-surface-hover"
               data-testid="lesson-card"
             >
               <span className="mt-0.5 inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-surface-muted text-xs font-bold text-fg">
@@ -73,7 +73,7 @@ export function SectionLessonLink({ game, sectionId }: { game: TutorialGame; sec
   return (
     <Link
       href={`/${game}/learn/${lesson.id}`}
-      className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-sm font-semibold text-accent transition-colors hover:bg-accent/20"
+      className="touch-target motion-control motion-safe:active:scale-[0.98] mt-4 inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-sm font-semibold text-accent hover:bg-accent/20"
       data-testid="section-lesson-link"
     >
       Try it on a board

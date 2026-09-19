@@ -1,8 +1,11 @@
 /**
- * Reversi board + disc tokens. "Arcade Glow" reversi: a deep, dark felt table
- * framed by the lime signature glow (see GAME_ACCENTS) — moodier than the old
- * vivid green so the neon discs and lime bloom pop against it. Consumed by web +
- * mobile.
+ * Reversi board + disc tokens. "Arcade Glow" reversi: a deep, dark felt table.
+ * Consumed by web + mobile.
+ *
+ * The board keeps the app's state budget (see `chess/tokens.ts`): the last
+ * move is the one ring, in the last-move gold every grid uses — it was lime,
+ * the game's accent, and web drew it in a third colour of its own. A training
+ * hint is amber on every board, and nothing on the felt glows or moves.
  */
 import { liveView } from '../themeRuntime';
 
@@ -12,7 +15,9 @@ const DARK_REVERSI_BOARD_COLORS = {
   boardBorder:     '#0c3324',
   validMoveBlack:  'rgba(0,0,0,0.35)',
   validMoveWhite:  'rgba(255,255,255,0.32)',
-  lastMoveRing:    'rgba(190,242,100,0.85)', // lime last-move ring
+  lastMoveRing:    'rgba(205,164,63,0.95)',
+  hintRing:        'rgba(245,158,11,0.95)',
+  hintFill:        'rgba(245,158,11,0.28)',
 };
 
 /** Cozy: the design's brighter green felt in a dark wooden frame. */
@@ -23,6 +28,8 @@ const COZY_REVERSI_BOARD_COLORS = {
   validMoveBlack:  'rgba(0,0,0,0.35)',
   validMoveWhite:  'rgba(255,255,255,0.35)',
   lastMoveRing:    'rgba(250,244,232,0.90)',
+  hintRing:        'rgba(245,158,11,0.95)',
+  hintFill:        'rgba(245,158,11,0.28)',
 };
 
 export const REVERSI_BOARD_COLORS =

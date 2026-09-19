@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { COLORS, useThemeName, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { useFeedbackPrefs } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
 
 export type BarButtonProps = {
@@ -114,8 +115,13 @@ const CONFIRM_MS = 3000;
  * on a fast double-tap: both handlers close over `armed === false` and the
  * second tap re-arms instead of firing. The ref is read synchronously, so the
  * second tap always sees the first.
+ *
+ * Honours the player's "Confirm resignation" setting: switched off, the first
+ * tap acts. Read through `useFeedbackPrefs`, which does not throw outside a
+ * provider, and treated as on unless it is explicitly false.
  */
 export function useTwoTapConfirm(onConfirm: () => void) {
+  const confirm = useFeedbackPrefs().confirmResign !== false;
   const [armed, setArmed] = useState(false);
   const armedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,6 +133,10 @@ export function useTwoTapConfirm(onConfirm: () => void) {
   useEffect(() => () => stopTimer(), []);
 
   const press = () => {
+    if (!confirm) {
+      onConfirm();
+      return;
+    }
     if (armedRef.current) {
       stopTimer();
       armedRef.current = false;

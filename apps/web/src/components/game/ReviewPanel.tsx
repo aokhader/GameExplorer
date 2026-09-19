@@ -122,7 +122,7 @@ export function ReviewPanel<S>({
           <button
             type="button"
             onClick={onExit}
-            className="rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-sm font-semibold text-fg hover:bg-surface-alt"
+            className="touch-target motion-control motion-safe:active:scale-[0.98] rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-sm font-semibold text-fg hover:bg-surface-alt"
           >
             {exitLabel}
           </button>
@@ -168,7 +168,7 @@ export function ReviewPanel<S>({
                   <button
                     type="button"
                     onClick={onStopScan}
-                    className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-hover"
+                    className="touch-target motion-control motion-safe:active:scale-[0.98] rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm font-semibold text-fg hover:bg-surface-hover"
                   >
                     Stop
                   </button>
@@ -196,7 +196,7 @@ export function ReviewPanel<S>({
                   <button
                     type="button"
                     onClick={onScan}
-                    className="rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+                    className="touch-target motion-control motion-safe:active:scale-[0.98] rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
                   >
                     Review every move
                   </button>
@@ -406,7 +406,7 @@ function NavButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-sm text-fg hover:bg-surface-alt disabled:opacity-40"
+      className="touch-target motion-control motion-safe:active:scale-[0.98] rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-sm text-fg hover:bg-surface-alt disabled:opacity-40"
     >
       {children}
     </button>

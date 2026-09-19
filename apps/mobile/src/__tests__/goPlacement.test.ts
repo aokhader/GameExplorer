@@ -1,5 +1,9 @@
-import { placementOnRelease } from '@/board/goPlacement';
-import { SETTINGS_DEFAULTS, confirmPlacementFor, parseSettings } from '@gameexplorer/shared';
+import {
+  SETTINGS_DEFAULTS,
+  confirmPlacementFor,
+  parseSettings,
+  placementOnRelease,
+} from '@gameexplorer/shared';
 
 /**
  * When a press plays a Go stone.

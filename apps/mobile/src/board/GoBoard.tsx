@@ -2,12 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Circle, Line } from 'react-native-svg';
-import { GoEngine, confirmPlacementFor, goColumnLabel } from '@gameexplorer/shared';
+import {
+  GoEngine,
+  boardAnimMs,
+  confirmPlacementFor,
+  goColumnLabel,
+  placementOnRelease,
+} from '@gameexplorer/shared';
 import type { GoColor, GoGameState, LessonMark } from '@gameexplorer/shared';
 import { GO_BOARD_COLORS, goStarPoints, GoStone, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
-import { placementOnRelease } from './goPlacement';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
@@ -89,7 +94,9 @@ function GoBoardInner({
   const dead = useMemo(() => new Set(deadStones ?? []), [deadStones]);
 
   const sfx = useGameSfx();
-  const { settings } = useSettings();
+  const { settings, reducedMotion } = useSettings();
+  // A captured stone lingers as a ghost only when pieces animate here.
+  const animates = boardAnimMs(settings, reducedMotion) > 0;
   const coordsOn = showCoordinates && settings.showCoordinates;
   const isPlayerTurn = !gameState.isGameOver && gameState.currentTurn === playerColor;
 
@@ -164,6 +171,14 @@ function GoBoardInner({
   aimRef.current = aim;
   /** What was aimed when the current press began — pressing it again commits. */
   const aimAtPressRef = useRef<string | null>(null);
+  /** When the current aim was set, and when the aim the press began on was. */
+  const aimSetAtRef = useRef(0);
+  const aimSetAtPressRef = useRef(0);
+  /** Move the aim, restarting the bounce clock only when the point changes. */
+  const aimAt = (position: string) => {
+    if (position !== aimRef.current) aimSetAtRef.current = Date.now();
+    setAim(position);
+  };
 
   const confirmMode = confirmPlacementFor(size, settings) && !marking;
   const confirmRef = useRef(confirmMode);
@@ -213,7 +228,8 @@ function GoBoardInner({
     if (state.currentTurn !== playerColorRef.current) return;
 
     aimAtPressRef.current = aimRef.current;
-    if (confirmRef.current) setAim(hit.position);
+    aimSetAtPressRef.current = aimSetAtRef.current;
+    if (confirmRef.current) aimAt(hit.position);
   };
 
   const handleDrag = (x: number, y: number) => {
@@ -221,7 +237,7 @@ function GoBoardInner({
     if (!interactiveRef.current) return;
     if (stateRef.current.currentTurn !== playerColorRef.current) return;
     const hit = pointAt(x, y);
-    if (hit) setAim(hit.position);
+    if (hit) aimAt(hit.position);
   };
 
   const handleRelease = (x: number, y: number) => {
@@ -237,6 +253,7 @@ function GoBoardInner({
       confirm: confirmRef.current,
       released: hit.position,
       aimAtPress: aimAtPressRef.current,
+      msSinceAim: Date.now() - aimSetAtPressRef.current,
     });
     if (outcome === 'commit') {
       setAim(null);
@@ -310,7 +327,7 @@ function GoBoardInner({
             const cx = at(col);
             const cy = at(size - 1 - row);
 
-            if (legalNow.includes(position) && !stone) {
+            if (settings.showDestinations && legalNow.includes(position) && !stone) {
               overlays.push(
                 <View
                   key={`l-${position}`}
@@ -342,8 +359,7 @@ function GoBoardInner({
                     top: cy - 0.5,
                     width: px,
                     height: 1,
-                    backgroundColor: GO_BOARD_COLORS.lastMoveRing,
-                    opacity: 0.5,
+                    backgroundColor: GO_BOARD_COLORS.aimLine,
                   }}
                 />,
                 <View
@@ -355,8 +371,7 @@ function GoBoardInner({
                     top: 0,
                     width: 1,
                     height: px,
-                    backgroundColor: GO_BOARD_COLORS.lastMoveRing,
-                    opacity: 0.5,
+                    backgroundColor: GO_BOARD_COLORS.aimLine,
                   }}
                 />,
                 <View
@@ -490,21 +505,27 @@ function GoBoardInner({
                       }}
                     />
                   )}
+                  {/* Last move — a ring in the other stone's colour, about
+                      7.5% of a point wide, so it reads on its own stone
+                      without an accent hue. */}
                   {highlightPos === position && (
                     <View
                       style={{
                         position: 'absolute',
-                        width: stoneSize * 0.44,
-                        height: stoneSize * 0.44,
-                        borderRadius: stoneSize * 0.22,
-                        borderWidth: 2,
-                        borderColor: GO_BOARD_COLORS.lastMoveRing,
+                        width: stoneSize * 0.5,
+                        height: stoneSize * 0.5,
+                        borderRadius: stoneSize * 0.25,
+                        borderWidth: Math.max(1.5, cell * 0.075),
+                        borderColor:
+                          stone === 'black'
+                            ? GO_BOARD_COLORS.lastMoveOnBlack
+                            : GO_BOARD_COLORS.lastMoveOnWhite,
                       }}
                     />
                   )}
                 </View>,
               );
-            } else if (captured.includes(position)) {
+            } else if (animates && captured.includes(position)) {
               // The side to move after a capture is the side whose stones went.
               stones.push(
                 <View

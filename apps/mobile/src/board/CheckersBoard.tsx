@@ -13,6 +13,7 @@ import {
   CheckersEngine,
   getCheckersPremoveDestinations,
   isCheckersPremoveLegal,
+  boardAnimMs,
   // The engine's own rule — these are the squares play happens on, so the
   // colour drawn here cannot drift from where the pieces actually go.
   isDarkSquare as isDark,
@@ -34,12 +35,12 @@ import {
   CheckersPiece,
   CHECKERS_BOARD_COLORS,
   COLORS,
-  SHADOWS_NATIVE,
   FONT_SIZES,
   RADIUS,
 } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
+import { CaptureCorners, SquareTint } from './SquareState';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
@@ -134,7 +135,7 @@ function BoardPiece({
   dimmed,
   pop,
   offset,
-  reduceMotion,
+  animMs,
 }: {
   x: number;
   y: number;
@@ -145,8 +146,10 @@ function BoardPiece({
   pop: boolean;
   /** Where this piece came from, in squares. Null means it did not travel. */
   offset: PieceOffset | null;
-  reduceMotion: boolean;
+  /** Travel time on this device; 0 means nothing moves. See `boardAnimMs`. */
+  animMs: number;
 }) {
+  const reduceMotion = animMs <= 0;
   const scale = useSharedValue(1);
   // Seeded at creation, not in an effect — see the note on chess's BoardPiece.
   const tx = useSharedValue(offset ? offset.dx * sq : 0);
@@ -154,8 +157,8 @@ function BoardPiece({
 
   useEffect(() => {
     if (!offset || reduceMotion) return;
-    tx.value = withTiming(0, TRAVEL);
-    ty.value = withTiming(0, TRAVEL);
+    tx.value = withTiming(0, { ...TRAVEL, duration: animMs });
+    ty.value = withTiming(0, { ...TRAVEL, duration: animMs });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -207,18 +210,18 @@ function FadingPiece({
   y,
   sq,
   piece,
-  reduceMotion,
+  animMs,
 }: {
   x: number;
   y: number;
   sq: number;
   piece: CheckersPieceModel;
-  reduceMotion: boolean;
+  animMs: number;
 }) {
-  const opacity = useSharedValue(reduceMotion ? 0 : 1);
+  const opacity = useSharedValue(animMs > 0 ? 1 : 0);
 
   useEffect(() => {
-    if (!reduceMotion) opacity.value = withTiming(0, CAPTURE_FADE);
+    if (animMs > 0) opacity.value = withTiming(0, { ...CAPTURE_FADE, duration: animMs });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -274,9 +277,11 @@ function CheckersBoardInner({
 
   const sfx = useGameSfx();
   const { settings, reducedMotion } = useSettings();
+  // Travel time on this device: the speed setting, or 0 under reduced motion.
+  const animMs = boardAnimMs(settings, reducedMotion);
+  const showDests = settings.showDestinations;
   const coordsOn = showCoordinates && settings.showCoordinates;
   const isFlipped = playerColor === 'black';
-  const isMyTurn = !gameState.isGameOver && gameState.currentTurn === playerColor;
   // Premove mode: the opponent is on the clock, so picking a piece queues a
   // move instead of playing one.
   const premoveMode =
@@ -289,7 +294,7 @@ function CheckersBoardInner({
     ...CHECKERS_DIFF,
     historyLength: gameState.moveHistory.length,
     isFlipped,
-    enabled: !reducedMotion,
+    enabled: animMs > 0,
   });
 
   // Drag translation (UI thread) + pickup lift.
@@ -602,14 +607,18 @@ function CheckersBoardInner({
             const isHintSquare = !!hintMove && (hintMove.from === pos || hintMove.to === pos);
             const isPremoveSquare = !!premove && (premove.from === pos || premove.to === pos);
 
-            let bg = dark ? CHECKERS_BOARD_COLORS.darkSquare : CHECKERS_BOARD_COLORS.lightSquare;
-            if (isSelected) bg = CHECKERS_BOARD_COLORS.selectedSquare;
-            // The queued move outranks the last move: the opponent's reply
-            // often lands on one of these two squares, and the pending intent
-            // is what the player needs to see there.
-            else if (isPremoveSquare) bg = CHECKERS_BOARD_COLORS.premove;
-            else if (isLastMoveSquare)
-              bg = dark ? CHECKERS_BOARD_COLORS.lastMoveDark : CHECKERS_BOARD_COLORS.lastMoveLight;
+            const bg = dark ? CHECKERS_BOARD_COLORS.darkSquare : CHECKERS_BOARD_COLORS.lightSquare;
+            // One tint laid over the square (see `SquareState`). The queued
+            // move outranks the last move: the opponent's reply often lands on
+            // one of these two squares, and the pending intent is what the
+            // player needs to see there.
+            const tint = isSelected
+              ? CHECKERS_BOARD_COLORS.selectedSquare
+              : isPremoveSquare
+                ? CHECKERS_BOARD_COLORS.premove
+                : isLastMoveSquare
+                  ? dark ? CHECKERS_BOARD_COLORS.lastMoveDark : CHECKERS_BOARD_COLORS.lastMoveLight
+                  : null;
 
             const showRank = coordsOn && screenCol === 0;
             const showFile = coordsOn && screenRow === 7;
@@ -644,6 +653,7 @@ function CheckersBoardInner({
                   justifyContent: 'center',
                 }}
               >
+                {tint && <SquareTint size={sq} color={tint} />}
                 {marks.has(pos) && <BoardMark mark={marks.get(pos)!} size={sq} />}
 
                 {showRank && (
@@ -679,7 +689,7 @@ function CheckersBoardInner({
                 {/* Premove candidates — dimmer than the legal-move dots,
                     because these are squares the move may be aimed at, not
                     moves known to be playable. */}
-                {dark && isValidDest && premoveMode && (
+                {dark && isValidDest && showDests && premoveMode && (
                   <View
                     style={{
                       width: sq * 0.22,
@@ -691,30 +701,20 @@ function CheckersBoardInner({
                   />
                 )}
                 {/* Legal-move dot on an empty destination. */}
-                {dark && isValidDest && !premoveMode && !piece && (
+                {dark && isValidDest && showDests && !premoveMode && !piece && (
                   <View
                     style={{
-                      width: sq * 0.28,
-                      height: sq * 0.28,
-                      borderRadius: sq * 0.14,
+                      width: sq * 0.22,
+                      height: sq * 0.22,
+                      borderRadius: sq * 0.11,
                       backgroundColor: CHECKERS_BOARD_COLORS.moveIndicator,
                     }}
                   />
                 )}
-                {/* Capture ring (defensive — checkers lands on empty squares). */}
-                {dark && isValidDest && !premoveMode && piece && (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      left: sq * 0.08,
-                      top: sq * 0.08,
-                      right: sq * 0.08,
-                      bottom: sq * 0.08,
-                      borderRadius: sq,
-                      borderWidth: 3,
-                      borderColor: CHECKERS_BOARD_COLORS.captureIndicator,
-                    }}
-                  />
+                {/* Occupied destination (defensive — checkers lands on empty
+                    squares). Corners, as chess. */}
+                {dark && isValidDest && showDests && !premoveMode && piece && (
+                  <CaptureCorners id={`cap-${pos}`} size={sq} color={CHECKERS_BOARD_COLORS.captureIndicator} />
                 )}
                 {/* Training hint — square outline on both ends of the suggested
                     move. Drawn last so it reads over the other cues. */}
@@ -750,7 +750,7 @@ function CheckersBoardInner({
                   dimmed={draggingFrom === pos}
                   pop={lastMoveTo === pos}
                   offset={motion.offsets.get(motionKey(boardRow, boardCol)) ?? null}
-                  reduceMotion={reducedMotion}
+                  animMs={animMs}
                 />,
               );
             }
@@ -768,7 +768,7 @@ function CheckersBoardInner({
               y={y}
               sq={sq}
               piece={fade.piece}
-              reduceMotion={reducedMotion}
+              animMs={animMs}
             />
           );
         });
@@ -803,20 +803,18 @@ function CheckersBoardInner({
         }
 
         return (
+          // No turn glow: the player cards say whose move it is.
           <GestureDetector gesture={gesture}>
             <View
-              style={[
-                {
-                  width: size,
-                  height: size,
-                  borderRadius: RADIUS.xl,
-                  overflow: 'hidden',
-                  borderWidth: 2,
-                  borderColor: COLORS.borderStrong,
-                  backgroundColor: CHECKERS_BOARD_COLORS.darkSquare,
-                },
-                isMyTurn && SHADOWS_NATIVE.glowCheckers,
-              ]}
+              style={{
+                width: size,
+                height: size,
+                borderRadius: RADIUS.xl,
+                overflow: 'hidden',
+                borderWidth: 2,
+                borderColor: COLORS.borderStrong,
+                backgroundColor: CHECKERS_BOARD_COLORS.darkSquare,
+              }}
             >
               {squares}
               {fading}

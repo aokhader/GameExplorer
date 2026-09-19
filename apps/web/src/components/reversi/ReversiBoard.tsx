@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ReversiEngine } from '@gameexplorer/shared';
+import { ReversiEngine, boardAnimMs } from '@gameexplorer/shared';
 import type { LessonMark, ReversiGameState, ReversiColor } from '@gameexplorer/shared';
 import { ReversiDisc, REVERSI_BOARD_COLORS } from '@gameexplorer/ui';
 import { BoardFrame } from '@/components/board/BoardFrame';
@@ -20,8 +20,9 @@ const FELT = {
   frame:          `var(--gx-reversi-board-frame, ${REVERSI_BOARD_COLORS.boardBorder})`,
   validMoveBlack: `var(--gx-reversi-board-valid-black, ${REVERSI_BOARD_COLORS.validMoveBlack})`,
   validMoveWhite: `var(--gx-reversi-board-valid-white, ${REVERSI_BOARD_COLORS.validMoveWhite})`,
-  turnGlow:
-    'var(--gx-reversi-board-turn-glow, 0 12px 28px -6px rgba(0,0,0,0.5), 0 0 0 2px rgba(163,230,53,0.6), 0 0 30px -2px rgba(163,230,53,0.5))',
+  lastMoveRing:   `var(--gx-reversi-board-lastmove-ring, ${REVERSI_BOARD_COLORS.lastMoveRing})`,
+  hintRing:       REVERSI_BOARD_COLORS.hintRing,
+  hintFill:       REVERSI_BOARD_COLORS.hintFill,
 } as const;
 
 interface ReversiiBoardProps {
@@ -68,8 +69,12 @@ export const ReversiBoard = React.memo(function ReversiBoard({
   const [justFlipped, setJustFlipped] = useState<Set<string>>(new Set());
   const [justPlaced, setJustPlaced]   = useState<string | null>(null);
   const sfx = useGameSfx();
-  const { settings } = useSettings();
+  const { settings, reducedMotion } = useSettings();
   const coordsOn = showCoordinates && settings.showCoordinates;
+  // The placement pop and flip squeeze are motion like any other: off under
+  // reduced motion or with piece animation set to none. They used to run
+  // regardless of either.
+  const animates = boardAnimMs(settings, reducedMotion) > 0;
 
   // Animate + sound the most recent move
   useEffect(() => {
@@ -142,20 +147,30 @@ export const ReversiBoard = React.memo(function ReversiBoard({
 
           {marks.has(pos) && <BoardMark mark={marks.get(pos)!} round />}
 
-          {/* Last-move ring on the most recently placed disc */}
+          {/* Last-move ring on the most recently placed disc — the board's
+              one last-move hue, from the token rather than a colour of web's
+              own. */}
           {isHighlighted && disc && (
-            <div className="absolute inset-[4%] rounded-full ring-2 ring-yellow-300/80 pointer-events-none z-20" />
+            <div
+              className="absolute inset-[4%] rounded-full border-2 pointer-events-none z-20"
+              style={{ borderColor: FELT.lastMoveRing }}
+            />
           )}
 
-          {/* Hint ring — pulsing cyan circle on suggested empty square */}
+          {/* Training hint — the square the engine would play, outlined and
+              filled in amber like every board's hint, and still: the player
+              asked for it, so it does not need to call attention to itself. */}
           {hintPos === pos && !disc && (
-            <div className="absolute inset-[10%] rounded-full ring-2 ring-cyan-400 animate-state-pulse pointer-events-none z-20" />
+            <div
+              className="absolute inset-0 border-[3px] pointer-events-none z-20"
+              style={{ borderColor: FELT.hintRing, backgroundColor: FELT.hintFill }}
+            />
           )}
 
           {/* Valid move indicator (ghost dot) */}
-          {isLegal && !disc && (
+          {isLegal && !disc && settings.showDestinations && (
             <div
-              className="absolute w-[28%] h-[28%] rounded-full pointer-events-none z-10"
+              className="absolute w-[22%] h-[22%] rounded-full pointer-events-none z-10"
               style={{
                 backgroundColor: gameState.currentTurn === 'black'
                   ? FELT.validMoveBlack
@@ -168,8 +183,8 @@ export const ReversiBoard = React.memo(function ReversiBoard({
           {disc && (
             <div
               className={`absolute inset-[6%] flex items-center justify-center
-                transition-transform duration-300 ease-out
-                ${isJustPlaced ? 'scale-110' : isFlipped ? 'scale-90' : 'scale-100'}`}
+                ${animates ? 'transition-transform duration-300 ease-out' : ''}
+                ${animates && isJustPlaced ? 'scale-110' : animates && isFlipped ? 'scale-90' : 'scale-100'}`}
             >
               <ReversiDisc color={disc.color} size="100%" />
             </div>
@@ -182,11 +197,9 @@ export const ReversiBoard = React.memo(function ReversiBoard({
   return (
     <BoardFrame className="select-none">
       <div
-        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg transition-shadow duration-300"
-        style={{
-          border: `2px solid ${FELT.frame}`,
-          boxShadow: isPlayerTurn ? FELT.turnGlow : undefined,
-        }}
+        className="relative grid grid-cols-8 grid-rows-8 w-full h-full rounded-lg overflow-hidden shadow-lg"
+        // No turn glow: the player cards say whose move it is.
+        style={{ border: `2px solid ${FELT.frame}` }}
       >
         {squares}
       </div>

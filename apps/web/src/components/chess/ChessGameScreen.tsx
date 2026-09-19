@@ -556,18 +556,18 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   // ── Setup screen ──────────────────────────────────────────────────────────────
 
   if (!gameStarted && (awaitingResume || pendingResume)) {
-    return <div className="min-h-svh page-glow-chess" />;
+    return <div className="min-h-svh" />;
   }
 
   if (!gameStarted) {
     return (
-      <div className="min-h-svh page-glow-chess">
-        <div className="container mx-auto px-4 pt-8">
+      <div className="min-h-svh">
+        <div className="container mx-auto px-4 pt-4">
           <ShellNav backHref="/chess" />
         </div>
 
-        <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="text-4xl font-bold text-fg mb-8 text-center">
+        <div className="container mx-auto px-4 pt-2 pb-10 max-w-2xl">
+          <h1 className="text-2xl font-bold text-fg mb-4">
             {isLocal ? 'Pass & Play' : 'Play vs Bot'}
           </h1>
 
@@ -581,14 +581,14 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
           )}
 
           {/* ELO selector — no bot in pass-and-play, so nothing to calibrate. */}
-          <div className={`rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6 ${isLocal ? 'hidden' : ''}`}>
-            <h2 className="text-2xl font-semibold text-fg mb-6">
+          <div className={`rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4 ${isLocal ? 'hidden' : ''}`}>
+            <h2 className="text-lg font-semibold text-fg mb-3">
               Bot Strength
             </h2>
 
             {/* ELO display */}
             <div className="text-center mb-6">
-              <div className="font-display text-6xl font-bold tabular-nums text-fg leading-none mb-1">
+              <div className="font-display text-5xl font-bold tabular-nums text-fg leading-none mb-1">
                 {targetElo}
               </div>
               <div className="text-lg font-semibold text-accent">
@@ -608,9 +608,19 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
                 step={25}
                 value={targetElo}
                 onChange={e => setTargetElo(Number(e.target.value))}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-accent bg-white/10"
+                aria-label="Bot strength"
+                // A 44px band with the 8px track drawn inside it: the input's
+                // own box is the target, and at h-2 a finger had 8px to find
+                // (ux-fix-ideas.md §8.3). The look is unchanged.
+                className={[
+                  'block w-full h-11 cursor-pointer appearance-none bg-transparent',
+                  '[&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-surface-muted',
+                  '[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-surface-muted',
+                  '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent',
+                  '[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-accent',
+                ].join(' ')}
               />
-              <div className="flex justify-between text-xs text-fg-subtle mt-1.5 px-0.5">
+              <div className="flex justify-between text-xs text-fg-subtle px-0.5">
                 <span>400</span>
                 <span>1200</span>
                 <span>2000</span>
@@ -626,7 +636,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
                   onClick={() => setTargetElo(elo)}
                   className={`py-2 px-1 rounded-lg text-center text-sm transition-all ${
                     targetElo === elo
-                      ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent font-semibold [box-shadow:var(--shadow-glow-accent)] scale-105'
+                      ? 'border border-accent bg-accent-muted text-fg font-semibold'
                       : 'bg-white/5 border border-white/10 text-fg-muted hover:bg-white/10 hover:text-fg'
                   }`}
                 >
@@ -639,8 +649,8 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
 
           {/* Color selector — in pass-and-play this picks which seat is "bottom"
               when the flip-between-turns setting is off. */}
-          <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-8 mb-6">
-            <h2 className="text-2xl font-semibold text-fg mb-6">
+          <div className="rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4">
+            <h2 className="text-lg font-semibold text-fg mb-3">
               {isLocal ? 'Who Sits at the Bottom' : 'Choose Your Color'}
             </h2>
             <div className="grid grid-cols-2 gap-4">
@@ -648,13 +658,13 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
                 onClick={() => update({ color: 'white' })}
                 className={`p-6 rounded-lg transition-all ${
                   playerColor === 'white'
-                    ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                    ? 'border border-accent bg-accent-muted text-fg'
                     : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                 }`}
               >
                 <div className="flex justify-center mb-2"><ChessPiece type="king" color="white" size={40} /></div>
                 <div className="font-semibold">White</div>
-                <div className={`text-sm ${playerColor === 'white' ? 'text-on-accent/80' : 'text-fg-muted'}`}>
+                <div className={`text-sm ${playerColor === 'white' ? 'text-fg-muted' : 'text-fg-muted'}`}>
                   {isLocal ? 'Moves first' : 'You move first'}
                 </div>
               </button>
@@ -662,13 +672,13 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
                 onClick={() => update({ color: 'black' })}
                 className={`p-6 rounded-lg transition-all ${
                   playerColor === 'black'
-                    ? 'border border-transparent bg-accent [background-image:var(--gradient-accent)] text-on-accent [box-shadow:var(--shadow-glow-accent)] scale-105'
+                    ? 'border border-accent bg-accent-muted text-fg'
                     : 'bg-white/5 border border-white/10 text-fg hover:bg-white/10'
                 }`}
               >
                 <div className="flex justify-center mb-2"><ChessPiece type="king" color="black" size={40} /></div>
                 <div className="font-semibold">Black</div>
-                <div className={`text-sm ${playerColor === 'black' ? 'text-on-accent/80' : 'text-fg-muted'}`}>
+                <div className={`text-sm ${playerColor === 'black' ? 'text-fg-muted' : 'text-fg-muted'}`}>
                   {isLocal ? 'Moves second' : 'Bot moves first'}
                 </div>
               </button>
@@ -737,21 +747,20 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   return (
     <>
       <GameScreenLayout
-        accent="chess"
         backHref="/chess"
         headerActions={
           <>
             {!isAtLive && (
               <button
                 onClick={() => setViewIndex(timeline.length - 1)}
-                className="text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg transition-colors font-medium"
+                className="touch-target motion-control motion-safe:active:scale-[0.98] text-xs px-2.5 py-1 bg-accent hover:bg-accent-hover text-on-accent rounded-lg font-medium"
               >
                 Live ⇥
               </button>
             )}
             <button
               onClick={handleNewGame}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-semibold rounded-lg transition-colors text-sm"
+              className="touch-target motion-control motion-safe:active:scale-[0.98] px-4 py-2 border border-border-strong text-fg hover:bg-surface-muted font-semibold rounded-lg text-sm"
             >
               New Game
             </button>

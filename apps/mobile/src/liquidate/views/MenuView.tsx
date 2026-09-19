@@ -1,13 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { DockSlot, LiquidateAction, LiquidateGameState } from '@gameexplorer/shared';
 import { LIQUIDATE_PANEL_COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
+import { useTwoTapConfirm } from '@/game/BarButton';
 import { FONTS } from '@/theme/typography';
 import { ViewHeader, GhostButton } from './ViewChrome';
 import type { LqView } from './types';
-
-/** Matches `GameBar`'s two-tap resign window, so the gesture feels the same. */
-const CONFIRM_MS = 3000;
 
 export interface MenuViewProps {
   state: LiquidateGameState;
@@ -36,28 +33,9 @@ export function MenuView({ roundLabel, state, dock, onOpen, onSettings, onResign
   useThemeName();
   const P = LIQUIDATE_PANEL_COLORS;
 
-  const [confirming, setConfirming] = useState(false);
-  // Read synchronously by the press handler — state has not committed yet when
-  // the second tap arrives.
-  const confirmingRef = useRef(false);
-
-  useEffect(() => {
-    if (!confirming) return;
-    const timer = setTimeout(() => {
-      setConfirming(false);
-      confirmingRef.current = false;
-    }, CONFIRM_MS);
-    return () => clearTimeout(timer);
-  }, [confirming]);
-
-  const pressResign = () => {
-    if (confirmingRef.current) {
-      onResign();
-      return;
-    }
-    confirmingRef.current = true;
-    setConfirming(true);
-  };
+  // The same two-tap confirm as every game bar, so the player's "Confirm
+  // resignation" setting reaches Liquidate too.
+  const { armed: confirming, press: pressResign } = useTwoTapConfirm(onResign);
 
   const enabledOf = (slot?: DockSlot['id']) =>
     slot ? (dock.find((d) => d.id === slot)?.enabled ?? slotFallback(state, slot)) : true;

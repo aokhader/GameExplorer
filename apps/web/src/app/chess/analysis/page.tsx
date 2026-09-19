@@ -293,7 +293,6 @@ function AnalysisPageInner() {
 
   return (
     <GameScreenLayout
-      accent="chess"
       backHref={gameId ? '/chess/replays' : '/chess'}
       backLabel={gameId ? 'Replays' : 'Back'}
       // No player cards here, so the column takes the height they would have
@@ -325,14 +324,14 @@ function AnalysisPageInner() {
           {mode === 'edit' ? (
             <button
               onClick={handleEnterAnalyze}
-              className="px-4 py-1.5 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg transition-colors shadow-sm"
+              className="touch-target motion-control motion-safe:active:scale-[0.98] px-4 py-1.5 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg shadow-sm"
             >
               Analyze
             </button>
           ) : (
             <button
               onClick={handleEnterEdit}
-              className="px-4 py-1.5 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg transition-colors shadow-sm"
+              className="touch-target motion-control motion-safe:active:scale-[0.98] px-4 py-1.5 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg shadow-sm"
             >
               Edit Position
             </button>
@@ -388,7 +387,7 @@ function AnalysisPageInner() {
                             }}
                             className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-11 min-h-11 ${
                               active
-                                ? 'border-accent bg-accent-muted scale-110 shadow-md'
+                                ? 'border-accent bg-accent-muted'
                                 : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                             }`}
                             title={`white ${type}`}
@@ -412,7 +411,7 @@ function AnalysisPageInner() {
                             }}
                             className={`flex-1 aspect-square flex items-center justify-center rounded-lg transition-all border-2 min-w-11 min-h-11 ${
                               active
-                                ? 'border-accent bg-accent-muted scale-110 shadow-md'
+                                ? 'border-accent bg-accent-muted'
                                 : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                             }`}
                             title={`black ${type}`}
@@ -599,7 +598,7 @@ function AnalysisPageInner() {
 export default function AnalysisPage() {
   return (
     <Suspense fallback={
-      <div className="h-svh flex items-center justify-center page-glow-chess">
+      <div className="h-svh flex items-center justify-center">
         <div className="text-fg-subtle">Loading…</div>
       </div>
     }>

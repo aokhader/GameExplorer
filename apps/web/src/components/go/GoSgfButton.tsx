@@ -41,7 +41,7 @@ export function GoSgfButton({ state }: { state: GoGameState }) {
     <button
       type="button"
       onClick={copy}
-      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-fg transition-colors hover:bg-white/10"
+      className="touch-target motion-control motion-safe:active:scale-[0.98] w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-fg hover:bg-white/10"
     >
       {copied ? 'Copied — paste into any Go app' : failed ? 'Could not copy' : 'Copy game as SGF'}
     </button>
