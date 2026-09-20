@@ -28,7 +28,17 @@ const config: ExpoConfig = {
   scheme: 'gameexplorer',
   version: '2.0.0',
   orientation: 'portrait',
+  // Both of these are read by `expo-system-ui`, and neither did anything until
+  // that package was a dependency — the plugin is what writes them into the
+  // native projects. `userInterfaceStyle` pins `AppCompatDelegate`'s night mode
+  // so the Android theme stops following the phone's light/dark switch, and
+  // `backgroundColor` becomes `android:windowBackground` (and the iOS root
+  // view). Left unset, the window behind the app was `?android:colorBackground`
+  // — near-white on a phone in light mode, one badly-timed frame away from
+  // showing. The app can switch to the light Cozy theme at runtime; the root
+  // layout re-sets this colour when it does.
   userInterfaceStyle: 'dark',
+  backgroundColor: '#0b0e17', // PALETTE.ink900 — Arcade Glow page background
   // EAS Update (expo-updates). `eas update:configure` can't write this dynamic
   // TS config, so the URL + runtimeVersion are set by hand. The URL is the EAS
   // project's update endpoint (projectId below). `appVersion` policy ties each
