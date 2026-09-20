@@ -11,6 +11,7 @@ import {
   calculateNewRating,
   GameOutcome,
   summarizeMaterial,
+  botStrengthLabel,
 } from '@gameexplorer/shared';
 import { ChessBoard, BoardArrow } from '@/components/chess/ChessBoard';
 import { ChessPiece, Icon } from '@gameexplorer/ui';
@@ -54,20 +55,8 @@ const GameResultScreen = dynamic(
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function eloLabel(elo: number): string {
-  if (elo < 600)  return 'Beginner';
-  if (elo < 800)  return 'Novice';
-  if (elo < 1000) return 'Casual';
-  if (elo < 1200) return 'Club Player';
-  if (elo < 1400) return 'Intermediate';
-  if (elo < 1600) return 'Competitive';
-  if (elo < 1800) return 'Advanced';
-  if (elo < 2000) return 'Expert';
-  if (elo < 2200) return 'Candidate Master';
-  if (elo < 2400) return 'FIDE Master';
-  if (elo < 2600) return 'International Master';
-  return 'Grandmaster';
-}
+/** A bot's name, shared with the setup screen so a preset keeps its tier. */
+const eloLabel = (elo: number): string => botStrengthLabel('chess', elo);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

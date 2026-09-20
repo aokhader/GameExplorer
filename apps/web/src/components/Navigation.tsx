@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Suspense, useRef, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { usePlayHref } from '@/hooks/usePlayHref';
 import { authHref, useAuthSwitchHref } from '@/components/auth/returnTo';
 import { isAuthPath } from '@/lib/returnPath';
 import { isImmersiveGameRoute } from '@/lib/routes';
@@ -20,8 +19,11 @@ import { Icon, type IconName } from '@gameexplorer/ui';
  * a game's hub and a phone had to open a menu to go anywhere. Now:
  * - **Home** is the launcher for anyone who has played, the landing page for a
  *   stranger (`/`, see `lib/returning.ts`).
- * - **Play** goes to a board: the game left unfinished, else the last game's
- *   setup, filled in with what was chosen last time (`usePlayHref`).
+ * - **Play** is `/play`: pick a game, see what you would be playing and
+ *   change it, then start. It used to resolve to a different board on every
+ *   navigation, which is a good shortcut and a bad navigation item — and
+ *   Home can start a game itself now, so the shortcut was a third way to do
+ *   one thing. The unfinished game sits at the top of the page instead.
  * - **You** is the player's numbers, games and settings — for guests too.
  *
  * Below `md` the three sit in a bar at the bottom of the screen, where a thumb
@@ -48,7 +50,6 @@ export function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useAuth();
-  const playHref = usePlayHref();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -85,7 +86,7 @@ export function Navigation() {
 
   const primary: { key: string; href: string; label: string; icon: IconName; activeIcon: IconName }[] = [
     { key: 'home', href: '/', label: 'Home', icon: 'house', activeIcon: 'house-fill' },
-    { key: 'play', href: playHref, label: 'Play', icon: 'play-fill', activeIcon: 'play-fill' },
+    { key: 'play', href: '/play', label: 'Play', icon: 'play-fill', activeIcon: 'play-fill' },
     { key: 'you', href: '/profile', label: 'You', icon: 'user', activeIcon: 'user-fill' },
   ];
   const secondary = [

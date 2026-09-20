@@ -9,6 +9,7 @@ import {
   getBestReversiMove,
   calculateNewRating,
   GameOutcome,
+  botStrengthLabel,
 } from '@gameexplorer/shared';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
@@ -48,16 +49,8 @@ const GameResultScreen = dynamic(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function eloLabel(elo: number): string {
-  if (elo < 700)  return 'Beginner';
-  if (elo < 900)  return 'Novice';
-  if (elo < 1100) return 'Casual';
-  if (elo < 1300) return 'Intermediate';
-  if (elo < 1500) return 'Skilled';
-  if (elo < 1700) return 'Advanced';
-  if (elo < 1900) return 'Expert';
-  return 'Master';
-}
+/** A bot's name, shared with the setup screen so a preset keeps its tier. */
+const eloLabel = (elo: number): string => botStrengthLabel('reversi', elo);
 
 function thinkTimeForElo(elo: number): number {
   if (elo < 700)  return 350;

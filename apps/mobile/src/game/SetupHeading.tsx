@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 import { COLORS, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { GamePieceIcon } from '@/game/GamePieceIcon';
+import { GameSwitcher } from '@/game/GameSwitcher';
 import { FONTS } from '@/theme/typography';
 
 const NAMES = {
@@ -22,11 +23,18 @@ export type SetupHeadingGame = keyof typeof NAMES;
  * (`project-docs/ux-fix-ideas.md` §6.3: a title is a heading, not a hero). The
  * piece art is the game's identity; nothing here glows.
  */
-export function SetupHeading({ game }: { game: SetupHeadingGame }) {
+/**
+ * `switcher` is on wherever the screen was reached as a place to choose what
+ * to play — which is every setup screen now that the tab bar's Play opens one
+ * rather than jumping to a board.
+ */
+export function SetupHeading({ game, switcher = true }: { game: SetupHeadingGame; switcher?: boolean }) {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
   return (
+    <>
+    {switcher && <GameSwitcher game={game} />}
     <View
       accessibilityRole="header"
       style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[3], marginBottom: 20 }}
@@ -36,5 +44,6 @@ export function SetupHeading({ game }: { game: SetupHeadingGame }) {
         {NAMES[game]}
       </Text>
     </View>
+    </>
   );
 }

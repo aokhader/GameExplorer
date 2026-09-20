@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { playPastAbortWindowReversi } from './helpers/abortWindow';
 
 // Full in-browser game flow against the weakest bot: setup screen → start →
 // alternating player/bot moves on the real board component. Exercises the
@@ -41,9 +42,9 @@ test('Rematch starts the next game without the setup screen', async ({ page }) =
   const legal = page.locator('[data-legal]');
   await expect(discs).toHaveCount(4);
 
-  // Play a move so the rematch has a position to throw away.
-  await legal.first().click();
-  await expect.poll(() => discs.count(), { timeout: 20_000 }).toBeGreaterThanOrEqual(6);
+  // Past the abort window, so the rematch has a position to throw away and
+  // Resign is the control on offer.
+  await playPastAbortWindowReversi(page);
 
   // Resign asks for a second click (the GameActions confirm step).
   const resign = page.getByRole('button', { name: /^Resign\??$/ });
@@ -62,6 +63,7 @@ test('Change setup on the result card returns to the setup screen', async ({ pag
   await page.goto('/reversi/bot');
   await page.getByRole('button', { name: 'Start Game' }).click();
   await expect(page.locator('[data-disc]')).toHaveCount(4);
+  await playPastAbortWindowReversi(page);
 
   const resign = page.getByRole('button', { name: /^Resign\??$/ });
   await resign.click();

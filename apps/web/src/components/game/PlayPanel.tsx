@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { MODE_COPY, type GameId } from '@gameexplorer/shared';
-import { setupSummary } from '@gameexplorer/client/game/localSetup';
+import type { SetupFor, SetupGame } from '@gameexplorer/client/game/localSetup';
+import { setupFields, type SetupField } from '@gameexplorer/client/game/setupFields';
+import { SetupChips } from '@/components/game/SetupChips';
 import type { SavedLiquidateGame } from '@gameexplorer/client/liquidate/saveStore';
 import type { UnfinishedGameType } from '@gameexplorer/client/game/unfinishedGame';
 import { useRememberedSetup } from '@gameexplorer/client/hooks/useRememberedSetup';
@@ -19,18 +21,16 @@ import { cn } from '@/lib/utils';
 
 const PRIMARY_LINK =
   'inline-flex min-h-12 flex-1 items-center justify-center rounded-lg bg-accent px-6 font-semibold text-on-accent motion-control motion-safe:active:scale-[0.98] hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface';
-const SECONDARY_LINK =
-  'inline-flex min-h-12 items-center justify-center rounded-lg border border-border-strong px-5 font-semibold text-fg motion-control motion-safe:active:scale-[0.98] hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus';
 
 /**
  * The top of a game's page (`ux-fix-ideas.md` §2.3, §3.2): the game left
- * unfinished, or one line naming the bot game this player would get — the
- * strength, side and rated choice remembered from last time — and one Start.
+ * unfinished, or the bot game this player would get — strength, side, rated and
+ * whatever else the game turns on — as chips that change it, and one Start.
  *
  * Start is a link to the bot's setup screen with `?start=1`, so it opens
- * straight onto a board; *Change* opens the same screen's form. A link cannot
- * ask the questions Start sometimes has to, so the setup screen starts only when
- * no unfinished game is waiting (`useStartLink`).
+ * straight onto a board. A link cannot ask the questions Start sometimes has
+ * to, so the setup screen starts only when no unfinished game is waiting
+ * (`useStartLink`).
  */
 export function PlayPanel({ game, lastPlayed }: { game: GameId; lastPlayed: boolean }) {
   return game === 'liquidate' ? (
@@ -44,7 +44,7 @@ function BoardPlayPanel({ game, lastPlayed }: { game: UnfinishedGameType; lastPl
   const router = useRouter();
   const { user } = useAuth();
   const unfinished = useUnfinishedGame(game);
-  const { setup } = useRememberedSetup({ store: webLocalStore, game, mode: 'bot' });
+  const { setup, update } = useRememberedSetup({ store: webLocalStore, game, mode: 'bot' });
 
   if (unfinished.saved) {
     const saved = unfinished.saved;
@@ -59,12 +59,16 @@ function BoardPlayPanel({ game, lastPlayed }: { game: UnfinishedGameType; lastPl
     );
   }
 
-  // A guest never plays rated, whatever the remembered toggle says.
-  const summary = setupSummary(game, 'bot', user ? setup : { ...setup, rated: false });
+  // A guest never plays rated, whatever the remembered toggle says — the field
+  // is shown locked rather than hidden, so the reason is visible.
+  const fields = setupFields(game, 'bot', user ? setup : { ...setup, rated: false }, {
+    signedIn: !!user,
+  });
   return (
     <StartPanel
       title={MODE_COPY.bot.label}
-      summary={summary}
+      fields={fields}
+      onChange={update}
       startHref={startHref(game, 'bot')}
       changeHref={modeHref(game, 'bot')}
       lastPlayed={lastPlayed}
@@ -73,7 +77,7 @@ function BoardPlayPanel({ game, lastPlayed }: { game: UnfinishedGameType; lastPl
 }
 
 function LiquidatePlayPanel({ lastPlayed }: { lastPlayed: boolean }) {
-  const { setup } = useRememberedSetup({ store: webLocalStore, game: 'liquidate', mode: 'bot' });
+  const { setup, update } = useRememberedSetup({ store: webLocalStore, game: 'liquidate', mode: 'bot' });
   const [saved, setSaved] = useState<{ slot: 'bot' | 'local'; save: SavedLiquidateGame } | null>(null);
   const [generation, setGeneration] = useState(0);
 
@@ -124,7 +128,8 @@ function LiquidatePlayPanel({ lastPlayed }: { lastPlayed: boolean }) {
   return (
     <StartPanel
       title="Play the bots"
-      summary={setupSummary('liquidate', 'bot', setup)}
+      fields={setupFields('liquidate', 'bot', setup, { signedIn: false })}
+      onChange={update}
       startHref={startHref('liquidate', 'bot')}
       changeHref={modeHref('liquidate', 'bot')}
       lastPlayed={lastPlayed}
@@ -132,15 +137,27 @@ function LiquidatePlayPanel({ lastPlayed }: { lastPlayed: boolean }) {
   );
 }
 
-function StartPanel({
+/**
+ * The panel a game page opens on: what you are about to play, as chips you can
+ * change, and Start.
+ *
+ * It used to be a sentence and a *Change* button. The sentence could not be
+ * acted on, and for Go it did not even name the board size, so the choice that
+ * decides the game was invisible until you had left the page. `All options`
+ * remains, quietly, for the setup screen's extras — a custom rating, the
+ * lessons card, the analysis board.
+ */
+export function StartPanel<G extends SetupGame>({
   title,
-  summary,
+  fields,
+  onChange,
   startHref: href,
   changeHref,
   lastPlayed,
 }: {
   title: string;
-  summary: string;
+  fields: readonly SetupField<G>[];
+  onChange: (patch: Partial<SetupFor[G]>) => void;
   startHref: string;
   changeHref: string;
   lastPlayed: boolean;
@@ -151,16 +168,17 @@ function StartPanel({
         {title}
         {lastPlayed && <LastPlayed inline />}
       </h2>
-      <p className="mt-0.5 text-sm text-fg-muted" data-testid="play-panel-summary">
-        {summary}
-      </p>
-      <div className="mt-3 flex gap-3">
+      <SetupChips fields={fields} onChange={onChange} className="mt-2.5" />
+      <div className="mt-3 flex items-center gap-3">
         {/* The page's one gold element. */}
         <Link href={href} className={PRIMARY_LINK}>
           Start
         </Link>
-        <Link href={changeHref} className={SECONDARY_LINK}>
-          Change
+        <Link
+          href={changeHref}
+          className="shrink-0 rounded text-sm font-semibold text-fg-muted underline-offset-2 hover:text-fg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        >
+          All options
         </Link>
       </div>
     </section>

@@ -14,7 +14,9 @@ for (const game of ['chess', 'checkers', 'reversi'] as const) {
     // The Play panel leads, with the page's one Start.
     await expect(page.getByRole('heading', { name: 'Play the bot' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Start', exact: true })).toHaveAttribute('href', `/${game}/bot?start=1`);
-    await expect(page.getByRole('link', { name: 'Change', exact: true })).toHaveAttribute('href', `/${game}/bot`);
+    // The setup is on the page as chips; the full screen is a quieter link.
+    await expect(page.getByRole('list', { name: 'Game setup' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'All options', exact: true })).toHaveAttribute('href', `/${game}/bot`);
     await expect(page.getByRole('link', { name: /Play online/ })).toBeVisible();
     await expect(page.getByRole('link', { name: /Rated practice/ })).toBeVisible();
     // The How to Play tutorial is reachable from the hub.

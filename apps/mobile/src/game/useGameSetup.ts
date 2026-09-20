@@ -124,8 +124,15 @@ export function useGameSetup<G extends UnfinishedGameType>(game: G, deepLink: Se
   // A link's game is live as soon as it is known what the form says — derived
   // rather than started from an effect, so there is no render in between that
   // shows the form.
+  // A casual link overrides only the game it starts, never the remembered
+  // form: the player's own rated choice is still theirs next time they open
+  // it. (`useSetupDeepLink.casual`.)
+  const linkSetup =
+    deepLink.casual && isRememberedMode(formMode)
+      ? ({ ...remembered.setup, rated: false } as SetupFor[G])
+      : remembered.setup;
   const linkGame: ActiveGame<G> | null =
-    !active && autoStartPending && ready ? { mode: formMode, setup: remembered.setup } : null;
+    !active && autoStartPending && ready ? { mode: formMode, setup: linkSetup } : null;
   const current = active ?? linkGame;
   const linkGameLive = !!linkGame;
   useEffect(() => {

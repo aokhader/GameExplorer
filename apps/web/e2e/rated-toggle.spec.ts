@@ -33,5 +33,6 @@ test('the Rated switch does not block starting a casual game', async ({ page }) 
   await page.goto('/chess/bot');
   await page.getByRole('button', { name: 'Start Game' }).click();
   // Reaching the board means the setup screen still hands off with Rated off.
-  await expect(page.getByRole('button', { name: /^Resign\??$/ })).toBeVisible();
+  // A game this young offers Abort rather than Resign.
+  await expect(page.getByRole('button', { name: 'Abort' })).toBeVisible();
 });

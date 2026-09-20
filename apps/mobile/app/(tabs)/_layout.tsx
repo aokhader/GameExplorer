@@ -4,11 +4,9 @@ import { Tabs, type BottomTabBarProps } from 'expo-router/tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 
-import { useAuth } from '@gameexplorer/client';
 import { Icon, PressableScale, TAB_BAR_OVERLAP, type IconName } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
 import { getLastPlayed } from '@/lib/lastPlayed';
-import { continueRoute, readContinueItems } from '@/lib/continueGame';
 
 const PLAY_BUTTON = 56;
 const PLAY_ICON = FONT_SIZES['2xl'];
@@ -38,10 +36,14 @@ const TAB_ICONS: Record<string, { idle: IconName; selected: IconName }> = {
 };
 
 /**
- * The "Deck" tab bar: Home · ▶ Play · You. The center Play button is an
- * action, not a route: it resumes the game the player was last in the middle of
- * (`ux-fix-ideas.md` §2.4), and otherwise opens the last-played game's setup,
- * already filled in with what was chosen last time.
+ * The "Deck" tab bar: Home · ▶ Play · You. Play opens a setup screen — the
+ * last game played, with a switcher across the top for the other four and the
+ * setup already filled in with what was chosen last time.
+ *
+ * It used to resume the unfinished game and only otherwise open a setup, which
+ * made a tab-bar button whose destination changed under the player and left no
+ * way to reach a *different* game without going back to Home. Continue is the
+ * first thing on the screen it opens, so resuming is still one more tap.
  *
  * The chrome plate starts `TAB_BAR_OVERLAP` below the bar's top so the button
  * can rise above the plate while staying inside the touchable bounds (Android
@@ -60,16 +62,8 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, loading } = useAuth();
 
   const openPlay = async () => {
-    // Before auth resolves the account is unknown, and a guest's game must not
-    // stand in for it.
-    const [next] = loading ? [] : await readContinueItems(user?.id ?? null);
-    if (next) {
-      router.push(continueRoute(next) as never);
-      return;
-    }
     const game = await getLastPlayed();
     router.push({ pathname: '/play/[game]', params: { game } } as never);
   };
@@ -155,7 +149,7 @@ function DeckTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         <PressableScale
           onPress={openPlay}
           accessibilityRole="button"
-          accessibilityLabel="Play — jump into a game"
+          accessibilityLabel="Play — choose a game"
           hitSlop={6}
           haptic="impact"
         >

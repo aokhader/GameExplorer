@@ -63,20 +63,43 @@ export function useRememberedSetup<G extends SetupGame>({
 
   const storeRef = useRef(store);
   storeRef.current = store;
+  /**
+   * What the player changed while this key's stored value was still being read.
+   *
+   * Every web store answers asynchronously, so there is a window between mount
+   * and the first value in which the form is on screen and already taking
+   * clicks. Those clicks used to be thrown away when the read landed — that is
+   * how a game started casual with the Rated switch showing on. They cannot
+   * simply win outright either: the form would then be built on the *defaults*
+   * rather than on what this player usually chooses. So the read still supplies
+   * the base and the clicks are re-applied on top of it.
+   */
+  const pendingRef = useRef<Partial<SetupFor[G]> | null>(null);
+  /** Whether this key's stored value has arrived yet. */
+  const readLandedRef = useRef(false);
   // The link's choices apply to the first load only. Switching modes afterwards
   // is the player's own doing and must not re-apply them.
   const overrideRef = useRef(override);
 
   useLayoutEffect(() => {
     let cancelled = false;
+    // A different key is a different form, which nobody has touched yet.
+    pendingRef.current = null;
+    readLandedRef.current = false;
     const apply = (raw: string | null) => {
       if (cancelled) return;
+      readLandedRef.current = true;
       let setup = parseSetup(game, mode, raw);
       const link = overrideRef.current;
-      if (link) {
+      // A link's choices, then anything the player did while this was in
+      // flight — last word to the hand on the screen.
+      const pending = pendingRef.current;
+      pendingRef.current = null;
+      if (link || pending) {
         overrideRef.current = undefined;
-        // Re-parsed so a link can never smuggle in a value the form does not offer.
-        setup = parseSetup(game, mode, serializeSetup({ ...setup, ...link }));
+        // Re-parsed so neither a link nor a stale patch can smuggle in a value
+        // the form does not offer.
+        setup = parseSetup(game, mode, serializeSetup({ ...setup, ...link, ...pending }));
         void storeRef.current.set(key, serializeSetup(setup)).catch(() => {});
       }
       setLoaded({ key, setup });
@@ -111,6 +134,11 @@ export function useRememberedSetup<G extends SetupGame>({
   const update = useCallback(
     (patch: Partial<SetupFor[G]>) => {
       const next = { ...setupRef.current, ...patch } as SetupFor[G];
+      // Held until the read lands, and merged over it there. `loaded` cannot be
+      // the test: this call is about to set it.
+      if (!readLandedRef.current) {
+        pendingRef.current = { ...pendingRef.current, ...patch };
+      }
       setupRef.current = next;
       setLoaded({ key, setup: next });
       void storeRef.current.set(key, serializeSetup(next)).catch(() => {});

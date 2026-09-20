@@ -32,6 +32,8 @@
     "./game/settleUnfinishedGame": "./src/game/settleUnfinishedGame.ts",
     "./game/playerStats": "./src/game/playerStats.ts",
     "./game/launcher": "./src/game/launcher.ts",
+    "./game/setupFields": "./src/game/setupFields.ts",
+    "./game/gameHistory": "./src/game/gameHistory.ts",
     "./hooks/useRememberedSetup": "./src/hooks/useRememberedSetup.ts",
     "./hooks/useUnfinishedGames": "./src/hooks/useUnfinishedGames.ts",
     "./hooks/usePlayerStats": "./src/hooks/usePlayerStats.ts",

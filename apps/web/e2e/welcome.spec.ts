@@ -33,7 +33,9 @@ test('tour flows into a reversi bot game at the picked difficulty', async ({ pag
   await page.getByRole('button', { name: /Start playing/ }).click();
 
   // Lands mid-game: reversi bot page, setup screen skipped, board live.
-  await page.waitForURL('**/reversi/bot?elo=500&start=1');
+  // `casual=1`: the tour calls this practice at a chosen difficulty, and it
+  // used to inherit the rated choice remembered from the last game.
+  await page.waitForURL('**/reversi/bot?elo=500&start=1&casual=1');
   await expect(page.locator('[data-disc]')).toHaveCount(4);
 });
 

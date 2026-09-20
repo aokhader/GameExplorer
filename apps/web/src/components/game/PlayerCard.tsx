@@ -20,6 +20,16 @@ export interface PlayerCardProps {
    * `GameScreenLayout`, and extra height is taken straight out of the board.
    */
   captured?: React.ReactNode;
+  /**
+   * The rating this player brings to the board, beside their name.
+   *
+   * It is **the** sign that the game is rated: shown when the result will move
+   * a rating and absent when it will not. A rated game used to look exactly
+   * like a casual one until the result card named a number, so the one thing
+   * the player cannot undo was the one thing the screen never said. A bot's
+   * rating is always shown — it is what the bot *is*, not what is at stake.
+   */
+  rating?: number;
 }
 
 /**
@@ -32,7 +42,16 @@ export interface PlayerCardProps {
  * and every pixel it gives back is a pixel the square board grows by on a short
  * screen. `GameScreenLayout` budgets its column height against that number.
  */
-export function PlayerCard({ name, initial, subline, isYou = false, active = false, right, captured }: PlayerCardProps) {
+export function PlayerCard({
+  name,
+  initial,
+  subline,
+  isYou = false,
+  active = false,
+  right,
+  captured,
+  rating,
+}: PlayerCardProps) {
   return (
     <div
       className={cn(
@@ -53,7 +72,19 @@ export function PlayerCard({ name, initial, subline, isYou = false, active = fal
           {initial}
         </span>
         <div className="min-w-0">
-          <div className="font-semibold text-sm leading-tight truncate">{name}</div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-semibold text-sm leading-tight truncate">{name}</span>
+            {rating !== undefined && (
+              // Plain, not a chip: it reads as part of the name, the way a
+              // rating does beside a player everywhere else.
+              <span
+                className="shrink-0 text-caption font-semibold tabular-nums text-fg-muted"
+                title="Your rating — this game is rated"
+              >
+                {rating}
+              </span>
+            )}
+          </div>
           {/* `accent-text`, not `accent`: this is 11px, and the accent fill color
               is tuned for buttons rather than small type. */}
           {subline && (

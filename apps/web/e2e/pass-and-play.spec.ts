@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { fixBoardOrientation, playPastAbortWindowChessLocal } from './helpers/abortWindow';
 
 // Pass-and-play was mobile-only: web's hubs said "Local 2-Player — Coming Soon".
 // Both platforms now call it "Pass & Play" (`MODE_COPY`, ux-fix-ideas.md §3.3).
@@ -67,8 +68,13 @@ test('chess pass-and-play lets both colours move and never answers back', async 
 });
 
 test('pass-and-play never offers a rating on the result screen', async ({ page }) => {
+  await fixBoardOrientation(page);
   await page.goto('/chess/local');
   await page.getByRole('button', { name: 'Start Game' }).click();
+
+  // Past the abort window: the opening moves offer Abort, and this test is
+  // about what the *result* screen says.
+  await playPastAbortWindowChessLocal(page);
 
   // Resign asks twice (a 3s window), so the second click has to be prompt.
   const resign = page.getByRole('button', { name: /^Resign\??$/ });

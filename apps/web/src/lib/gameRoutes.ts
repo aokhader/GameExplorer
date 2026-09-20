@@ -38,7 +38,8 @@ export function startHref(game: GameId, mode: LastSetupMode): string {
  */
 export function firstGameHref(game: GameId): string {
   if (game === 'liquidate') return '/liquidate/bot?start=1';
-  return `/${game}/bot?elo=${firstGameElo(game)}&start=1`;
+  // Casual, always: a first game is an introduction, not a result.
+  return `/${game}/bot?elo=${firstGameElo(game)}&start=1&casual=1`;
 }
 
 /** The first coached lesson, or the rules page for a game with no lessons. */

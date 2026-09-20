@@ -19,6 +19,15 @@ export interface PlayerCardProps {
   initial: string;
   /** Small line under the name — difficulty or a status like "your move". */
   subline?: string;
+  /**
+   * The rating this player brings to the board, beside their name.
+   *
+   * It is **the** sign that the game is rated: shown when the result will move
+   * a rating and absent when it will not. A rated game looked exactly like a
+   * casual one until the result card named a number. A bot's rating is always
+   * shown — it is what the bot is, not what is at stake.
+   */
+  rating?: number;
   /** The local player's card wears a gold tint so "you" is always identifiable. */
   isYou?: boolean;
   /** Pulsing "to move" dot on the right. */
@@ -46,6 +55,7 @@ export function PlayerCard({
   name,
   initial,
   subline,
+  rating,
   isYou = false,
   active = false,
   right,
@@ -111,9 +121,27 @@ export function PlayerCard({
             </Text>
           </View>
           <View style={{ flexShrink: 1 }}>
-            <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold }} numberOfLines={1}>
-              {name}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[1.5] }}>
+              <Text
+                style={{ color: COLORS.fg, fontSize: FONT_SIZES.body, fontFamily: FONTS.bodyBold, flexShrink: 1 }}
+                numberOfLines={1}
+              >
+                {name}
+              </Text>
+              {rating !== undefined && (
+                // Plain, not a chip: it reads as part of the name, the way a
+                // rating does beside a player everywhere else.
+                <Text
+                  style={{
+                    color: COLORS.fgMuted,
+                    fontSize: FONT_SIZES.xs,
+                    fontFamily: FONTS.bodySemi,
+                  }}
+                >
+                  {rating}
+                </Text>
+              )}
+            </View>
             {subline && (
               <Text
                 style={{ color: isYou ? COLORS.accent : COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 1 }}

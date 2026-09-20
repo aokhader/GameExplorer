@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToReversi, MODE_COPY } from '@gameexplorer/shared';
+import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToReversi, MODE_COPY, ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
@@ -16,6 +16,7 @@ import { MoveStrip, numberedStripItems } from '@/components/game/MoveStrip';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
+import { useCasualLink } from '@/hooks/useCasualLink';
 import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { DifficultyMeter } from '@/components/game/DifficultyMeter';
@@ -104,7 +105,12 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
     game: 'reversi',
     mode: isLocal ? 'pass-and-play' : 'bot',
   });
-  const { elo: targetElo, rated } = setup;
+  const { elo: targetElo, rated: rememberedRated } = setup;
+  // A link that promised practice cannot hand back a rated game, whatever the
+  // remembered setup says (`useCasualLink`). Touching the switch takes the
+  // choice back.
+  const casualLink = useCasualLink();
+  const rated = casualLink.casual ? false : rememberedRated;
   const playerColor: ReversiColor = setup.color;
   const [timeline, setTimeline]       = useState<ReversiGameState[]>(() => [ReversiEngine.newGame()]);
   const [viewIndex, setViewIndex]     = useState(0);
@@ -112,6 +118,18 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   const [gameStarted, setGameStarted] = useState(false);
   useMarkPlayed('reversi', isLocal ? 'pass-and-play' : 'bot', gameStarted);
   const [userId, setUserId]           = useState<string | null>(null);
+  /**
+   * Whether this game actually counts — the screen's one answer, used by the
+   * switch, the board and the save alike.
+   *
+   * These three screens used to show `signedIn && rated` on the switch and hand
+   * the raw `rated` to everything else. The two disagree while auth is still
+   * resolving, and for a signed-out player with a rated setup remembered: the
+   * switch reads Casual while the game is set up rated. Go already folded the
+   * account in; now they all do, so the control cannot say one thing while the
+   * game does another.
+   */
+  const ratedEffective = rated && !!userId && !isLocal;
   const [passMsg, setPassMsg]         = useState<string | null>(null);
   const [userRating, setUserRating]   = useState<UserRating | null>(null);
   const [ratingResult, setRatingResult] = useState<RatingResult | null>(null);
@@ -133,8 +151,8 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   userRatingRef.current = userRating;
   const manualEndRef   = useRef(manualEnd);
   manualEndRef.current = manualEnd;
-  const ratedRef       = useRef(rated);
-  ratedRef.current     = rated;
+  const ratedRef       = useRef(ratedEffective);
+  ratedRef.current     = ratedEffective;
 
   const liveState    = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -235,7 +253,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
     game: 'reversi',
     mode: setupMode,
     userId,
-    rated,
+    rated: ratedEffective,
     playerColor,
     botElo: targetElo,
     setup,
@@ -367,6 +385,17 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   };
 
   // Resign — ends the game now; the save effect applies the rated outcome.
+  /**
+   * Cancel a game nobody has really started yet, leaving nothing behind: no
+   * rating, no saved row, no resumable slot. Offered instead of Resign while
+   * fewer than `ABORT_MOVE_LIMIT` moves have been played, which is the rule
+   * multiplayer already uses — a game set up wrong two moves ago should not
+   * have to be conceded, least of all for a rated loss.
+   */
+  const abortGame = () => {
+    slot.clear();
+    resetGame(false);
+  };
   const handleResign = () => {
     if (manualEnd || liveState.isGameOver) return;
     setManualEnd('resign');
@@ -452,6 +481,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
                   <button
                     key={level.elo}
                     onClick={() => update({ elo: level.elo })}
+                    aria-pressed={selected}
                     className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                       selected
                         ? 'border-accent bg-accent-muted'
@@ -513,7 +543,15 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
 
           {/* Pass-and-play is casual by definition — nothing to rate. */}
           {!isLocal && (
-            <RatedToggle checked={rated} onChange={(value) => update({ rated: value })} gameLabel="reversi" userId={userId} />
+            <RatedToggle
+              checked={ratedEffective}
+              onChange={(value) => {
+                casualLink.release();
+                update({ rated: value });
+              }}
+              gameLabel="reversi"
+              userId={userId}
+            />
           )}
 
           <SetupStartBar>
@@ -627,6 +665,9 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
             name={isLocal ? capitalize(bottomColor) : 'You'}
             initial={isLocal ? capitalize(bottomColor)[0] : 'Y'}
             isYou={!isLocal}
+            // The rating is the tell that the game is rated; it is absent from a
+            // casual one. Pass-and-play has no single player to rate.
+            rating={ratedEffective ? userRating?.rating : undefined}
             active={isLocal ? liveState.currentTurn === bottomColor && !gameOverMsg : yourTurn}
             subline={
               isLocal
@@ -638,6 +679,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
         actions={
           // Resign only — reversi has no draw offers.
           <GameActions
+            onAbort={liveState.moveHistory.length < ABORT_MOVE_LIMIT ? abortGame : undefined}
             className="shrink-0"
             onResign={handleResign}
             disabled={!!gameOverMsg}

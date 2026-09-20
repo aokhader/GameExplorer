@@ -413,6 +413,7 @@ export function useLocalGame<S>({
     void p.store.remove(unfinishedGameKey(p.game, userIdRef.current)).catch(() => {});
   }, []);
 
+
   /**
    * Save after every move, and after a hint (which the result will charge for).
    * Only while the game is live: its end is the save effect's to record, because
@@ -722,6 +723,20 @@ export function useLocalGame<S>({
   }, [adapter, clearHint]);
 
   /**
+   * Cancel a game nobody has really started, leaving nothing behind: no rating,
+   * no saved row, and no slot to come back to.
+   *
+   * Screens offer this instead of Resign while fewer than `ABORT_MOVE_LIMIT`
+   * moves have been played — the rule multiplayer already enforces server-side.
+   * Resigning is how you concede a game; a game you set up wrong two moves ago
+   * is not one you should have to concede, and a rated loss for it is worse.
+   */
+  const abort = useCallback(() => {
+    clearSlot();
+    newGame();
+  }, [clearSlot, newGame]);
+
+  /**
    * Pick up a saved game where it was left: replay its actions onto a fresh
    * board, and take back its hints and its rated status. Returns false — and
    * changes nothing — for a snapshot that cannot be resumed: one that has
@@ -785,6 +800,7 @@ export function useLocalGame<S>({
     resign: () => endManually('resign'),
     agreeDraw: () => endManually('draw'),
     newGame,
+    abort,
     /** Resume a saved game — see `persistence`. */
     restore,
     /** What produced each position after the first; `actions[i]` led to `timeline[i + 1]`. */

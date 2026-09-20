@@ -1,4 +1,17 @@
 import { test, expect, type Page } from '@playwright/test';
+import {
+  playPastAbortWindowChess,
+  playPastAbortWindowCheckers,
+  playPastAbortWindowReversi,
+  seedRandom,
+} from './helpers/abortWindow';
+
+/** Each board past its abort window, so Resign is the control on offer. */
+const PLAY = {
+  chess: playPastAbortWindowChess,
+  checkers: playPastAbortWindowCheckers,
+  reversi: playPastAbortWindowReversi,
+};
 
 // A signed-out guest must never attempt to persist a bot game. The `games`
 // insert policy only accepts rows where auth.uid() = user_id, so an anonymous
@@ -28,11 +41,24 @@ const BOT_PAGES = [
 
 for (const { game, path } of BOT_PAGES) {
   test(`resigning a ${game} bot game as a guest writes nothing`, async ({ page }) => {
+    // Playing past the abort window means waiting on a bot three times,
+    // which is the slow part when the whole suite shares one server.
+    test.slow();
     const writes = await watchGameWrites(page);
 
+    // The checkers line below is only legal against a bot whose replies are
+    // fixed. The other two do not need it, and chess must not have it: its
+    // engine runs in a worker that the stub does not reach, and the page it
+    // does reach stops behaving.
+    if (game === 'checkers') await seedRandom(page);
     await page.goto(path);
     await page.getByRole('button', { name: /Beginner/ }).click();
     await page.getByRole('button', { name: 'Start Game' }).click();
+
+    // Past the abort window first. The opening moves offer Abort instead —
+    // which writes nothing either way, and it is the end-of-game save path
+    // that this test needs to actually run.
+    await PLAY[game](page);
 
     // Resign asks for a second click within 3s (the GameActions confirm step).
     const resign = page.getByRole('button', { name: /^Resign\??$/ });

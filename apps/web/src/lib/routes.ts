@@ -23,7 +23,10 @@
  */
 export function isImmersiveGameRoute(pathname: string): boolean {
   return (
-    /\/(play|bot|training|analysis|local|puzzles)(\/|$)/.test(pathname) ||
+    // A game's own screens, not a top-level page that happens to share a word:
+    // `/play` is the game picker and keeps its navigation, while `/chess/play`
+    // is a board and does not.
+    /^\/[^/]+\/(play|bot|training|analysis|local|puzzles)(\/|$)/.test(pathname) ||
     /\/learn\/[^/]+/.test(pathname) ||
     pathname.startsWith('/spectate/') ||
     // A saved game's review is the whole page, with its own way home.

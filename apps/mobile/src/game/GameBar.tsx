@@ -29,6 +29,12 @@ export interface GameBarProps {
   /** Forfeit. Asks for a second tap first, so a stray touch can't throw a game. */
   onResign: () => void;
   /**
+   * Cancel the game instead of conceding it, leaving nothing behind — no
+   * rating, no saved row, no resumable slot. Takes the resign slot while
+   * the game is young enough for the screen to offer it (`ABORT_MOVE_LIMIT`).
+   */
+  onAbort?: () => void;
+  /**
    * Go only — pass the turn. A first-class button rather than a menu row
    * because in Go a pass is an ordinary move and two of them are how every game
    * ends; burying it would hide the only way to finish. Omitted by the other
@@ -85,6 +91,7 @@ export function GameBar({
   onAgreeDraw,
   onNewGame,
   onResign,
+  onAbort,
   onPass,
   passDisabled = false,
   gameOver = false,
@@ -169,16 +176,30 @@ export function GameBar({
 
         {/* Resign last, set apart: the harmless controls come first, and the
             one that ends the game sits past a divider with extra room, as on
-            the online bar. It still asks twice unless the player said not to. */}
+            the online bar. It still asks twice unless the player said not to —
+            and for the opening moves it is an Abort instead, which asks once
+            because it costs nothing. */}
         <View style={{ width: 1, marginVertical: 6, marginHorizontal: SPACING[1], backgroundColor: COLORS.border }} />
-        <BarButton
-          icon="flag"
-          label={confirming ? 'Confirm resign' : 'Resign'}
-          hint={confirming ? undefined : 'Tap twice to resign the game'}
-          onPress={handleResign}
-          disabled={gameOver}
-          danger={confirming}
-        />
+        {onAbort ? (
+          // One tap, no confirmation and no danger colour: nothing is being
+          // conceded and nothing is written.
+          <BarButton
+            icon="x"
+            label="Abort"
+            hint="Cancel this game — nothing is saved"
+            onPress={onAbort}
+            disabled={gameOver}
+          />
+        ) : (
+          <BarButton
+            icon="flag"
+            label={confirming ? 'Confirm resign' : 'Resign'}
+            hint={confirming ? undefined : 'Tap twice to resign the game'}
+            onPress={handleResign}
+            disabled={gameOver}
+            danger={confirming}
+          />
+        )}
       </View>
 
       <GameMenu

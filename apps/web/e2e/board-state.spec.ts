@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { fixBoardOrientation, playPastAbortWindowChessLocal } from './helpers/abortWindow';
 
 /**
  * Wave 3 of the UX fix ideas (`project-docs/ux-fix-ideas.md` §5.1–§5.4, §8.5):
@@ -83,7 +84,10 @@ test('draw asks in place before it ends the game', async ({ page }) => {
 });
 
 test('with confirmation switched off, one click resigns', async ({ page }) => {
-  await startChessLocal(page, { confirmResign: false });
+  // Flipping off too, so the moves below address fixed squares.
+  await startChessLocal(page, { confirmResign: false, flipBoardPassAndPlay: false });
+  // Resign only appears once the game is past its abort window.
+  await playPastAbortWindowChessLocal(page);
   await page.getByRole('button', { name: /^Resign\??$/ }).click();
   await expect(page.getByText(/White wins|Black wins/)).toBeVisible();
 });

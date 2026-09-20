@@ -37,7 +37,7 @@ test('a stranger’s Play is one click to a live board at Club strength', async 
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: LANDING_H1 })).toBeVisible();
   await page.getByRole('link', { name: 'Play Chess' }).click();
-  await page.waitForURL('**/chess/bot?elo=1200&start=1');
+  await page.waitForURL('**/chess/bot?elo=1200&start=1&casual=1');
   // Straight onto the board — no setup form on the way.
   await expect(page.locator('.chess-board')).not.toHaveAttribute('aria-disabled', 'true', { timeout: 15000 });
   await expect(page.getByRole('button', { name: 'Start Game' })).toHaveCount(0);
@@ -46,7 +46,7 @@ test('a stranger’s Play is one click to a live board at Club strength', async 
 test('the first-run picker offers every game, and a first lesson for a newcomer', async ({ page }) => {
   await page.goto('/');
   await pick(page, 'Go');
-  await expect(page.getByRole('link', { name: 'Play Go' })).toHaveAttribute('href', '/go/bot?elo=1100&start=1');
+  await expect(page.getByRole('link', { name: 'Play Go' })).toHaveAttribute('href', '/go/bot?elo=1100&start=1&casual=1');
   await expect(page.getByRole('link', { name: 'I’m new to Go' })).toHaveAttribute('href', /^\/go\/learn\/.+/);
 
   await pick(page, 'Liquidate');
@@ -150,7 +150,7 @@ test('on a phone the three places are a bar at the bottom of the screen', async 
   }
 });
 
-test('Play resumes the game left unfinished', async ({ page }) => {
+test('Play goes to the picker, which carries the unfinished game', async ({ page }) => {
   await page.goto('/chess/local');
   await page.getByRole('button', { name: 'Start Game' }).click();
   await expect(page.locator('.chess-board')).not.toHaveAttribute('aria-disabled', 'true', { timeout: 15000 });
@@ -159,9 +159,50 @@ test('Play resumes the game left unfinished', async ({ page }) => {
   await expect(sq(page, 'e4')).toHaveClass(/last-move/, { timeout: 15000 });
   await waitForSave(page);
 
+  // Play is one address now, not a destination that changes under the visitor.
   await page.goto('/learn');
-  await expect(page.getByRole('navigation', { name: 'Main', exact: true }).getByRole('link', { name: 'Play', exact: true }))
-    .toHaveAttribute('href', '/chess/local?resume=1');
+  const play = page.getByRole('navigation', { name: 'Main', exact: true }).getByRole('link', { name: 'Play', exact: true });
+  await expect(play).toHaveAttribute('href', '/play');
+  await play.click();
+
+  // …and the unfinished game is the first thing on it.
+  const carryOn = page.getByRole('region', { name: 'Carry on' });
+  await expect(carryOn).toBeVisible();
+  await expect(carryOn.getByRole('link', { name: /Chess/ })).toHaveAttribute('href', '/chess/local?resume=1');
+});
+
+test('the Play page shows the setup as chips you can change', async ({ page }) => {
+  await page.goto('/play?game=go');
+
+  // The board size is the choice that defines a game of Go, and the old
+  // summary printed it only when it was *not* the default.
+  const setup = page.getByRole('list', { name: 'Game setup' });
+  const board = setup.getByRole('button', { name: /Board/ });
+  await expect(board).toContainText('9×9');
+
+  await expect(async () => {
+    await board.click();
+    await expect(page.getByRole('radio', { name: /13×13/ })).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 15000 });
+
+  await page.getByRole('radio', { name: /13×13/ }).click();
+  await expect(board).toContainText('13×13');
+
+  // A locked choice says why. For a guest that is the account, which comes
+  // first; Go's own rule (only 9×9 at 7.5 komi is rated) is unit-tested,
+  // because reaching it here would need a signed-in session.
+  await page.getByRole('button', { name: /Rating/ }).click();
+  await expect(page.getByText('Sign in to play rated games')).toBeVisible();
+});
+
+test('a first game is never rated, whatever was played last', async ({ page }) => {
+  // The tour and the first-run picker both promise practice; they used to
+  // inherit the rated choice remembered from the player's last game.
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'Play Chess' })).toHaveAttribute(
+    'href',
+    '/chess/bot?elo=1200&start=1&casual=1',
+  );
 });
 
 test('a start link never starts over an unfinished game', async ({ page }) => {
@@ -211,14 +252,15 @@ test('a first refused move says why, once', async ({ page }) => {
   await expect(page.getByTestId('board-tip')).toContainText('You’re in check, so your move has to end it.');
 });
 
-test('on a phone, Resign and the whole board are on screen together', async ({ page }) => {
+test('on a phone, the end-game control and the whole board are on screen together', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto('/chess/local');
   await page.getByRole('button', { name: 'Start Game' }).click();
   await expect(page.locator('.chess-board')).not.toHaveAttribute('aria-disabled', 'true', { timeout: 15000 });
 
   const board = await page.locator('.chess-board').boundingBox();
-  const resign = await page.getByRole('button', { name: /Resign/ }).boundingBox();
+  // Abort holds this slot for the opening moves; the geometry is the point.
+  const resign = await page.getByRole('button', { name: /^(Resign??|Abort)$/ }).boundingBox();
   const strip = await page.getByTestId('move-strip').boundingBox();
   expect(board && resign && strip).toBeTruthy();
   expect(board!.y).toBeGreaterThanOrEqual(0);

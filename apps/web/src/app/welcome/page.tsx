@@ -51,7 +51,7 @@ export default function WelcomePage() {
     // Queue the "save your progress" ask for after their first game ends.
     if (!user) localStorage.setItem(SAVE_PROGRESS_PENDING_KEY, '1');
     if (opponent === 'bot') {
-      router.push(`/${game}/bot?elo=${DIFFICULTY_ELO[game][difficulty]}&start=1`);
+      router.push(`/${game}/bot?elo=${DIFFICULTY_ELO[game][difficulty]}&start=1&casual=1`);
     } else {
       router.push(`/${game}/play`);
     }

@@ -13,6 +13,7 @@ import {
   toggleDeadChain,
   type GoColor,
   type GoGameState,
+  ABORT_MOVE_LIMIT,
 } from '@gameexplorer/shared';
 import {
   GO_DIFFICULTY_LEVELS,
@@ -176,6 +177,17 @@ export function GoScreen() {
    * Back to the setup screen (game bar New Game, result card Change setup). A game
    * left unfinished stays saved, and the Continue card reads it back.
    */
+  /**
+   * Cancel a game nobody has really started yet: no rating, no saved row, no
+   * slot to come back to. Offered instead of Resign for the opening moves
+   * (`ABORT_MOVE_LIMIT`), the rule multiplayer already enforces.
+   */
+  const handleAbort = () => {
+    game.abort();
+    setup.stop();
+    unfinished.refresh();
+  };
+
   const handleNewGame = () => {
     game.newGame();
     setDead([]);
@@ -616,6 +628,9 @@ export function GoScreen() {
               name="You"
               initial="Y"
               isYou
+              // The rating is the tell that the game is rated; it is absent
+              // from a casual one.
+              rating={ratedEffective ? game.userRating?.rating : undefined}
               active={yourTurn}
               subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
             />
@@ -722,6 +737,7 @@ export function GoScreen() {
             // No flip (playerColor is also the pass-and-play tap gate) and no
             // draw offers — a .5 komi means a scored board can never tie.
             onNewGame={handleNewGame}
+            onAbort={game.liveState.moveHistory.length < ABORT_MOVE_LIMIT ? handleAbort : undefined}
             onResign={game.resign}
             onPass={game.pass}
             passDisabled={!interactive || (!isPassAndPlay && !yourTurn)}

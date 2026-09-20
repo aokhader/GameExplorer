@@ -65,7 +65,9 @@ export async function saveGame(
   const newGame: NewGame = {
     game_type: 'chess',
     player_color: playerColor,
-    opponent: 'stockfish',
+    // 'bot', as the other three games write: the engine behind it is an
+    // implementation detail, and a stale one on native (Arasan).
+    opponent: 'bot',
     result,
     difficulty,
     user_id: userId,

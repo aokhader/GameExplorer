@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial, timelineToSan, illegalMoveReason, ILLEGAL_MOVE_COPY, MODE_COPY } from '@gameexplorer/shared';
+import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial, timelineToSan, illegalMoveReason, ILLEGAL_MOVE_COPY, MODE_COPY, botStrengthLabel, BOT_TIERS, ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { useChessReviewAdapter } from '@/hooks/useChessReviewAdapter';
 import { ChessBoard } from '@/components/chess/ChessBoard';
@@ -22,6 +22,7 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { CapturedTray } from '@/components/game/CapturedTray';
 import { GameActions } from '@/components/game/GameActions';
 import { RatedToggle } from '@/components/game/RatedToggle';
+import { useCasualLink } from '@/hooks/useCasualLink';
 import { ResultActions } from '@/components/game/ResultActions';
 import { SetupStartBar } from '@/components/game/SetupStartBar';
 import { useSettings } from '@/components/providers/SettingsProvider';
@@ -58,29 +59,20 @@ const ReviewPanel = dynamic(
 
 const STOCKFISH_MIN_ELO = 1400;
 
-const ELO_PRESETS = [
-  { elo: 600,  label: 'Beginner' },
-  { elo: 900,  label: 'Novice'   },
-  { elo: 1200, label: 'Club'     },
-  { elo: 1500, label: 'Inter.'   },
-  { elo: 2000, label: 'Advanced' },
-  { elo: 2800, label: 'Master'   },
-] as const;
+/**
+ * The six tiles, from the catalog's ladder. Only the tile's label is local,
+ * because a 3-across grid on a phone cannot hold "Intermediate" — an
+ * abbreviation is allowed where a rename is not (see `botTiers.ts`).
+ */
+const TILE_ABBREVIATION: Record<string, string> = { Intermediate: 'Inter.' };
 
-function eloLabel(elo: number): string {
-  if (elo < 600)  return 'Beginner';
-  if (elo < 800)  return 'Novice';
-  if (elo < 1000) return 'Casual';
-  if (elo < 1200) return 'Club Player';
-  if (elo < 1400) return 'Intermediate';
-  if (elo < 1600) return 'Competitive';
-  if (elo < 1800) return 'Advanced';
-  if (elo < 2000) return 'Expert';
-  if (elo < 2200) return 'Candidate Master';
-  if (elo < 2400) return 'FIDE Master';
-  if (elo < 2600) return 'International Master';
-  return 'Grandmaster';
-}
+const ELO_PRESETS = BOT_TIERS.chess.map(({ elo, label }) => ({
+  elo,
+  label: TILE_ABBREVIATION[label] ?? label,
+}));
+
+/** A bot's name, shared with the setup screen so a preset keeps its tier. */
+const eloLabel = (elo: number): string => botStrengthLabel('chess', elo);
 
 function eloDescription(elo: number): string {
   if (elo < 600)  return 'Hangs pieces frequently, random-looking play';
@@ -137,7 +129,12 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
     game: 'chess',
     mode: isLocal ? 'pass-and-play' : 'bot',
   });
-  const { elo: targetElo, color: playerColor, rated } = setup;
+  const { elo: targetElo, color: playerColor, rated: rememberedRated } = setup;
+  // A link that promised practice cannot hand back a rated game, whatever the
+  // remembered setup says (`useCasualLink`). Touching the switch takes the
+  // choice back.
+  const casualLink = useCasualLink();
+  const rated = casualLink.casual ? false : rememberedRated;
   /**
    * The slider reaches strengths between the presets. Marking those custom is
    * what keeps a remembered 1325 from snapping back to the nearest preset — and
@@ -171,6 +168,18 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   };
 
   const [userId, setUserId] = useState<string | null>(null);
+  /**
+   * Whether this game actually counts — the screen's one answer, used by the
+   * switch, the board and the save alike.
+   *
+   * These three screens used to show `signedIn && rated` on the switch and hand
+   * the raw `rated` to everything else. The two disagree while auth is still
+   * resolving, and for a signed-out player with a rated setup remembered: the
+   * switch reads Casual while the game is set up rated. Go already folded the
+   * account in; now they all do, so the control cannot say one thing while the
+   * game does another.
+   */
+  const ratedEffective = rated && !!userId && !isLocal;
   // Player-initiated end (design's ½ Draw / Resign pair) — the engine state
   // stays live, but the game is over from the UI's point of view.
   const [manualEnd, setManualEnd] = useState<'resign' | 'draw' | null>(null);
@@ -222,8 +231,8 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   manualEndRef.current  = manualEnd;
   const userRatingRef   = useRef(userRating);
   userRatingRef.current = userRating;
-  const ratedRef        = useRef(rated);
-  ratedRef.current      = rated;
+  const ratedRef        = useRef(ratedEffective);
+  ratedRef.current      = ratedEffective;
 
   // A link's strength (?elo=1200, from the tour or the first-run picker) wins
   // over the remembered one and is then remembered itself. Its `start=1` is
@@ -302,7 +311,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
     game: 'chess',
     mode: setupMode,
     userId,
-    rated,
+    rated: ratedEffective,
     playerColor,
     botElo: targetElo,
     setup,
@@ -506,6 +515,17 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   };
 
   // ── Resign / draw (vs the bot, both end the game immediately) ──────────────
+  /**
+   * Cancel a game nobody has really started yet, leaving nothing behind: no
+   * rating, no saved row, no resumable slot. Offered instead of Resign while
+   * fewer than `ABORT_MOVE_LIMIT` moves have been played, which is the rule
+   * multiplayer already uses — a misconfigured game should cost nothing, and
+   * resigning one would write a loss for a game that never happened.
+   */
+  const abortGame = () => {
+    slot.clear();
+    resetGame(false);
+  };
   const endManually = (kind: 'resign' | 'draw') => {
     if (manualEnd || liveState.isCheckmate || liveState.isStalemate || liveState.isDraw) return;
     setManualEnd(kind);
@@ -662,6 +682,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
                 <button
                   key={elo}
                   onClick={() => setTargetElo(elo)}
+                  aria-pressed={targetElo === elo}
                   className={`py-2 px-1 rounded-lg text-center text-sm transition-all ${
                     targetElo === elo
                       ? 'border border-accent bg-accent-muted text-fg font-semibold'
@@ -715,7 +736,15 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
 
           {/* Pass-and-play is casual by definition — nothing to rate. */}
           {!isLocal && (
-            <RatedToggle checked={rated} onChange={(value) => update({ rated: value })} gameLabel="chess" userId={userId} />
+            <RatedToggle
+              checked={ratedEffective}
+              onChange={(value) => {
+                casualLink.release();
+                update({ rated: value });
+              }}
+              gameLabel="chess"
+              userId={userId}
+            />
           )}
 
           <SetupStartBar>
@@ -848,6 +877,9 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
             name={isLocal ? capitalize(bottomColor) : 'You'}
             initial={isLocal ? capitalize(bottomColor)[0] : 'Y'}
             isYou={!isLocal}
+            // The rating is the tell that the game is rated; it is absent from a
+            // casual one. Pass-and-play has no single player to rate.
+            rating={ratedEffective ? userRating?.rating : undefined}
             active={isLocal ? liveState.currentTurn === bottomColor && !gameOverMsg : yourTurn}
             subline={
               isLocal
@@ -869,6 +901,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
         actions={
           <GameActions
             className="shrink-0"
+            onAbort={liveState.moveHistory.length < ABORT_MOVE_LIMIT ? abortGame : undefined}
             onDraw={() => endManually('draw')}
             onResign={() => endManually('resign')}
             onFlip={() => setFlipped(f => !f)}

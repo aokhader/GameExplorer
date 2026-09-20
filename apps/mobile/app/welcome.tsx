@@ -164,7 +164,7 @@ export default function WelcomeScreen() {
       pathname: '/play/[game]',
       params:
         opponent === 'bot'
-          ? { game, elo: String(DIFFICULTY_ELO[game][difficulty]), start: '1' }
+          ? { game, elo: String(DIFFICULTY_ELO[game][difficulty]), start: '1', casual: '1' }
           : // Online picks its own terms on the matchmaking screen — time
             // control, rated, and whether to queue or send a link — so there is
             // no bot difficulty to carry.

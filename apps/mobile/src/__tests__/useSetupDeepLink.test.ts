@@ -31,7 +31,15 @@ describe('useSetupDeepLink', () => {
       inviteId: null,
       resume: false,
       repeat: false,
+      casual: false,
     });
+  });
+
+  it('reads the casual promise a first-game link carries', () => {
+    mockParams = { elo: '600', start: '1', casual: '1' };
+    expect(probe(CHESS_TIERS).casual).toBe(true);
+    mockParams = { elo: '600', start: '1' };
+    expect(probe(CHESS_TIERS).casual).toBe(false);
   });
 
   it('snaps a requested strength to the nearest tier', () => {

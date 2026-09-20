@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { BlockedPlayers } from '@/components/multiplayer/BlockedPlayers';
 import { Skeleton } from '@/components/ui';
 import { ratingDelta, summarizePlayer } from '@gameexplorer/client/game/playerStats';
+import { opponentLabel } from '@gameexplorer/client/game/gameHistory';
 import { authHref } from '@/components/auth/returnTo';
 import { LinkRow } from '@/components/home/LauncherParts';
 
@@ -426,7 +427,7 @@ export default function ProfilePage() {
                     <span className="text-xl w-7 shrink-0 select-none inline-flex justify-center"><GameIcon game={gameType} /></span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-fg capitalize truncate">
-                        vs {game.opponent}
+                        vs {opponentLabel(game.opponent, game.difficulty)}
                       </div>
                       <div className="text-xs text-fg-muted capitalize truncate">{detail}</div>
                     </div>

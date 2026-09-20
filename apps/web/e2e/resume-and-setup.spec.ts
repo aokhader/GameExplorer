@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { fixBoardOrientation, playPastAbortWindowChessLocal } from './helpers/abortWindow';
 
 /**
  * `project-docs/ux-fix-ideas.md` §2.1 and §2.4 on web: a second visit costs less
@@ -134,6 +135,7 @@ test('a casual unfinished game does not stand in the way of a new one', async ({
 });
 
 test('a finished pass-and-play game leaves nothing to resume', async ({ page }) => {
+  await fixBoardOrientation(page);
   await page.goto('/chess/local');
   await page.getByRole('button', { name: 'Start Game' }).click();
 
@@ -151,6 +153,9 @@ test('a finished pass-and-play game leaves nothing to resume', async ({ page }) 
     .poll(() => page.evaluate(() => localStorage.getItem('gx:inprogress:chess:guest')))
     .not.toBeNull();
 
+  // Resign only appears once the game is past its abort window. The e4
+  // above is the first of these moves, replayed here in full.
+  await playPastAbortWindowChessLocal(page);
   const resign = page.getByRole('button', { name: /^Resign\??$/ });
   await resign.click();
   await resign.click();

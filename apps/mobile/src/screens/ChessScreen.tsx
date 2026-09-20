@@ -8,6 +8,7 @@ import {
   summarizeMaterial,
   timelineToSan,
   type ChessGameState,
+  ABORT_MOVE_LIMIT,
 } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, ChessPiece, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, Icon, Toggle } from '@/components/ui';
@@ -194,6 +195,17 @@ export function ChessScreen() {
    * Back to the setup screen (game bar New Game, result card Change setup). A game
    * left unfinished stays saved, and the Continue card reads it back.
    */
+  /**
+   * Cancel a game nobody has really started yet: no rating, no saved row, no
+   * slot to come back to. Offered instead of Resign for the opening moves
+   * (`ABORT_MOVE_LIMIT`), the rule multiplayer already enforces.
+   */
+  const handleAbort = () => {
+    game.abort();
+    setup.stop();
+    unfinished.refresh();
+  };
+
   const handleNewGame = () => {
     game.newGame();
     setup.stop();
@@ -736,6 +748,9 @@ export function ChessScreen() {
               name="You"
               initial="Y"
               isYou
+              // The rating is the tell that the game is rated; it is absent
+              // from a casual one.
+              rating={ratedEffective ? game.userRating?.rating : undefined}
               active={yourTurn}
               subline={`Playing ${playerColor}${yourTurn ? ' · your move' : ''}`}
               footer={
@@ -809,6 +824,7 @@ export function ChessScreen() {
             onFlipBoard={() => setFlipped((f) => !f)}
             onAgreeDraw={game.agreeDraw}
             onNewGame={handleNewGame}
+            onAbort={game.liveState.moveHistory.length < ABORT_MOVE_LIMIT ? handleAbort : undefined}
             onResign={game.resign}
             gameOver={!!gameOverMsg}
             onHint={isTraining ? game.requestHint : undefined}

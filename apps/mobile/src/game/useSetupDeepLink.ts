@@ -18,6 +18,13 @@ export interface SetupDeepLink {
    * does (`?start=last`). Unlike the tour's `start=1`, it does not force the bot.
    */
   repeat: boolean;
+  /**
+   * This link promised a game that cannot move a rating (`?casual=1`) — the
+   * tour's "Practice vs the bot", and the first-run card's first game.
+   * Without it they inherited the rated choice remembered from the last game,
+   * so a returning player got a rated game out of a screen saying practice.
+   */
+  casual: boolean;
 }
 
 /**
@@ -44,6 +51,7 @@ export function useSetupDeepLink(tiers: readonly number[]): SetupDeepLink {
     online?: string;
     invite?: string;
     resume?: string;
+    casual?: string;
   }>();
   const requested = Number(params.elo);
   const elo =
@@ -60,5 +68,6 @@ export function useSetupDeepLink(tiers: readonly number[]): SetupDeepLink {
     inviteId,
     resume: params.resume === '1',
     repeat: params.start === 'last',
+    casual: params.casual === '1',
   };
 }

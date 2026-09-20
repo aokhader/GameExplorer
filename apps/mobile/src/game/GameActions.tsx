@@ -9,6 +9,12 @@ export interface GameActionsProps {
   drawLabel?: string;
   /** Forfeit the game. */
   onResign?: () => void;
+  /**
+   * Cancel the game instead of conceding it, leaving nothing behind.
+   * Rendered in the resign slot while the game is young enough for the
+   * screen to offer it (`ABORT_MOVE_LIMIT`); Resign takes over after that.
+   */
+  onAbort?: () => void;
   resignLabel?: string;
   /** Disables both buttons (e.g. once the game is over). */
   disabled?: boolean;
@@ -24,6 +30,7 @@ export function GameActions({
   onDraw,
   drawLabel = '½ Draw',
   onResign,
+  onAbort,
   resignLabel = 'Resign',
   disabled = false,
   style,
@@ -91,7 +98,24 @@ export function GameActions({
           <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>{drawLabel}</Text>
         </Pressable>
       )}
-      {onResign && (
+      {onAbort ? (
+        // One tap, and neutral: nothing is being conceded and nothing is
+        // written, so there is no question worth asking twice.
+        <Pressable
+          onPress={onAbort}
+          disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel="Abort"
+          accessibilityHint="Cancel this game — nothing is saved"
+          accessibilityState={{ disabled }}
+          style={[buttonBase, { backgroundColor: COLORS.surfaceMuted, borderColor: COLORS.border }]}
+        >
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, fontFamily: FONTS.bodyBold }}>
+            Abort
+          </Text>
+        </Pressable>
+      ) : (
+        onResign && (
         <Pressable
           onPress={handleResign}
           disabled={disabled}
@@ -116,6 +140,7 @@ export function GameActions({
             {confirming ? `${resignLabel}?` : resignLabel}
           </Text>
         </Pressable>
+        )
       )}
     </View>
   );

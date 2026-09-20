@@ -14,6 +14,7 @@ import {
   toggleDeadChain,
   type GoColor,
   type GoGameState,
+  ABORT_MOVE_LIMIT,
 } from '@gameexplorer/shared';
 import { useLocalGame, type LocalGameMode } from '@gameexplorer/client/hooks/useLocalGame';
 import {
@@ -270,6 +271,18 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
    * Same size, komi, colour and strength, straight onto a fresh board.
    * `newGame` aborts any search still running for the finished one.
    */
+  /**
+   * Cancel a game nobody has really started yet: nothing rated, nothing
+   * saved, nothing to resume. `game.abort` clears the slot and resets the
+   * board; the screen goes back to its setup form.
+   */
+  const handleAbort = () => {
+    game.abort();
+    setDead([]);
+    setStarted(false);
+    unfinished.refresh();
+  };
+
   const handleRematch = () => {
     newGame();
     setDead([]);
@@ -337,6 +350,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                     <button
                       key={level.elo}
                       onClick={() => update({ elo: level.elo })}
+                      aria-pressed={selected}
                       className={`relative p-4 rounded-xl text-left transition-all border-2 ${
                         selected
                           ? 'border-accent bg-accent-muted'
@@ -556,6 +570,9 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
             name={isLocal ? capitalize(bottomColor) : 'You'}
             initial={isLocal ? capitalize(bottomColor)[0] : 'Y'}
             isYou={!isLocal}
+            // The rating is the tell that the game is rated; it is absent from a
+            // casual one. Pass-and-play has no single player to rate.
+            rating={rated && !isLocal ? userRating?.rating : undefined}
             active={isLocal ? liveState.currentTurn === bottomColor && !gameOver : yourTurn}
             subline={
               isLocal
@@ -567,6 +584,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
         actions={
           // Go has no draw offers — the players agree a score, not a draw.
           <GameActions
+            onAbort={liveState.moveHistory.length < ABORT_MOVE_LIMIT ? handleAbort : undefined}
             className="shrink-0"
             onResign={resign}
             disabled={gameOver || awaitingReview}
