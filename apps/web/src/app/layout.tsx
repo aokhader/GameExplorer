@@ -8,7 +8,7 @@ import { ClientConfig } from '@/components/ClientConfig';
 import { ToastProvider } from '@/components/ui';
 import { PageTransition } from '@/components/visual';
 import { SettingsProvider } from '@/components/providers/SettingsProvider';
-import { gameNameList } from '@gameexplorer/shared';
+import { gameNameList, THEME_CHOICES } from '@gameexplorer/shared';
 import { SITE_URL } from '@/lib/site';
 
 /**
@@ -42,12 +42,20 @@ const spectral = Spectral({
 });
 
 /**
- * Applied before first paint so a cozy-themed reload never flashes the dark
+ * Applied before first paint so a non-default reload never flashes the dark
  * palette, and a reload with Settings' "Reduce motion" on never starts the
  * ambient drift before React mounts. Mirrors the storage key + shape of
  * SettingsProvider; that provider remains authoritative once React mounts.
+ *
+ * The theme list is interpolated from `THEME_CHOICES` rather than written out.
+ * This script used to test `s.theme==='cozy'` by hand, which is the shape of bug
+ * the visual-parity pass found six times over: a hand-maintained list silently
+ * drops the newest member, and the symptom here would be a new theme flashing
+ * the default palette on every load before React corrected it.
  */
-const THEME_BOOTSTRAP = `try{var s=JSON.parse(localStorage.getItem('gx:settings')||'{}'),r=document.documentElement;if(s.theme==='cozy')r.dataset.theme='cozy';if(s.reduceMotion)r.dataset.reducedMotion='';}catch(e){}`;
+const THEME_BOOTSTRAP = `try{var s=JSON.parse(localStorage.getItem('gx:settings')||'{}'),r=document.documentElement;if(${JSON.stringify(
+  THEME_CHOICES.filter((t) => t !== 'dark'),
+)}.indexOf(s.theme)>-1)r.dataset.theme=s.theme;if(s.reduceMotion)r.dataset.reducedMotion='';}catch(e){}`;
 
 // SITE_URL is the absolute base for OG/Twitter image URLs. Without it Next
 // emits relative `og:image` paths, which every scraper rejects — the card

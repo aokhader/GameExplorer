@@ -56,15 +56,26 @@ const DARK_BOARD_COLORS = {
 /**
  * Cozy Tabletop chess board — the walnut table from the design doc: warm wood
  * squares in a dark frame. Forest green (the theme's action colour) carries
- * what you can do; the last move is olive-gold so it never matches it
- * (ΔE ≥ 15 against both squares, ≥ 18 against the selection).
+ * what you can do; the last move is a yellow-olive so it never matches it.
+ *
+ * The last-move hue was measured against the board it lands on, which is what
+ * `ux-fix-ideas.md` §5.1 asks for and what lila did when its own last-move
+ * colour vanished on green boards (#5776). Wood is a hard ground for a warm
+ * highlight: the Arcade board reaches ΔE2000 29/37 on its slate squares, and no
+ * translucent warm overlay on wood comes near that. The reference is therefore
+ * what a real wood board achieves — chessground's brown board scores 16.4 light
+ * and 20.4 dark. The olive this started at (rgba(150,150,20,…)) measured
+ * 15.2/15.2, at parity on the light square and a quarter short on the dark one.
+ * Nudging the hue to a yellow-olive at the SAME alphas gives 17.8/22.3, past the
+ * reference on both, while staying 18.6 clear of the forest-green selection and
+ * 34+ from premove and check. The look moves by ΔE 5.5 — a nudge, not a restyle.
  */
 const COZY_BOARD_COLORS = {
   lightSquare: '#e7c9a0',
   darkSquare: '#a9743f',
   selectedSquare: 'rgba(47,110,78,0.55)',
-  lastMoveLight: 'rgba(150,150,20,0.55)',
-  lastMoveDark: 'rgba(150,150,20,0.60)',
+  lastMoveLight: 'rgba(143,174,12,0.55)',
+  lastMoveDark: 'rgba(143,174,12,0.60)',
   moveIndicator: 'rgba(47,110,78,0.65)',
   moveIndicatorCapture: 'rgba(47,110,78,0.50)',
   // Slate blue rather than Arcade's violet: on walnut it stays clearly apart

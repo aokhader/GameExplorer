@@ -27,6 +27,14 @@
 export type ThemeChoice = 'dark' | 'cozy';
 
 /**
+ * Every theme this build knows, for the storage guard below and for anything
+ * else that has to enumerate them — notably the pre-paint bootstrap in web's
+ * root layout, which used to name `cozy` by hand and would silently have left a
+ * third theme flashing the default palette on every load.
+ */
+export const THEME_CHOICES: readonly ThemeChoice[] = ['dark', 'cozy'];
+
+/**
  * How pieces travel between squares. `normal` is the board's own tempo
  * (`BOARD_ANIM_MS`); the others are lichess's offer — its players asked for
  * speed control, not for colour pickers. Durations live beside the board's
@@ -125,7 +133,7 @@ export function parseSettings(raw: string | null | undefined): Settings {
   if (!raw) return { ...SETTINGS_DEFAULTS };
   try {
     const stored = { ...SETTINGS_DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) };
-    if (stored.theme !== 'cozy') stored.theme = 'dark';
+    if (!THEME_CHOICES.includes(stored.theme)) stored.theme = 'dark';
     // Same hazard as the theme: an unknown value from a newer build would reach
     // a duration lookup and come back undefined.
     if (!PIECE_ANIMATIONS.includes(stored.pieceAnimation)) {

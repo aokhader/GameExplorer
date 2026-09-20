@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BOARD_ANIM_MS, PIECE_ANIMATION_MS, boardAnimMs } from './board/transition';
 import {
   SETTINGS_DEFAULTS,
+  THEME_CHOICES,
   parseSettings,
   serializeSettings,
   type Settings,
@@ -49,6 +50,20 @@ describe('parseSettings', () => {
     expect(parseSettings(JSON.stringify({ theme: 'neon' })).theme).toBe('dark');
     expect(parseSettings(JSON.stringify({ theme: null })).theme).toBe('dark');
     expect(parseSettings(JSON.stringify({ theme: 'cozy' })).theme).toBe('cozy');
+  });
+
+  /**
+   * The guard used to name `cozy` by hand, so a third theme would have been
+   * rejected the moment it shipped — which is exactly what happened while the
+   * Board-first trial was being measured. It reads `THEME_CHOICES` now, and this
+   * asserts the list is what it checks against rather than a copy of it: a theme
+   * added to the union but not to the list fails here instead of in the browser.
+   */
+  it('accepts every theme in THEME_CHOICES and nothing else', () => {
+    for (const theme of THEME_CHOICES) {
+      expect(parseSettings(JSON.stringify({ theme })).theme).toBe(theme);
+    }
+    expect(THEME_CHOICES).toContain(SETTINGS_DEFAULTS.theme);
   });
 
   it('never hands back the shared defaults object for a caller to mutate', () => {

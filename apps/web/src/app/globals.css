@@ -494,8 +494,11 @@
   --gx-board-dark:           #a9743f;
   --gx-board-frame:          #6e4a2a;
   --gx-board-selected:       rgba(47, 110, 78, 0.55);
-  --gx-board-lastmove-light: rgba(150, 150, 20, 0.55);
-  --gx-board-lastmove-dark:  rgba(150, 150, 20, 0.60);
+  /* Measured against the wood it lands on, not carried over from the slate
+     board — see the note above `COZY_BOARD_COLORS` in
+     `packages/ui/src/chess/tokens.ts` for the numbers and the reference. */
+  --gx-board-lastmove-light: rgba(143, 174, 12, 0.55);
+  --gx-board-lastmove-dark:  rgba(143, 174, 12, 0.60);
   --gx-board-move:           rgba(47, 110, 78, 0.65);
   --gx-board-move-capture:   rgba(47, 110, 78, 0.50);
   --gx-board-move-hover:     rgba(47, 110, 78, 0.30);
@@ -509,8 +512,8 @@
   --gx-checkers-board-dark:           #a9743f;
   --gx-checkers-board-frame:          #6e4a2a;
   --gx-checkers-board-selected:       rgba(47, 110, 78, 0.55);
-  --gx-checkers-board-lastmove-light: rgba(150, 150, 20, 0.55);
-  --gx-checkers-board-lastmove-dark:  rgba(150, 150, 20, 0.60);
+  --gx-checkers-board-lastmove-light: rgba(143, 174, 12, 0.55);
+  --gx-checkers-board-lastmove-dark:  rgba(143, 174, 12, 0.60);
   --gx-checkers-board-move:           rgba(47, 110, 78, 0.65);
   --gx-checkers-board-capture:        rgba(47, 110, 78, 0.50);
   --gx-checkers-board-premove:        rgba(45, 90, 140, 0.55);

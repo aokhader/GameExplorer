@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BOT_TIERS, botStrengthLabel, type RatedGameId } from './botTiers';
+import { BOT_TIERS, type RatedGameId } from '../constants/botTiers';
+import { botStrengthLabel } from './strengthLabel';
 
 const GAMES: RatedGameId[] = ['chess', 'checkers', 'reversi', 'go'];
 
