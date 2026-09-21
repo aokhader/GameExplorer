@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 
 /**
  * Play a bot game past its abort window, so Resign is the control on offer.
@@ -17,7 +18,28 @@ import { expect, type Page } from '@playwright/test';
 const chessSquare = (page: Page, name: string) =>
   page.locator('.square').nth((8 - Number(name[1])) * 8 + (name.charCodeAt(0) - 97));
 
-async function chessMove(page: Page, from: string, to: string) {
+/** Plies the saved game has recorded — the gate each move below waits on. */
+const chessPliesPlayed = (page: Page) =>
+  page.evaluate(() => {
+    const raw = localStorage.getItem('gx:inprogress:chess:guest');
+    return raw ? (JSON.parse(raw).actions?.length ?? 0) : 0;
+  });
+
+/**
+ * Play one of White's moves and wait until the game has recorded `plies`.
+ *
+ * The gate is the saved game, not the `last-move` highlight: that highlight
+ * marks only the *latest* move, so the bot's reply takes it straight back off
+ * our square — sometimes before an assertion could ever see it, on a move that
+ * had in fact been played.
+ *
+ * And it is an absolute count, not "one more than before". A click that lands
+ * while the bot is still thinking is queued as a *premove*, so a relative gate
+ * could be satisfied by the bot's own reply while our move sat in the queue,
+ * and the helper would walk away a ply short. Every count below needs White's
+ * move in it to be reachable at all.
+ */
+async function chessMove(page: Page, from: string, to: string, plies: number) {
   // Select, wait for the destination to be offered, then play it. Clicking both
   // squares back to back races the render between them, and a click on a square
   // the board has not yet marked legal is simply dropped.
@@ -26,7 +48,7 @@ async function chessMove(page: Page, from: string, to: string) {
     await expect(chessSquare(page, to)).toHaveClass(/valid-move/, { timeout: 2000 });
   }).toPass({ timeout: 20000 });
   await chessSquare(page, to).click();
-  await expect(chessSquare(page, to)).toHaveClass(/last-move/, { timeout: 20000 });
+  await expect.poll(() => chessPliesPlayed(page), { timeout: 20000 }).toBeGreaterThanOrEqual(plies);
 }
 
 /** Three quiet developing moves, each answered by the bot. */
@@ -36,9 +58,14 @@ export async function playPastAbortWindowChess(page: Page) {
   await expect(page.locator('.chess-board')).not.toHaveAttribute('aria-disabled', 'true', {
     timeout: 20000,
   });
-  await chessMove(page, 'e2', 'e4');
-  await chessMove(page, 'd2', 'd4');
-  await chessMove(page, 'g1', 'f3');
+  // Each move waits for the bot's answer too, so the next click lands on our
+  // own turn rather than being queued behind the one still being thought about.
+  // Three of White's moves and two replies is `ABORT_MOVE_LIMIT`, which the
+  // last gate names: the contract every caller relies on, failing here rather
+  // than as a missing Resign button three lines later.
+  await chessMove(page, 'e2', 'e4', 2);
+  await chessMove(page, 'd2', 'd4', 4);
+  await chessMove(page, 'g1', 'f3', ABORT_MOVE_LIMIT);
 }
 
 /**

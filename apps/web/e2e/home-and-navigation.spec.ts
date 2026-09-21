@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { CHESS_PUZZLES } from '@gameexplorer/shared';
+import { fixBoardOrientation } from './helpers/abortWindow';
 
 /**
  * Wave 4 of the UX fix ideas (`project-docs/ux-fix-ideas.md` §3–§4, §8.2):
@@ -151,6 +152,11 @@ test('on a phone the three places are a bar at the bottom of the screen', async 
 });
 
 test('Play goes to the picker, which carries the unfinished game', async ({ page }) => {
+  // Pass-and-play turns the board between turns, so the moment e4 is played the
+  // square this test calls "e4" is d5 — empty, and the reason the assertion
+  // below used to fail. Every other spec naming squares on this board pins the
+  // orientation first; this one has to as well.
+  await fixBoardOrientation(page);
   await page.goto('/chess/local');
   await page.getByRole('button', { name: 'Start Game' }).click();
   await expect(page.locator('.chess-board')).not.toHaveAttribute('aria-disabled', 'true', { timeout: 15000 });
@@ -211,7 +217,9 @@ test('a start link never starts over an unfinished game', async ({ page }) => {
   await expect(page.locator('.chess-board')).not.toHaveAttribute('aria-disabled', 'true', { timeout: 15000 });
   await sq(page, 'e2').click();
   await sq(page, 'e4').click();
-  await expect(sq(page, 'e4')).toHaveClass(/last-move/, { timeout: 15000 });
+  // The save is the gate, not the `last-move` highlight — against a bot that
+  // highlight is gone again the moment the reply lands, and waiting on it here
+  // was a race this test lost under load.
   await waitForSave(page);
 
   await page.goto('/chess/bot?start=1');

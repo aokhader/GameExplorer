@@ -22,11 +22,27 @@ async function startBotGame(page: Page) {
   await expect(page.locator('.chess-board')).not.toHaveAttribute('aria-disabled', 'true', { timeout: 15000 });
 }
 
-/** Play one of White's moves and wait for the board to show it. */
-async function move(page: Page, from: string, to: string) {
+/** Plies the saved game has recorded. */
+const plies = (page: Page) =>
+  page.evaluate((k) => {
+    const raw = localStorage.getItem(k);
+    return raw ? (JSON.parse(raw).actions?.length ?? 0) : 0;
+  }, SAVE_KEY);
+
+/**
+ * Play one of White's moves and wait until the game has recorded `count` plies
+ * — our move and the bot's answer, so the next click lands on our own turn.
+ *
+ * Not the `last-move` highlight: it marks only the latest move, so the bot's
+ * reply takes it back off our square, sometimes before an assertion can see it.
+ * Not a relative count either — a click during the bot's turn is queued as a
+ * premove, and the bot's own reply would satisfy "one more than before" while
+ * ours still sat in the queue. (Same gate as `helpers/abortWindow`.)
+ */
+async function move(page: Page, from: string, to: string, count: number) {
   await sq(page, from).click();
   await sq(page, to).click();
-  await expect(sq(page, to)).toHaveClass(/last-move/, { timeout: 15000 });
+  await expect.poll(() => plies(page), { timeout: 15000 }).toBeGreaterThanOrEqual(count);
 }
 
 test('a game that has barely started offers Abort, not Resign', async ({ page }) => {
@@ -38,7 +54,7 @@ test('a game that has barely started offers Abort, not Resign', async ({ page })
 
 test('Abort cancels the game and leaves nothing behind', async ({ page }) => {
   await startBotGame(page);
-  await move(page, 'e2', 'e4');
+  await move(page, 'e2', 'e4', 2);
   // The move is saved, so the abort has something to clear.
   await expect.poll(() => page.evaluate((k) => localStorage.getItem(k), SAVE_KEY), { timeout: 15000 })
     .not.toBeNull();
@@ -56,9 +72,9 @@ test('Resign takes over once the game is under way', async ({ page }) => {
   await startBotGame(page);
 
   // Each of White's moves draws a reply, so this passes the limit in plies.
-  await move(page, 'e2', 'e4');
-  await move(page, 'd2', 'd4');
-  await move(page, 'g1', 'f3');
+  await move(page, 'e2', 'e4', 2);
+  await move(page, 'd2', 'd4', 4);
+  await move(page, 'g1', 'f3', ABORT_MOVE_LIMIT);
 
   await expect
     .poll(() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '{}').actions?.length ?? 0, SAVE_KEY), {
