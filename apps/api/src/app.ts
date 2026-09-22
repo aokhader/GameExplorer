@@ -50,6 +50,14 @@ app.get('/health', (req, res) => {
     ips: req.ips,
     xForwardedFor: req.headers['x-forwarded-for'] ?? null,
     remoteAddress: req.socket.remoteAddress ?? null,
+    // Added on the second pass: `ua` tells Render's own health checker apart from a
+    // real client, and `path` lets you find a request you made by its ?marker=.
+    path: req.originalUrl,
+    ua: req.headers['user-agent'] ?? null,
+    xRealIp: req.headers['x-real-ip'] ?? null,
+    cfConnectingIp: req.headers['cf-connecting-ip'] ?? null,
+    trueClientIp: req.headers['true-client-ip'] ?? null,
+    forwarded: req.headers['forwarded'] ?? null,
   }));
   // ── END TEMPORARY DIAGNOSTIC ──────────────────────────────────────────────────
 
