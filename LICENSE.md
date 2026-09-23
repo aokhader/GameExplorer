@@ -40,12 +40,14 @@ SOFTWARE.
 - **Mobile app — Arasan (MIT).** `apps/mobile` statically links the
   [Arasan](https://github.com/jdart1/arasan-chess) chess engine and its NNUE
   network (Copyright 1994-2026 by Jon Dart, MIT-style license) plus the
-  [Fathom](https://github.com/jdart1/Fathom) tablebase probing code (MIT),
+  [Fathom](https://github.com/jdart1/Fathom) tablebase probing code (MIT;
+  Copyright 2013-2018 Ronald de Man, 2015 basil00, 2016-2025 Jon Dart),
   vendored in `apps/mobile/modules/react-native-arasan/` (wrapper forked from
   the MIT [@loloof64/react-native-stockfish](https://github.com/loloof64/ReactNativeStockfish)).
-  Everything in the mobile binary is MIT — it replaced GPL Stockfish
+  No GPL code is in the mobile binary — Arasan replaced GPL Stockfish
   (July 2026) so the same engine can ship on Google Play **and** the Apple
-  App Store. See [`apps/mobile/LICENSE.md`](apps/mobile/LICENSE.md).
+  App Store. The binary's full notices are in the app at Settings → Open
+  source; see [`apps/mobile/LICENSE.md`](apps/mobile/LICENSE.md).
 - **Web app — Stockfish.js WASM (GPL, mere use).** `apps/web` serves unmodified
   builds of [Stockfish.js](https://github.com/nmrugg/stockfish.js) 18.0.8
   (Copyright (c) 2026 Chess.com, LLC; GPL-3.0-or-later, full text at
@@ -72,6 +74,20 @@ SOFTWARE.
   [`LICENSES/phosphor-icons-MIT.txt`](LICENSES/phosphor-icons-MIT.txt)). The exact
   tarball, its integrity hash and the extraction procedure are recorded in
   [`packages/ui/src/icons/VENDORED.txt`](packages/ui/src/icons/VENDORED.txt).
+- **Fonts — SIL Open Font License 1.1.** DM Sans (Copyright 2014 The DM Sans
+  Project Authors), Space Grotesk (Copyright 2020 The Space Grotesk Project
+  Authors), Spectral (Copyright 2017 The Spectral Project Authors) and Nunito
+  Sans (Copyright 2016 The Nunito Sans Project Authors). The website serves
+  them through `next/font/google`; the mobile app bundles them through
+  `@expo-google-fonts` (MIT, Copyright (c) 2020 Expo). Full text at
+  [`LICENSES/OFL-1.1.txt`](LICENSES/OFL-1.1.txt).
+- **Chess puzzles — Lichess open puzzle database (CC0 1.0).** Chess puzzles
+  whose source line names a Lichess puzzle id are derived from the
+  [Lichess open puzzle database](https://database.lichess.org/#puzzles),
+  released under CC0 1.0 Universal (no attribution required; credited on each
+  puzzle as a courtesy). The dump's filename, SHA-256 and import date are
+  recorded in [`data/puzzles/LICENSE-lichess.md`](data/puzzles/LICENSE-lichess.md).
+  Every other puzzle was composed or engine-generated for this project.
 
 ## Contributions
 

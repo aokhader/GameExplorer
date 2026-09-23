@@ -41,7 +41,7 @@ export default function LicensesPage() {
         <h1 className="text-3xl font-bold mb-2">
           Open Source &amp; Licenses
         </h1>
-        <p className="text-fg-muted text-sm mb-10">Last updated: August 18, 2026</p>
+        <p className="text-fg-muted text-sm mb-10">Last updated: September 22, 2026</p>
 
         <div className="space-y-8 text-fg-muted leading-relaxed">
           <section>
@@ -77,9 +77,11 @@ export default function LicensesPage() {
                 <span className="text-fg">Arasan (mobile app) — MIT.</span> The iOS and Android app
                 instead links the <Link href="https://github.com/jdart1/arasan-chess">Arasan</Link>{' '}
                 engine and its NNUE network (Copyright 1994–2026 Jon Dart), together with the{' '}
-                <Link href="https://github.com/jdart1/Fathom">Fathom</Link> tablebase probing code.
-                Both are MIT-licensed, which is what lets the same engine ship on Google Play and the
-                Apple App Store.
+                <Link href="https://github.com/jdart1/Fathom">Fathom</Link> tablebase probing code
+                (Copyright © 2013–2018 Ronald de Man, © 2015 basil00, © 2016–2025 Jon Dart). Both are
+                MIT-licensed, which is what lets the same engine ship on Google Play and the Apple App
+                Store. The app&apos;s complete notices are in the app itself, under Settings → Open
+                source.
               </li>
             </ul>
           </section>
@@ -91,6 +93,28 @@ export default function LicensesPage() {
               <Link href="https://sashite.dev/assets/chess/">Sashité chess assets</Link>, released
               into the public domain under CC0 1.0 Universal. No attribution is required — this note
               is a courtesy. The metallic coloring applied to them is GameExplorer&apos;s own.
+            </p>
+            <p className="mt-2">
+              The interface icons on both platforms are path data from{' '}
+              <Link href="https://github.com/phosphor-icons/core">Phosphor Icons</Link> 2.1.1
+              (Copyright © 2023 Phosphor Icons), used under the{' '}
+              <Link href={`${SOURCE_REPO_URL}/blob/main/LICENSES/phosphor-icons-MIT.txt`}>
+                MIT License
+              </Link>
+              .
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-fg mb-2">Fonts</h2>
+            <p>
+              DM Sans (Copyright 2014 The DM Sans Project Authors), Space Grotesk (Copyright 2020 The
+              Space Grotesk Project Authors), Spectral (Copyright 2017 The Spectral Project Authors)
+              and Nunito Sans (Copyright 2016 The Nunito Sans Project Authors) are licensed under the{' '}
+              <Link href={`${SOURCE_REPO_URL}/blob/main/LICENSES/OFL-1.1.txt`}>
+                SIL Open Font License 1.1
+              </Link>
+              . This website serves them itself; the mobile app bundles them.
             </p>
           </section>
 

@@ -78,3 +78,16 @@ test('the licenses page records the puzzle corpus provenance', async ({ page }) 
   // conflated by someone reading only this page.
   await expect(page.getByText(/composed or engine-generated for this app/)).toBeVisible();
 });
+
+test('the licenses page credits the bundled fonts and icons', async ({ page }) => {
+  // Both ship to every visitor (and in the app binary), and the OFL and MIT
+  // both ask for their notice to travel with them. Neither was on this page
+  // until September 2026, and the fonts were credited nowhere at all.
+  await page.goto('/licenses');
+  await expect(page.getByRole('heading', { name: 'Fonts' })).toBeVisible();
+  for (const family of ['DM Sans', 'Space Grotesk', 'Spectral', 'Nunito Sans']) {
+    await expect(page.getByText(new RegExp(family)).first()).toBeVisible();
+  }
+  await expect(page.getByRole('link', { name: 'SIL Open Font License 1.1' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Phosphor Icons' })).toBeVisible();
+});

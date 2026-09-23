@@ -18,8 +18,10 @@ This module's wrapper code is forked from @loloof64/react-native-stockfish
   deleted.
 - cpp/arasan/: the Arasan chess engine, Copyright 1994-2026 by Jon Dart,
   distributed under its MIT-style license — see cpp/arasan/LICENSE.
-  Vendored at the commit recorded in cpp/arasan/VENDORED.txt, with one patch:
-  arasanx.cpp main() renamed to arasan_core (marked "PATCHED" inline).
+  Vendored at the commit recorded in cpp/arasan/VENDORED.txt, with two patches,
+  each marked "PATCHED" inline: arasanx.cpp main() renamed to arasan_core, and
+  types.h routing Android to posix_memalign (bionic only has aligned_alloc from
+  API 28; this app's minSdk is 24).
 - assets/arasanv8-*.nnue: the Arasan neural network, from the arasan-chess
   repository's network/ directory, covered by the same Arasan license.
 

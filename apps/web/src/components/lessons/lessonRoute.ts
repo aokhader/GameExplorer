@@ -28,10 +28,10 @@ const GAME_LABEL: Record<LessonGame, string> = {
 
 export function lessonMetadata(game: LessonGame, id: string): Metadata {
   const lesson = findLesson(game, id);
-  if (!lesson) return { title: `${GAME_LABEL[game]} lesson — Finesse` };
+  if (!lesson) return { title: `${GAME_LABEL[game]} lesson — GameExplorer` };
 
   return {
-    title: `${lesson.title} — ${GAME_LABEL[game]} lesson — Finesse`,
+    title: `${lesson.title} — ${GAME_LABEL[game]} lesson — GameExplorer`,
     description: `${lesson.summary} A coached ${GAME_LABEL[game].toLowerCase()} lesson on a live board, about ${lesson.estimatedMinutes} minutes, no account needed.`,
   };
 }

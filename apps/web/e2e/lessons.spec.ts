@@ -134,6 +134,17 @@ test('finishing a lesson offers the next one, and the progress survives a reload
   await expect(page.getByTestId('lesson-done-badge').first()).toBeVisible();
 });
 
+test('a lesson page title carries the product name', async ({ page }) => {
+  // These titles once shipped naming an unmerged rebrand, which no other page
+  // did. Every game's first lesson, so a per-game copy of the string can't drift.
+  for (const [game, set] of Object.entries(LESSONS)) {
+    const first = set.lessons[0];
+    await page.goto(`/${game}/learn/${first.id}`);
+    const escaped = first.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    await expect(page).toHaveTitle(new RegExp(`^${escaped} — .* — GameExplorer$`));
+  }
+});
+
 test('an unknown lesson id is a 404, not a broken screen', async ({ page }) => {
   const response = await page.goto('/chess/learn/chess-l99');
   expect(response?.status()).toBe(404);

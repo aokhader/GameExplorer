@@ -1,5 +1,6 @@
 import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { COLORS, RADIUS, type ThemeName, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Card, Toggle, Icon } from '@/components/ui';
@@ -9,7 +10,6 @@ import { playSfx } from '@/audio/sfxPlayer';
 import { DeleteAccountCard } from '@/components/settings/DeleteAccountCard';
 import {
   PRIVACY_URL,
-  SOURCE_REPO_URL,
   SUPPORT_EMAIL,
   TERMS_URL,
   supportMailtoUrl,
@@ -373,6 +373,7 @@ function SectionLabel({ children }: { children: string }) {
 export default function SettingsScreen() {
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
+  const router = useRouter();
 
   return (
     <Screen>
@@ -480,14 +481,12 @@ export default function SettingsScreen() {
             WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => Linking.openURL(PRIVACY_URL));
           }}
         />
-        {/* Attribution for the bundled engine. The binary has been all-MIT since
-            Arasan replaced GPL Stockfish (July 2026) — see apps/mobile/LICENSE.md. */}
+        {/* The notices the binary owes, in the binary — a link to the repository
+            alone does not carry them. See apps/mobile/LICENSE.md. */}
         <LinkRow
           title="Open source"
-          description="MIT licensed · powered by the Arasan chess engine. View the source and notices."
-          onPress={() => {
-            WebBrowser.openBrowserAsync(SOURCE_REPO_URL).catch(() => Linking.openURL(SOURCE_REPO_URL));
-          }}
+          description="Powered by the Arasan chess engine. Licences for the code, fonts and content in this app."
+          onPress={() => router.push('/licenses' as never)}
         />
       </Card>
 
