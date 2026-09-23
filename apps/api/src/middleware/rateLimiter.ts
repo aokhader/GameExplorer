@@ -1,24 +1,35 @@
 import rateLimit from 'express-rate-limit';
+import type { Request } from 'express';
+import { clientIp } from '../utils/clientIp';
+
+// Every limiter below keys on `clientIp(req)`, NOT on the default `req.ip`.
+// Behind Cloudflare + Render, `req.ip` resolves to a Render-internal load
+// balancer address that changes between requests, so these limiters were
+// counting nobody. See utils/clientIp.ts for the measurement and for why
+// `trust proxy: true` is the wrong fix.
+const keyGenerator = (req: Request) => clientIp(req);
 
 // General limiter for all REST endpoints. WebSocket events have their own
 // Redis-based limiter in the game handler (1 move / 200ms per socket).
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 300, // per IP per window
+  limit: 300, // per client per window
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  keyGenerator,
   message: { error: 'Too many requests, please try again later' },
 });
 
 // Sign-in. Tighter than strictLimiter because each request is a password
-// guess. 20/15min per IP is generous for a human who forgot which username they
-// picked, and useless for brute force. Successful logins count too — a legitimate
-// user does not sign in 20 times in a quarter of an hour.
+// guess. 20/15min per client is generous for a human who forgot which username
+// they picked, and useless for brute force. Successful logins count too — a
+// legitimate user does not sign in 20 times in a quarter of an hour.
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  keyGenerator,
   message: { error: 'Too many sign-in attempts, please try again later' },
 });
 
@@ -29,5 +40,6 @@ export const strictLimiter = rateLimit({
   limit: 30,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  keyGenerator,
   message: { error: 'Too many requests, please try again later' },
 });

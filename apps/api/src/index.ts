@@ -17,6 +17,22 @@ process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled promise rejection:', reason);
 });
 
+// The same safety net for synchronous throws. socket.io invokes listeners inside
+// a `process.nextTick` with no try/catch, so a throw out of a *non-async* one
+// reaches here; node's default is to print the stack and exit 1.
+//
+// Keeping the process alive after an uncaughtException is normally the wrong
+// call — the general advice is to exit, because the state is undefined. It is
+// the right call here for one specific reason: Redis is colocated in this
+// container with persistence off, so an exit destroys every live game, clock,
+// queue entry, invite and forfeit timer for everyone on the service. The throws
+// this actually catches come from malformed socket payloads, which corrupt no
+// shared state. If this line ever fires for anything else, that is a bug to fix
+// at its source — it is logged loudly for exactly that reason.
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception (server kept alive — investigate):', err);
+});
+
 async function startServer() {
   try {
     // Check database connection
