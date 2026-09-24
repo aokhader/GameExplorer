@@ -28,6 +28,12 @@ export default function SignInScreen() {
   const passwordRef = useRef<TextInput>(null);
 
   const done = () => router.replace(target as never);
+  // A first OAuth sign-in has a username built for it; confirm or change it
+  // before going on to `next`.
+  const oauthDone = ({ needsUsername }: { needsUsername: boolean }) =>
+    needsUsername
+      ? router.replace({ pathname: '/(auth)/choose-username', params: { next: target } } as never)
+      : done();
 
   const handleSignIn = async () => {
     setLoading(true);
@@ -51,7 +57,7 @@ export default function SignInScreen() {
       </Text>
 
       <View style={{ gap: SPACING[4] }}>
-        <OAuthButtons onSuccess={done} onError={(m) => setError(m || null)} />
+        <OAuthButtons onSuccess={oauthDone} onError={(m) => setError(m || null)} />
         <OrDivider />
 
         <TextField

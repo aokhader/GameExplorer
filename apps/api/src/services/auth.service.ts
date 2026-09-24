@@ -7,7 +7,9 @@
 // lookup would let anyone enumerate usernames and harvest every user's email
 // address. It runs here instead, behind the secret key, and the email is never
 // returned to the caller — only the session that the password grant produced.
+import { USERNAME_PATTERN } from '@gameexplorer/shared';
 import { supabaseAdmin, supabaseAnon } from '../config/supabase';
+import { escapeLike } from '../utils/escapeLike';
 import { logger } from '../utils/logger';
 
 export interface AuthSession {
@@ -25,15 +27,6 @@ export function looksLikeEmail(identifier: string): boolean {
 }
 
 /**
- * Escape the LIKE metacharacters so a username of `%` can't match every row.
- * (A wildcard that matched exactly one user would still need that user's
- * password, but there is no reason to hand out the pattern match at all.)
- */
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
-
-/**
  * Resolve a username to its account email, or null if that can't be done
  * unambiguously. Returns null rather than throwing — the caller collapses every
  * failure into the same generic error so this can't be used as an oracle.
@@ -42,9 +35,14 @@ async function emailForUsername(username: string): Promise<string | null> {
   const admin = supabaseAdmin;
   if (!admin) return null;
 
-  // `limit(2)`: usernames should be unique case-insensitively, but until the
-  // unique index in supabase-profile-trigger.sql is applied a "Bob"/"bob" pair
-  // can exist. Two matches is ambiguous — refuse rather than pick one.
+  // No stored username can break the profiles_username_format CHECK, so a
+  // name that does cannot belong to anyone — skip the lookup. Grammar only:
+  // a reserved-but-grandfathered name must still be able to sign in.
+  if (!USERNAME_PATTERN.test(username)) return null;
+
+  // `limit(2)`: usernames are unique case-insensitively (profiles_username_lower_key,
+  // wave 1b), but refusing an ambiguous match costs nothing if that index is
+  // ever lost. Two matches is ambiguous — refuse rather than pick one.
   const { data, error } = await admin
     .from('profiles')
     .select('id')

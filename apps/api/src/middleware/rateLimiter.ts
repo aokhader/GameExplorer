@@ -33,8 +33,25 @@ export const authLimiter = rateLimit({
   message: { error: 'Too many sign-in attempts, please try again later' },
 });
 
+// Username availability (GET /api/auth/username-available). Deliberately NOT
+// authLimiter: that bucket is shared with POST /auth/login, so typing in a
+// sign-up form would lock the same person out of signing in.
+//
+// This number IS the enumeration budget. `profiles` SELECT is owner-only, so
+// this endpoint is the only way a stranger can ask "does this name exist?", and
+// 60 per 15 minutes per client is how fast they may ask it. A real sign-up
+// costs a handful: checks are debounced (300ms) and cached per name.
+export const usernameCheckLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator,
+  message: { error: 'Too many username checks, please try again later' },
+});
+
 // Stricter limiter for write-heavy / abuse-prone endpoints (friend requests,
-// invite creation). Mount per-route as needed.
+// invite creation, username claims). Mount per-route as needed.
 export const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,

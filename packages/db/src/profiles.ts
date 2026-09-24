@@ -67,17 +67,7 @@ export async function getPublicProfile(
   return data as Pick<Profile, 'id' | 'username' | 'created_at'>;
 }
 
-/**
- * Update a user's username.
- */
-export async function updateUsername(
-  userId: string,
-  username: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('profiles')
-    .update({ username })
-    .eq('id', userId);
-
-  return { error: error?.message ?? null };
-}
+// There is deliberately no client-side username update. A username is claimed
+// once, through POST /api/auth/username (apps/api username.service.ts): the API
+// can enforce claim-once and the profanity filter, and `games.opponent` stores
+// usernames as text, so a rename would detach a player from their own history.

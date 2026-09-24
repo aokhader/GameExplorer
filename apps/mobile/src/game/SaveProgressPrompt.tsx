@@ -61,9 +61,12 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
       </Text>
 
       <OAuthButtons
-        onSuccess={() => {
+        onSuccess={({ needsUsername }) => {
           void consumeSaveProgressPending();
           setPending(false);
+          // No `next`: choose-username goes back to this result screen once
+          // the name is confirmed.
+          if (needsUsername) router.push('/(auth)/choose-username' as never);
         }}
         onError={setError}
       />

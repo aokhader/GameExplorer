@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@gameexplorer/db';
 import { signInWithIdentifier } from '@gameexplorer/client';
 import { ReturnLink, useAuthSwitchHref, useReturnTo } from '@/components/auth/returnTo';
+import { Input } from '@/components/ui/Input';
 
 // useSearchParams() requires a Suspense boundary in Next.js App Router.
 // Split into an inner component so the boundary can wrap just what needs it.
@@ -89,25 +90,29 @@ function SignInForm() {
         <div className="flex-1 h-px bg-white/10" />
       </div>
 
-      {/* Email + password */}
+      {/* Email + password. Labelled like the native sign-in, 44px tall like
+          every other control on this page, and at the inherited 16px — below
+          that, iOS Safari zooms the page on focus. */}
       <div className="space-y-3">
-        <input
+        <Input
+          label="Username or email"
+          fieldSize="lg"
           type="text"
           autoComplete="username"
           autoCapitalize="none"
           spellCheck={false}
-          placeholder="Username or email"
+          placeholder="Your username or you@example.com"
           value={identifier}
           onChange={e => setIdentifier(e.target.value)}
-          className="w-full min-h-11 px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
-        <input
+        <Input
+          label="Password"
+          fieldSize="lg"
           type="password"
-          placeholder="Password"
+          autoComplete="current-password"
           value={password}
           onChange={e => setPassword(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSignIn()}
-          className="w-full min-h-11 px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
 

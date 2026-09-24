@@ -4,7 +4,10 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@gameexplorer/db';
+import { canSubmitUsername, useUsernameAvailability } from '@gameexplorer/client';
+import { USERNAME_LOST_RACE_MESSAGE, USERNAME_MAX_LENGTH } from '@gameexplorer/shared';
 import { ReturnLink, useAuthSwitchHref, useReturnTo } from '@/components/auth/returnTo';
+import { Input } from '@/components/ui/Input';
 
 // `useSearchParams` needs a Suspense boundary in the App Router, so the form is
 // its own component the way sign-in's is.
@@ -21,7 +24,15 @@ function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [confirmSent, setConfirmSent] = useState(false);
 
+  // Live, debounced "is this name free?". Advisory only: an unanswerable check
+  // (API down, cold start, rate limited) leaves the button enabled, because the
+  // API deploys separately and must never be able to take sign-up down with it.
+  // The database's unique index has the final say.
+  const { state: nameState, recheck } = useUsernameAvailability(username);
+  const canSubmit = !loading && !!email && !!password && canSubmitUsername(nameState);
+
   const handleSignUp = async () => {
+    if (!canSubmit) return;
     setLoading(true);
     setError(null);
 
@@ -36,7 +47,15 @@ function SignUpForm() {
         options: { data: { username: username.trim() } },
     });
     if (error || !data.user) {
-        setError(error?.message ?? 'Sign up failed');
+        // The database refusing the row reaches us as a 500 ("Database error
+        // saving new user"). Key on the status, never on that text, and only
+        // blame the username if a fresh check agrees — two people can submit
+        // the same free name at once, and only one wins.
+        if ((error?.status ?? 0) >= 500 && (await recheck()) === 'taken') {
+            setError(USERNAME_LOST_RACE_MESSAGE);
+        } else {
+            setError(error?.message ?? 'Sign up failed');
+        }
         setLoading(false);
         return;
     }
@@ -108,29 +127,42 @@ function SignUpForm() {
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        {/* Fields */}
+        {/* Fields — labelled like the native sign-up, 44px tall like every
+            other control here, at the inherited 16px (smaller makes iOS
+            Safari zoom on focus). The username's hint line doubles as its
+            live availability answer, announced via aria-describedby. */}
         <div className="space-y-3">
-          <input
+          <Input
+            label="Username"
+            fieldSize="lg"
             type="text"
-            placeholder="Username"
+            placeholder="Your display name"
             value={username}
             onChange={e => setUsername(e.target.value)}
-            className="w-full min-h-11 px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            hint={nameState.hint}
+            error={nameState.error}
+            maxLength={USERNAME_MAX_LENGTH}
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
           />
-          <input
+          <Input
+            label="Email"
+            fieldSize="lg"
             type="email"
-            placeholder="Email"
+            placeholder="you@example.com"
+            autoComplete="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="w-full min-h-11 px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <input
+          <Input
+            label="Password"
+            fieldSize="lg"
             type="password"
-            placeholder="Password"
+            autoComplete="new-password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSignUp()}
-            className="w-full min-h-11 px-3 py-2.5 rounded-lg border border-white/15 bg-black/30 text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
 
@@ -147,7 +179,7 @@ function SignUpForm() {
 
         <button
           onClick={handleSignUp}
-          disabled={loading || !email || !password || !username}
+          disabled={!canSubmit}
           className="w-full min-h-11 py-2.5 rounded-lg bg-accent text-on-accent font-semibold hover:brightness-110 disabled:opacity-50 transition-all text-sm"
         >
           {loading ? 'Creating account...' : 'Create account'}

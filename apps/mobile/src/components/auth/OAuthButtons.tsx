@@ -32,12 +32,15 @@ function FacebookIcon() {
  * Google + Facebook sign-in buttons. Both drive the same native OAuth round-trip
  * (`signInWithOAuthNative`); on success the shared `onAuthStateChange` updates the
  * store and the caller's redirect fires. Errors bubble up via `onError`.
+ *
+ * `onSuccess` is told whether the username still needs choosing. When it does,
+ * the caller routes to `/(auth)/choose-username` before wherever it was going.
  */
 export function OAuthButtons({
   onSuccess,
   onError,
 }: {
-  onSuccess: () => void;
+  onSuccess: (result: { needsUsername: boolean }) => void;
   onError: (message: string) => void;
 }) {
   // Repaint when the theme changes; the tokens below are live views.
@@ -49,9 +52,9 @@ export function OAuthButtons({
     onError('');
     setBusy(provider);
     try {
-      const { error, cancelled } = await signInWithOAuthNative(provider);
+      const { error, cancelled, needsUsername } = await signInWithOAuthNative(provider);
       if (error) onError(error);
-      else if (!cancelled) onSuccess();
+      else if (!cancelled) onSuccess({ needsUsername });
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Sign-in failed.');
     } finally {
@@ -63,9 +66,9 @@ export function OAuthButtons({
     onError('');
     setBusy('apple');
     try {
-      const { error, cancelled } = await signInWithAppleNative();
+      const { error, cancelled, needsUsername } = await signInWithAppleNative();
       if (error) onError(error);
-      else if (!cancelled) onSuccess();
+      else if (!cancelled) onSuccess({ needsUsername });
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Sign-in failed.');
     } finally {

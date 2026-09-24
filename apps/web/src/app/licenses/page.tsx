@@ -41,7 +41,7 @@ export default function LicensesPage() {
         <h1 className="text-3xl font-bold mb-2">
           Open Source &amp; Licenses
         </h1>
-        <p className="text-fg-muted text-sm mb-10">Last updated: September 22, 2026</p>
+        <p className="text-fg-muted text-sm mb-10">Last updated: September 24, 2026</p>
 
         <div className="space-y-8 text-fg-muted leading-relaxed">
           <section>
@@ -133,6 +133,22 @@ export default function LicensesPage() {
             <p className="mt-2">
               Every other puzzle — all checkers, reversi and Go problems, and the chess puzzles
               credited to GameExplorer — was composed or engine-generated for this app.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-fg mb-2">Reserved usernames</h2>
+            <p>
+              Part of the list of names no account may take — words like &ldquo;admin&rdquo;,
+              &ldquo;support&rdquo; and &ldquo;nobody&rdquo; — is selected from{' '}
+              <Link href="https://github.com/marteinn/The-Big-Username-Blocklist">
+                The Big Username Blocklist
+              </Link>{' '}
+              (Copyright © 2015–2021 Martin Sandström), used under the{' '}
+              <Link href={`${SOURCE_REPO_URL}/blob/main/LICENSES/big-username-blocklist-MIT.txt`}>
+                MIT License
+              </Link>
+              . The rest of the list is GameExplorer&apos;s own.
             </p>
           </section>
 

@@ -2,7 +2,31 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@gameexplorer/db';
-import { ensureProfile } from './profile';
+import { getProfileState } from '@gameexplorer/client';
+
+/**
+ * What every sign-in path returns. `needsUsername` is true when the user's
+ * name was built for them rather than chosen (always the case on a first OAuth
+ * sign-in), and the caller should send them to choose-username before `next`.
+ */
+export interface OAuthResult {
+  error: string | null;
+  cancelled: boolean;
+  needsUsername: boolean;
+}
+
+const failed = (error: string): OAuthResult => ({ error, cancelled: false, needsUsername: false });
+const cancelled: OAuthResult = { error: null, cancelled: true, needsUsername: false };
+
+/**
+ * The session is established; ask whether the username still needs choosing.
+ * An `unknown` answer means "don't ask" — the prompt must never stand between
+ * someone and a sign-in that worked.
+ */
+async function signedIn(): Promise<OAuthResult> {
+  const state = await getProfileState();
+  return { error: null, cancelled: false, needsUsername: state.status === 'needs-username' };
+}
 
 /**
  * Native OAuth sign-in (Google / Facebook) for Supabase.
@@ -28,7 +52,7 @@ import { ensureProfile } from './profile';
  */
 export async function signInWithOAuthNative(
   provider: 'google' | 'facebook',
-): Promise<{ error: string | null; cancelled: boolean }> {
+): Promise<OAuthResult> {
   // NOTE: no leading slash on the path — `createURL('auth/callback')` yields
   // `gameexplorer://auth/callback` (host `auth`), a valid deep link Supabase
   // accepts in its Redirect URLs allowlist. A leading slash produces the
@@ -40,14 +64,14 @@ export async function signInWithOAuthNative(
     options: { redirectTo, skipBrowserRedirect: true },
   });
 
-  if (error) return { error: error.message, cancelled: false };
-  if (!data?.url) return { error: 'Could not start sign-in.', cancelled: false };
+  if (error) return failed(error.message);
+  if (!data?.url) return failed('Could not start sign-in.');
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
   if (result.type !== 'success') {
     // 'cancel' / 'dismiss' — the user backed out; not an error to surface.
-    return { error: null, cancelled: true };
+    return cancelled;
   }
 
   return finishOAuth(result.url);
@@ -62,10 +86,11 @@ export async function signInWithOAuthNative(
  * offered.
  *
  * Note: Apple returns the user's name only on the FIRST authorization and the
- * email may be a private relay — `ensureProfile` already derives a username
- * from whatever metadata is present, so no special handling is needed here.
+ * email may be a private relay. The database trigger derives a username from
+ * whatever metadata is present, and a derived name is what sends the user to
+ * choose-username — so a relay address never silently becomes their handle.
  */
-export async function signInWithAppleNative(): Promise<{ error: string | null; cancelled: boolean }> {
+export async function signInWithAppleNative(): Promise<OAuthResult> {
   try {
     const credential = await AppleAuthentication.signInAsync({
       requestedScopes: [
@@ -75,28 +100,27 @@ export async function signInWithAppleNative(): Promise<{ error: string | null; c
     });
 
     if (!credential.identityToken) {
-      return { error: 'Apple did not return an identity token.', cancelled: false };
+      return failed('Apple did not return an identity token.');
     }
 
     const { error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
       token: credential.identityToken,
     });
-    if (error) return { error: error.message, cancelled: false };
+    if (error) return failed(error.message);
 
-    await ensureProfile();
-    return { error: null, cancelled: false };
+    return await signedIn();
   } catch (e) {
     // The user tapped Cancel on the Apple sheet — not an error to surface.
     if (e && typeof e === 'object' && 'code' in e && (e as { code?: string }).code === 'ERR_REQUEST_CANCELED') {
-      return { error: null, cancelled: true };
+      return cancelled;
     }
-    return { error: e instanceof Error ? e.message : 'Apple sign-in failed.', cancelled: false };
+    return failed(e instanceof Error ? e.message : 'Apple sign-in failed.');
   }
 }
 
 /** Extract tokens/code from the returned deep link and establish the session. */
-async function finishOAuth(url: string): Promise<{ error: string | null; cancelled: boolean }> {
+async function finishOAuth(url: string): Promise<OAuthResult> {
   const parsed = Linking.parse(url);
   const params = parsed.queryParams ?? {};
 
@@ -110,26 +134,24 @@ async function finishOAuth(url: string): Promise<{ error: string | null; cancell
   const code = str(params.code) ?? frag.get('code');
   const oauthError = str(params.error_description) ?? frag.get('error_description');
 
-  if (oauthError) return { error: oauthError, cancelled: false };
+  if (oauthError) return failed(oauthError);
 
   if (accessToken && refreshToken) {
     const { error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
     });
-    if (error) return { error: error.message, cancelled: false };
-    await ensureProfile();
-    return { error: null, cancelled: false };
+    if (error) return failed(error.message);
+    return signedIn();
   }
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) return { error: error.message, cancelled: false };
-    await ensureProfile();
-    return { error: null, cancelled: false };
+    if (error) return failed(error.message);
+    return signedIn();
   }
 
-  return { error: 'Sign-in did not return a session.', cancelled: false };
+  return failed('Sign-in did not return a session.');
 }
 
 function str(v: string | string[] | undefined): string | undefined {

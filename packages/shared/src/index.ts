@@ -58,3 +58,6 @@ export * from './settings';
 
 // Free-tier cost-control limits
 export * from './limits';
+
+// Username grammar + reserved list — mirrors the profiles CHECK constraints
+export * from './username';
