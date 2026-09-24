@@ -123,9 +123,23 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     socket.to(`game:${gameId}`).emit('draw_offered', { gameId });
   });
 
+  // Both answers to an offer carry the same three guards as `offer_draw` itself.
+  // `drawOfferedBy !== userId` alone is NOT authorization: it is satisfied by any
+  // signed-in stranger, and game ids are public via GET /api/games/live. Without
+  // the participant check an outsider could end someone else's *rated* game as a
+  // draw; without the session lookup, `clearDrawOffer` (a bare HSET) created a
+  // Redis key for any id it was handed.
+  function canAnswerDrawOffer(session: Awaited<ReturnType<typeof gameSessionService.getGameSession>>): boolean {
+    if (!session || session.status !== 'active') return false;
+    if (session.whiteId !== userId && session.blackId !== userId) return false;
+    // An offer must be pending, and it must be the *opponent's* — you cannot
+    // answer your own.
+    return Boolean(session.drawOfferedBy) && session.drawOfferedBy !== userId;
+  }
+
   socket.on('accept_draw', async ({ gameId }: { gameId: string }) => {
     const session = await gameSessionService.getGameSession(gameId);
-    if (!session || !session.drawOfferedBy || session.drawOfferedBy === userId) return;
+    if (!canAnswerDrawOffer(session)) return;
 
     await gameSessionService.clearDrawOffer(gameId);
     const ratings = await gameSessionService.endGame(gameId, 'draw', 'draw_agreement');
@@ -133,6 +147,9 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
   });
 
   socket.on('decline_draw', async ({ gameId }: { gameId: string }) => {
+    const session = await gameSessionService.getGameSession(gameId);
+    if (!canAnswerDrawOffer(session)) return;
+
     await gameSessionService.clearDrawOffer(gameId);
     socket.to(`game:${gameId}`).emit('draw_declined', { gameId });
   });
@@ -196,7 +213,14 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
     });
   });
 
-  socket.on('leave_spectate', ({ gameId }: { gameId: string }) => {
+  // Takes the payload whole rather than destructuring it in the parameter list:
+  // socket.io does not validate payloads, so `emit('leave_spectate')` with no
+  // argument would otherwise throw while binding parameters. `async` makes even
+  // that a rejected promise (which index.ts survives) instead of a synchronous
+  // throw out of the listener; the guard means neither happens.
+  socket.on('leave_spectate', async (payload: { gameId?: string } | undefined) => {
+    const gameId = payload?.gameId;
+    if (typeof gameId !== 'string' || !gameId) return;
     socket.leave(`game:${gameId}`);
     socket.leave(`spectate:${gameId}`);
   });

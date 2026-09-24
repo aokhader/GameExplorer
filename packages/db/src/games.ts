@@ -15,13 +15,22 @@ export interface SaveGameOptions {
  * touching the network when `userId` is missing.
  *
  * The `games` insert policy only accepts rows where `auth.uid() = user_id`
- * (project-docs/sql-queries/supabase-rls-lockdown.sql), so an anonymous insert
- * is always rejected with 42501. Opening RLS up for it would be worse than
- * useless: the SELECT policy is owner-scoped, so a `user_id IS NULL` row is
- * invisible to every client, the per-user cap trigger
+ * AND `opponent IN ('stockfish','bot')`, so an anonymous insert is always
+ * rejected with 42501. Opening RLS up for it would be worse than useless: a
+ * `user_id IS NULL` row is invisible to every client, the per-user cap trigger
  * (supabase-cost-caps.sql) skips it, and the anon key is public — an
  * unauthenticated insert path is a free-tier storage hole. Guests are told
  * up front to sign in if they want their games kept.
+ *
+ * Both of those claims were FALSE until 2026-09-22, and the file said otherwise
+ * the whole time. `supabase-rls-lockdown.sql` tried to drop a policy named
+ * "Users can insert their own games"; the live one is "Users can insert own
+ * games", `if exists` swallowed the miss, and the two permissive policies were
+ * OR'd, so the opponent restriction never applied. Separately, a policy called
+ * "Allow reading anonymous games" made `user_id IS NULL` rows readable by
+ * `anon`. Both are fixed by supabase-security-wave1b.sql — which is also why
+ * this paragraph exists: verify a policy against `pg_policies` before writing a
+ * comment that relies on it.
  */
 function isSignedIn(userId?: string): userId is string {
   return Boolean(userId);

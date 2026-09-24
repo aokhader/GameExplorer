@@ -89,10 +89,16 @@ export const prisma = new PrismaClient({
     : ['error'],
 });
 
-// Handle connection errors
+// Handle connection errors.
+//
+// `pg` emits this on an IDLE client, which happens routinely: the server closes
+// a connection, a network blip drops it, or Supabase's pooler recycles it. The
+// pool discards that client and carries on — nothing is lost, and the next
+// query opens a fresh connection. Exiting the process here turned a normal,
+// self-healing event into a full restart, which (Redis being colocated with
+// persistence off) wiped every live game on the service. Log it instead.
 pool.on('error', (err) => {
-  console.error('Unexpected PostgreSQL pool error:', err);
-  process.exit(-1);
+  console.error('Unexpected PostgreSQL pool error (idle client discarded):', err);
 });
 
 // Graceful shutdown
