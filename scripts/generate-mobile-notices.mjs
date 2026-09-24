@@ -168,6 +168,15 @@ entries.push(
       'courtesy. The coloring applied to them is GameExplorer’s own.',
   },
   {
+    // Part of RESERVED_USERNAMES (packages/shared/src/username.ts), which ships
+    // in the bundle as plain strings a source map attributes to first-party code.
+    name: 'The Big Username Blocklist (part of the reserved-username list)',
+    version: 'https://github.com/marteinn/The-Big-Username-Blocklist',
+    license: 'MIT',
+    kind: 'content',
+    text: read('LICENSES/big-username-blocklist-MIT.txt'),
+  },
+  {
     name: 'Lichess open puzzle database (chess puzzles)',
     version: 'https://database.lichess.org/#puzzles',
     license: 'CC0-1.0',

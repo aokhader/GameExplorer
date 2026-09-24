@@ -3,7 +3,7 @@ export { supabase } from './client';
 export { signUp, signIn, signInWithOAuth, setOAuthRedirect, signOut, getCurrentUser } from './auth';
 export type { AuthUser, SignUpResult, SignInResult } from './auth';
 
-export { getProfile, getPublicProfile, updateUsername } from './profiles';
+export { getProfile, getPublicProfile } from './profiles';
 export type { Profile, ProfileRow } from './profiles';
 
 export { saveGame, saveCheckersGame, saveReversiGame, saveGoGame, getGames, getGameById } from './games';

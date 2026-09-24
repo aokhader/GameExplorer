@@ -113,12 +113,27 @@ describe('authService.loginWithIdentifier', () => {
     expect(state.signInCalls).toEqual([]);
   });
 
-  it('escapes LIKE wildcards so % cannot be used as a username', async () => {
-    await authService.loginWithIdentifier('%', 'hunter2');
-    expect(state.lastIlikePattern).toBe('\\%');
+  it('never looks up a name the format CHECK would refuse, so % cannot reach the LIKE', async () => {
+    const result = await authService.loginWithIdentifier('%', 'hunter2');
 
+    expect(result).toEqual({ ok: false, reason: 'invalid' });
+    expect(state.lastIlikePattern).toBeNull();
+    expect(state.signInCalls).toEqual([]);
+  });
+
+  it('escapes the legal _ so a_b cannot match axb', async () => {
     await authService.loginWithIdentifier('a_b', 'hunter2');
     expect(state.lastIlikePattern).toBe('a\\_b');
+  });
+
+  it('still resolves a reserved name — an existing holder is grandfathered', async () => {
+    state.profiles = [{ id: 'user-1' }];
+    state.emails['user-1'] = 'old@example.com';
+    state.passwords['old@example.com'] = 'hunter2';
+
+    const result = await authService.loginWithIdentifier('support', 'hunter2');
+
+    expect(result.ok).toBe(true);
   });
 
   it('returns the same generic failure for an unknown username as a wrong password', async () => {

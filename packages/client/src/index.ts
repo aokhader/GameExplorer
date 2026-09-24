@@ -4,6 +4,24 @@
 export { getApiUrl, setApiUrl } from './config';
 export { apiFetch } from './apiFetch';
 export { signInWithIdentifier, looksLikeEmail } from './auth';
+export {
+  checkUsernameAvailability,
+  claimUsername,
+  getProfileState,
+  usernameFieldState,
+  canSubmitUsername,
+} from './username';
+export type {
+  ProfileState,
+  UsernameCheck,
+  UsernameCheckSnapshot,
+  UsernameFieldState,
+  UsernameFieldStatus,
+  UsernameFieldOptions,
+  ClaimUsernameResult,
+} from './username';
+export { useUsernameAvailability } from './hooks/useUsernameAvailability';
+export type { UseUsernameAvailabilityResult } from './hooks/useUsernameAvailability';
 
 export { useAuthStore } from './stores/authStore';
 export { useGameStore } from './stores/gameStore';

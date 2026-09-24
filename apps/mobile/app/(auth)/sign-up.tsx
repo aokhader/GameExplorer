@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { COLORS, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { supabase } from '@gameexplorer/db';
+import { canSubmitUsername, useUsernameAvailability } from '@gameexplorer/client';
+import { USERNAME_LOST_RACE_MESSAGE, USERNAME_MAX_LENGTH } from '@gameexplorer/shared';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
 import { PRIVACY_URL, TERMS_URL } from '@/config/support';
@@ -63,14 +65,24 @@ export default function SignUpScreen() {
   const [confirmSent, setConfirmSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Live, debounced "is this name free?". Advisory only — an unanswerable check
+  // leaves the button enabled, and the database has the final say.
+  const { state: nameState, recheck } = useUsernameAvailability(username);
+  const canSubmit = !!email && !!password && canSubmitUsername(nameState);
+
   // Return-key focus chaining, so reaching the password never depends on being
   // able to scroll past the keyboard.
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
 
   const done = () => router.replace('/profile' as never);
+  const oauthDone = ({ needsUsername }: { needsUsername: boolean }) =>
+    needsUsername
+      ? router.replace({ pathname: '/(auth)/choose-username', params: { next: '/profile' } } as never)
+      : done();
 
   const handleSignUp = async () => {
+    if (!canSubmit) return;
     setLoading(true);
     setError(null);
 
@@ -80,7 +92,14 @@ export default function SignUpScreen() {
       options: { data: { username: username.trim() } },
     });
     if (error || !data.user) {
-      setError(error?.message ?? 'Sign up failed');
+      // A database refusal reaches us as a 500 ("Database error saving new
+      // user"). Key on the status, never on that text, and only blame the
+      // username if a fresh check agrees — someone may have taken it since.
+      if ((error?.status ?? 0) >= 500 && (await recheck()) === 'taken') {
+        setError(USERNAME_LOST_RACE_MESSAGE);
+      } else {
+        setError(error?.message ?? 'Sign up failed');
+      }
       setLoading(false);
       return;
     }
@@ -103,7 +122,7 @@ export default function SignUpScreen() {
       </Text>
 
       <View style={{ gap: SPACING[4] }}>
-        <OAuthButtons onSuccess={done} onError={(m) => setError(m || null)} />
+        <OAuthButtons onSuccess={oauthDone} onError={(m) => setError(m || null)} />
         <OrDivider />
 
         <TextField
@@ -111,8 +130,12 @@ export default function SignUpScreen() {
           placeholder="Your display name"
           value={username}
           onChangeText={setUsername}
+          hint={nameState.hint}
+          error={nameState.error}
+          maxLength={USERNAME_MAX_LENGTH}
           autoCapitalize="none"
           autoCorrect={false}
+          autoComplete="username-new"
           returnKeyType="next"
           submitBehavior="submit"
           onSubmitEditing={() => emailRef.current?.focus()}
@@ -155,7 +178,7 @@ export default function SignUpScreen() {
           label="Create account"
           onPress={handleSignUp}
           loading={loading}
-          disabled={!email || !password || !username}
+          disabled={!canSubmit}
         />
 
         <LegalNotice />
