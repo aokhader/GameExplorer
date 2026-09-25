@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { GAME_CATALOG, type GameId } from '@gameexplorer/shared';
+import { GAME_CATALOG, RATING_COPY, type GameId } from '@gameexplorer/shared';
 import type { PlayerStats } from '@gameexplorer/client/game/playerStats';
 import { RATED_GAME_TYPES } from '@gameexplorer/client/game/playerStats';
 import type { SavedLiquidateGame } from '@gameexplorer/client/liquidate/saveStore';
@@ -118,9 +118,27 @@ export function AlsoUnfinishedRow({ game, detail, href }: { game: GameId; detail
   );
 }
 
-function Chip({ icon, game, label, sub, subClass }: { icon?: IconName; game?: GameId; label: string; sub?: string; subClass?: string }) {
+function Chip({
+  icon,
+  game,
+  tag,
+  label,
+  sub,
+  subClass,
+  ariaLabel,
+}: {
+  icon?: IconName;
+  game?: GameId;
+  /** A muted word before the number, naming which number it is. */
+  tag?: string;
+  label: string;
+  sub?: string;
+  subClass?: string;
+  /** The whole chip, spoken — for when the visible parts need their context. */
+  ariaLabel?: string;
+}) {
   return (
-    <li className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-2">
+    <li aria-label={ariaLabel} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 py-2">
       {game ? (
         <span className="inline-flex text-lg" aria-hidden="true">
           <GameIcon game={game} />
@@ -128,6 +146,7 @@ function Chip({ icon, game, label, sub, subClass }: { icon?: IconName; game?: Ga
       ) : icon ? (
         <Icon name={icon} className="text-base text-fg-muted" />
       ) : null}
+      {tag && <span className="text-label text-fg-muted">{tag}</span>}
       <span className="text-label font-bold tabular-nums text-fg">{label}</span>
       {sub && <span className={`text-label font-semibold ${subClass ?? 'text-fg-muted'}`}>{sub}</span>}
     </li>
@@ -135,10 +154,27 @@ function Chip({ icon, game, label, sub, subClass }: { icon?: IconName; game?: Ga
 }
 
 /**
- * The player's own numbers (`ux-fix-ideas.md` §4.3, P6): a rating and its last
- * change for each game played rated, the current win streak, puzzles solved.
- * Only numbers that exist are shown — an untouched 1200 is not a rating.
+ * The player's own numbers (`ux-fix-ideas.md` §4.3, P6): each game's Practice
+ * level and its last change, then — only for a game played rated online — its
+ * online Rating, tagged so, then the current win streak and puzzles solved.
+ * Only numbers that exist are shown — an untouched 1200 is not a number anyone
+ * earned. The two ladders are kept apart on purpose (`RATING_COPY`).
  */
+/** A chip's last-change suffix, coloured by direction. */
+function deltaSub(delta: number | null): { sub?: string; subClass?: string } {
+  if (!delta) return {};
+  return {
+    sub: `${delta > 0 ? '+' : '−'}${Math.abs(delta)}`,
+    subClass: delta > 0 ? 'text-success-hover' : 'text-danger-hover',
+  };
+}
+
+/** "Chess practice level 1480, up 12" — what a number chip says aloud. */
+function spokenNumber(what: string, value: number, delta: number | null): string {
+  if (!delta) return `${what} ${value}`;
+  return `${what} ${value}, ${delta > 0 ? 'up' : 'down'} ${Math.abs(delta)}`;
+}
+
 export function NumbersRow({
   signedIn,
   stats,
@@ -172,17 +208,30 @@ export function NumbersRow({
   if (stats) {
     for (const type of RATED_GAME_TYPES) {
       const g = stats.perGame[type];
-      if (g.ratedGames === 0) continue;
-      const delta = g.lastDelta;
-      chips.push(
-        <Chip
-          key={type}
-          game={type}
-          label={String(g.rating)}
-          sub={delta ? `${delta > 0 ? '+' : '−'}${Math.abs(delta)}` : undefined}
-          subClass={delta && delta > 0 ? 'text-success-hover' : 'text-danger-hover'}
-        />,
-      );
+      const name = GAME_CATALOG[type].name;
+      if (g.practice.ratedGames > 0) {
+        chips.push(
+          <Chip
+            key={type}
+            game={type}
+            label={String(g.practice.rating)}
+            ariaLabel={spokenNumber(`${name} ${RATING_COPY.practice.inline}`, g.practice.rating, g.practice.lastDelta)}
+            {...deltaSub(g.practice.lastDelta)}
+          />,
+        );
+      }
+      if (g.online.ratedGames > 0) {
+        chips.push(
+          <Chip
+            key={`${type}-online`}
+            game={type}
+            tag={RATING_COPY.online.label}
+            label={String(g.online.rating)}
+            ariaLabel={spokenNumber(`${name} ${RATING_COPY.online.inline}`, g.online.rating, g.online.lastDelta)}
+            {...deltaSub(g.online.lastDelta)}
+          />,
+        );
+      }
     }
     if (stats.currentStreak >= 2) {
       chips.push(<Chip key="streak" icon="fire" label={`${stats.currentStreak} wins in a row`} />);
@@ -203,12 +252,12 @@ export function NumbersRow({
       )}
       {signedIn && error && (
         <button type="button" onClick={onRetry} className="touch-target text-sm text-fg-muted">
-          Couldn’t load your ratings. <span className="font-semibold text-fg">Try again</span>
+          Couldn’t load your numbers. <span className="font-semibold text-fg">Try again</span>
         </button>
       )}
       {!signedIn && finishedGame && (
         <Link href={signInHref} className="touch-target inline-block text-sm text-fg-muted hover:text-fg">
-          A rating needs an account. <span className="font-semibold text-fg">Sign in</span>
+          A practice level needs an account. <span className="font-semibold text-fg">Sign in</span>
         </Link>
       )}
     </div>

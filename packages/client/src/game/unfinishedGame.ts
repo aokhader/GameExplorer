@@ -66,7 +66,7 @@ export interface UnfinishedGame {
    */
   setup: Record<string, unknown>;
   actions: LocalAction[];
-  /** Training hints already taken; each costs rating when the game is scored. */
+  /** Training hints already taken; each costs Practice level points when the game is scored. */
   hintsUsed: number;
   startedAt: number;
   savedAt: number;

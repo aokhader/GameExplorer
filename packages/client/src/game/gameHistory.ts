@@ -2,6 +2,16 @@
 const BOT_OPPONENTS = new Set(['bot', 'stockfish']);
 
 /**
+ * Whether a saved row was a game against a bot — and so whether its
+ * `rating_before`/`rating_after` are a Practice level or an online Rating.
+ * Only the API writes a person's name here, so a blank is a bot row too.
+ */
+export function isBotOpponent(opponent: string | null | undefined): boolean {
+  const name = (opponent ?? '').trim().toLowerCase();
+  return name === '' || BOT_OPPONENTS.has(name);
+}
+
+/**
  * What to call the opponent in a list of finished games.
  *
  * Chess wrote `opponent: 'stockfish'` where the other three wrote `'bot'`, so a

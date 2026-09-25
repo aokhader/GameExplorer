@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { TIP_COPY } from '@gameexplorer/shared';
+import { RATING_COPY, TIP_COPY, type RatingLadder } from '@gameexplorer/shared';
 import { COLORS, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useGameSfx } from '@/audio/useGameSfx.native';
@@ -24,14 +24,18 @@ export interface GameResultScreenProps {
   title?: string;
   /** Secondary line, e.g. the end reason. */
   subtitle?: string;
-  /** Optional rating change block with an animated count-up. */
-  rating?: { before: number; after: number; delta: number };
+  /**
+   * Optional number-change block with an animated count-up. `ladder` says which
+   * number moved — the online Rating or the Practice level (bots, training) —
+   * and names the block. It is required so every caller has to choose.
+   */
+  rating?: { before: number; after: number; delta: number; ladder: RatingLadder };
   /**
    * Training only — hints taken this game. Their cost is already inside
    * `rating.delta`, so the line explains where the points went.
    */
   hintsUsed?: number;
-  /** The rated save/rating write failed (offline etc.) — show an error + retry. */
+  /** The rated save/number write failed (offline etc.) — show an error + retry. */
   saveError?: boolean;
   /** Re-attempt the failed save. Required when `saveError` can be true. */
   onRetrySave?: () => void;
@@ -81,8 +85,9 @@ function useCountUp(from: number, to: number, active: boolean, durationMs = 800)
 
 /**
  * Game-over celebration — native port of web's `GameResultScreen`. A spring-in
- * card over a dim backdrop, an emoji pop, confetti on a win, an optional rating
- * count-up, a terminal chime/haptic, and the one-time guest sign-up ask.
+ * card over a dim backdrop, an emoji pop, confetti on a win, an optional count-up
+ * of the Rating or Practice level the game moved, a terminal chime/haptic, and
+ * the one-time guest sign-up ask.
  *
  * Confetti is Reanimated rather than web's canvas-confetti (no RN drop-in), and
  * is suppressed entirely under `reducedMotion`.
@@ -266,7 +271,9 @@ export function GameResultScreen({
                 alignSelf: 'stretch',
               }}
             >
-              <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginBottom: 2 }}>Rating</Text>
+              <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginBottom: 2 }}>
+                {RATING_COPY[rating.ladder].label}
+              </Text>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SPACING[2] }}>
                 <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES['2xl'], fontFamily: FONTS.display }}>{ratingValue}</Text>
                 <Text

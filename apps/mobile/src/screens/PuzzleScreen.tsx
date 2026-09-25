@@ -107,10 +107,12 @@ export function PuzzleScreen({ game }: PuzzleScreenProps) {
     let cancelled = false;
     void (async () => {
       try {
-        const { getCurrentUser, getUserRating } = await import('@gameexplorer/db');
+        const { getCurrentUser, getPracticeRating } = await import('@gameexplorer/db');
         const user = await getCurrentUser();
         if (!user || cancelled) return;
-        const row = await getUserRating(user.id, game);
+        // Practice level — puzzles are practice, and it is the number most
+        // players have actually moved. Matches web.
+        const row = await getPracticeRating(user.id, game);
         if (!cancelled) setRating(row?.rating ?? null);
       } catch {
         // Signed out, offline, or no Supabase config — the picker simply opens

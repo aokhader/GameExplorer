@@ -46,7 +46,7 @@ export interface GameBarProps {
   /** Game already over — nothing left to concede or agree. */
   gameOver?: boolean;
   /**
-   * Training only — reveal the best move at a rating cost. Omit it in the other
+   * Training only — reveal the best move at a points cost. Omit it in the other
    * modes and the button stays the disabled "coming soon" placeholder.
    */
   onHint?: () => void;
@@ -149,7 +149,7 @@ export function GameBar({
           <BarButton
             icon={hintPending ? 'hourglass' : 'lightbulb'}
             label={hintsUsed > 0 ? `Hint — ${hintsUsed} used` : 'Hint'}
-            hint="Shows the best move — costs 2 rating points"
+            hint="Shows the best move — costs 2 points"
             badge={hintsUsed > 0 ? String(hintsUsed) : undefined}
             onPress={onHint}
             disabled={gameOver || hintDisabled || hintPending}

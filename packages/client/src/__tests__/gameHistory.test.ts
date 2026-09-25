@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { opponentLabel } from '../game/gameHistory';
+import { isBotOpponent, opponentLabel } from '../game/gameHistory';
 
 describe('opponentLabel', () => {
   it('names a bot by its strength', () => {
@@ -27,5 +27,25 @@ describe('opponentLabel', () => {
   it('says something for a row with no opponent at all', () => {
     expect(opponentLabel(null)).toBe('Opponent');
     expect(opponentLabel('   ')).toBe('Opponent');
+  });
+});
+
+describe('isBotOpponent', () => {
+  // Decides which ladder a saved row's rating change belongs to: a bot row's is
+  // a Practice level, a person's is an online Rating.
+  it('knows both spellings a bot row was ever written with', () => {
+    expect(isBotOpponent('bot')).toBe(true);
+    expect(isBotOpponent('stockfish')).toBe(true);
+    expect(isBotOpponent(' Stockfish ')).toBe(true);
+  });
+
+  it('treats a blank as a bot, because only the API writes a name', () => {
+    expect(isBotOpponent(null)).toBe(true);
+    expect(isBotOpponent('')).toBe(true);
+  });
+
+  it('treats any name as a person, including one that merely contains bot', () => {
+    expect(isBotOpponent('robotnik')).toBe(false);
+    expect(isBotOpponent('AppleReviewTest')).toBe(false);
   });
 });

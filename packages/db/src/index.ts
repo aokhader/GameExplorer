@@ -10,7 +10,7 @@ export { saveGame, saveCheckersGame, saveReversiGame, saveGoGame, getGames, getG
 export type { SaveGameOptions } from './games';
 export type { SavedGame, NewGame, GameListItem, StoredMove, CheckersStoredMove, ReversiStoredMove, GoStoredMove, GameResult, GameType } from './types';
 
-export { getUserRating, getUserRatings, upsertUserRating } from './ratings';
+export { getUserRating, getUserRatings, getPracticeRating, getPracticeRatings, recordPracticeResult } from './ratings';
 export type { UserRating } from './ratings';
 
 export { encryptEmail, decryptEmail, hashEmail } from './crypto';

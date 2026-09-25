@@ -12,7 +12,7 @@ import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList'
 import { useChessEngine } from '@/hooks/useChessEngine';
 import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
 import { useAuth } from '@/hooks/useAuth';
-import { saveGame, getUserRating, upsertUserRating } from '@/lib/db';
+import { saveGame, getPracticeRating, recordPracticeResult } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
@@ -296,7 +296,11 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   // Load rating when user is available
   useEffect(() => {
     if (!user) return;
-    getUserRating(user.id, 'chess').then(setUserRating);
+    // Practice level, never the online Rating — a bot game has no witness, so
+    // it may only move the number nothing else trusts (GX-04).
+    getPracticeRating(user.id, 'chess')
+      .then(setUserRating)
+      .catch((err) => console.error('Failed to load Practice level:', err));
   }, [user]);
 
   // ── Unfinished game (`ux-fix-ideas.md` §2.4) ────────────────────────────────
@@ -439,7 +443,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
       // the Continue card rather than losing it.
       slot.markEnded(manualEnd ?? 'over');
       Promise.all([
-        upsertUserRating(uid, newRating, outcome, 'chess'),
+        recordPracticeResult(newRating, outcome, 'chess'),
         saveGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid, {
           mode: 'rated',
           rating_before: current.rating,
@@ -977,7 +981,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
         subtitle={gameOverMsg ?? undefined}
         rating={
           ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta, ladder: 'practice' }
             : undefined
         }
         actions={

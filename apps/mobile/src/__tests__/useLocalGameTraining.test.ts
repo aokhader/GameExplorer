@@ -3,12 +3,16 @@ import type { UserRating } from '@gameexplorer/db';
 import { HINT_PENALTY, HINT_VISIBLE_MS } from '@/engine/trainingRules';
 import { useLocalGame, type LocalGameAdapter, type LocalGameMode } from '@/engine/useLocalGame';
 
+const mockGetPracticeRating = jest.fn<Promise<UserRating>, [string, string]>();
+const mockRecordPracticeResult = jest.fn<Promise<UserRating | null>, unknown[]>();
+// The online Rating's reader, mocked only so a test can prove training never
+// touches it: a local game may only move the Practice level (GX-04).
 const mockGetUserRating = jest.fn<Promise<UserRating>, [string, string]>();
-const mockUpsertUserRating = jest.fn<Promise<UserRating | null>, unknown[]>();
 
 jest.mock('@gameexplorer/db', () => ({
+  getPracticeRating: (...args: [string, string]) => mockGetPracticeRating(...args),
+  recordPracticeResult: (...args: unknown[]) => mockRecordPracticeResult(...args),
   getUserRating: (...args: [string, string]) => mockGetUserRating(...args),
-  upsertUserRating: (...args: unknown[]) => mockUpsertUserRating(...args),
 }));
 
 const USER_ID = 'user-1';
@@ -88,19 +92,20 @@ function renderTraining(
 }
 
 beforeEach(() => {
-  mockGetUserRating.mockReset().mockResolvedValue(ratingRow(1500));
-  mockUpsertUserRating.mockReset().mockResolvedValue(null);
+  mockGetPracticeRating.mockReset().mockResolvedValue(ratingRow(1500));
+  mockRecordPracticeResult.mockReset().mockResolvedValue(null);
+  mockGetUserRating.mockReset().mockResolvedValue(ratingRow(900));
 });
 
 describe('useLocalGame — training bot strength', () => {
-  it('matches the bot to the player rating instead of the picked tier', async () => {
+  it('matches the bot to the player practice level instead of the picked tier', async () => {
     const { result } = renderTraining(makeAdapter());
-    // targetElo is 1200; training must ignore it in favour of the 1500 rating.
+    // targetElo is 1200; training must ignore it in favour of the 1500 practice level.
     await waitFor(() => expect(result.current.botElo).toBe(1500));
   });
 
   it('clamps the matched bot to what the engine can play', async () => {
-    mockGetUserRating.mockResolvedValue(ratingRow(2600));
+    mockGetPracticeRating.mockResolvedValue(ratingRow(2600));
     const { result } = renderTraining(makeAdapter(), { eloBounds: { min: 400, max: 2000 } });
     await waitFor(() => expect(result.current.botElo).toBe(2000));
   });
@@ -238,7 +243,7 @@ describe('useLocalGame — training hints', () => {
   });
 });
 
-describe('useLocalGame — training rating', () => {
+describe('useLocalGame — training practice level', () => {
   /** Play one winning move, optionally taking a hint first, and report the delta. */
   async function playToEnd(hints: number): Promise<number> {
     const { result } = renderTraining(makeAdapter({ finish: true }));
@@ -257,7 +262,7 @@ describe('useLocalGame — training rating', () => {
     return result.current.ratingResult!.delta;
   }
 
-  it('charges each hint against the rating it earned', async () => {
+  it('charges each hint against the practice level it earned', async () => {
     const clean = await playToEnd(0);
     const hinted = await playToEnd(2);
 
@@ -265,7 +270,7 @@ describe('useLocalGame — training rating', () => {
     expect(hinted).toBe(clean - 2 * HINT_PENALTY);
   });
 
-  it('reports the hints alongside the rating change', async () => {
+  it('reports the hints alongside the practice level change', async () => {
     const { result } = renderTraining(makeAdapter({ finish: true }));
     await waitFor(() => expect(result.current.userRating).not.toBeNull());
     await act(async () => {
@@ -288,5 +293,18 @@ describe('useLocalGame — training rating', () => {
     expect(adapter.save).toHaveBeenCalledWith(
       expect.objectContaining({ difficulty: 'elo-1500', result: 'white' }),
     );
+  });
+
+  it('reads and writes only the Practice level, never the online Rating', async () => {
+    const { result } = renderTraining(makeAdapter({ finish: true }));
+    await waitFor(() => expect(result.current.userRating).not.toBeNull());
+
+    act(() => result.current.handleMove('e2', 'e4'));
+
+    await waitFor(() => expect(result.current.ratingResult).not.toBeNull());
+    expect(mockGetPracticeRating).toHaveBeenCalledWith(USER_ID, 'chess');
+    // No user id: the database takes it from the session.
+    expect(mockRecordPracticeResult).toHaveBeenCalledWith(result.current.ratingResult!.after, 'win', 'chess');
+    expect(mockGetUserRating).not.toHaveBeenCalled();
   });
 });

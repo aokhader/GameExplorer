@@ -1,18 +1,22 @@
 'use client';
 
+import { RATING_COPY } from '@gameexplorer/shared';
 import { Toggle } from '@/components/ui';
 
 export interface RatedToggleProps {
   checked: boolean;
   onChange: (next: boolean) => void;
-  /** Named in the copy so it's clear *which* rating moves. */
+  /** Named in the copy so it's clear *which* game's practice level moves. */
   gameLabel: string;
-  /** Null while signed out — rated play needs an account to read/write a rating. */
+  /** Null while signed out — rated play needs an account to keep a practice level. */
   userId: string | null;
 }
 
 /**
  * The Rated / Casual switch on a bot setup screen.
+ *
+ * A rated bot game moves the player's Practice level, never their online
+ * Rating (security audit v2, GX-04).
  *
  * Web bot games used to disagree with each other and with mobile: chess never
  * touched your rating, while checkers and reversi always rated a signed-in
@@ -31,7 +35,7 @@ export function RatedToggle({ checked, onChange, gameLabel, userId }: RatedToggl
         <p className="text-lg font-semibold text-fg">Rated</p>
         <p className="text-sm text-fg-muted">
           {signedIn
-            ? `Updates your ${gameLabel} rating`
+            ? `Updates your ${gameLabel} ${RATING_COPY.practice.inline}`
             : 'Sign in to play rated games'}
         </p>
       </div>

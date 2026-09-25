@@ -1,5 +1,6 @@
 /**
- * Writing a finished local game's result — the rating change and the saved row.
+ * Writing a finished local game's result — the Practice level change and the
+ * saved row.
  *
  * Lifted out of `useLocalGame`'s save effect so that a rated game resigned from
  * a Continue card, with no board on screen, is scored by the same arithmetic and
@@ -8,7 +9,7 @@
  */
 
 import { calculateNewRating, type GameOutcome } from '@gameexplorer/shared';
-import { upsertUserRating, type SaveGameOptions, type UserRating } from '@gameexplorer/db';
+import { recordPracticeResult, type SaveGameOptions, type UserRating } from '@gameexplorer/db';
 import { HINT_PENALTY } from '../hooks/trainingRules';
 import type { Color, LocalGameAdapter } from '../hooks/useLocalGame';
 
@@ -31,8 +32,12 @@ interface ResultArgs<S> {
 }
 
 /**
- * A rated result: the rating moves and the game row carries the before and
- * after. Rejects if either write fails, so the caller can offer a retry.
+ * A rated result: the Practice level moves and the game row carries the before
+ * and after. Rejects if either write fails, so the caller can offer a retry.
+ *
+ * `current` must be the player's Practice level (`getPracticeRating`), never
+ * their online Rating — a local game has no witness, so it may only move the
+ * number nothing else trusts (security audit v2, GX-04).
  *
  * Hints are only ever taken in training, and each one costs `HINT_PENALTY`
  * points off whatever the game was worth — the same price as web's training
@@ -46,7 +51,7 @@ export async function writeRatedLocalResult<S>(
   const after = Math.max(100, earned - hintsUsed * HINT_PENALTY);
   const options: SaveGameOptions = { mode: 'rated', rating_before: current.rating, rating_after: after };
   const [updated] = await Promise.all([
-    upsertUserRating(userId, after, outcome, adapter.gameType),
+    recordPracticeResult(after, outcome, adapter.gameType),
     adapter.save({ state, playerColor, result, difficulty: `elo-${botElo}`, userId, options }),
   ]);
   return { updated, before: current.rating, after, delta: after - current.rating, hintsUsed };

@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { SaveProgressPrompt } from './SaveProgressPrompt';
 import { markFinished } from '@/lib/playHistory';
 import { Icon, type IconName } from '@gameexplorer/ui';
+import { RATING_COPY, type RatingLadder } from '@gameexplorer/shared';
 
 const loadMotionFeatures = () =>
   import('@/lib/motion-features').then(mod => mod.default);
@@ -27,8 +28,12 @@ export interface GameResultScreenProps {
   title?: string;
   /** Secondary line, e.g. the end reason ("by resignation"). */
   subtitle?: string;
-  /** Optional rating change block with an animated count-up. */
-  rating?: { before: number; after: number; delta: number };
+  /**
+   * Optional rating change block with an animated count-up. `ladder` is
+   * required so every caller says which number moved: a bot or practice game
+   * moves the Practice level, only an online game moves the Rating.
+   */
+  rating?: { before: number; after: number; delta: number; ladder: RatingLadder };
   /** Training hint penalty note. */
   hintsUsed?: number;
   /** Action buttons (Play Again / Analyze / Back) — supplied by the page. */
@@ -163,7 +168,7 @@ export function GameResultScreen({
 
             {rating && (
               <div className="mt-5 mb-5 rounded-xl bg-surface-muted p-4">
-                <p className="text-sm text-fg-muted mb-1">Rating</p>
+                <p className="text-sm text-fg-muted mb-1">{RATING_COPY[rating.ladder].label}</p>
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-2xl font-bold tabular-nums">{ratingValue}</span>
                   <span

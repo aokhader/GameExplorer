@@ -2,15 +2,19 @@
  * Discarding an unfinished game from a Continue card.
  *
  * The owner's rule is the thing under test: a casual game is simply deleted, and
- * a rated one is **resigned** — the loss and the rating change written exactly as
+ * a rated one is **resigned** — the loss and the Practice level change written exactly as
  * the board's own Resign writes them — so walking away from a losing rated game
  * no longer dodges its result.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const db = vi.hoisted(() => ({
+  // The online Rating's reader is mocked only so a test can prove it is never
+  // touched: a local game has no witness, so it may only move the Practice
+  // level (security audit v2, GX-04).
   getUserRating: vi.fn(),
-  upsertUserRating: vi.fn(),
+  getPracticeRating: vi.fn(),
+  recordPracticeResult: vi.fn(),
   saveGame: vi.fn(),
   saveCheckersGame: vi.fn(),
   saveReversiGame: vi.fn(),
@@ -77,8 +81,8 @@ async function put(store: ReturnType<typeof memoryStore>, game: UnfinishedGame) 
 
 beforeEach(() => {
   vi.clearAllMocks();
-  db.getUserRating.mockResolvedValue(rating(1400));
-  db.upsertUserRating.mockImplementation(async (_u, after) => rating(after));
+  db.getPracticeRating.mockResolvedValue(rating(1400));
+  db.recordPracticeResult.mockImplementation(async (after) => rating(after));
   db.saveGame.mockResolvedValue(null);
 });
 
@@ -91,7 +95,7 @@ describe('settleUnfinishedGame', () => {
 
     expect(outcome).toEqual({ kind: 'deleted' });
     expect(store.data.size).toBe(0);
-    expect(db.upsertUserRating).not.toHaveBeenCalled();
+    expect(db.recordPracticeResult).not.toHaveBeenCalled();
     expect(db.saveGame).not.toHaveBeenCalled();
   });
 
@@ -113,7 +117,10 @@ describe('settleUnfinishedGame', () => {
 
     const after = calculateNewRating(1400, 1500, 'loss', 10);
     expect(outcome).toMatchObject({ kind: 'recorded', rating: { before: 1400, after, delta: after - 1400 } });
-    expect(db.upsertUserRating).toHaveBeenCalledWith('u1', after, 'loss', 'chess');
+    expect(db.recordPracticeResult).toHaveBeenCalledWith(after, 'loss', 'chess');
+    // Priced from the Practice level, and the online Rating is never read.
+    expect(db.getPracticeRating).toHaveBeenCalledWith('u1', 'chess');
+    expect(db.getUserRating).not.toHaveBeenCalled();
     expect(db.saveGame).toHaveBeenCalledWith(
       expect.objectContaining({ moveHistory: expect.any(Array) }),
       'white',
@@ -141,7 +148,7 @@ describe('settleUnfinishedGame', () => {
 
     await settleUnfinishedGame(store, { game: 'chess', userId: 'u1' }, { resign: true });
 
-    expect(db.upsertUserRating).toHaveBeenCalledWith('u1', expect.any(Number), 'draw', 'chess');
+    expect(db.recordPracticeResult).toHaveBeenCalledWith(expect.any(Number), 'draw', 'chess');
   });
 
   it('will not record a result for a game still in progress', async () => {
@@ -157,7 +164,7 @@ describe('settleUnfinishedGame', () => {
   it('keeps the game owed when the write fails, and can be tried again', async () => {
     const store = memoryStore();
     await put(store, saved());
-    db.upsertUserRating.mockRejectedValueOnce(new Error('offline'));
+    db.recordPracticeResult.mockRejectedValueOnce(new Error('offline'));
 
     await expect(
       settleUnfinishedGame(store, { game: 'chess', userId: 'u1' }, { resign: true }),
@@ -180,7 +187,7 @@ describe('settleUnfinishedGame', () => {
       expect(await settleUnfinishedGame(store, { game: 'chess', userId: 'u1' }, { resign: true })).toEqual({
         kind: 'busy',
       });
-      expect(db.upsertUserRating).not.toHaveBeenCalled();
+      expect(db.recordPracticeResult).not.toHaveBeenCalled();
     } finally {
       releaseResultWrite(key);
     }
@@ -201,7 +208,7 @@ describe('settleUnfinishedGame', () => {
     expect(await settleUnfinishedGame(store, { game: 'chess', userId: 'u1' }, { resign: true })).toEqual({
       kind: 'deleted',
     });
-    expect(db.upsertUserRating).not.toHaveBeenCalled();
+    expect(db.recordPracticeResult).not.toHaveBeenCalled();
     quiet.mockRestore();
   });
 });

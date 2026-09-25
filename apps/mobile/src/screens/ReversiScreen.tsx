@@ -407,7 +407,7 @@ export function ReversiScreen() {
                   ? 'Sign in to play rated games'
                   : !online
                     ? 'Offline — rated games need a connection'
-                    : 'Updates your reversi rating'}
+                    : 'Updates your reversi practice level'}
               </Text>
             </View>
             <Toggle value={ratedEffective} onValueChange={(value) => setup.update({ rated: value })} label="Rated" disabled={!userId || !online} />
@@ -658,7 +658,7 @@ export function ReversiScreen() {
             hintPending={game.isHinting}
             hintsUsed={game.hintsUsed}
             // Gated on the game being over: mid-game this is an unlimited free
-            // hint, which is exactly what training charges rating for.
+            // hint, which is exactly what training charges points for.
             onAnalysis={gameOverMsg ? () => setReviewing(true) : undefined}
           />
         }
@@ -675,9 +675,10 @@ export function ReversiScreen() {
               : `Final score ${counts.black}–${counts.white}`
             : gameOverMsg ?? undefined
         }
+        // Bot and training games move the Practice level, never the online Rating.
         rating={
           ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta, ladder: 'practice' }
             : undefined
         }
         hintsUsed={ratingResult?.hintsUsed}

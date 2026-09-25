@@ -7,14 +7,14 @@
  * | Game                                  | Discard                                   |
  * |---------------------------------------|-------------------------------------------|
  * | Casual bot game, pass-and-play, guest | Deletes the saved game. Nothing is written |
- * | Rated game                            | **Resigns it**: the loss and the rating change are written exactly as Resign writes them |
+ * | Rated game                            | **Resigns it**: the loss and the Practice level change are written exactly as Resign writes them |
  *
  * "Exactly as Resign writes them" is literal: the result comes from
  * `localGameResult` and the writes from `writeRatedLocalResult`, the two
  * functions the loop's own save effect calls.
  */
 
-import { getUserRating } from '@gameexplorer/db';
+import { getPracticeRating } from '@gameexplorer/db';
 import type { LocalStore } from '../storage';
 import {
   claimResultWrite,
@@ -96,7 +96,7 @@ export async function settleUnfinishedGame(
       outcome,
       botElo: current.botElo,
       userId,
-      current: await getUserRating(userId, rules.gameType),
+      current: await getPracticeRating(userId, rules.gameType),
       hintsUsed: current.hintsUsed,
     });
     await store.remove(key).catch(() => {});

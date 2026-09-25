@@ -37,8 +37,9 @@ const rating = (game_type: UserRating['game_type'], value: number, games: number
 describe('summarizePlayer', () => {
   it('has nothing to say about a player with no games', () => {
     const stats = summarizePlayer([], {});
-    expect(stats).toMatchObject({ gamesPlayed: 0, winRate: 0, currentStreak: 0, bestStreak: 0, topRating: 0 });
-    expect(stats.perGame.go).toMatchObject({ rating: 1200, ratedGames: 0, lastDelta: null });
+    expect(stats).toMatchObject({ gamesPlayed: 0, winRate: 0, currentStreak: 0, bestStreak: 0, topPracticeLevel: 0 });
+    expect(stats.perGame.go.practice).toMatchObject({ rating: 1200, ratedGames: 0, lastDelta: null });
+    expect(stats.perGame.chess.online).toMatchObject({ rating: 1200, ratedGames: 0, lastDelta: null });
   });
 
   it('counts the current streak from the newest game and the best one anywhere', () => {
@@ -72,23 +73,43 @@ describe('summarizePlayer', () => {
       chess: rating('chess', 1240, 2, 1250),
       go: rating('go', 1112, 1),
     });
-    expect(stats.perGame.chess).toMatchObject({ rating: 1240, lastDelta: -10, savedGames: 3, ratedGames: 2 });
-    expect(stats.perGame.go.lastDelta).toBe(12);
-    expect(stats.perGame.checkers.lastDelta).toBeNull();
+    expect(stats.perGame.chess.savedGames).toBe(3);
+    expect(stats.perGame.chess.practice).toMatchObject({ rating: 1240, lastDelta: -10, ratedGames: 2 });
+    expect(stats.perGame.go.practice.lastDelta).toBe(12);
+    expect(stats.perGame.checkers.practice.lastDelta).toBeNull();
   });
 
-  it("does not call an untouched default a top rating", () => {
-    // `getUserRatings` returns a 1200 row for every game never played rated.
+  it('credits each rating change to the ladder its opponent belongs to', () => {
+    // Newest first. The newest chess row is an online game; the Practice level's
+    // last change must still be the older bot game's, and vice versa.
+    const games = [
+      row({ opponent: 'rival', rating_before: 1300, rating_after: 1290 }),
+      row({ opponent: 'stockfish', rating_before: 1500, rating_after: 1516 }),
+      row({ opponent: 'rival', rating_before: 1280, rating_after: 1300 }),
+    ];
+    const stats = summarizePlayer(
+      games,
+      { chess: rating('chess', 1516, 12, 1530) },
+      { chess: rating('chess', 1290, 2, 1300) },
+    );
+    expect(stats.perGame.chess.practice).toMatchObject({ rating: 1516, peak: 1530, ratedGames: 12, lastDelta: 16 });
+    expect(stats.perGame.chess.online).toMatchObject({ rating: 1290, peak: 1300, ratedGames: 2, lastDelta: -10 });
+    // The online peak is never the practice headline.
+    expect(stats.topPracticeLevel).toBe(1530);
+  });
+
+  it("does not call an untouched default a top practice level", () => {
+    // `getPracticeRatings` returns a 1200 row for every game never played rated.
     const untouched = summarizePlayer([row({})], {
       chess: rating('chess', 1200, 0),
       checkers: rating('checkers', 1200, 0),
     });
-    expect(untouched.topRating).toBe(0);
+    expect(untouched.topPracticeLevel).toBe(0);
 
     const played = summarizePlayer([row({})], {
       chess: rating('chess', 1180, 4, 1260),
       checkers: rating('checkers', 1200, 0),
     });
-    expect(played.topRating).toBe(1260);
+    expect(played.topPracticeLevel).toBe(1260);
   });
 });

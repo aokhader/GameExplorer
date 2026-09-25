@@ -36,8 +36,8 @@ import { FONTS } from '@/theme/typography';
  *
  * 1. **Continue** the game they were in the middle of, or **play again** with the
  *    setup they chose last time. A first visit gets *Start a game*.
- * 2. **Their numbers**: each rating with its last change, a win streak, puzzles
- *    solved.
+ * 2. **Their numbers**: each practice level with its last change (and the online
+ *    rating, once they have one), a win streak, puzzles solved.
  * 3. **Their games**, the most recently played first.
  * 4. **Something new**: one game they have not played for a month, with a first
  *    step into it.

@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import {
   getPublicProfile,
   getGames,
+  getPracticeRatings,
   getUserRatings,
   supabase,
   type Profile,
@@ -11,8 +12,8 @@ import {
   type UserRating,
   type GameType,
 } from '@gameexplorer/db';
-import { endReasonLabel } from '@gameexplorer/shared';
-import { ratingDelta, summarizePlayer } from '@gameexplorer/client/game/playerStats';
+import { endReasonLabel, GAME_CATALOG, RATING_COPY } from '@gameexplorer/shared';
+import { RATED_GAME_TYPES, ratingDelta, summarizePlayer } from '@gameexplorer/client/game/playerStats';
 import { useAuth } from '@gameexplorer/client';
 import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, Card, Button, Icon } from '@/components/ui';
@@ -82,6 +83,25 @@ function StatTile({ label, value, valueColor }: { label: string; value: string |
   );
 }
 
+/** A last change: ▲/▼ and its size, or nothing when there was none. */
+function DeltaMark({ delta, size }: { delta: number | null; size: number }) {
+  // Repaint when the theme changes; the tokens below are live views.
+  useThemeName();
+
+  if (delta === null || delta === 0) return null;
+  return (
+    <Text
+      style={{
+        color: delta > 0 ? COLORS.successHover : COLORS.dangerHover,
+        fontSize: size,
+        fontFamily: FONTS.bodyBold,
+      }}
+    >
+      {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}
+    </Text>
+  );
+}
+
 /** Tab header: screen title + settings entry (settings lives off the tab bar). */
 function YouHeader({ onSettings }: { onSettings: () => void }) {
   // Repaint when the theme changes; the tokens below are live views.
@@ -123,8 +143,8 @@ function YouHeader({ onSettings }: { onSettings: () => void }) {
 /**
  * The "You" tab. Guests get an inline sign-in prompt (a tab must not redirect
  * away on focus); signed-in users get the profile: identity, summary stats,
- * per-game ratings, recent games. Data refreshes on tab focus so a just-played
- * game shows up without an app restart.
+ * each game's practice level and online rating, recent games. Data refreshes on
+ * tab focus so a just-played game shows up without an app restart.
  */
 export default function YouScreen() {
   // Repaint when the theme changes; the tokens below are live views.
@@ -134,7 +154,16 @@ export default function YouScreen() {
   const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Pick<Profile, 'id' | 'username' | 'created_at'> | null>(null);
   const [games, setGames] = useState<GameListItem[]>([]);
-  const [ratings, setRatings] = useState<Record<GameType, UserRating> | null>(null);
+  // Two numbers per game: the Practice level (bots, rated practice) and the
+  // online Rating. See RATING_COPY for why they are kept apart.
+  const [practice, setPractice] = useState<Record<GameType, UserRating> | null>(null);
+  const [online, setOnline] = useState<Record<GameType, UserRating> | null>(null);
+  // The last load failed. Only shown when there is nothing loaded to fall back
+  // on — the readers reject now, and a first load that failed used to leave
+  // the tab on its spinner for good.
+  const [loadError, setLoadError] = useState(false);
+  // Bumped by *Try again* to re-run the focus load without a refocus.
+  const [attempt, setAttempt] = useState(0);
   // Which game the history list is filtered to, matching web's filter pills.
   const [tab, setTab] = useState<Tab>('all');
 
@@ -147,28 +176,37 @@ export default function YouScreen() {
       Promise.all([
         getPublicProfile(userId),
         getGames(userId),
-        getUserRatings(userId, ['chess', 'checkers', 'reversi', 'go']),
+        // One query per ladder for every rated game type, not a round-trip each.
+        getPracticeRatings(userId, [...RATED_GAME_TYPES]),
+        getUserRatings(userId, [...RATED_GAME_TYPES]),
       ])
-        .then(([profileData, gamesData, ratingData]) => {
+        .then(([profileData, gamesData, practiceRows, onlineRows]) => {
           if (!active) return;
           setProfile(profileData);
           setGames(gamesData);
-          setRatings(ratingData);
+          setPractice(practiceRows);
+          setOnline(onlineRows);
+          setLoadError(false);
         })
         .catch(() => {
-          /* keep whatever data is showing; a retry happens on next focus */
+          // Keep whatever data is showing; a retry happens on next focus.
+          if (active) setLoadError(true);
         });
       return () => {
         active = false;
       };
-    }, [userId]),
+      // `attempt` is read by nobody: it is here so *Try again* re-runs the load.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, attempt]),
   );
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);
     setGames([]);
-    setRatings(null);
+    setPractice(null);
+    setOnline(null);
+    setLoadError(false);
     router.replace('/' as never);
   }, [router]);
 
@@ -223,7 +261,31 @@ export default function YouScreen() {
     );
   }
 
-  if (authLoading || !profile || !ratings) {
+  if (!authLoading && loadError && (!profile || !practice || !online)) {
+    return (
+      <Screen inTabs scroll={false}>
+        <YouHeader onSettings={goSettings} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 }}>
+          <Pressable
+            onPress={() => {
+              setLoadError(false);
+              setAttempt((n) => n + 1);
+            }}
+            accessibilityRole="button"
+            hitSlop={8}
+            style={{ paddingVertical: 6 }}
+          >
+            <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.body, fontFamily: FONTS.body, textAlign: 'center' }}>
+              Couldn&apos;t load your profile.{' '}
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi }}>Try again</Text>
+            </Text>
+          </Pressable>
+        </View>
+      </Screen>
+    );
+  }
+
+  if (authLoading || !profile || !practice || !online) {
     return (
       <Screen inTabs scroll={false}>
         <YouHeader onSettings={goSettings} />
@@ -236,14 +298,7 @@ export default function YouScreen() {
 
   // One implementation of these numbers for Profile, web's Profile and the
   // launcher — see `playerStats.ts`.
-  const { winRate, currentStreak, bestStreak, topRating, perGame } = summarizePlayer(games, ratings);
-
-  const orderedRatings: { type: GameType; rating: UserRating }[] = [
-    { type: 'chess', rating: ratings.chess },
-    { type: 'checkers', rating: ratings.checkers },
-    { type: 'reversi', rating: ratings.reversi },
-    { type: 'go', rating: ratings.go },
-  ];
+  const { winRate, currentStreak, bestStreak, topPracticeLevel, perGame } = summarizePlayer(games, practice, online);
 
   const filtered = tab === 'all' ? games : games.filter((g) => (g.game_type ?? 'chess') === tab);
   const recent = filtered.slice(0, 10);
@@ -282,50 +337,92 @@ export default function YouScreen() {
         <StatTile label="Games played" value={games.length} />
         <StatTile label="Win rate" value={`${winRate}%`} valueColor={COLORS.successHover} />
         <StatTile label="Best streak" value={bestStreak} />
-        <StatTile label="Top rating" value={topRating > 0 ? topRating : '—'} valueColor={COLORS.accentHover} />
+        <StatTile
+          label="Top practice level"
+          value={topPracticeLevel > 0 ? topPracticeLevel : '—'}
+          valueColor={COLORS.accentHover}
+        />
       </View>
 
-      {/* Per-game ratings */}
+      {/* Per-game numbers. The Practice level leads: it is the number bot and
+          practice games move, which is most players' only one. The online
+          Rating sits under it, one line, for the games that have online play. */}
       <View style={{ gap: SPACING[3], marginBottom: 20 }}>
-        {orderedRatings.map(({ type, rating }) => {
+        {RATED_GAME_TYPES.map((type) => {
           const meta = GAME_META[type];
-          const delta = perGame[type].lastDelta;
-          const rated = rating.games_played > 0;
+          const row = practice[type];
+          const delta = perGame[type].practice.lastDelta;
+          const played = row.games_played > 0;
+          const hasOnline = GAME_CATALOG[type].modes.includes('online');
+          const onlineRow = online[type];
+          const onlineDelta = perGame[type].online.lastDelta;
           return (
             <Card key={type} style={{ padding: 16, borderLeftColor: GAME_ACCENTS[type].base, borderLeftWidth: 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING['2.5'], marginBottom: 8 }}>
                 <GamePieceIcon game={type} size={26} />
                 <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.base, fontFamily: FONTS.displaySemi }}>{meta.label}</Text>
               </View>
-              {rated ? (
+              <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, fontFamily: FONTS.body }}>
+                {RATING_COPY.practice.label}
+              </Text>
+              {played ? (
                 <>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SPACING[2] }}>
-                    <Text style={{ color: GAME_ACCENTS[type].base, fontSize: FONT_SIZES.display, fontFamily: FONTS.display }}>{rating.rating}</Text>
-                    {delta !== null && delta !== 0 && (
-                      <Text
-                        style={{
-                          color: delta > 0 ? COLORS.successHover : COLORS.dangerHover,
-                          fontSize: FONT_SIZES.sm,
-                          fontFamily: FONTS.bodyBold,
-                        }}
-                      >
-                        {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}
-                      </Text>
-                    )}
+                    <Text style={{ color: GAME_ACCENTS[type].base, fontSize: FONT_SIZES.display, fontFamily: FONTS.display }}>{row.rating}</Text>
+                    <DeltaMark delta={delta} size={FONT_SIZES.sm} />
                   </View>
                   <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 4, fontFamily: FONTS.body }}>
-                    {rating.games_played} game{rating.games_played !== 1 ? 's' : ''} · {rating.wins}W / {rating.losses}L / {rating.draws}D
+                    {row.games_played} game{row.games_played !== 1 ? 's' : ''} · {row.wins}W / {row.losses}L / {row.draws}D
                   </Text>
                   <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.xs, marginTop: 2, fontFamily: FONTS.body }}>
-                    Peak {rating.peak_rating}
-                    {rating.games_played < 30 ? ` · Provisional (${30 - rating.games_played} left)` : ''}
+                    Peak {row.peak_rating}
+                    {row.games_played < 30 ? ` · Provisional (${30 - row.games_played} left)` : ''}
                   </Text>
                 </>
               ) : (
                 <>
                   <Text style={{ color: GAME_ACCENTS[type].base, fontSize: FONT_SIZES.display, fontFamily: FONTS.display, opacity: 0.5 }}>—</Text>
-                  <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 4, fontFamily: FONTS.body }}>No rated games yet</Text>
+                  <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, marginTop: 4, fontFamily: FONTS.body }}>No practice games yet</Text>
                 </>
+              )}
+              {hasOnline && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'baseline',
+                    flexWrap: 'wrap',
+                    gap: SPACING['1.5'],
+                    marginTop: 12,
+                    paddingTop: 12,
+                    borderTopWidth: 1,
+                    borderTopColor: COLORS.border,
+                  }}
+                >
+                  <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, fontFamily: FONTS.body }}>
+                    {RATING_COPY.online.label}
+                  </Text>
+                  {onlineRow.games_played > 0 ? (
+                    <>
+                      <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold }}>{onlineRow.rating}</Text>
+                      <DeltaMark delta={onlineDelta} size={FONT_SIZES.xs} />
+                      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, fontFamily: FONTS.body }}>
+                        · {onlineRow.games_played} game{onlineRow.games_played !== 1 ? 's' : ''}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodyBold }}>—</Text>
+                      <Pressable
+                        onPress={() => router.push({ pathname: '/play/[game]', params: { game: type, online: '1' } } as never)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Play ${meta.label} online`}
+                        hitSlop={8}
+                      >
+                        <Text style={{ color: COLORS.fg, fontSize: FONT_SIZES.label, fontFamily: FONTS.bodySemi }}>Play online</Text>
+                      </Pressable>
+                    </>
+                  )}
+                </View>
               )}
             </Card>
           );
@@ -379,7 +476,7 @@ export default function YouScreen() {
               {tab === 'all' ? 'No games played yet' : `No ${GAME_META[tab].label.toLowerCase()} games yet`}
             </Text>
             <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.label, fontFamily: FONTS.body, marginTop: 2 }}>
-              Win a rated bot game and it lands here.
+              Finish a bot or online game while signed in and it lands here.
             </Text>
           </View>
         ) : (

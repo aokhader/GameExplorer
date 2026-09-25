@@ -15,13 +15,17 @@ import {
   type UnfinishedGame,
 } from '@gameexplorer/client/game/unfinishedGame';
 
+// Bot games read and write the Practice level. `getUserRating` — the online
+// Rating's reader — is mocked only so a test can prove it is never touched.
 const mockDb = {
+  getPracticeRating: jest.fn(),
+  recordPracticeResult: jest.fn(),
   getUserRating: jest.fn(),
-  upsertUserRating: jest.fn(),
 };
 jest.mock('@gameexplorer/db', () => ({
+  getPracticeRating: (...args: unknown[]) => mockDb.getPracticeRating(...args),
+  recordPracticeResult: (...args: unknown[]) => mockDb.recordPracticeResult(...args),
   getUserRating: (...args: unknown[]) => mockDb.getUserRating(...args),
-  upsertUserRating: (...args: unknown[]) => mockDb.upsertUserRating(...args),
 }));
 
 /** Each move flips the turn; moving to `mate` ends the game with the mover winning. */
@@ -116,8 +120,8 @@ const slot = (store: ReturnType<typeof memoryStore>, userId: string | null = nul
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockDb.getUserRating.mockResolvedValue(rating(1400));
-  mockDb.upsertUserRating.mockImplementation(async (_u: string, after: number) => rating(after));
+  mockDb.getPracticeRating.mockResolvedValue(rating(1400));
+  mockDb.recordPracticeResult.mockImplementation(async (after: number) => rating(after));
 });
 
 describe('useLocalGame — resumable slot', () => {
@@ -260,14 +264,30 @@ describe('useLocalGame — resumable slot', () => {
     act(() => result.current.resign());
 
     await waitFor(() => expect(result.current.ratingResult).not.toBeNull());
-    expect(mockDb.upsertUserRating).toHaveBeenCalledWith('u1', expect.any(Number), 'loss', 'chess');
+    expect(mockDb.recordPracticeResult).toHaveBeenCalledWith(expect.any(Number), 'loss', 'chess');
     await waitFor(() => expect(store.data.size).toBe(0));
+  });
+
+  it('moves only the Practice level — a rated bot game never reads the online Rating', async () => {
+    const store = memoryStore();
+    const { result } = renderLoop(store, makeAdapter(), { rated: true, userId: 'u1', mode: 'bot' });
+    await waitFor(() => expect(result.current.ratingLoading).toBe(false));
+
+    act(() => result.current.handleMove('e2', 'e4'));
+    await waitFor(() => expect(slot(store, 'u1')).not.toBeNull());
+    act(() => result.current.resign());
+
+    await waitFor(() => expect(result.current.ratingResult).not.toBeNull());
+    expect(mockDb.getPracticeRating).toHaveBeenCalledWith('u1', 'chess');
+    expect(mockDb.recordPracticeResult).toHaveBeenCalledTimes(1);
+    // The security property (GX-04): the online Rating is the server's alone.
+    expect(mockDb.getUserRating).not.toHaveBeenCalled();
   });
 
   it('leaves a rated game owed, marked with its ending, when the write fails', async () => {
     const store = memoryStore();
     const adapter = makeAdapter();
-    mockDb.upsertUserRating.mockRejectedValueOnce(new Error('offline'));
+    mockDb.recordPracticeResult.mockRejectedValueOnce(new Error('offline'));
     const quiet = jest.spyOn(console, 'error').mockImplementation(() => {});
     const { result } = renderLoop(store, adapter, { rated: true, userId: 'u1', mode: 'bot' });
     await waitFor(() => expect(result.current.ratingLoading).toBe(false));
@@ -286,10 +306,10 @@ describe('useLocalGame — resumable slot', () => {
     quiet.mockRestore();
   });
 
-  it("holds a resumed training game's bot turn until the player's rating has loaded", async () => {
+  it("holds a resumed training game's bot turn until the player's practice level has loaded", async () => {
     const store = memoryStore();
     let resolveRating: (r: ReturnType<typeof rating>) => void = () => {};
-    mockDb.getUserRating.mockReturnValue(new Promise((r) => (resolveRating = r)));
+    mockDb.getPracticeRating.mockReturnValue(new Promise((r) => (resolveRating = r)));
     const adapter = makeAdapter();
 
     const { result, rerender } = renderLoop(store, adapter, {

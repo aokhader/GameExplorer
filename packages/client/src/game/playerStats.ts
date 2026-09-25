@@ -1,5 +1,8 @@
 /**
- * A player's numbers, from their saved games and rating rows.
+ * A player's numbers, from their saved games and their two rating rows per game:
+ * the **Practice level** (bots and rated practice) and the online **Rating**.
+ * They are separate ladders (security audit v2, GX-04 — see `RATING_COPY`), so
+ * each row's rating change is credited to the ladder its opponent belongs to.
  *
  * Web's Profile and native's You tab each computed these inline — win rate, the
  * two streaks, top rating, each game's last rating change — as near-identical
@@ -11,20 +14,30 @@
  */
 
 import type { GameListItem, GameType, UserRating } from '@gameexplorer/db';
+import { DEFAULT_RATING } from '@gameexplorer/shared';
+import { isBotOpponent } from './gameHistory';
 
 /** The rated games, in the order every surface lists them. */
 export const RATED_GAME_TYPES: readonly GameType[] = ['chess', 'checkers', 'reversi', 'go'];
 
-export interface GameTypeStats {
-  type: GameType;
+/** One ladder's numbers for one game. */
+export interface LadderStats {
   rating: number;
   peak: number;
-  /** Rated games counted on the rating row. Zero means the rating is the untouched default. */
+  /** Games counted on the row. Zero means the number is the untouched default. */
   ratedGames: number;
-  /** Saved games of this type, rated or not. */
-  savedGames: number;
-  /** The change from the most recent rated game of this type, if there was one. */
+  /** The change from the most recent saved game on this ladder, if there was one. */
   lastDelta: number | null;
+}
+
+export interface GameTypeStats {
+  type: GameType;
+  /** Practice level — rated bot and practice games. */
+  practice: LadderStats;
+  /** Rating — rated online games. Go has no online mode, so it stays untouched there. */
+  online: LadderStats;
+  /** Saved games of this type, rated or not, bot or online. */
+  savedGames: number;
 }
 
 export interface PlayerStats {
@@ -35,8 +48,8 @@ export interface PlayerStats {
   /** Consecutive wins ending with the most recent game. */
   currentStreak: number;
   bestStreak: number;
-  /** Highest peak across the rated games, or 0 when none has been played. */
-  topRating: number;
+  /** Highest Practice level peak across the games, or 0 when none has moved. */
+  topPracticeLevel: number;
   perGame: Record<GameType, GameTypeStats>;
 }
 
@@ -53,13 +66,27 @@ export function gameTypeOf(game: Pick<GameListItem, 'game_type'>): GameType {
 
 const isWin = (g: Pick<GameListItem, 'result' | 'player_color'>) => g.result === g.player_color;
 
+type RatingRows = Partial<Record<GameType, UserRating>>;
+
+function ladder(row: UserRating | undefined, rows: readonly GameListItem[]): LadderStats {
+  const last = rows.find((g) => ratingDelta(g) !== null);
+  return {
+    rating: row?.rating ?? DEFAULT_RATING,
+    peak: row?.peak_rating ?? 0,
+    ratedGames: row?.games_played ?? 0,
+    lastDelta: last ? ratingDelta(last) : null,
+  };
+}
+
 /**
  * @param games Newest first, as `getGames` returns them.
- * @param ratings Missing entries count as unplayed.
+ * @param practice Practice level rows (`getPracticeRatings`). Missing entries count as unplayed.
+ * @param online Rating rows (`getUserRatings`). Missing entries count as unplayed.
  */
 export function summarizePlayer(
   games: readonly GameListItem[],
-  ratings: Partial<Record<GameType, UserRating>>,
+  practice: RatingRows,
+  online: RatingRows = {},
 ): PlayerStats {
   const wins = games.filter(isWin).length;
 
@@ -79,22 +106,18 @@ export function summarizePlayer(
 
   const perGame = {} as Record<GameType, GameTypeStats>;
   for (const type of RATED_GAME_TYPES) {
-    const row = ratings[type];
     const ofType = games.filter((g) => gameTypeOf(g) === type);
-    const lastRated = ofType.find((g) => ratingDelta(g) !== null);
     perGame[type] = {
       type,
-      rating: row?.rating ?? 1200,
-      peak: row?.peak_rating ?? 0,
-      ratedGames: row?.games_played ?? 0,
+      practice: ladder(practice[type], ofType.filter((g) => isBotOpponent(g.opponent))),
+      online: ladder(online[type], ofType.filter((g) => !isBotOpponent(g.opponent))),
       savedGames: ofType.length,
-      lastDelta: lastRated ? ratingDelta(lastRated) : null,
     };
   }
 
-  const topRating = Math.max(
+  const topPracticeLevel = Math.max(
     0,
-    ...RATED_GAME_TYPES.map((t) => (perGame[t].ratedGames > 0 ? perGame[t].peak : 0)),
+    ...RATED_GAME_TYPES.map((t) => (perGame[t].practice.ratedGames > 0 ? perGame[t].practice.peak : 0)),
   );
 
   return {
@@ -103,7 +126,7 @@ export function summarizePlayer(
     winRate: games.length > 0 ? Math.round((wins / games.length) * 100) : 0,
     currentStreak,
     bestStreak,
-    topRating,
+    topPracticeLevel,
     perGame,
   };
 }

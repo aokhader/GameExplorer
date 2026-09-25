@@ -30,11 +30,11 @@ export const getGames: typeof DB.getGames = async (...args) =>
 export const getGameById: typeof DB.getGameById = async (...args) =>
   (await db()).getGameById(...args);
 
-export const getUserRating: typeof DB.getUserRating = async (...args) =>
-  (await db()).getUserRating(...args);
+export const getPracticeRating: typeof DB.getPracticeRating = async (...args) =>
+  (await db()).getPracticeRating(...args);
 
-export const upsertUserRating: typeof DB.upsertUserRating = async (...args) =>
-  (await db()).upsertUserRating(...args);
+export const recordPracticeResult: typeof DB.recordPracticeResult = async (...args) =>
+  (await db()).recordPracticeResult(...args);
 
 // Types are erased at compile time — re-exported for convenience so callers
 // can keep a single import.

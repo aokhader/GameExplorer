@@ -5,7 +5,7 @@
  * to render a price.
  */
 
-/** How much rating each hint costs, mirroring web's training pages. */
+/** How many Practice level points each hint costs, mirroring web's training pages. */
 export const HINT_PENALTY = 2;
 
 /** How long a revealed hint stays on the board (ms). */

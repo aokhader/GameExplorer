@@ -56,7 +56,7 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
       }}
     >
       <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.sm, lineHeight: 20, textAlign: 'center' }}>
-        Create a free account to save your rating, track your match history, and pick up right
+        Create a free account to save your practice level, track your match history, and pick up right
         where you left off.
       </Text>
 

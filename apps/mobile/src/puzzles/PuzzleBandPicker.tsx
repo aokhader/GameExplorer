@@ -10,7 +10,7 @@ import { Icon } from '@/components/ui/Icon';
  * The bands are named after the bot tiers, so "Club" here and "Club" on the
  * setup screen's strength grid are the same claim about the same strength. That
  * equivalence is the point of the mode: it is how a player finds out what a
- * rated game at their own rating looks like without losing one.
+ * rated game at their own practice level looks like without losing one.
  *
  * Each tile shows progress through its band rather than how many exist. "3 / 8"
  * is the number a player tracks; a bare count told them nothing about what they
@@ -23,7 +23,7 @@ export interface PuzzleBandPickerProps {
   counts: Record<string, number>;
   solved: Record<string, number>;
   onSelect: (id: string) => void;
-  /** The player's own rating in this game, when they have one. */
+  /** The player's own Practice level in this game, when they have one. */
   rating?: number | null;
 }
 
@@ -57,7 +57,7 @@ export function PuzzleBandPicker({
           Difficulty
         </Text>
         {typeof rating === 'number' && (
-          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.caption }}>your rating: {rating}</Text>
+          <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.caption }}>your practice level: {rating}</Text>
         )}
       </View>
 

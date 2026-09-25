@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getGames, getUserRatings, type GameListItem } from '@gameexplorer/db';
+import { getGames, getPracticeRatings, getUserRatings, type GameListItem } from '@gameexplorer/db';
 import { RATED_GAME_TYPES, summarizePlayer, type PlayerStats } from '../game/playerStats';
 
 export interface UsePlayerStatsResult {
@@ -13,7 +13,7 @@ export interface UsePlayerStatsResult {
 }
 
 /**
- * Load a signed-in player's games and ratings and summarize them.
+ * Load a signed-in player's games, Practice levels and Ratings, and summarize them.
  *
  * A null `userId` loads nothing: a guest has no saved games or ratings, and the
  * surfaces say so rather than showing zeros that look like a record.
@@ -39,11 +39,15 @@ export function usePlayerStats(userId: string | null): UsePlayerStatsResult {
     }
     let active = true;
     setLoading(true);
-    Promise.all([getGames(userId), getUserRatings(userId, [...RATED_GAME_TYPES])])
-      .then(([rows, ratings]) => {
+    Promise.all([
+      getGames(userId),
+      getPracticeRatings(userId, [...RATED_GAME_TYPES]),
+      getUserRatings(userId, [...RATED_GAME_TYPES]),
+    ])
+      .then(([rows, practice, online]) => {
         if (!active) return;
         setGames(rows);
-        setStats(summarizePlayer(rows, ratings));
+        setStats(summarizePlayer(rows, practice, online));
         setError(false);
       })
       .catch((err) => {

@@ -66,7 +66,7 @@ const GameResultScreen = dynamic(
 
 export interface GoGameScreenProps {
   /**
-   * `bot` plays the engine at a chosen tier, `training` at your own rating with
+   * `bot` plays the engine at a chosen tier, `training` at your own practice level with
    * hints for sale, `local` is two people sharing one screen.
    *
    * Like reversi the board never flips between turns: `playerColor` is the tap
@@ -323,7 +323,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
           {/* Training matches the bot to you, so there is no tier to pick. */}
           {isTraining && (
             <div className="rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4">
-              <h2 className="text-2xl font-semibold text-fg mb-2">Matched to your rating</h2>
+              <h2 className="text-2xl font-semibold text-fg mb-2">Matched to your practice level</h2>
               {guestBlocked ? (
                 <p className="text-fg-muted">
                   Training is always rated, so it needs an account.{' '}
@@ -332,9 +332,9 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
               ) : (
                 <p className="text-fg-muted">
                   {ratingLoading
-                    ? 'Reading your rating…'
-                    : `Your Go rating is ${userRating?.rating ?? 1200}. The bot will play there.`}
-                  {' '}Hints cost {HINT_PENALTY} rating each.
+                    ? 'Reading your practice level…'
+                    : `Your Go practice level is ${userRating?.rating ?? 1200}. The bot will play there.`}
+                  {' '}Hints cost {HINT_PENALTY} points each.
                 </p>
               )}
             </div>
@@ -635,7 +635,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
                 <div className="min-w-0">
                   <p className="font-semibold text-fg">Hint</p>
                   <p className="text-xs text-fg-muted">
-                    {hintsUsed > 0 ? `${hintsUsed} used · −${hintsUsed * HINT_PENALTY} rating` : `Costs ${HINT_PENALTY} rating`}
+                    {hintsUsed > 0 ? `${hintsUsed} used · −${hintsUsed * HINT_PENALTY} points` : `Costs ${HINT_PENALTY} points`}
                   </p>
                   {/* Spelled out as well as ringed: a screen reader gets nothing
                       from a coloured circle, and "pass" has no square at all. */}
@@ -746,7 +746,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
         subtitle={gameOverMsg ?? undefined}
         rating={
           ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta, ladder: 'practice' }
             : undefined
         }
         actions={

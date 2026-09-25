@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GameIcon } from '@/components/game/GameIcon';
-import { END_REASON_LABELS } from '@gameexplorer/shared';
-import { getPublicProfile, getGames, getUserRatings, supabase } from '@gameexplorer/db';
+import { END_REASON_LABELS, GAME_CATALOG, RATING_COPY } from '@gameexplorer/shared';
+import { getPublicProfile, getGames, getPracticeRatings, getUserRatings, supabase } from '@gameexplorer/db';
 import type { AuthUser, Profile, GameListItem, UserRating, GameType } from '@gameexplorer/db';
 import { useRouter } from 'next/navigation';
 import { BlockedPlayers } from '@/components/multiplayer/BlockedPlayers';
@@ -92,6 +92,21 @@ function HomeLink() {
   );
 }
 
+/** The four rated games, in the order every surface lists them. */
+const RATED_TYPES = ['chess', 'checkers', 'reversi', 'go'] as const satisfies readonly GameType[];
+
+/** A rating's last change: ▲ 12 / ▼ 12, or nothing for no change. */
+function DeltaMark({ delta, small = false }: { delta: number | null; small?: boolean }) {
+  if (delta === null || delta === 0) return null;
+  return (
+    <span
+      className={`${small ? 'text-xs' : 'ml-2 text-sm'} font-semibold ${delta > 0 ? 'text-success-hover' : 'text-danger-hover'}`}
+    >
+      {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}
+    </span>
+  );
+}
+
 function StatTile({ label, value, valueClass = 'text-fg' }: { label: string; value: string | number; valueClass?: string }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4 sm:p-5">
@@ -153,13 +168,14 @@ export default function ProfilePage() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Pick<Profile, 'id' | 'username' | 'created_at'> | null>(null);
   const [games, setGames] = useState<GameListItem[]>([]);
-  const [chessRating, setChessRating] = useState<UserRating | null>(null);
-  const [checkersRating, setCheckersRating] = useState<UserRating | null>(null);
-  const [reversiRating, setReversiRating] = useState<UserRating | null>(null);
-  const [goRating, setGoRating] = useState<UserRating | null>(null);
+  // Two numbers per game: the Practice level (bots, rated practice) and the
+  // online Rating. See RATING_COPY for why they are kept apart.
+  const [practice, setPractice] = useState<Record<GameType, UserRating> | null>(null);
+  const [online, setOnline] = useState<Record<GameType, UserRating> | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [guest, setGuest] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     async function loadUser() {
@@ -179,19 +195,24 @@ export default function ProfilePage() {
         }
         setUser({ id: user.id, email: user.email! });
 
-        const [profileData, gamesData, ratings] = await Promise.all([
-          getPublicProfile(user.id),
-          getGames(user.id),
-          // One query for every rated game type instead of a round-trip each.
-          getUserRatings(user.id, ['chess', 'checkers', 'reversi', 'go']),
-        ]);
+        try {
+          const [profileData, gamesData, practiceRows, onlineRows] = await Promise.all([
+            getPublicProfile(user.id),
+            getGames(user.id),
+            // One query per ladder for every rated game type, not a round-trip each.
+            getPracticeRatings(user.id, [...RATED_TYPES]),
+            getUserRatings(user.id, [...RATED_TYPES]),
+          ]);
 
-        setProfile(profileData);
-        setGames(gamesData);
-        setChessRating(ratings.chess);
-        setCheckersRating(ratings.checkers);
-        setReversiRating(ratings.reversi);
-        setGoRating(ratings.go);
+          setProfile(profileData);
+          setGames(gamesData);
+          setPractice(practiceRows);
+          setOnline(onlineRows);
+        } catch (err) {
+          // A failed read used to leave this page on its skeleton for good.
+          console.error('Failed to load profile:', err);
+          setLoadError(true);
+        }
         setLoading(false);
     }
 
@@ -232,26 +253,29 @@ export default function ProfilePage() {
 
   if (guest) return <GuestYou />;
 
-  if (!user || !profile) {
+  if (loadError) {
+    return (
+      <div className="relative min-h-svh pt-16">
+        <div className="container mx-auto px-4 pt-8 pb-8 max-w-5xl">
+          <HomeLink />
+          <p className="text-fg-muted">
+            Couldn’t load your profile.{' '}
+            <button type="button" onClick={() => window.location.reload()} className="font-semibold text-fg hover:underline">
+              Try again
+            </button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !profile || !practice || !online) {
     return null;
   }
 
-  const ratings: { type: GameType; rating: UserRating | null }[] = [
-    { type: 'chess',    rating: chessRating },
-    { type: 'checkers', rating: checkersRating },
-    { type: 'reversi',  rating: reversiRating },
-    { type: 'go',       rating: goRating },
-  ];
-
   // One implementation of these numbers for this page, native's You tab and the
   // launcher — see `playerStats.ts`.
-  const { winRate, currentStreak, bestStreak, topRating, perGame } = summarizePlayer(games, {
-    chess: chessRating ?? undefined,
-    checkers: checkersRating ?? undefined,
-    reversi: reversiRating ?? undefined,
-    go: goRating ?? undefined,
-  });
-  const deltaFor = (type: GameType): number | null => perGame[type].lastDelta;
+  const { winRate, currentStreak, bestStreak, topPracticeLevel, perGame } = summarizePlayer(games, practice, online);
 
   const chessGames    = games.filter(g => !g.game_type || g.game_type === 'chess');
   const checkersGames = games.filter(g => g.game_type === 'checkers');
@@ -308,53 +332,78 @@ export default function ProfilePage() {
           <StatTile label="Games played" value={games.length} />
           <StatTile label="Win rate" value={`${winRate}%`} valueClass="text-success-hover" />
           <StatTile label="Best streak" value={bestStreak} />
-          <StatTile label="Top rating" value={topRating > 0 ? topRating : '—'} valueClass="text-[var(--c-accent-text)]" />
+          <StatTile label="Top practice level" value={topPracticeLevel > 0 ? topPracticeLevel : '—'} valueClass="text-[var(--c-accent-text)]" />
         </div>
 
-        {/* Per-game ratings — four games now, so the row splits 2-up on tablets
-            and 4-up on desktop; at sm:grid-cols-3 Go orphaned onto its own row. */}
+        {/* Per-game numbers — four games now, so the row splits 2-up on tablets
+            and 4-up on desktop; at sm:grid-cols-3 Go orphaned onto its own row.
+            The Practice level leads: it is the number bot and practice games
+            move, which is most players' only one. The online Rating sits under
+            it for the games that have online play. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
-          {ratings.map(({ type, rating }) => {
+          {RATED_TYPES.map((type) => {
             const meta = GAME_META[type];
-            const delta = deltaFor(type);
-            const rated = rating !== null && rating.games_played > 0;
+            const row = practice[type];
+            const delta = perGame[type].practice.lastDelta;
+            const played = row.games_played > 0;
+            const hasOnline = GAME_CATALOG[type].modes.includes('online');
+            const onlineRow = online[type];
+            const onlineDelta = perGame[type].online.lastDelta;
             return (
               <div key={type} className={`rounded-2xl border p-5 ${meta.card}`}>
                 <div className="flex items-center gap-2.5 mb-3">
                   <span className="text-2xl select-none inline-flex items-center"><GameIcon game={type} /></span>
                   <span className="font-display font-bold text-fg">{meta.label}</span>
                 </div>
-                {rated ? (
+                <div className="text-label text-fg-muted mb-0.5">{RATING_COPY.practice.label}</div>
+                {played ? (
                   <>
                     <div className={`font-display text-3xl font-bold tabular-nums ${meta.text}`}>
-                      {rating.rating}
-                      {delta !== null && delta !== 0 && (
-                        <span className={`ml-2 text-sm font-semibold ${delta > 0 ? 'text-success-hover' : 'text-danger-hover'}`}>
-                          {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}
-                        </span>
-                      )}
+                      {row.rating}
+                      <DeltaMark delta={delta} />
                     </div>
                     <div className="text-label text-fg-muted mt-1.5">
-                      {rating.games_played} game{rating.games_played !== 1 ? 's' : ''} · {rating.wins}W / {rating.losses}L / {rating.draws}D
+                      {row.games_played} game{row.games_played !== 1 ? 's' : ''} · {row.wins}W / {row.losses}L / {row.draws}D
                     </div>
                     <div className="text-xs text-fg-subtle mt-0.5">
-                      Peak {rating.peak_rating}
-                      {rating.games_played < 30 && (
-                        <span className="text-warning-hover"> · Provisional ({30 - rating.games_played} left)</span>
+                      Peak {row.peak_rating}
+                      {row.games_played < 30 && (
+                        <span className="text-warning-hover"> · Provisional ({30 - row.games_played} left)</span>
                       )}
                     </div>
                   </>
                 ) : (
                   <>
                     {/* Empty state reads as absent data, not as a faded game hue —
-                        the signature color belongs to a rating that exists. (A 50%
+                        the signature color belongs to a number that exists. (A 50%
                         game hue also fell far under AA on the light theme's card.) */}
                     <div className="font-display text-3xl font-bold text-fg-muted">—</div>
-                    <div className="text-label text-fg-muted mt-1.5">No rated games yet</div>
+                    <div className="text-label text-fg-muted mt-1.5">No practice games yet</div>
                     <Link href={`/${type}/training`} className={`text-xs hover:underline ${meta.text}`}>
-                      Play training →
+                      Rated practice →
                     </Link>
                   </>
+                )}
+                {hasOnline && (
+                  <div className="mt-3 pt-3 border-t border-border text-label text-fg-muted flex items-baseline gap-1.5 flex-wrap">
+                    <span>{RATING_COPY.online.label}</span>
+                    {onlineRow.games_played > 0 ? (
+                      <>
+                        <span className="font-bold tabular-nums text-fg">{onlineRow.rating}</span>
+                        <DeltaMark delta={onlineDelta} small />
+                        <span>
+                          · {onlineRow.games_played} game{onlineRow.games_played !== 1 ? 's' : ''}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold text-fg-muted">—</span>
+                        <Link href={`/${type}/play`} className={`hover:underline ${meta.text}`}>
+                          Play online →
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             );
@@ -396,7 +445,7 @@ export default function ProfilePage() {
               </p>
               {/* Say what would be here, then the one action that fills it. */}
               <p className="mt-1 text-fg-muted text-sm">
-                Every game you finish while signed in is listed here, with the rating it moved.
+                Every bot or online game you finish while signed in is listed here.
               </p>
               <Link
                 href={activeTab === 'all' ? '/chess/bot' : `/${activeTab}/bot`}

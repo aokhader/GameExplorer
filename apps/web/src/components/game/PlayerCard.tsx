@@ -79,7 +79,7 @@ export function PlayerCard({
               // rating does beside a player everywhere else.
               <span
                 className="shrink-0 text-caption font-semibold tabular-nums text-fg-muted"
-                title="Your rating — this game is rated"
+                title="Your practice level — this game is rated"
               >
                 {rating}
               </span>

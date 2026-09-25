@@ -14,7 +14,7 @@ import {
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
 import { useAuth } from '@/hooks/useAuth';
-import { saveReversiGame, getUserRating, upsertUserRating } from '@/lib/db';
+import { saveReversiGame, getPracticeRating, recordPracticeResult } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
@@ -211,10 +211,12 @@ export default function ReversiTrainingPage() {
   useEffect(() => {
     if (!user) return;
     setRatingLoading(true);
-    getUserRating(user.id, 'reversi').then(r => {
-      setUserRating(r);
-      setRatingLoading(false);
-    });
+    // Practice level, never the online Rating (GX-04). A failed read leaves the
+    // row null: the game still plays, and its result waits on the Continue card.
+    getPracticeRating(user.id, 'reversi')
+      .then(r => setUserRating(r))
+      .catch((err) => console.error('Failed to load Practice level:', err))
+      .finally(() => setRatingLoading(false));
   }, [user]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -314,7 +316,7 @@ export default function ReversiTrainingPage() {
     const newRating = Math.max(100, current.rating + adjustedDelta);
 
     Promise.all([
-      upsertUserRating(user.id, newRating, outcome, 'reversi'),
+      recordPracticeResult(newRating, outcome, 'reversi'),
       saveReversiGame(liveState, pc, result, `elo-${botElo}`, user.id, {
         mode: 'rated',
         rating_before: current.rating,
@@ -456,10 +458,10 @@ export default function ReversiTrainingPage() {
             />
           )}
 
-          {/* Rating card */}
+          {/* Practice level card */}
           <div className="rounded-xl border border-white/10 bg-surface-alt surface-raised p-5 mb-4">
             <h2 className="text-lg font-semibold text-fg-muted mb-4 uppercase tracking-wide text-center">
-              Your Rating
+              Your Practice level
             </h2>
             {ratingLoading ? (
               <div className="text-center text-fg-muted animate-pulse py-4">Loading…</div>
@@ -491,7 +493,7 @@ export default function ReversiTrainingPage() {
               <div>
                 <h2 className="text-lg font-semibold text-fg">Bot Strength</h2>
                 <p className="text-sm text-fg-muted mt-0.5">
-                  Automatically matched to your rating
+                  Automatically matched to your practice level
                 </p>
               </div>
               <div className="text-right">
@@ -504,7 +506,7 @@ export default function ReversiTrainingPage() {
           {/* Hint penalty notice */}
           <div className="bg-warning/10 border border-warning/35 rounded-xl p-4 mb-6 text-sm text-warning-hover">
             <div className="font-semibold mb-1 flex items-center gap-1.5"><Icon name="lightbulb" /> Hints available — with a cost</div>
-            Each hint highlights the best square for 3 seconds but applies a <strong>−2 rating penalty</strong> to your result.
+            Each hint highlights the best square for 3 seconds but applies a <strong>−2 point penalty</strong> to your result.
           </div>
 
           {/* Color selector */}
@@ -581,7 +583,7 @@ export default function ReversiTrainingPage() {
         backHref="/reversi"
         headerCenter={
           <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
-            <span className="text-xs text-fg-muted">Rating</span>
+            <span className="text-xs text-fg-muted">Practice level</span>
             <span className="text-sm font-bold text-fg">{userRating?.rating ?? 1200}</span>
           </div>
         }
@@ -778,7 +780,7 @@ export default function ReversiTrainingPage() {
         subtitle={gameOverMsg ?? undefined}
         rating={
           ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta, ladder: 'practice' }
             : undefined
         }
         hintsUsed={ratingResult?.hintsUsed}

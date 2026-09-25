@@ -261,6 +261,7 @@ function GameOverModal({
           before: me.ratingAfter - me.ratingDelta,
           after: me.ratingAfter,
           delta: me.ratingDelta,
+          ladder: 'online' as const,
         }
       : undefined;
 

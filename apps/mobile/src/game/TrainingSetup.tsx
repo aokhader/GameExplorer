@@ -12,22 +12,23 @@ const PROVISIONAL_GAMES = 30;
 
 export interface TrainingSetupProps {
   game: EloLabelGame;
-  /** The player's rating row, or null while loading / signed out. */
+  /** The player's Practice level row, or null while loading / signed out. */
   rating: UserRating | null;
   loading: boolean;
   /** Strength the bot will actually play at — already clamped by the loop. */
   botElo: number;
-  /** Signed in? Training writes a rating, so an account is required. */
+  /** Signed in? Training writes a practice level, so an account is required. */
   signedIn: boolean;
   online: boolean;
 }
 
 /**
  * The training setup panel — the native mirror of web's `/{game}/training` setup
- * screen: your rating, the bot matched to it, and what hints cost. Guests and
- * offline players get the reason they can't start instead of the rating card
- * (training always writes a rating, so it needs both an account and a
- * connection). Rendered between the mode picker and the color picker.
+ * screen: your practice level, the bot matched to it, and what hints cost.
+ * Guests and offline players get the reason they can't start instead of the
+ * practice-level card (training always writes a practice level, so it needs
+ * both an account and a connection). Rendered between the mode picker and the
+ * color picker.
  */
 export function TrainingSetup({
   game,
@@ -60,7 +61,7 @@ export function TrainingSetup({
           Training needs an account
         </Text>
         <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: 20 }}>
-          Every training game is rated, so your rating has to live somewhere. Sign in and the bot
+          Every training game is rated, so your practice level has to live somewhere. Sign in and the bot
           will match your level from your very first game.
         </Text>
         <Button
@@ -88,7 +89,7 @@ export function TrainingSetup({
           Training needs a connection
         </Text>
         <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: 20 }}>
-          Rated games read and write your rating. Play a casual bot game or pass-and-play while
+          Rated games read and write your practice level. Play a casual bot game or pass-and-play while
           you&apos;re offline — both work without a connection.
         </Text>
       </View>
@@ -101,7 +102,7 @@ export function TrainingSetup({
 
   return (
     <>
-      {/* Rating card */}
+      {/* Practice level card */}
       <View
         style={{
           borderRadius: RADIUS['2xl'],
@@ -122,7 +123,7 @@ export function TrainingSetup({
             marginBottom: 10,
           }}
         >
-          YOUR RATING
+          YOUR PRACTICE LEVEL
         </Text>
         {loading ? (
           <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.body, paddingVertical: 12 }}>
@@ -131,7 +132,7 @@ export function TrainingSetup({
         ) : (
           <>
             <Text
-              accessibilityLabel={`Your rating is ${current}, ${eloLabel(game, current)}`}
+              accessibilityLabel={`Your practice level is ${current}, ${eloLabel(game, current)}`}
               style={{ color: COLORS.fg, fontFamily: FONTS.display, fontSize: FONT_SIZES['6xl'], lineHeight: 60 }}
             >
               {current}
@@ -161,7 +162,7 @@ export function TrainingSetup({
                   lineHeight: 17,
                 }}
               >
-                Provisional — your rating moves faster for {remaining} more{' '}
+                Provisional — your practice level moves faster for {remaining} more{' '}
                 {remaining === 1 ? 'game' : 'games'}.
               </Text>
             )}
@@ -189,7 +190,7 @@ export function TrainingSetup({
             Bot strength
           </Text>
           <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
-            Matched to your rating automatically
+            Matched to your practice level automatically
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
@@ -223,7 +224,7 @@ export function TrainingSetup({
         </View>
         <Text style={{ color: COLORS.warningHover, fontFamily: FONTS.body, fontSize: FONT_SIZES.label, lineHeight: 19 }}>
           Tap Hint during the game to see the best move for a few seconds. Each hint costs{' '}
-          {HINT_PENALTY} rating points off your result.
+          {HINT_PENALTY} points off your result.
         </Text>
       </View>
     </>

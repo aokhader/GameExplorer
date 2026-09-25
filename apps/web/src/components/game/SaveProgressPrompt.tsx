@@ -48,7 +48,7 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
   return (
     <div className="mt-6 pt-5 border-t border-white/10 text-center">
       <p className="text-sm text-fg-muted leading-relaxed mb-4">
-        Create a free account to save your rating, track your match history,
+        Create a free account to save your practice level, track your match history,
         and pick up right where you left off.
       </p>
 

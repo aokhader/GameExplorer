@@ -99,7 +99,7 @@ function ratedField<G extends SetupGame>(setup: BotGameSetup, signedIn: boolean,
     value: setup.rated ? 'Rated' : 'Casual',
     selected: setup.rated ? 'on' : 'off',
     options: [
-      { value: 'on', label: 'Rated', detail: 'The result moves your rating' },
+      { value: 'on', label: 'Rated', detail: 'The result moves your practice level' },
       { value: 'off', label: 'Casual', detail: 'Nothing is recorded' },
     ],
     apply: (value) => ({ rated: value === 'on' }) as unknown as Partial<SetupFor[G]>,

@@ -85,8 +85,8 @@ jest.mock('@gameexplorer/client', () => ({ useAuth: () => ({ user: null, loading
 // `useLocalGame.test.ts` makes.
 jest.mock('@gameexplorer/db', () => ({
   saveGoGame: jest.fn(async () => null),
-  getUserRating: jest.fn(async () => null),
-  upsertUserRating: jest.fn(async () => null),
+  getPracticeRating: jest.fn(async () => null),
+  recordPracticeResult: jest.fn(async () => null),
 }));
 
 /**

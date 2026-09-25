@@ -4,8 +4,8 @@ import { useLocalGame, type LocalGameAdapter } from '@/engine/useLocalGame';
 // The loop imports the db writers at module load; no test here reaches a game
 // end, so stub them out rather than dragging Supabase config into Jest.
 jest.mock('@gameexplorer/db', () => ({
-  getUserRating: jest.fn(async () => null),
-  upsertUserRating: jest.fn(async () => null),
+  getPracticeRating: jest.fn(async () => null),
+  recordPracticeResult: jest.fn(async () => null),
 }));
 
 /** Minimal two-state game: each move just flips the side to move. */

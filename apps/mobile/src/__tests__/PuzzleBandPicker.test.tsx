@@ -101,13 +101,13 @@ describe('PuzzleBandPicker', () => {
     expect(props.onSelect).toHaveBeenCalledWith('master');
   });
 
-  it('shows the player’s rating when there is one, and nothing when there is not', () => {
+  it('shows the player’s practice level when there is one, and nothing when there is not', () => {
     renderPicker({ rating: 1240 });
-    expect(screen.getByText('your rating: 1240')).toBeOnTheScreen();
+    expect(screen.getByText('your practice level: 1240')).toBeOnTheScreen();
 
     screen.unmount();
     renderPicker({ rating: null });
-    expect(screen.queryByText(/your rating/)).toBeNull();
+    expect(screen.queryByText(/your practice level/)).toBeNull();
   });
 
   it('uses each game’s own ladder, not chess’s', () => {

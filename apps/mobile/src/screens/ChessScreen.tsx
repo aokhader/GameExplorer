@@ -175,7 +175,7 @@ export function ChessScreen() {
     targetElo,
     rated: ratedEffective,
     userId,
-    // Training matches the bot to the player's rating; clamp it to what this
+    // Training matches the bot to the player's practice level; clamp it to what this
     // binary's engine can actually play (same ceiling the preset tiles use).
     eloBounds: { min: CUSTOM_ELO_MIN, max: maxElo },
     started: started && isLocalMode,
@@ -183,7 +183,7 @@ export function ChessScreen() {
     persistence: { store: nativeLocalStore, game: 'chess', setup: setup.setup },
   });
 
-  // The tier picked on setup, or — in training — the player's own rating.
+  // The tier picked on setup, or — in training — the player's own practice level.
   const botElo = game.botElo;
   const canStart = isTraining
     ? ratedEffective && !game.ratingLoading
@@ -521,7 +521,7 @@ export function ChessScreen() {
                   ? 'Sign in to play rated games'
                   : !online
                     ? 'Offline — rated games need a connection'
-                    : 'Updates your chess rating'}
+                    : 'Updates your chess practice level'}
               </Text>
             </View>
             <Toggle value={ratedEffective} onValueChange={(value) => setup.update({ rated: value })} label="Rated" disabled={!userId || !online} />
@@ -834,7 +834,7 @@ export function ChessScreen() {
             hintPending={game.isHinting}
             hintsUsed={game.hintsUsed}
             // Gated on the game being over: mid-game this is an unlimited free
-            // hint, which is exactly what training charges rating for.
+            // hint, which is exactly what training charges points for.
             onAnalysis={gameOverMsg ? () => setReviewing(true) : undefined}
           />
         }
@@ -857,9 +857,10 @@ export function ChessScreen() {
               ? undefined
               : gameOverMsg ?? undefined
         }
+        // Bot and training games move the Practice level, never the online Rating.
         rating={
           ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta, ladder: 'practice' }
             : undefined
         }
         hintsUsed={ratingResult?.hintsUsed}

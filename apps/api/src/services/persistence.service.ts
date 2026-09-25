@@ -1,16 +1,16 @@
 // Server-authoritative persistence of multiplayer results to Supabase.
 //
-// Writes the same `user_ratings` and `games` rows the web client writes for
-// bot/training games (packages/db), but with the service-role key so results
-// are recorded for BOTH players regardless of whether their browsers are
-// still open when the game ends.
+// `user_ratings` is the online Rating, and this service is its only writer: it
+// writes with the service-role key, and clients hold no write grant on the
+// table at all (security audit v2, GX-04 — `supabase-security-wave2.sql`).
+// Bot and training games move a separate number, the Practice level in
+// `practice_ratings`, which nothing here ever reads. Results are recorded for
+// BOTH players regardless of whether their browsers are still open.
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
-import { LIMITS } from '@gameexplorer/shared';
+import { LIMITS, DEFAULT_RATING, clampRating } from '@gameexplorer/shared';
 import type { GameType, GameResult, GameOutcome, EndReason } from '@gameexplorer/shared';
 import type { GameSession } from './gameSession.service';
-
-const DEFAULT_RATING  = 1200;
 
 interface RatingRow {
   user_id: string;
@@ -68,7 +68,11 @@ async function pruneOldGames(userId: string, gameType: GameType): Promise<void> 
 }
 
 export const persistenceService = {
-  /** Current rating for matchmaking/scoring — server-side, never client-supplied. */
+  /**
+   * Current online Rating for matchmaking and scoring. Clamped into
+   * `RATING_BOUNDS` on the way in: this number prices the *opponent's* Elo
+   * change, so one bad row must never reach that arithmetic, whoever wrote it.
+   */
   async getRating(userId: string, gameType: GameType): Promise<number> {
     if (!supabaseAdmin) return DEFAULT_RATING;
     try {
@@ -78,7 +82,7 @@ export const persistenceService = {
         .eq('user_id', userId)
         .eq('game_type', gameType)
         .single();
-      return data?.rating ?? DEFAULT_RATING;
+      return data ? clampRating(data.rating) : DEFAULT_RATING;
     } catch {
       return DEFAULT_RATING;
     }
@@ -113,7 +117,8 @@ export const persistenceService = {
         .eq('user_id', userId)
         .eq('game_type', gameType)
         .single();
-      return (data as { games_played?: number } | null)?.games_played ?? 0;
+      const played = (data as { games_played?: number } | null)?.games_played;
+      return typeof played === 'number' && Number.isFinite(played) ? Math.max(0, Math.floor(played)) : 0;
     } catch {
       return 0;
     }
@@ -142,12 +147,12 @@ export const persistenceService = {
     const updated: RatingRow = {
       user_id: userId,
       game_type: gameType,
-      rating: newRating,
+      rating: clampRating(newRating),
       games_played: current.games_played + 1,
       wins: current.wins + (outcome === 'win' ? 1 : 0),
       losses: current.losses + (outcome === 'loss' ? 1 : 0),
       draws: current.draws + (outcome === 'draw' ? 1 : 0),
-      peak_rating: Math.max(current.peak_rating, newRating),
+      peak_rating: clampRating(Math.max(current.peak_rating, newRating)),
       updated_at: new Date().toISOString(),
     };
 

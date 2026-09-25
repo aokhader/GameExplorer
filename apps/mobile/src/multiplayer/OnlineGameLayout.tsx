@@ -414,6 +414,8 @@ function OnlineResult({ session: s, onExit }: { session: GameSession; onExit: ()
           before: me.ratingAfter - me.ratingDelta,
           after: me.ratingAfter,
           delta: me.ratingDelta,
+          // Online games move the server's Rating — the one number it defends.
+          ladder: 'online' as const,
         }
       : undefined;
 

@@ -10,7 +10,7 @@ import { usePuzzle } from '@gameexplorer/client/hooks/usePuzzle';
 import type { PuzzleGame } from '@gameexplorer/shared';
 import { defaultBandFor } from '@gameexplorer/shared';
 import { useAuth } from '@/hooks/useAuth';
-import { getUserRating } from '@/lib/db';
+import { getPracticeRating } from '@/lib/db';
 import { GameScreenLayout } from '@/components/game/GameScreenLayout';
 import { StatusBanner } from '@/components/game/StatusBanner';
 import { GameSkeleton } from '@/components/game/GameSkeleton';
@@ -92,18 +92,22 @@ export interface PuzzleScreenProps {
 export function PuzzleScreen({ game }: PuzzleScreenProps) {
   const { user } = useAuth();
 
-  // The player's own rating in this game, which decides the band the picker
-  // opens on. `null` while it is unknown — a guest never leaves that state, and
+  // The player's own Practice level in this game, which decides the band the
+  // picker opens on — puzzles are practice, and it is the number most players
+  // have actually moved. `null` while it is unknown — a guest never leaves that state, and
   // `defaultBandFor` gives them the middle band.
   const [rating, setRating] = React.useState<number | null>(null);
   React.useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    // Never null: `getUserRating` falls back to a default for a player with no
-    // games yet, which is the right band to open on for a new account.
-    void getUserRating(user.id, game).then((r) => {
-      if (!cancelled) setRating(r.rating);
-    });
+    // Never null: `getPracticeRating` falls back to a default for a player with
+    // no games yet, which is the right band to open on for a new account. A
+    // failed read leaves the middle band — a rating is a nicety here.
+    getPracticeRating(user.id, game)
+      .then((r) => {
+        if (!cancelled) setRating(r.rating);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

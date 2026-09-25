@@ -6,7 +6,7 @@ import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRat
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
-import { saveCheckersGame, getUserRating, upsertUserRating } from '@/lib/db';
+import { saveCheckersGame, getPracticeRating, recordPracticeResult } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
@@ -241,7 +241,11 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   // Load rating when user is available
   useEffect(() => {
     if (!user) return;
-    getUserRating(user.id, 'checkers').then(setUserRating);
+    // Practice level, never the online Rating — a bot game has no witness, so
+    // it may only move the number nothing else trusts (GX-04).
+    getPracticeRating(user.id, 'checkers')
+      .then(setUserRating)
+      .catch((err) => console.error('Failed to load Practice level:', err));
   }, [user]);
 
   // Bumped on every reset. A rematch starts the next game the instant the last
@@ -389,7 +393,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
       // the Continue card rather than losing it.
       slot.markEnded(manualEnd ?? 'over');
       Promise.all([
-        upsertUserRating(uid, newRating, outcome, 'checkers'),
+        recordPracticeResult(newRating, outcome, 'checkers'),
         saveCheckersGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid, {
           mode: 'rated',
           rating_before: current.rating,
@@ -857,7 +861,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
         subtitle={isLocal ? gameOverMsg ?? undefined : myResult === 'win' ? undefined : gameOverMsg ?? undefined}
         rating={
           ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta, ladder: 'practice' }
             : undefined
         }
         actions={

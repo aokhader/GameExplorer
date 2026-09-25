@@ -82,3 +82,32 @@ describe('GameResultScreen — leaving the card', () => {
     expect(mockReplace).toHaveBeenCalledWith('/');
   });
 });
+
+/**
+ * Two numbers, two names (security audit v2, GX-04): a bot or training game
+ * moves the Practice level, and only an online game moves the Rating.
+ */
+describe('GameResultScreen — the number that moved', () => {
+  const renderWith = (ladder: 'online' | 'practice') =>
+    render(
+      <GameResultScreen
+        open
+        result="win"
+        rating={{ before: 1500, after: 1512, delta: 12, ladder }}
+        actions={<BackToHomeButton />}
+      />,
+    );
+
+  it('calls a bot or training change the Practice level', () => {
+    renderWith('practice');
+    expect(screen.getByText('Practice level')).toBeOnTheScreen();
+    expect(screen.queryByText('Rating')).toBeNull();
+    expect(screen.getByText('1512')).toBeOnTheScreen();
+  });
+
+  it('keeps "Rating" for an online game', () => {
+    renderWith('online');
+    expect(screen.getByText('Rating')).toBeOnTheScreen();
+    expect(screen.queryByText('Practice level')).toBeNull();
+  });
+});

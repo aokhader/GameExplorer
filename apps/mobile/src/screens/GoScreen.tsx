@@ -480,7 +480,7 @@ export function GoScreen() {
                   ? 'Sign in to play rated games'
                   : !online
                     ? 'Offline — rated games need a connection'
-                    : 'Updates your Go rating'}
+                    : 'Updates your Go practice level'}
               </Text>
             </View>
             <Toggle value={ratedEffective} onValueChange={(value) => setup.update({ rated: value })} label="Rated" disabled={!userId || !online} />
@@ -760,9 +760,10 @@ export function GoScreen() {
             ? gameOverMsg ?? undefined
             : `${gameOverMsg ?? ''} · Black ${finalScore.black}, White ${finalScore.white}`.trim()
         }
+        // Bot and training games move the Practice level, never the online Rating.
         rating={
           ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta, ladder: 'practice' }
             : undefined
         }
         hintsUsed={ratingResult?.hintsUsed}

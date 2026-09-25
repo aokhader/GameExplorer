@@ -42,19 +42,40 @@ export interface ModeCopy {
  *
  * "Play vs Bot" and "Training Mode" both meant "play a bot" — the difference
  * lived only in the small print — so the names now say what happens to you:
- * you pick the bot's strength, or you play a bot matched to your rating for
- * rating. Pass-and-play had two names ("Local 2-Player" on web, "Pass & Play"
- * on native). Every string here is true today: hints do cost rating in rated
- * practice, and an online game does run on a clock.
+ * you pick the bot's strength, or you play a bot matched to your practice
+ * level, for points. Pass-and-play had two names ("Local 2-Player" on web,
+ * "Pass & Play" on native). Every string here is true today: hints do cost
+ * points in rated practice, and an online game does run on a clock.
  */
 export const MODE_COPY: Record<GameModeId, ModeCopy> = {
   bot: { label: 'Play the bot', description: 'You pick the strength' },
-  training: { label: 'Rated practice', description: 'A bot matched to your rating. Hints cost rating' },
+  training: { label: 'Rated practice', description: 'A bot matched to your practice level. Hints cost points' },
   online: { label: 'Play online', description: 'A real opponent, on a clock' },
   local: { label: 'Pass & Play', description: 'Two players, one device' },
   puzzles: { label: 'Puzzles', description: 'Set positions, solved one move at a time' },
   learn: { label: 'How to play', description: 'The rules in a few minutes' },
 };
+
+/**
+ * The two numbers a player has in each rated game, and what every surface
+ * calls them (owner decision, security audit v2 GX-04).
+ *
+ * - **Rating** is earned in rated *online* games. The server computes and
+ *   writes it, and uses it to pair players and to price both players' change,
+ *   so it is the one number that is defended.
+ * - **Practice level** is earned against bots and in rated practice. It is
+ *   computed on the device, so it is the player's own figure — not called a
+ *   rating, so that nobody expects it to be defended.
+ *
+ * `label` is for a heading or a stat's name; `inline` is for running text
+ * ("Updates your chess practice level").
+ */
+export const RATING_COPY = {
+  online: { label: 'Rating', inline: 'rating' },
+  practice: { label: 'Practice level', inline: 'practice level' },
+} as const;
+
+export type RatingLadder = keyof typeof RATING_COPY;
 
 export interface GameCatalogEntry {
   id: GameId;

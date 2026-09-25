@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { GAME_CATALOG, GAME_LIST, type GameId } from '@gameexplorer/shared';
+import { GAME_CATALOG, GAME_LIST, RATING_COPY, type GameId } from '@gameexplorer/shared';
 import type { PlayerStats } from '@gameexplorer/client/game/playerStats';
 import { RATED_GAME_TYPES } from '@gameexplorer/client/game/playerStats';
 import type { SavedLiquidateGame } from '@gameexplorer/client/liquidate/saveStore';
@@ -208,10 +208,30 @@ export function AlsoUnfinishedRow({ game, detail, onPress }: { game: GameId; det
   );
 }
 
-function Chip({ icon, game, label, sub, subColor }: { icon?: IconName; game?: GameId; label: string; sub?: string; subColor?: string }) {
+function Chip({
+  icon,
+  game,
+  tag,
+  label,
+  sub,
+  subColor,
+  accessibilityLabel,
+}: {
+  icon?: IconName;
+  game?: GameId;
+  /** A small muted word before the number — "Rating" on an online chip. */
+  tag?: string;
+  label: string;
+  sub?: string;
+  subColor?: string;
+  /** Read as one element with this label, rather than piece by piece. */
+  accessibilityLabel?: string;
+}) {
   useThemeName();
   return (
     <View
+      accessible={accessibilityLabel ? true : undefined}
+      accessibilityLabel={accessibilityLabel}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -225,16 +245,24 @@ function Chip({ icon, game, label, sub, subColor }: { icon?: IconName; game?: Ga
       }}
     >
       {game ? <GamePieceIcon game={game} size={18} /> : icon ? <Icon name={icon} size={FONT_SIZES.base} color={COLORS.fgMuted} /> : null}
+      {tag && <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.caption }}>{tag}</Text>}
       <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.label }}>{label}</Text>
       {sub && <Text style={{ color: subColor ?? COLORS.fgMuted, fontFamily: FONTS.bodySemi, fontSize: FONT_SIZES.label }}>{sub}</Text>}
     </View>
   );
 }
 
+/** A last change as the chip shows it: "+12" / "−12". */
+const signedDelta = (delta: number) => `${delta > 0 ? '+' : '−'}${Math.abs(delta)}`;
+/** The same change for a screen reader: ", up 12" / ", down 12". */
+const spokenDelta = (delta: number | null) => (delta ? `, ${delta > 0 ? 'up' : 'down'} ${Math.abs(delta)}` : '');
+
 /**
- * The player's own numbers (`ux-fix-ideas.md` §4.3, P6): a rating and its last
- * change for each game played rated, the current win streak, puzzles solved.
- * Only numbers that exist are shown — an untouched 1200 is not a rating.
+ * The player's own numbers (`ux-fix-ideas.md` §4.3, P6): for each game played
+ * rated, the practice level and its last change, then the online rating (tagged
+ * "Rating") once an online rated game has moved it; the current win streak;
+ * puzzles solved. Only numbers that exist are shown — an untouched 1200 is not a
+ * number anyone earned.
  */
 export function NumbersRow({
   signedIn,
@@ -270,18 +298,36 @@ export function NumbersRow({
   const chips: ReactNode[] = [];
   if (stats) {
     for (const type of RATED_GAME_TYPES) {
-      const g = stats.perGame[type];
-      if (g.ratedGames === 0) continue;
-      const delta = g.lastDelta;
-      chips.push(
-        <Chip
-          key={type}
-          game={type}
-          label={String(g.rating)}
-          sub={delta ? `${delta > 0 ? '+' : '−'}${Math.abs(delta)}` : undefined}
-          subColor={delta && delta > 0 ? COLORS.successHover : COLORS.dangerHover}
-        />,
-      );
+      const { practice, online } = stats.perGame[type];
+      const name = GAME_CATALOG[type].name;
+      if (practice.ratedGames > 0) {
+        const delta = practice.lastDelta;
+        chips.push(
+          <Chip
+            key={`${type}-practice`}
+            game={type}
+            label={String(practice.rating)}
+            sub={delta ? signedDelta(delta) : undefined}
+            subColor={delta && delta > 0 ? COLORS.successHover : COLORS.dangerHover}
+            accessibilityLabel={`${name} ${RATING_COPY.practice.inline} ${practice.rating}${spokenDelta(delta)}`}
+          />,
+        );
+      }
+      // The online Rating only once an online rated game has moved it.
+      if (online.ratedGames > 0) {
+        const delta = online.lastDelta;
+        chips.push(
+          <Chip
+            key={`${type}-online`}
+            game={type}
+            tag={RATING_COPY.online.label}
+            label={String(online.rating)}
+            sub={delta ? signedDelta(delta) : undefined}
+            subColor={delta && delta > 0 ? COLORS.successHover : COLORS.dangerHover}
+            accessibilityLabel={`${name} ${RATING_COPY.online.inline} ${online.rating}${spokenDelta(delta)}`}
+          />,
+        );
+      }
     }
     if (stats.currentStreak >= 2) {
       chips.push(<Chip key="streak" icon="fire" label={`${stats.currentStreak} wins in a row`} />);
@@ -297,14 +343,14 @@ export function NumbersRow({
       {signedIn && error && (
         <Pressable onPress={onRetry} accessibilityRole="button" hitSlop={8} style={{ paddingVertical: 6 }}>
           <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
-            Couldn&apos;t load your ratings. <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi }}>Try again</Text>
+            Couldn&apos;t load your numbers. <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi }}>Try again</Text>
           </Text>
         </Pressable>
       )}
       {!signedIn && finishedGame && (
         <Pressable onPress={onSignIn} accessibilityRole="button" hitSlop={8} style={{ paddingVertical: 6 }}>
           <Text style={{ color: COLORS.fgMuted, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>
-            A rating needs an account. <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi }}>Sign in</Text>
+            A practice level needs an account. <Text style={{ color: COLORS.fg, fontFamily: FONTS.bodySemi }}>Sign in</Text>
           </Text>
         </Pressable>
       )}

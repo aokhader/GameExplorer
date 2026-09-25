@@ -7,7 +7,7 @@ import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
 import { useAuth } from '@/hooks/useAuth';
-import { saveReversiGame, getUserRating, upsertUserRating } from '@/lib/db';
+import { saveReversiGame, getPracticeRating, recordPracticeResult } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
 import type { GameResult } from '@/components/game/GameResultScreen';
@@ -196,7 +196,11 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   // Load rating when user is available
   useEffect(() => {
     if (!user) return;
-    getUserRating(user.id, 'reversi').then(setUserRating);
+    // Practice level, never the online Rating — a bot game has no witness, so
+    // it may only move the number nothing else trusts (GX-04).
+    getPracticeRating(user.id, 'reversi')
+      .then(setUserRating)
+      .catch((err) => console.error('Failed to load Practice level:', err));
   }, [user]);
 
   const appendState = useCallback((next: ReversiGameState) => {
@@ -356,7 +360,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
       // the Continue card rather than losing it.
       slot.markEnded(manualEnd ?? 'over');
       Promise.all([
-        upsertUserRating(uid, newRating, outcome, 'reversi'),
+        recordPracticeResult(newRating, outcome, 'reversi'),
         saveReversiGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid, {
           mode: 'rated',
           rating_before: current.rating,
@@ -797,7 +801,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
         subtitle={gameOverMsg ?? undefined}
         rating={
           ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta, ladder: 'practice' }
             : undefined
         }
         actions={

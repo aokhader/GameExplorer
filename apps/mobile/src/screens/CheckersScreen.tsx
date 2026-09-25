@@ -400,7 +400,7 @@ export function CheckersScreen() {
                   ? 'Sign in to play rated games'
                   : !online
                     ? 'Offline — rated games need a connection'
-                    : 'Updates your checkers rating'}
+                    : 'Updates your checkers practice level'}
               </Text>
             </View>
             <Toggle
@@ -660,7 +660,7 @@ export function CheckersScreen() {
             hintPending={game.isHinting}
             hintsUsed={game.hintsUsed}
             // Gated on the game being over: mid-game this is an unlimited free
-            // hint, which is exactly what training charges rating for.
+            // hint, which is exactly what training charges points for.
             onAnalysis={gameOverMsg ? () => setReviewing(true) : undefined}
           />
         }
@@ -683,9 +683,10 @@ export function CheckersScreen() {
               ? undefined
               : gameOverMsg ?? undefined
         }
+        // Bot and training games move the Practice level, never the online Rating.
         rating={
           ratingResult
-            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta }
+            ? { before: ratingResult.before, after: ratingResult.after, delta: ratingResult.delta, ladder: 'practice' }
             : undefined
         }
         hintsUsed={ratingResult?.hintsUsed}

@@ -9,6 +9,11 @@
 // removed BEFORE the auth user so a mid-way failure leaves a still-usable,
 // retriable account — never orphaned PII with no way back in. Every step is
 // idempotent, so the client (or the user) can safely retry.
+//
+// The one exception is `practice_ratings`, left to its cascade on purpose: that
+// FK is created by our own migration (`supabase-security-wave2.sql`, verified in
+// its PART 4d), the rows hold no PII, and an explicit delete would fail every
+// account deletion on a database where the table does not exist yet.
 import { supabaseAdmin } from '../config/supabase';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';

@@ -22,7 +22,7 @@ export interface PuzzleBandPickerProps {
   /** Solved per band, so each tile reads as progress rather than inventory. */
   solved: Record<string, number>;
   onSelect: (id: string) => void;
-  /** The player's own rating in this game, when they have one. */
+  /** The player's own Practice level in this game, when they have one. */
   rating?: number | null;
 }
 
@@ -42,7 +42,7 @@ export function PuzzleBandPicker({
         <h2 className="text-sm font-semibold text-fg">Difficulty</h2>
         {typeof rating === 'number' && (
           <span className="text-xs text-fg-muted">
-            your rating: <span className="font-semibold text-fg">{rating}</span>
+            your practice level: <span className="font-semibold text-fg">{rating}</span>
           </span>
         )}
       </div>

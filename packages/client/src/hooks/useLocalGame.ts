@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type EngineMove } from '@gameexplorer/shared';
 import {
-  getUserRating,
+  getPracticeRating,
   type GameType,
   type SaveGameOptions,
   type UserRating,
@@ -326,9 +326,10 @@ export function useLocalGame<S>({
   const botRunRef = useRef<number | null>(null);
   const nextBotRunId = useRef(0);
 
-  // Load the player's current rating once we know who they are (rated bot games).
+  // Load the player's Practice level once we know who they are (rated bot games).
   // Training also reads it before the game starts — the setup screen shows it,
-  // and it's what the bot's strength is matched to.
+  // and it's what the bot's strength is matched to. Never the online Rating: a
+  // local game may only move the number nothing else trusts (GX-04).
   useEffect(() => {
     if (!userId || !gameRated || !vsBot) {
       setUserRating(null);
@@ -337,7 +338,7 @@ export function useLocalGame<S>({
     }
     let active = true;
     setRatingLoading(true);
-    getUserRating(userId, adapter.gameType)
+    getPracticeRating(userId, adapter.gameType)
       .then((r) => {
         if (!active) return;
         setUserRating(r);
@@ -811,7 +812,10 @@ export function useLocalGame<S>({
     canGoForward: viewIndex < timeline.length - 1,
     /** Strength the bot is actually playing at (rating-matched in training). */
     botElo,
-    /** The player's rating row — the training setup screen renders it. */
+    /**
+     * The player's **Practice level** row (`practice_ratings`), not their online
+     * Rating — the training setup screen renders it. Null outside rated bot games.
+     */
     userRating,
     ratingLoading,
     // Training hints. `hintMove` is null outside the few seconds after a reveal.

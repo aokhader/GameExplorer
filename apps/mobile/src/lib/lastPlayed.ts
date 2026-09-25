@@ -55,7 +55,7 @@ export async function getPlayedAt(): Promise<PlayedAt> {
 
 /**
  * Whether this device has ever seen a game to its end. The launcher tells a guest
- * that a rating needs an account only after that — before a first game the line
+ * that a practice level needs an account only after that — before a first game the line
  * answers a question nobody has asked yet (`ux-fix-ideas.md` §4.3).
  */
 export async function hasFinishedGame(): Promise<boolean> {

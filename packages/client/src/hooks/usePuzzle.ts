@@ -85,8 +85,8 @@ export interface UsePuzzleOptions {
    * Band to open on when the player has no saved choice for this game.
    *
    * Passed in by the platform rather than resolved here, and that is
-   * load-bearing: the natural default is the player's own rating, which lives
-   * behind `getUserRating` in `@gameexplorer/db` — a module that builds a
+   * load-bearing: the natural default is the player's own Practice level, which
+   * lives behind `getPracticeRating` in `@gameexplorer/db` — a module that builds a
    * Supabase client at import time. Both `PuzzleScreen`s deep-import this hook
    * precisely to keep that client (and socket.io behind it) off the puzzle
    * chunk, so reading a rating here would undo the thing the deep import buys.
