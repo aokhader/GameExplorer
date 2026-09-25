@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { DM_Sans, Space_Grotesk, Spectral, Nunito_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
@@ -16,29 +16,43 @@ import { SITE_URL } from '@/lib/site';
  * variables on <html> and globals.css points `--font-body` / `--font-display` at
  * the pair the active theme wants (see the `[data-theme]` blocks there).
  *
- * Arcade Glow — DM Sans + Space Grotesk (geometric, arcade).
+ * The files are vendored in `./fonts` and loaded with `next/font/local`, not
+ * fetched from Google at build time: Google intermittently answers that fetch
+ * with extensionless `/l/font?kit=…&…` URLs, which Turbopack's font loader
+ * cannot parse, and the deploy fails with "next/font/google queries have
+ * exactly one entry" (vercel/next.js#99114). Provenance is in `./fonts/README.md`.
+ *
+ * Arcade Glow — DM Sans + Space Grotesk (geometric, arcade). Both are variable.
  */
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const dmSans = localFont({
+  src: './fonts/dm-sans-latin-400-700.woff2',
+  weight: '400 700',
   variable: '--font-dm-sans',
 });
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const spaceGrotesk = localFont({
+  src: './fonts/space-grotesk-latin-400-700.woff2',
+  weight: '400 700',
   variable: '--font-space-grotesk',
 });
 
-/** Cozy Tabletop — Nunito Sans + Spectral (humanist sans under a book serif). */
-const nunitoSans = Nunito_Sans({
-  subsets: ['latin'],
-  weight: ['400', '600', '700', '900'],
+/** Cozy Tabletop — Nunito Sans (variable) + Spectral (static cuts, a book serif). */
+const nunitoSans = localFont({
+  src: './fonts/nunito-sans-latin-400-900.woff2',
+  weight: '400 900',
   variable: '--font-nunito-sans',
 });
-const spectral = Spectral({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+const spectral = localFont({
+  src: [
+    { path: './fonts/spectral-latin-400.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/spectral-latin-500.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/spectral-latin-600.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/spectral-latin-700.woff2', weight: '700', style: 'normal' },
+    { path: './fonts/spectral-latin-800.woff2', weight: '800', style: 'normal' },
+  ],
   variable: '--font-spectral',
+  // A serif: size the fallback against Times, not the default Arial, or the
+  // swap from fallback to Spectral shifts the layout.
+  adjustFontFallback: 'Times New Roman',
 });
 
 /**
