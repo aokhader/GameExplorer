@@ -38,7 +38,6 @@ vi.mock('../../services/block.service', () => ({
     unblock:          vi.fn(),
     listBlocked:      vi.fn(async () => []),
     report:           vi.fn(),
-    isValidReason:    () => true,
   },
 }));
 vi.mock('../../services/account.service', () => ({

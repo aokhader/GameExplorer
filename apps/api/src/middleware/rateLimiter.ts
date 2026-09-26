@@ -9,8 +9,8 @@ import { clientIp } from '../utils/clientIp';
 // `trust proxy: true` is the wrong fix.
 const keyGenerator = (req: Request) => clientIp(req);
 
-// General limiter for all REST endpoints. WebSocket events have their own
-// Redis-based limiter in the game handler (1 move / 200ms per socket).
+// General limiter for all REST endpoints. Socket events and handshakes have
+// their own per-user and per-address budgets in websocket/limits.ts.
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 300, // per client per window

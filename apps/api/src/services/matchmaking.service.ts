@@ -1,5 +1,6 @@
 import { redis, scanKeys } from '../config/redis';
 import type { GameType, TimeControl, UserSummary } from '@gameexplorer/shared';
+import { ONLINE_GAME_TYPES, TIME_CONTROLS } from '../schemas';
 
 const GRACE_EXPAND_EVERY_MS  = 15_000; // expand ELO window every 15s
 const GRACE_EXPAND_STEP      = 50;     // expand by ±50 each step
@@ -39,6 +40,21 @@ export const matchmakingService = {
   async removeFromQueue(userId: string, gameType: GameType, timeControl: TimeControl, rated: boolean): Promise<void> {
     await redis.zrem(queueKey(gameType, timeControl, rated), userId);
     await redis.del(metaKey(userId, gameType));
+  },
+
+  /**
+   * Takes a user out of every queue, for when their last socket closes. It
+   * tries all 30 queues rather than trusting the meta hash, which holds only
+   * the latest join per game type: re-queueing at a different time control
+   * without cancelling leaves the earlier entry behind. Enumerating is only
+   * possible because the key parts are enums now (schemas.ts).
+   */
+  async removeFromAllQueues(userId: string): Promise<void> {
+    await Promise.all(ONLINE_GAME_TYPES.flatMap(gameType => [
+      ...TIME_CONTROLS.flatMap(timeControl =>
+        [true, false].map(rated => redis.zrem(queueKey(gameType, timeControl, rated), userId))),
+      redis.del(metaKey(userId, gameType)),
+    ]));
   },
 
   async getQueueMeta(userId: string, gameType: GameType): Promise<Record<string, string> | null> {

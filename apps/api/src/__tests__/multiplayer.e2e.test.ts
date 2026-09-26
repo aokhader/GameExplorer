@@ -35,13 +35,14 @@ vi.mock('../utils/verifyToken', () => ({
 }));
 
 import { initializeWebSocket, shutdownWebSocket } from '../websocket';
+import { resetSocketLimitState } from '../websocket/limits';
 import { gameSessionService } from '../services/gameSession.service';
 import { redis } from '../config/redis';
 import * as supabaseModule from '../config/supabase';
 import type { GameType } from '@gameexplorer/shared';
 
 const supa = supabaseModule as unknown as {
-  __tables: { user_ratings: Record<string, unknown>[]; games: Record<string, unknown>[] };
+  __tables: { user_ratings: Record<string, unknown>[]; games: Record<string, unknown>[]; profiles: Record<string, unknown>[] };
   __reset(): void;
 };
 
@@ -64,6 +65,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await (redis as unknown as { flushall(): Promise<string> }).flushall();
+  resetSocketLimitState(); // the per-user and per-address budgets
   supa.__reset();
 });
 
@@ -472,11 +474,14 @@ describe('reconnection', () => {
 
 describe('invite flow', () => {
   it('creates a link, starts a casual game on accept, and persists it unrated', async () => {
+    // Names come from profiles, never from the payload: the clients' own
+    // `username` fields below say something else, and must not be shown.
+    supa.__tables.profiles.push({ id: 'inv-host', username: 'Hosty' }, { id: 'inv-guest', username: 'Guesty' });
     const host = client('inv-host');
     await connected(host);
 
     const linkSeen = once<any>(host, 'invite_link_created');
-    host.emit('create_invite_link', { gameType: 'reversi', timeControl: 'rapid', username: 'Hosty' });
+    host.emit('create_invite_link', { gameType: 'reversi', timeControl: 'rapid', username: 'NotHosty' });
     const { inviteId, url } = await linkSeen;
     // toContain alone would pass on a malformed base — a joined CORS_ORIGIN list
     // still ends in the right path — so assert the whole URL is well-formed.
@@ -490,7 +495,7 @@ describe('invite flow', () => {
 
     const hostStart  = once<any>(host, 'game_started');
     const guestStart = once<any>(guest, 'game_started');
-    guest.emit('accept_invite', { inviteId, username: 'Guesty' });
+    guest.emit('accept_invite', { inviteId, username: 'NotGuesty' });
 
     const [hs, gs] = await Promise.all([hostStart, guestStart]);
     expect(hs.gameType).toBe('reversi');

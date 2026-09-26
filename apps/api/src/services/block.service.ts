@@ -13,19 +13,16 @@ import { LIMITS } from '@gameexplorer/shared';
 import { redis } from '../config/redis';
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
+import { REPORT_REASONS } from '../schemas';
 
 const BLOCKSET_TTL = 3600; // seconds — refreshed on every queue join
 
-const REPORT_REASONS = ['harassment', 'cheating', 'spam', 'offensive_language', 'other'] as const;
+// The allow-list itself lives in schemas.ts, where POST /reports checks it.
 export type ReportReason = (typeof REPORT_REASONS)[number];
 
 function blocksetKey(userId: string) { return `blockset:${userId}`; }
 
 export const blockService = {
-  isValidReason(reason: string): reason is ReportReason {
-    return (REPORT_REASONS as readonly string[]).includes(reason);
-  },
-
   /** Every userId in a block relationship with `userId`, either direction. */
   async getBlockedUserIds(userId: string): Promise<string[]> {
     if (!supabaseAdmin) return [];

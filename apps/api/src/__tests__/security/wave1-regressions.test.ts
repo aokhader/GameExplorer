@@ -46,6 +46,7 @@ vi.mock('../../utils/verifyToken', () => ({
 }));
 
 import { initializeWebSocket, shutdownWebSocket } from '../../websocket';
+import { resetSocketLimitState } from '../../websocket/limits';
 import { gameSessionService } from '../../services/gameSession.service';
 import { redis } from '../../config/redis';
 import * as supabaseModule from '../../config/supabase';
@@ -92,6 +93,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await fakeRedis.flushall();
+  resetSocketLimitState(); // the per-user and per-address budgets
   supa.__reset();
   uncaught.length = 0;
   rejections.length = 0;
@@ -329,13 +331,14 @@ describe('GX-03 · malformed socket payloads never throw out of a listener', () 
     await new Promise(r => setTimeout(r, 1500));
     expect(uncaught, `fatal throw: ${String(uncaught[0])}`).toHaveLength(0);
 
-    // Rejections out of the async handlers are the (survivable) status quo and
-    // are Wave 3's job — the zod layer. Recorded, not asserted.
-    // eslint-disable-next-line no-console
-    console.log(`[Wave 1] survivable rejections from malformed payloads: ${rejections.length}`);
+    // Wave 3 went further: every payload above is now refused by its schema
+    // before a handler runs, so there are no rejections either. That is
+    // asserted in wave3-validation.test.ts; this test only guards the crash.
 
+    // Still serving: a well-formed id for a game that doesn't exist gets the
+    // handler's own answer. (A malformed one would be refused as BAD_REQUEST.)
     const err = once<any>(s, 'error');
-    s.emit('spectate', { gameId: 'does-not-exist' });
+    s.emit('spectate', { gameId: '00000000-0000-4000-8000-000000000000' });
     expect((await err).code).toBe('GAME_NOT_FOUND');
   });
 

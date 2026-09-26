@@ -121,22 +121,25 @@ describe('inviteService', () => {
 
   it('lets a different user accept once, then expires the invite', async () => {
     const id = await inviteService.createInvite('host', 'Host', 1300, 'reversi', 'rapid');
-    const res = await inviteService.acceptInvite(id, 'guest');
+    const res = await inviteService.checkInvite(id, 'guest');
     expect('invite' in res && res.invite.fromId).toBe('host');
-    // Single-use: a second accept fails.
-    const again = await inviteService.acceptInvite(id, 'guest2');
+    // Checking alone does not consume it; claiming does, exactly once.
+    expect('invite' in await inviteService.checkInvite(id, 'guest2')).toBe(true);
+    expect(await inviteService.claimInvite(id)).toBe(true);
+    expect(await inviteService.claimInvite(id)).toBe(false);
+    const again = await inviteService.checkInvite(id, 'guest2');
     expect('error' in again).toBe(true);
   });
 
   it('rejects accepting your own invite', async () => {
     const id = await inviteService.createInvite('host', 'Host', 1300, 'checkers', 'blitz');
-    const res = await inviteService.acceptInvite(id, 'host');
+    const res = await inviteService.checkInvite(id, 'host');
     expect('error' in res).toBe(true);
   });
 
   it('rejects a targeted invite accepted by the wrong user', async () => {
     const id = await inviteService.createInvite('host', 'Host', 1300, 'chess', 'blitz', 'friend');
-    const res = await inviteService.acceptInvite(id, 'stranger');
+    const res = await inviteService.checkInvite(id, 'stranger');
     expect('error' in res).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ import { calculateNewRating } from '@gameexplorer/shared';
 import { clockService } from './clock.service';
 import { persistenceService } from './persistence.service';
 import { logger } from '../utils/logger';
+import { MoveSchema } from '../schemas';
 
 const GAME_TTL = 86_400; // 24h safety net
 
@@ -46,26 +47,54 @@ export interface ApplyMoveResult {
 function gameKey(gameId: string)  { return `game:${gameId}`; }
 function activeKey(userId: string){ return `active_game:${userId}`; }
 
-const SQUARE_RE = /^[a-h][1-8]$/;
-const PROMOTION_PIECES = new Set(['queen', 'rook', 'bishop', 'knight']);
-
-/** Structural + range validation for a client-supplied move, before the engine. */
+/**
+ * Structural + range validation for a client-supplied move, before the engine.
+ * The socket layer already checked it against the same schema; this keeps the
+ * service safe for any caller that did not.
+ */
 function isValidMovePayload(move: MovePayload): boolean {
-  if (!move || typeof move !== 'object') return false;
-  switch (move.type) {
-    case 'chess':
-      return SQUARE_RE.test(move.from) && SQUARE_RE.test(move.to)
-        && (move.promotion === undefined || PROMOTION_PIECES.has(move.promotion));
-    case 'checkers':
-      return SQUARE_RE.test(move.from) && SQUARE_RE.test(move.to);
-    case 'reversi':
-      return SQUARE_RE.test(move.position);
-    default:
-      return false;
+  return MoveSchema.safeParse(move).success;
+}
+
+/**
+ * A fresh position for `gameType`. Throws on anything else rather than
+ * quietly starting a reversi game, which is what the old fall-through did.
+ */
+export function newGameState(gameType: GameType) {
+  switch (gameType) {
+    case 'chess':    return ChessEngine.newGame();
+    case 'checkers': return CheckersEngine.newGame();
+    case 'reversi':  return ReversiEngine.newGame();
+    default: throw new Error(`Unknown game type: ${String(gameType)}`);
+  }
+}
+
+/**
+ * A player named in a new game already has a live one. Every path that starts
+ * a game goes through createGame, so this is where "one game at a time" holds.
+ */
+export class AlreadyInGameError extends Error {
+  constructor(readonly userId: string) {
+    super(`User ${userId} is already in a game`);
+    this.name = 'AlreadyInGameError';
   }
 }
 
 export const gameSessionService = {
+  /**
+   * Creates a game and points both players at it.
+   *
+   * Two rules, both learned the hard way:
+   *   - Everything that can reject its input runs before the first write. The
+   *     old order wrote both players' `active_game:` pointers and only then
+   *     threw on an unknown time control, leaving both "already in a game" for
+   *     24 hours with no clock and no way to be told why (GX-06).
+   *   - A player already in a live game cannot be put in a second one. Before,
+   *     accepting an invite mid-game overwrote the pointer and orphaned the
+   *     first game. Pointers are claimed with SET NX, and the game hash is
+   *     written first, so two games starting at the same moment cannot both
+   *     take the same player: the second sees a live game, or loses the claim.
+   */
   async createGame(
     whiteId: string, blackId: string,
     whiteUsername: string, blackUsername: string,
@@ -73,33 +102,55 @@ export const gameSessionService = {
     gameType: GameType, timeControl: TimeControl,
     rated: boolean,
   ): Promise<string> {
-    const gameId  = crypto.randomUUID();
-    const config  = TIME_CONTROL_CONFIGS[timeControl];
-    const initial =
-      gameType === 'chess'    ? ChessEngine.newGame()    :
-      gameType === 'checkers' ? CheckersEngine.newGame() :
-      ReversiEngine.newGame();
+    const config = TIME_CONTROL_CONFIGS[timeControl];
+    if (!config) throw new Error(`Unknown time control: ${String(timeControl)}`);
+    const initial = newGameState(gameType);
+    if (whiteId === blackId) throw new Error('A player cannot play themselves');
 
-    await redis.hset(gameKey(gameId), {
-      status:        'active',
-      gameType,
-      whiteId,
-      blackId,
-      whiteUsername,
-      blackUsername,
-      whiteRating:   String(whiteRating),
-      blackRating:   String(blackRating),
-      state:         JSON.stringify(initial),
-      timeControl,
-      rated:         rated ? '1' : '0',
-      drawOfferedBy: '',
-    });
-    await redis.expire(gameKey(gameId), GAME_TTL);
+    for (const id of [whiteId, blackId]) {
+      const current = await redis.get(activeKey(id));
+      if (!current) continue;
+      if (await this.isLive(current)) throw new AlreadyInGameError(id);
+      // Stale: that game ended, or never finished being created. Clearing it
+      // here is what keeps a leftover pointer from blocking the NX claim below.
+      await this.releasePointer(id, current);
+    }
 
-    await redis.set(activeKey(whiteId), gameId, 'EX', GAME_TTL);
-    await redis.set(activeKey(blackId), gameId, 'EX', GAME_TTL);
+    const gameId = crypto.randomUUID();
+    try {
+      await redis.hset(gameKey(gameId), {
+        status:        'active',
+        gameType,
+        whiteId,
+        blackId,
+        whiteUsername,
+        blackUsername,
+        whiteRating:   String(whiteRating),
+        blackRating:   String(blackRating),
+        state:         JSON.stringify(initial),
+        timeControl,
+        rated:         rated ? '1' : '0',
+        drawOfferedBy: '',
+      });
+      await redis.expire(gameKey(gameId), GAME_TTL);
 
-    await clockService.initClock(gameId, config);
+      for (const id of [whiteId, blackId]) {
+        const claimed = await redis.set(activeKey(id), gameId, 'EX', GAME_TTL, 'NX');
+        if (claimed !== 'OK') throw new AlreadyInGameError(id);
+      }
+
+      await clockService.initClock(gameId, config);
+    } catch (err) {
+      // A claim was lost or a write failed partway (Redis full, connection
+      // lost). Undo whatever landed so nobody is pointed at a half-made game.
+      await Promise.allSettled([
+        redis.del(gameKey(gameId)),
+        redis.del(`clock:${gameId}`),
+        this.releasePointer(whiteId, gameId),
+        this.releasePointer(blackId, gameId),
+      ]);
+      throw err;
+    }
 
     return gameId;
   },
@@ -110,8 +161,33 @@ export const gameSessionService = {
     return data as unknown as GameSession;
   },
 
+  /** The raw pointer. It can outlive its game; use getLiveGameId to gate on it. */
   async getActiveGameId(userId: string): Promise<string | null> {
     return redis.get(activeKey(userId));
+  },
+
+  /**
+   * The game `userId` is playing right now, or null. A pointer whose game has
+   * ended or no longer exists does not count: gating on the bare pointer, as
+   * join_queue did, let a leftover one lock a player out for its 24-hour TTL.
+   */
+  async getLiveGameId(userId: string): Promise<string | null> {
+    const gameId = await redis.get(activeKey(userId));
+    return gameId && await this.isLive(gameId) ? gameId : null;
+  },
+
+  async isLive(gameId: string): Promise<boolean> {
+    return (await redis.hget(gameKey(gameId), 'status')) === 'active';
+  },
+
+  /**
+   * Deletes `userId`'s pointer only if it still names `gameId`, so ending one
+   * game can never unhook a player from the next. GET then DEL is not atomic;
+   * the window is one local round trip, and the fake Redis the tests use has
+   * no script support to do better.
+   */
+  async releasePointer(userId: string, gameId: string): Promise<void> {
+    if (await redis.get(activeKey(userId)) === gameId) await redis.del(activeKey(userId));
   },
 
   /**
@@ -183,8 +259,9 @@ export const gameSessionService = {
 
     await redis.del(gameKey(gameId));
     await redis.del(`clock:${gameId}`);
-    await redis.del(activeKey(session.whiteId));
-    await redis.del(activeKey(session.blackId));
+    // Only if they still name this game: a player may already be in the next.
+    await this.releasePointer(session.whiteId, gameId);
+    await this.releasePointer(session.blackId, gameId);
   },
 
   async applyMove(gameId: string, userId: string, move: MovePayload): Promise<ApplyMoveResult> {
@@ -325,11 +402,13 @@ export const gameSessionService = {
       logger.error(`Failed to persist game ${gameId}:`, err);
     }
 
-    // Clean up Redis
+    // Clean up Redis. The pointers go only if they still name this game: a
+    // player is free to queue once the status says "ended", which is before
+    // the slow persistence above finishes, so they may already be in the next.
     await redis.del(gameKey(gameId));
     await redis.del(`clock:${gameId}`);
-    await redis.del(activeKey(session.whiteId));
-    await redis.del(activeKey(session.blackId));
+    await this.releasePointer(session.whiteId, gameId);
+    await this.releasePointer(session.blackId, gameId);
 
     return {
       white: { ratingBefore: whiteRatingBefore, ratingAfter: whiteRatingAfter, ratingDelta: whiteRatingAfter - whiteRatingBefore },

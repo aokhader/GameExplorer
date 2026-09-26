@@ -98,7 +98,7 @@ export const prisma = new PrismaClient({
 // self-healing event into a full restart, which (Redis being colocated with
 // persistence off) wiped every live game on the service. Log it instead.
 pool.on('error', (err) => {
-  console.error('Unexpected PostgreSQL pool error (idle client discarded):', err);
+  logger.error('Unexpected PostgreSQL pool error (idle client discarded):', err);
 });
 
 // Graceful shutdown
@@ -113,7 +113,7 @@ export async function checkDatabaseConnection() {
     await prisma.$queryRaw`SELECT 1`;
     return true;
   } catch (error) {
-    console.error('Database connection failed:', error);
+    logger.error('Database connection failed:', error);
     return false;
   }
 }

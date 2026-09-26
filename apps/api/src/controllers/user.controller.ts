@@ -5,6 +5,12 @@ import { getIO }          from '../websocket';
 import { blockService }   from '../services/block.service';
 import { accountService } from '../services/account.service';
 import type { AuthRequest } from '../middleware/auth';
+import type { z } from 'zod';
+import type { RestSchemas } from '../schemas';
+
+// Bodies and params arrive already parsed by validate() in user.routes.ts, so
+// these are the shapes the schemas guarantee, not hopes about the client.
+type Input<K extends keyof typeof RestSchemas> = z.infer<(typeof RestSchemas)[K]>;
 
 /** Accepted friendships a user is part of (either direction). */
 function countFriends(userId: string): Promise<number> {
@@ -27,7 +33,7 @@ export const userController = {
 
   async sendFriendRequest(req: AuthRequest, res: Response) {
     const userId   = req.userId!;
-    const { targetUserId } = req.body as { targetUserId: string };
+    const { targetUserId } = req.body as Input<'friendRequestBody'>;
     if (userId === targetUserId) { res.status(400).json({ error: 'Cannot friend yourself' }); return; }
 
     if (await blockService.isBlockedBetween(userId, targetUserId)) {
@@ -75,11 +81,11 @@ export const userController = {
 
   async respondToFriendRequest(req: AuthRequest, res: Response) {
     const userId         = req.userId!;
-    const { id }         = req.params as { id: string };
-    const { action }     = req.body as { action: 'accept' | 'reject' };
+    const { id }         = req.params as unknown as Input<'friendIdParams'>;
+    const { action }     = req.body as Input<'friendRespondBody'>;
 
     const friendship = await prisma.friendship.findFirst({
-      where: { id: Number(id), friendId: userId },
+      where: { id, friendId: userId },
     });
     if (!friendship) { res.status(404).json({ error: 'Request not found' }); return; }
 
@@ -100,7 +106,7 @@ export const userController = {
     }
 
     const updated = await prisma.friendship.update({
-      where: { id: Number(id) },
+      where: { id },
       data:  { status: action === 'accept' ? 'accepted' : 'rejected' },
     });
     res.json({ friendship: updated });
@@ -108,11 +114,11 @@ export const userController = {
 
   async removeFriend(req: AuthRequest, res: Response) {
     const userId = req.userId!;
-    const { id } = req.params as { id: string };
+    const { id } = req.params as unknown as Input<'friendIdParams'>;
 
     await prisma.friendship.deleteMany({
       where: {
-        id: Number(id),
+        id,
         OR: [{ userId }, { friendId: userId }],
       },
     });
@@ -128,8 +134,7 @@ export const userController = {
 
   async blockUser(req: AuthRequest, res: Response) {
     const userId = req.userId!;
-    const { targetUserId, targetUsername } = req.body as { targetUserId?: string; targetUsername?: string };
-    if (!targetUserId)             { res.status(400).json({ error: 'targetUserId is required' }); return; }
+    const { targetUserId, targetUsername } = req.body as Input<'blockBody'>;
     if (userId === targetUserId)   { res.status(400).json({ error: 'Cannot block yourself' }); return; }
 
     if (await blockService.countBlocked(userId) >= LIMITS.MAX_BLOCKS) {
@@ -137,13 +142,13 @@ export const userController = {
       return;
     }
 
-    await blockService.block(userId, targetUserId, targetUsername);
+    await blockService.block(userId, targetUserId, targetUsername ?? undefined);
     res.json({ ok: true });
   },
 
   async unblockUser(req: AuthRequest, res: Response) {
     const userId = req.userId!;
-    const { targetUserId } = req.params as { targetUserId: string };
+    const { targetUserId } = req.params as Input<'targetUserParams'>;
     await blockService.unblock(userId, targetUserId);
     res.json({ ok: true });
   },
@@ -151,22 +156,17 @@ export const userController = {
   // ── Reporting ───────────────────────────────────────────────────────────
   async reportUser(req: AuthRequest, res: Response) {
     const userId = req.userId!;
-    const { targetUserId, reason, context, gameId } =
-      req.body as { targetUserId?: string; reason?: string; context?: string; gameId?: string };
+    // reason is one of REPORT_REASONS; the schema rejected anything else.
+    const { targetUserId, reason, context, gameId } = req.body as Input<'reportBody'>;
 
-    if (!targetUserId)               { res.status(400).json({ error: 'targetUserId is required' }); return; }
     if (userId === targetUserId)     { res.status(400).json({ error: 'Cannot report yourself' }); return; }
-    if (!reason || !blockService.isValidReason(reason)) {
-      res.status(400).json({ error: 'A valid reason is required' });
-      return;
-    }
 
     await blockService.report({
       reporterId: userId,
       reportedId: targetUserId,
       reason,
-      context: context ? String(context).slice(0, 1000) : undefined,
-      gameId,
+      context: context ? context.slice(0, 1000) : undefined,
+      gameId:  gameId ?? undefined,
     });
     res.json({ ok: true });
   },

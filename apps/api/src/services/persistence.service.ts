@@ -12,6 +12,9 @@ import { LIMITS, DEFAULT_RATING, clampRating } from '@gameexplorer/shared';
 import type { GameType, GameResult, GameOutcome, EndReason } from '@gameexplorer/shared';
 import type { GameSession } from './gameSession.service';
 
+/** Shown to an opponent when a player's profile name can't be read. */
+export const FALLBACK_USERNAME = 'Anonymous';
+
 interface RatingRow {
   user_id: string;
   game_type: GameType;
@@ -91,7 +94,9 @@ export const persistenceService = {
   /**
    * Authoritative display name for a user, from the profiles table. Used so the
    * name shown to opponents/spectators can't be spoofed via a client payload.
-   * Returns null when unavailable (falls back to the client-supplied name).
+   * Returns null when unavailable; callers then use FALLBACK_USERNAME. They
+   * must not fall back to a name the client sent: that was unbounded, let a
+   * player call themselves anything, and was the email's local part (GX-25).
    */
   async getUsername(userId: string): Promise<string | null> {
     if (!supabaseAdmin) return null;

@@ -38,8 +38,16 @@ export function createRedisFakeModule() {
       const h = hashes.get(key);
       return h ? Object.fromEntries(h.entries()) : {};
     },
-    // Extra args ('EX', ttl) are accepted and ignored — the fake never expires keys.
-    async set(key: string, val: string) { strings.set(key, String(val)); return 'OK'; },
+    // 'EX' and its ttl are accepted and ignored — the fake never expires keys.
+    // 'NX' is honoured, as real Redis does: it answers null and writes nothing
+    // when the key exists. (It used to be ignored, so every NX claim — the
+    // end-of-game lock, the active-game pointer — succeeded under test.)
+    async set(key: string, val: string, ...args: unknown[]) {
+      const nx = args.some(a => String(a).toUpperCase() === 'NX');
+      if (nx && (strings.has(key) || hashes.has(key) || zsets.has(key) || sets.has(key))) return null;
+      strings.set(key, String(val));
+      return 'OK';
+    },
     async get(key: string) { return strings.get(key) ?? null; },
     async del(...keys: string[]) {
       let n = 0;
@@ -68,7 +76,14 @@ export function createRedisFakeModule() {
       z.set(member, Number(score));
       return isNew ? 1 : 0;
     },
-    async zrem(key: string, member: string) { return zsets.get(key)?.delete(member) ? 1 : 0; },
+    // Real Redis deletes a sorted set or set when its last member goes, so a
+    // test that checks "no queue keys left" sees what production would.
+    async zrem(key: string, member: string) {
+      const z = zsets.get(key);
+      if (!z?.delete(member)) return 0;
+      if (z.size === 0) zsets.delete(key);
+      return 1;
+    },
     async sadd(key: string, ...members: string[]) {
       let s = sets.get(key);
       if (!s) { s = new Set(); sets.set(key, s); }
@@ -81,6 +96,7 @@ export function createRedisFakeModule() {
       if (!s) return 0;
       let removed = 0;
       for (const m of members) { if (s.delete(m)) removed++; }
+      if (s.size === 0) sets.delete(key);
       return removed;
     },
     async smembers(key: string) { return [...(sets.get(key) ?? [])]; },

@@ -14,7 +14,10 @@ export type EndReason =
 export type ErrorCode =
   | 'ILLEGAL_MOVE' | 'NOT_YOUR_TURN' | 'GAME_NOT_FOUND'
   | 'ALREADY_IN_GAME' | 'QUEUE_FULL' | 'INVITE_EXPIRED'
-  | 'RATE_LIMITED' | 'AUTH_REQUIRED' | 'ABORT_NOT_ALLOWED';
+  | 'RATE_LIMITED' | 'AUTH_REQUIRED' | 'ABORT_NOT_ALLOWED'
+  // The server rejected the payload's shape, or the handler failed. Neither
+  // client acts on these; they exist so a rejection is visible, not silent.
+  | 'BAD_REQUEST' | 'SERVER_ERROR';
 
 // A game may be aborted (no rating change) only while fewer than this many
 // moves have been played. Shared so client and server agree on the threshold.
@@ -61,6 +64,10 @@ export interface RatingInfo {
 }
 
 // ── Client → Server ───────────────────────────────────────────────────────────
+//
+// The server validates every payload against apps/api/src/schemas.ts. The
+// `username` and `rating` fields below are ignored there: the server reads both
+// from the database. They stay in the type because shipped clients send them.
 
 export interface ClientToServerEvents {
   join_queue:         (data: { gameType: GameType; timeControl: TimeControl; rated: boolean; username: string; rating: number }) => void;

@@ -228,10 +228,10 @@ export function OnlineGameLayout({
                   paddingVertical: 10,
                 }}
               >
-                {/* The server pauses the clock and holds the game for 60s before
-                    forfeiting (DISCONNECT_GRACE_TTL in websocket/index.ts), so
-                    the honest message is "you have a minute", not "you are
-                    losing time". */}
+                {/* The server forfeits the game after 60s away
+                    (DISCONNECT_GRACE_TTL in websocket/index.ts), and the clock
+                    keeps running meanwhile — it no longer pauses (security
+                    audit v2, GX-07). Both halves go in the message. */}
                 <Text
                   style={{
                     color: COLORS.dangerHover,
@@ -240,7 +240,7 @@ export function OnlineGameLayout({
                     textAlign: 'center',
                   }}
                 >
-                  Reconnecting… your game is held for about a minute.
+                  Reconnecting… your clock is still running, and the game is forfeited after about a minute.
                 </Text>
               </View>
             )}

@@ -1,6 +1,5 @@
 import { Response } from 'express';
 import { gameSessionService } from '../services/gameSession.service';
-import { inviteService, inviteUrl } from '../services/invite.service';
 import { clockService }       from '../services/clock.service';
 import type { AuthRequest }   from '../middleware/auth';
 
@@ -37,7 +36,7 @@ export const gameController = {
   },
 
   async getGame(req: AuthRequest, res: Response) {
-    const { gameId } = req.params as { gameId: string };
+    const { gameId } = req.params as { gameId: string }; // a UUID: see game.routes
     const session = await gameSessionService.getGameSession(gameId);
     if (!session) { res.status(404).json({ error: 'Game not found' }); return; }
 
@@ -49,20 +48,5 @@ export const gameController = {
       white: { userId: session.whiteId, username: session.whiteUsername, rating: Number(session.whiteRating) },
       black: { userId: session.blackId, username: session.blackUsername, rating: Number(session.blackRating) },
     });
-  },
-
-  async createInviteLink(req: AuthRequest, res: Response) {
-    const { gameType, timeControl } = req.body as { gameType: string; timeControl: string };
-    const userId = req.userId!;
-
-    const inviteId = await inviteService.createInvite(
-      userId,
-      (req as any).username ?? 'Player',
-      (req as any).rating ?? 1200,
-      gameType as any,
-      timeControl as any,
-    );
-
-    res.json({ inviteId, url: inviteUrl(gameType, inviteId) });
   },
 };
