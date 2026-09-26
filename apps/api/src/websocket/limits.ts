@@ -9,7 +9,12 @@
 // more than one that survives a restart.
 //
 // If the API ever runs as more than one instance, each of these becomes a
-// per-instance budget and has to move to a shared store.
+// per-instance budget: N instances give every user N times the allowance, and
+// the socket cap is dodged by landing on a different one. They have to move to
+// a shared store first — and must fail closed there, never back into a
+// `catch {}` that lets the request through. project-docs/spec-v7/13-operations.md
+// ("The API assumes one instance") lists this with everything else that has
+// to change before scaling out.
 import type { SocketEvent } from '../schemas';
 
 export interface Budget { max: number; windowMs: number }
@@ -32,7 +37,6 @@ export const SOCKET_LIMITS = {
     // Each costs up to four Supabase calls.
     join_queue:         { max: 10, windowMs: 60_000 },
     create_invite_link: { max: 10, windowMs: 60_000 },
-    // Also the bound on guessing 32-bit invite ids (WS5-30).
     accept_invite:      { max: 10, windowMs: 60_000 },
     spectate:           { max: 30, windowMs: 60_000 },
   } as Partial<Record<SocketEvent, Budget>>,

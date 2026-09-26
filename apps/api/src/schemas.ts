@@ -40,8 +40,8 @@ void gameTypesComplete; void timeControlsComplete;
 export const Uuid = z.string().uuid();
 export const GameTypeSchema = z.enum(ONLINE_GAME_TYPES);
 export const TimeControlSchema = z.enum(TIME_CONTROLS);
-/** `inviteService.createInvite` issues the first 8 hex digits of a UUID. */
-export const InviteId = z.string().regex(/^[0-9a-f]{8}$/);
+/** `inviteService.createInvite` issues a whole UUID (it was 8 hex digits until WS5-30). */
+export const InviteId = Uuid;
 
 const Square = z.string().regex(/^[a-h][1-8]$/);
 

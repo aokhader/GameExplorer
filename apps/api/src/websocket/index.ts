@@ -32,6 +32,8 @@ export const MAX_SOCKET_MESSAGE_BYTES = 16 * 1024;
 // before the timer fires and forfeits the game; reconnecting cancels it.
 // In-memory is correct here: this is a single-instance deployment and
 // in-progress games live only in (ephemeral) Redis, so a restart wipes both.
+// A second instance breaks that, along with the loops and the socket limits:
+// see project-docs/spec-v7/13-operations.md, "The API assumes one instance".
 const forfeitTimers = new Map<string, NodeJS.Timeout>();
 
 function cancelForfeit(gameId: string, userId: string): void {

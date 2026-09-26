@@ -343,7 +343,7 @@ describe('WS5-10/11/12 · socket budgets and caps', () => {
     const s = client('rl-invites');
     await connected(s);
     const errors = errorsOf(s);
-    for (let i = 0; i < 11; i++) s.emit('accept_invite', { inviteId: `0000000${i % 10}` });
+    for (let i = 0; i < 11; i++) s.emit('accept_invite', { inviteId: `00000000-0000-4000-8000-00000000000${i % 10}` });
     await waitFor(() => errors.length >= 11, '11 replies');
 
     expect(new Set(errors.map(e => e.code))).toEqual(new Set(['INVITE_EXPIRED']));

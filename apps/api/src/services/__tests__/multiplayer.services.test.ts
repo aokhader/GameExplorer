@@ -111,12 +111,23 @@ describe('clockService', () => {
 });
 
 // ── Invites ───────────────────────────────────────────────────────────────────
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 describe('inviteService', () => {
   it('creates and reads back an invite', async () => {
     const id = await inviteService.createInvite('host', 'Host', 1300, 'chess', 'blitz');
-    expect(id).toHaveLength(8);
+    expect(id).toMatch(UUID_RE);
     const data = await inviteService.getInvite(id);
     expect(data).toMatchObject({ fromId: 'host', fromUsername: 'Host', fromRating: '1300', gameType: 'chess' });
+  });
+
+  it('issues whole UUIDs, never the old 8-digit prefix (WS5-30)', async () => {
+    // 32 bits was guessable while a link was live; a UUID carries 122 random
+    // bits. Distinct across a batch, and the full canonical shape every time.
+    const ids = await Promise.all(Array.from({ length: 50 }, () =>
+      inviteService.createInvite('host', 'Host', 1300, 'chess', 'blitz')));
+    for (const id of ids) expect(id).toMatch(UUID_RE);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('lets a different user accept once, then expires the invite', async () => {

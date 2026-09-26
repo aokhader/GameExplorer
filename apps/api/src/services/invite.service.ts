@@ -34,7 +34,11 @@ export const inviteService = {
     timeControl: TimeControl,
     toId = '',
   ): Promise<string> {
-    const inviteId = crypto.randomUUID().slice(0, 8);
+    // The whole UUID: 122 random bits. It used to be the first 8 hex digits,
+    // 32 bits, which a patient guesser could hit while a link was live and
+    // take the game meant for someone else (security audit v2, WS5-30). The id
+    // is opaque to both clients, which pass it through from the link as-is.
+    const inviteId = crypto.randomUUID();
     await redis.hset(inviteKey(inviteId), {
       fromId,
       fromUsername,

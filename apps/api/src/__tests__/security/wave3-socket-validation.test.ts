@@ -202,7 +202,11 @@ describe('WS5-21 · every socket event goes through its schema', () => {
       { gameType: 'chess', timeControl: 'x' },
       { gameType: 'chess/../../evil', timeControl: 'blitz' },           // lands in a URL path
     ],
-    accept_invite: [{ inviteId: 'ABCDEF12' }, { inviteId: '1234567' }, { inviteId: { $ne: null } }],
+    accept_invite: [
+      { inviteId: 'abcdef12' },                                         // the old 32-bit format
+      { inviteId: UNKNOWN_GAME.replace(/-/g, '') },                     // a UUID without its dashes
+      { inviteId: { $ne: null } },
+    ],
   };
 
   const events = Object.keys(SocketSchemas) as SocketEvent[];
@@ -216,6 +220,17 @@ describe('WS5-21 · every socket event goes through its schema', () => {
 
   it('covers all fifteen events', () => {
     expect(events).toHaveLength(15);
+  });
+
+  it('an invite id must be a whole UUID; the old 32-bit form is refused (WS5-30)', () => {
+    // Checked on the schema itself: over the socket, a refused id and an
+    // unknown one both come back as INVITE_EXPIRED, so the fuzz below cannot
+    // tell them apart.
+    const accept = SocketSchemas.accept_invite;
+    expect(accept.safeParse({ inviteId: '3f2c9a4e-8b1d-4c7a-9e02-5d6f7a8b9c0d' }).success).toBe(true);
+    for (const inviteId of ['3f2c9a4e', '3f2c9a4e8b1d4c7a9e025d6f7a8b9c0d', '3f2c9a4e-8b1d-4c7a-9e02']) {
+      expect(accept.safeParse({ inviteId }).success, inviteId).toBe(false);
+    }
   });
 
   it.each(events)('%s refuses every malformed payload, touching no state', async (event) => {
@@ -293,7 +308,8 @@ describe('GX-06 · a bad time control can no longer brick a player', () => {
   it('an invite that somehow holds a bad time control still cannot brick whoever accepts it', async () => {
     // Written straight into Redis, as if a value had got past the socket
     // schema. createGame is the second line of defence.
-    await fakeRedis.hset('invite:abcdef12', {
+    const planted = '11111111-2222-4333-8444-555555555555';
+    await fakeRedis.hset(`invite:${planted}`, {
       fromId: 'gx06b-host', fromUsername: 'Host', fromRating: '1200', toId: '',
       gameType: 'chess', timeControl: 'x', createdAt: new Date().toISOString(),
     });
@@ -301,7 +317,7 @@ describe('GX-06 · a bad time control can no longer brick a player', () => {
     const guest = client('gx06b-guest');
     await connected(guest);
     const err = once<any>(guest, 'error');
-    guest.emit('accept_invite', { inviteId: 'abcdef12' });
+    guest.emit('accept_invite', { inviteId: planted });
 
     // The guest is told (before: silence), and nothing points at a dead game.
     expect((await err).code).toBe('INVITE_EXPIRED');
