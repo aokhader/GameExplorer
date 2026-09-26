@@ -37,6 +37,11 @@ export interface SetupDeepLink {
  * name, so every first game started the default bot regardless of the card the
  * player picked. Both platforms now carry the choice through.
  *
+ * `start`, `resume`, `elo` and `casual` come only from the app's own
+ * navigation. A link from outside the app arrives with them already removed
+ * (`IN_APP_ONLY` in `app/+native-intent.tsx`), so a link can open this screen
+ * but never start or configure a game on it (security audit v2, GX-12).
+ *
  * The result is meant for **lazy initial state**, not an effect: the params are
  * available on the first render, so seeding `useState` with them skips the
  * setup-screen flash that web needs a layout effect to avoid. Reading it later

@@ -12,6 +12,7 @@ import {
   PRIVACY_URL,
   SUPPORT_EMAIL,
   TERMS_URL,
+  appVersionLabel,
   supportMailtoUrl,
 } from '@/config/support';
 import { FONTS } from '@/theme/typography';
@@ -491,6 +492,14 @@ export default function SettingsScreen() {
       </Card>
 
       <DeleteAccountCard />
+
+      {/* Which build and over-the-air update this is, so a report can say (GX-08). */}
+      <Text
+        selectable
+        style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.label, textAlign: 'center', marginTop: 20 }}
+      >
+        Version {appVersionLabel()}
+      </Text>
     </Screen>
   );
 }

@@ -10,7 +10,9 @@
  * Differences from web (`client.ts`):
  *   - `createClient` from `@supabase/supabase-js` instead of `createBrowserClient`
  *     from `@supabase/ssr` (there is no browser cookie store on native).
- *   - AsyncStorage is the session store so the login survives app restarts.
+ *   - The session is kept in AsyncStorage, sealed with a key from the platform
+ *     keystore (`sessionStorage.native.ts`), so the login survives app restarts
+ *     without the refresh token sitting in backups in plain text.
  *   - `detectSessionInUrl: false` — native has no URL to parse a session from
  *     (OAuth comes back via a deep link, handled explicitly by the app).
  *   - Config comes from Expo's `EXPO_PUBLIC_*` env (inlined at build time) instead
@@ -21,7 +23,7 @@
  * build; it is transpiled only by Metro, where those modules exist.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { sealedSessionStorage } from './sessionStorage.native';
 
 // Expo inlines EXPO_PUBLIC_* at build time.
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL as string;
@@ -48,7 +50,7 @@ export function getSupabaseClient(): SupabaseClient {
     }
     _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        storage: AsyncStorage,
+        storage: sealedSessionStorage,
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
@@ -58,7 +60,8 @@ export function getSupabaseClient(): SupabaseClient {
         // (`gameexplorer://auth/callback`) — so the app would get a token-less URL
         // and never establish a session. PKCE returns `?code=…` as a query param
         // (reliably delivered); `oauth.ts`'s finishOAuth exchanges it via
-        // `exchangeCodeForSession`. This also matches the web client's flow.
+        // `exchangeCodeForSession`, and refuses a return URL carrying tokens
+        // instead. This also matches the web client's flow.
         flowType: 'pkce',
       },
     });

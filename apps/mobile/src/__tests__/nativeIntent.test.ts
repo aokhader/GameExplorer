@@ -87,3 +87,64 @@ describe('redirectSystemPath — everything else passes through untouched', () =
     expect(intent(`${WEB}/chess/learn`)).toBe(`${WEB}/chess/learn`);
   });
 });
+
+/**
+ * Security audit v2, GX-12. A link from outside could start a rated game
+ * against the 2800 bot the moment it was tapped, and save 2800 as the player's
+ * remembered strength. The params that start or configure a game are the
+ * app's own; every incoming link loses them, and the screen opens on its form.
+ */
+describe('redirectSystemPath — a link cannot start or configure a game', () => {
+  it('drops the tour-style auto-start from a custom-scheme link', () => {
+    expect(intent('gameexplorer://play/chess?elo=2800&start=1')).toBe('/play/chess');
+  });
+
+  it('drops every in-app-only param, in every URL form', () => {
+    for (const link of [
+      'gameexplorer://play/checkers?start=1&elo=1800&casual=0',
+      'gameexplorer:///play/checkers?start=last',
+      'exp+gameexplorer://play/checkers?resume=1',
+      'exp://192.168.1.5:8081/--/play/checkers?start=1',
+      '/play/checkers?start=1',
+    ]) {
+      expect(intent(link)).toMatch(/^\/+play\/checkers$/);
+    }
+  });
+
+  it('covers games that have no invite links too', () => {
+    expect(intent('gameexplorer://play/go?start=1&elo=2000')).toBe('/play/go');
+    expect(intent('gameexplorer://play/liquidate?start=1')).toBe('/play/liquidate');
+    expect(intent('gameexplorer://play/go?resume=1')).toBe('/play/go');
+  });
+
+  it('keeps every other param, so the rest of the link still works', () => {
+    expect(intent('gameexplorer://spectate/g-1?white=Ann&start=1&black=Bob')).toBe(
+      '/spectate/g-1?white=Ann&black=Bob',
+    );
+    expect(intent('gameexplorer://play/chess?online=1&elo=2800')).toBe('/play/chess?online=1');
+  });
+
+  it('strips them from an invite link as well', () => {
+    expect(intent(`${WEB}/chess/play?invite=abc&start=1&elo=2800&casual=0`)).toBe(
+      '/play/chess?invite=abc&online=1',
+    );
+    expect(intent('gameexplorer://reversi/play?invite=abc&resume=1')).toBe(
+      '/play/reversi?invite=abc&online=1',
+    );
+  });
+
+  it('is not fooled by how the key is spelled', () => {
+    for (const link of [
+      'gameexplorer://play/chess?st%61rt=1&elo=2800', // percent-encoded key
+      'gameexplorer://play/chess?start=1&start=1&elo=2800', // repeated key
+      'gameexplorer://play/chess?st\nart=1&e\tlo=2800', // a URL parser drops tabs and newlines
+      'gameexplorer://play/chess?start=1&elo=2800#section', // a fragment after the query
+    ]) {
+      expect(intent(link)).toMatch(/^\/play\/chess(#section)?$/);
+    }
+  });
+
+  it('leaves a param that only looks like one inside the fragment, where the router never reads it', () => {
+    expect(intent('gameexplorer://play/chess#?start=1')).toBe('gameexplorer://play/chess#?start=1');
+  });
+});

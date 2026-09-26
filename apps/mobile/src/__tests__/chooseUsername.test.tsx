@@ -113,7 +113,7 @@ describe('ChooseUsernameScreen', () => {
   });
 
   it('ignores a next that is not an in-app path — the screen is deep-linkable', async () => {
-    for (const next of ['https://evil.example', '//evil.example']) {
+    for (const next of ['https://evil.example', '//evil.example', '/.//evil.example', 'tel:+15551234']) {
       jest.clearAllMocks();
       mockParams = { next };
       const { unmount } = render(<ChooseUsernameScreen />);

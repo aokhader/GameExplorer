@@ -11,6 +11,7 @@ import {
 import { USERNAME_MAX_LENGTH, usernameReasonMessage } from '@gameexplorer/shared';
 import { Button, Screen, TextField } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
+import { safeReturnPath } from '@/lib/returnPath';
 
 /**
  * Choose (or confirm) a username after an OAuth sign-in — the native twin of
@@ -35,11 +36,8 @@ export default function ChooseUsernameScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ next?: string }>();
   // This screen is reachable by deep link, so `next` is untrusted: an in-app
-  // path only — never a URL, never protocol-relative.
-  const next =
-    typeof params.next === 'string' && params.next.startsWith('/') && !params.next.startsWith('//')
-      ? params.next
-      : undefined;
+  // path only (see `safeReturnPath`).
+  const next = safeReturnPath(params.next) ?? undefined;
 
   const [username, setUsername] = useState('');
   const [current, setCurrent] = useState<string | null>(null);

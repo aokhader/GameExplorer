@@ -45,8 +45,8 @@ async function signedIn(): Promise<OAuthResult> {
  *      (frequently dropped on custom-scheme redirects). We hand the code to
  *      `exchangeCodeForSession`, which establishes + persists the session and fires
  *      `onAuthStateChange` — the same event the shared `useAuth` listens on, so
- *      every screen updates. (Implicit-flow fragment tokens are still handled as a
- *      fallback for robustness.)
+ *      every screen updates. A return URL carrying tokens instead is refused: see
+ *      `finishOAuth`.
  *
  * Returns an error string on failure, or null on success / user cancel.
  */
@@ -119,32 +119,38 @@ export async function signInWithAppleNative(): Promise<OAuthResult> {
   }
 }
 
-/** Extract tokens/code from the returned deep link and establish the session. */
-async function finishOAuth(url: string): Promise<OAuthResult> {
+/**
+ * Establish the session from the returned deep link, which must carry a PKCE
+ * `code` and nothing else that could sign someone in.
+ *
+ * **A URL carrying tokens is refused, never used** (security audit v2, GX-13).
+ * This client is PKCE-only, so Supabase never puts tokens in the redirect; any
+ * that arrive were put there by someone else. On Android the auth session is a
+ * polyfill that takes the first `gameexplorer://auth/callback…` link the phone
+ * delivers while the sign-in tab is open, from any app or web page. Honouring
+ * `#access_token=…&refresh_token=…` there signed the user into whichever account
+ * those tokens belonged to — the attacker's — and everything they did next
+ * landed in it. A forged `?code=` fails on its own, because the exchange needs
+ * the verifier this device generated.
+ */
+export async function finishOAuth(url: string): Promise<OAuthResult> {
   const parsed = Linking.parse(url);
   const params = parsed.queryParams ?? {};
 
-  // Implicit flow: tokens arrive in the URL fragment, which Linking.parse folds
-  // into queryParams for custom schemes. Fall back to manual fragment parsing.
+  // Linking.parse reads only the query, so the fragment is read by hand: a
+  // token is refused wherever in the URL it was put.
   const fragment = url.includes('#') ? url.slice(url.indexOf('#') + 1) : '';
   const frag = new URLSearchParams(fragment);
+  const has = (name: string) => str(params[name]) != null || frag.has(name);
 
-  const accessToken = str(params.access_token) ?? frag.get('access_token');
-  const refreshToken = str(params.refresh_token) ?? frag.get('refresh_token');
-  const code = str(params.code) ?? frag.get('code');
   const oauthError = str(params.error_description) ?? frag.get('error_description');
-
   if (oauthError) return failed(oauthError);
 
-  if (accessToken && refreshToken) {
-    const { error } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-    if (error) return failed(error.message);
-    return signedIn();
+  if (has('access_token') || has('refresh_token')) {
+    return failed('Unexpected sign-in response. Please try again.');
   }
 
+  const code = str(params.code) ?? frag.get('code');
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) return failed(error.message);

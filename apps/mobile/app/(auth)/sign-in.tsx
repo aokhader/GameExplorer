@@ -6,6 +6,7 @@ import { signInWithIdentifier } from '@gameexplorer/client';
 import { Button, Screen, BackHeader, TextField } from '@/components/ui';
 import { OAuthButtons, OrDivider } from '@/components/auth/OAuthButtons';
 import { FONTS } from '@/theme/typography';
+import { safeReturnPath } from '@/lib/returnPath';
 
 /**
  * Email/password + OAuth sign-in. Mirrors the web `/auth/signin` page. On success
@@ -18,7 +19,8 @@ export default function SignInScreen() {
 
   const router = useRouter();
   const { next } = useLocalSearchParams<{ next?: string }>();
-  const target = next ?? '/profile';
+  // Reachable by deep link, so `next` is untrusted (see `safeReturnPath`).
+  const target = safeReturnPath(next) ?? '/profile';
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');

@@ -72,6 +72,25 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'com.gameexplorer.app',
+    // Out of Google's cloud backup (security audit v2, GX-22). Expo's template
+    // left it on, so the whole data dir — the saved session included — went
+    // into the user's backup. On Android 12+ this does not cover phone-to-phone
+    // transfer; the expo-secure-store plugin's transfer rules below do.
+    allowBackup: false,
+    // Expo's bare template declares the first three for every app ("optional
+    // permissions, remove whatever you do not need"); nothing here draws over
+    // other apps or touches shared storage. The biometric pair arrives with
+    // expo-secure-store's androidx.biometric dependency and is only needed for
+    // items stored with `requireAuthentication`, which the session key is not.
+    // Blocking emits tools:node="remove", which also strips the copies library
+    // manifests merge in (WS7-06).
+    blockedPermissions: [
+      'android.permission.SYSTEM_ALERT_WINDOW',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+      'android.permission.USE_BIOMETRIC',
+      'android.permission.USE_FINGERPRINT',
+    ],
     // App Links for invite + spectate links. `autoVerify` is what lets Android
     // open them without a chooser dialog; it needs `/.well-known/assetlinks.json`
     // on WEB_HOST. Until that is served, verification simply fails and the link
@@ -101,7 +120,20 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     // SDK 57 ships config plugins for these; `expo install --fix` flags them.
-    'expo-audio',
+    // expo-audio's defaults are for a recording, background-playing app: the
+    // microphone permission (Android and iOS), a background audio mode and a
+    // foreground media service. This app only plays short sound effects in the
+    // foreground (sfxPlayer.ts sets shouldPlayInBackground: false), and each of
+    // those shows on the store listing or draws App Review questions (security
+    // audit v2, WS7-06). Keep the array form: the bare string turns them back on.
+    [
+      'expo-audio',
+      {
+        microphonePermission: false,
+        recordAudioAndroid: false,
+        enableBackgroundPlayback: false,
+      },
+    ],
     'expo-image',
     'expo-status-bar',
     // OAuth sign-in opens the provider consent page in an in-app browser tab and
@@ -109,6 +141,13 @@ const config: ExpoConfig = {
     'expo-web-browser',
     // Sign in with Apple (iOS) — adds the entitlement + native module.
     'expo-apple-authentication',
+    // Holds the key the saved session is sealed with (packages/db
+    // sessionStorage.native.ts). The plugin's Android backup and transfer rules
+    // keep that key file on the device and back up shared preferences only,
+    // which leaves AsyncStorage out of a phone-to-phone transfer as well. No
+    // Face ID prompt: nothing asks for biometrics, and an unused usage string is
+    // the kind of thing App Review questions.
+    ['expo-secure-store', { faceIDPermission: false }],
     [
       'expo-splash-screen',
       {
