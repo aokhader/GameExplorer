@@ -23,6 +23,11 @@ export interface SetupChipsProps<G extends SetupGame> {
  *
  * Opening one closes the others: two lists of options open at once on a phone
  * pushes Start off the screen, and only one choice is being made at a time.
+ *
+ * A `toggle` field is a switch instead — "Update Practice Level" flips in one
+ * click, the way mobile's setup switch does, rather than opening a two-item
+ * list. Locked, it does not flip: a click says why instead, because a switch
+ * that silently refuses reads as a bug.
  */
 export function SetupChips<G extends SetupGame>({ fields, onChange, className }: SetupChipsProps<G>) {
   const [open, setOpen] = useState<string | null>(null);
@@ -35,6 +40,37 @@ export function SetupChips<G extends SetupGame>({ fields, onChange, className }:
         {fields.map((field) => {
           const isOpen = open === field.key;
           const panelId = `${baseId}-${field.key}`;
+          if (field.kind === 'toggle') {
+            const on = field.selected === 'on';
+            return (
+              <li key={field.key}>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
+                  aria-disabled={field.locked ? true : undefined}
+                  aria-describedby={field.locked && isOpen ? panelId : undefined}
+                  onClick={() => {
+                    if (field.locked) {
+                      setOpen(isOpen ? null : field.key);
+                      return;
+                    }
+                    onChange(field.apply(on ? 'off' : 'on'));
+                    setOpen(null);
+                  }}
+                  className={cn(
+                    'touch-target inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm motion-control',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                    on ? 'border-accent bg-accent-muted text-fg' : 'border-border bg-surface-alt text-fg',
+                    field.locked ? 'cursor-help' : 'hover:border-border-strong',
+                  )}
+                >
+                  <span className="font-semibold">{field.label}</span>
+                  <SwitchGlyph on={on} dimmed={!!field.locked} />
+                </button>
+              </li>
+            );
+          }
           return (
             <li key={field.key}>
               <button
@@ -67,6 +103,18 @@ export function SetupChips<G extends SetupGame>({ fields, onChange, className }:
       {fields.map((field) => {
         if (open !== field.key) return null;
         const panelId = `${baseId}-${field.key}`;
+        if (field.kind === 'toggle') {
+          // Only a locked switch opens anything, and all it has to say is why.
+          return (
+            <p
+              key={field.key}
+              id={panelId}
+              className="mt-2 rounded-xl border border-border bg-surface-alt px-3 py-2 text-caption text-fg-muted"
+            >
+              {field.locked}
+            </p>
+          );
+        }
         return (
           <div
             key={field.key}
@@ -114,5 +162,31 @@ export function SetupChips<G extends SetupGame>({ fields, onChange, className }:
         );
       })}
     </div>
+  );
+}
+
+/**
+ * The switch drawn inside a chip. The chip itself is the control — a button
+ * cannot hold another — so this is only the picture of one, sized down from the
+ * app's `Toggle` and moving the same way.
+ */
+function SwitchGlyph({ on, dimmed }: { on: boolean; dimmed: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
+        on ? 'bg-accent' : 'bg-surface-muted',
+        dimmed && 'opacity-50',
+      )}
+    >
+      <span
+        className={cn(
+          'mx-0.5 h-4 w-4 rounded-full bg-white shadow',
+          'transition-[translate] duration-(--duration-base) ease-overshoot motion-reduce:transition-none',
+          on && 'translate-x-4',
+        )}
+      />
+    </span>
   );
 }

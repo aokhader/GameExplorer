@@ -194,11 +194,20 @@ test('the Play page shows the setup as chips you can change', async ({ page }) =
   await page.getByRole('radio', { name: /13×13/ }).click();
   await expect(board).toContainText('13×13');
 
-  // A locked choice says why. For a guest that is the account, which comes
-  // first; Go's own rule (only 9×9 at 7.5 komi is rated) is unit-tested,
-  // because reaching it here would need a signed-in session.
-  await page.getByRole('button', { name: /Rating/ }).click();
+  // The rated choice is a switch, not a list. Locked, a click says why and
+  // leaves it off. For a guest that is the account, which comes first; Go's
+  // own rule (only 9×9 at 7.5 komi is rated) is unit-tested, because reaching
+  // it here would need a signed-in session.
+  const practice = setup.getByRole('switch', { name: /Update Practice Level/ });
+  await expect(practice).toHaveAttribute('aria-checked', 'false');
+  await expect(practice).toHaveAttribute('aria-disabled', 'true');
+  // `force`: Playwright waits for an aria-disabled control to become enabled,
+  // and this one never will. It is still a real, focusable button whose click
+  // explains itself — which the reason appearing below proves.
+  await expect(practice).toBeVisible();
+  await practice.click({ force: true });
   await expect(page.getByText('Sign in to play rated games')).toBeVisible();
+  await expect(practice).toHaveAttribute('aria-checked', 'false');
 });
 
 test('a first game is never rated, whatever was played last', async ({ page }) => {

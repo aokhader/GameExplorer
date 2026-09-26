@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { setupFields } from '../game/setupFields';
+import { practiceToggleNote, setupFields } from '../game/setupFields';
 import { setupDefaults } from '../game/localSetup';
 
 const signedIn = { signedIn: true };
@@ -95,5 +95,35 @@ describe('setupFields', () => {
         }
       }
     }
+  });
+});
+
+describe('the practice switch', () => {
+  const rated = (setup: ReturnType<typeof setupDefaults>, opts = signedIn) =>
+    setupFields('chess', 'bot', setup, opts).find((f) => f.key === 'rated')!;
+
+  it('is a switch named for what it moves, flipping between on and off', () => {
+    const setup = { ...setupDefaults('chess', 'bot'), rated: true };
+    const field = rated(setup);
+    expect(field.kind).toBe('toggle');
+    expect(field.label).toBe('Update Practice Level');
+    expect(field.selected).toBe('on');
+    expect({ ...setup, ...field.apply('off') }).toMatchObject({ rated: false });
+  });
+
+  it('shows off while locked, whatever was remembered', () => {
+    // A guest whose last signed-in setup was rated must not see a lit switch:
+    // the game they are about to start will not be rated.
+    const setup = { ...setupDefaults('chess', 'bot'), rated: true };
+    expect(rated(setup, guest).selected).toBe('off');
+  });
+
+  it('explains itself the same way on every platform', () => {
+    expect(practiceToggleNote({ signedIn: false, rated: true, gameLabel: 'chess' })).toBe('Sign in to play rated games');
+    expect(practiceToggleNote({ signedIn: true, online: false, rated: true, gameLabel: 'chess' })).toMatch(/Offline/);
+    expect(practiceToggleNote({ signedIn: true, rated: true, gameLabel: 'Go' })).toBe(
+      'Rated: the result moves your Go practice level',
+    );
+    expect(practiceToggleNote({ signedIn: true, rated: false, gameLabel: 'chess' })).toBe('Casual: nothing is recorded');
   });
 });

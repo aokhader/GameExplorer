@@ -7,6 +7,7 @@ import {
   moveHistoryToPdn,
   type CheckersGameState,
   ABORT_MOVE_LIMIT,
+  RATING_COPY,
 } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, Toggle } from '@/components/ui';
@@ -34,6 +35,7 @@ import { useSetupDeepLink } from '@/game/useSetupDeepLink';
 import { useGameSetup, useUnfinishedGame } from '@/game/useGameSetup';
 import { ContinueCard, SetupStartFooter } from '@/game/ContinueCard';
 import { nativeLocalStore } from '@/lib/localStore';
+import { practiceToggleNote } from '@gameexplorer/client/game/setupFields';
 import type { UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { CheckersOnline } from '@/multiplayer/CheckersOnline';
 import { OnlineSetupCard } from '@/multiplayer/OnlineSetupCard';
@@ -394,19 +396,15 @@ export function CheckersScreen() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>Rated</Text>
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>{RATING_COPY.practice.toggle}</Text>
               <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
-                {!userId
-                  ? 'Sign in to play rated games'
-                  : !online
-                    ? 'Offline — rated games need a connection'
-                    : 'Updates your checkers practice level'}
+                {practiceToggleNote({ signedIn: !!userId, online, rated: ratedEffective, gameLabel: 'checkers' })}
               </Text>
             </View>
             <Toggle
               value={ratedEffective}
               onValueChange={(value) => setup.update({ rated: value })}
-              label="Rated"
+              label={RATING_COPY.practice.toggle}
               disabled={!userId || !online}
             />
           </View>

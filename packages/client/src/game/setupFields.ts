@@ -1,4 +1,4 @@
-import { BOT_TIERS, botStrengthLabel, type RatedGameId } from '@gameexplorer/shared';
+import { BOT_TIERS, RATING_COPY, botStrengthLabel, type RatedGameId } from '@gameexplorer/shared';
 import {
   GO_BOARD_SIZES,
   GO_KOMI_PRESETS,
@@ -41,6 +41,11 @@ export interface SetupFieldOption {
 
 export interface SetupField<G extends SetupGame> {
   key: string;
+  /**
+   * `choice` (the default) opens its options; `toggle` is an on/off switch that
+   * flips in one tap, with `options` holding `on` and `off`.
+   */
+  kind?: 'choice' | 'toggle';
   /** What the choice is called: "Strength", "You play", "Board". */
   label: string;
   /** The current value, as the chip shows it. */
@@ -91,20 +96,50 @@ function colorField<G extends SetupGame>(game: SetupGame, setup: BotGameSetup, m
   };
 }
 
+/** Why the practice switch cannot be turned on for a guest. */
+const SIGN_IN_TO_RATE = 'Sign in to play rated games';
+
 function ratedField<G extends SetupGame>(setup: BotGameSetup, signedIn: boolean, blocked?: string): SetupField<G> {
+  const locked = !signedIn ? SIGN_IN_TO_RATE : blocked;
+  // A locked switch shows off, because the game will not be rated whatever
+  // was remembered — the same rule the full setup screens' switch follows.
+  const on = setup.rated && !locked;
   return {
     key: 'rated',
-    // "Rating: Rated" rather than "Rated: Rated" — the chip prints both halves.
-    label: 'Rating',
-    value: setup.rated ? 'Rated' : 'Casual',
-    selected: setup.rated ? 'on' : 'off',
+    kind: 'toggle',
+    label: RATING_COPY.practice.toggle,
+    value: on ? 'Rated' : 'Casual',
+    selected: on ? 'on' : 'off',
     options: [
       { value: 'on', label: 'Rated', detail: 'The result moves your practice level' },
       { value: 'off', label: 'Casual', detail: 'Nothing is recorded' },
     ],
     apply: (value) => ({ rated: value === 'on' }) as unknown as Partial<SetupFor[G]>,
-    locked: !signedIn ? 'Sign in to play rated games' : blocked,
+    locked,
   };
+}
+
+/**
+ * The line under the practice switch on a bot setup, on both platforms: why it
+ * is locked, or what the current position does. Offline is mobile's case —
+ * a rated result has to reach the database, and web has no offline mode.
+ */
+export function practiceToggleNote({
+  signedIn,
+  online = true,
+  rated,
+  gameLabel,
+}: {
+  signedIn: boolean;
+  online?: boolean;
+  rated: boolean;
+  gameLabel: string;
+}): string {
+  if (!signedIn) return SIGN_IN_TO_RATE;
+  if (!online) return 'Offline — rated games need a connection';
+  return rated
+    ? `Rated: the result moves your ${gameLabel} ${RATING_COPY.practice.inline}`
+    : 'Casual: nothing is recorded';
 }
 
 function goFields(setup: GoSetup): SetupField<'go'>[] {

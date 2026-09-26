@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 
 // Bot games used to disagree about ratings: chess never wrote one, checkers and
 // reversi always did for a signed-in player, and mobile offered an explicit
-// choice. All three web pages now carry the same Rated switch.
+// choice. All three web pages now carry the same switch, named for what it
+// moves: "Update Practice Level".
 //
 // These tests are unauthenticated (see playwright.config.ts), so they pin the
 // signed-out contract: the control is present on every bot page, off, inert, and
@@ -16,10 +17,10 @@ const BOT_PAGES = [
 ] as const;
 
 for (const { game, path } of BOT_PAGES) {
-  test(`${game} bot setup offers a Rated switch, disabled for guests`, async ({ page }) => {
+  test(`${game} bot setup offers the practice switch, disabled for guests`, async ({ page }) => {
     await page.goto(path);
 
-    const rated = page.getByRole('switch', { name: 'Rated' });
+    const rated = page.getByRole('switch', { name: 'Update Practice Level' });
     await expect(rated).toBeVisible();
     await expect(rated).toHaveAttribute('aria-checked', 'false');
     await expect(rated).toBeDisabled();
@@ -29,7 +30,7 @@ for (const { game, path } of BOT_PAGES) {
   });
 }
 
-test('the Rated switch does not block starting a casual game', async ({ page }) => {
+test('the practice switch does not block starting a casual game', async ({ page }) => {
   await page.goto('/chess/bot');
   await page.getByRole('button', { name: 'Start Game' }).click();
   // Reaching the board means the setup screen still hands off with Rated off.

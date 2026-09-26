@@ -1,6 +1,7 @@
 'use client';
 
 import { RATING_COPY } from '@gameexplorer/shared';
+import { practiceToggleNote } from '@gameexplorer/client/game/setupFields';
 import { Toggle } from '@/components/ui';
 
 export interface RatedToggleProps {
@@ -13,7 +14,9 @@ export interface RatedToggleProps {
 }
 
 /**
- * The Rated / Casual switch on a bot setup screen.
+ * The "Update Practice Level" switch on a bot setup screen — on is a rated
+ * game, off a casual one. Named and explained exactly as the setup chips and
+ * mobile's switch are (`RATING_COPY`, `practiceToggleNote`).
  *
  * A rated bot game moves the player's Practice level, never their online
  * Rating (security audit v2, GX-04).
@@ -32,17 +35,15 @@ export function RatedToggle({ checked, onChange, gameLabel, userId }: RatedToggl
   return (
     <div className="rounded-2xl border border-white/10 bg-surface-alt surface-raised p-6 mb-6 flex items-center justify-between gap-4">
       <div className="min-w-0">
-        <p className="text-lg font-semibold text-fg">Rated</p>
+        <p className="text-lg font-semibold text-fg">{RATING_COPY.practice.toggle}</p>
         <p className="text-sm text-fg-muted">
-          {signedIn
-            ? `Updates your ${gameLabel} ${RATING_COPY.practice.inline}`
-            : 'Sign in to play rated games'}
+          {practiceToggleNote({ signedIn, rated: signedIn && checked, gameLabel })}
         </p>
       </div>
       <Toggle
         checked={signedIn && checked}
         onChange={onChange}
-        label="Rated"
+        label={RATING_COPY.practice.toggle}
         disabled={!signedIn}
       />
     </div>

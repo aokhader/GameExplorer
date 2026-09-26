@@ -9,6 +9,7 @@ import {
   timelineToSan,
   type ChessGameState,
   ABORT_MOVE_LIMIT,
+  RATING_COPY,
 } from '@gameexplorer/shared';
 import { COLORS, GAME_ACCENTS, ChessPiece, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import { Screen, BackHeader, Button, Icon, Toggle } from '@/components/ui';
@@ -42,6 +43,7 @@ import { useSetupDeepLink } from '@/game/useSetupDeepLink';
 import { useGameSetup, useUnfinishedGame } from '@/game/useGameSetup';
 import { ContinueCard, SetupStartFooter } from '@/game/ContinueCard';
 import { nativeLocalStore } from '@/lib/localStore';
+import { practiceToggleNote } from '@gameexplorer/client/game/setupFields';
 import type { UnfinishedGame } from '@gameexplorer/client/game/unfinishedGame';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useIsOnline } from '@/lib/useIsOnline';
@@ -515,16 +517,12 @@ export function ChessScreen() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>Rated</Text>
+              <Text style={{ color: COLORS.fg, fontFamily: FONTS.displaySemi, fontSize: FONT_SIZES.body }}>{RATING_COPY.practice.toggle}</Text>
               <Text style={{ color: COLORS.fgMuted, fontSize: FONT_SIZES.xs, marginTop: 2 }}>
-                {!userId
-                  ? 'Sign in to play rated games'
-                  : !online
-                    ? 'Offline — rated games need a connection'
-                    : 'Updates your chess practice level'}
+                {practiceToggleNote({ signedIn: !!userId, online, rated: ratedEffective, gameLabel: 'chess' })}
               </Text>
             </View>
-            <Toggle value={ratedEffective} onValueChange={(value) => setup.update({ rated: value })} label="Rated" disabled={!userId || !online} />
+            <Toggle value={ratedEffective} onValueChange={(value) => setup.update({ rated: value })} label={RATING_COPY.practice.toggle} disabled={!userId || !online} />
           </View>
         )}
 

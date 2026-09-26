@@ -190,10 +190,10 @@ describe('GoScreen — setup', () => {
 
   it('takes the rated toggle away at a komi the bot was never measured at', async () => {
     await renderScreen();
-    expect(screen.getByLabelText('Rated')).toBeTruthy();
+    expect(screen.getByLabelText('Update Practice Level')).toBeTruthy();
 
     fireEvent.press(screen.getByRole('button', { name: /^Komi 5\.5/ }));
-    expect(screen.queryByLabelText('Rated')).toBeNull();
+    expect(screen.queryByLabelText('Update Practice Level')).toBeNull();
     expect(screen.getByText(/casual/)).toBeTruthy();
   });
 

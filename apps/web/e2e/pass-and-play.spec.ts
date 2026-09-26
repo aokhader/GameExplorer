@@ -23,7 +23,7 @@ for (const game of GAMES) {
 
     await expect(page.getByRole('heading', { name: 'Pass & Play' })).toBeVisible();
     // Nothing to rate and no bot to calibrate — the controls for both are gone.
-    await expect(page.getByRole('switch', { name: 'Rated' })).toHaveCount(0);
+    await expect(page.getByRole('switch', { name: 'Update Practice Level' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Bot Strength' })).toHaveCount(0);
   });
 }

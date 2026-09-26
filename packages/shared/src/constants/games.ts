@@ -68,11 +68,12 @@ export const MODE_COPY: Record<GameModeId, ModeCopy> = {
  *   rating, so that nobody expects it to be defended.
  *
  * `label` is for a heading or a stat's name; `inline` is for running text
- * ("Updates your chess practice level").
+ * ("the result moves your chess practice level"). `toggle` names the switch on
+ * a bot setup that makes a game rated — the same words on web and mobile.
  */
 export const RATING_COPY = {
   online: { label: 'Rating', inline: 'rating' },
-  practice: { label: 'Practice level', inline: 'practice level' },
+  practice: { label: 'Practice level', inline: 'practice level', toggle: 'Update Practice Level' },
 } as const;
 
 export type RatingLadder = keyof typeof RATING_COPY;
