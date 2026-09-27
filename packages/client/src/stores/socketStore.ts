@@ -9,7 +9,10 @@ interface SocketStore {
   socket:    GameSocket | null;
   connected: boolean;
   connectionError: string | null;
-  connect:   (supabaseJwt: string) => void;
+  /** Opens the socket. `getToken` is asked for the current access token on every attempt, reconnects included. */
+  connect:   (getToken: () => Promise<string | null>) => void;
+  /** Gives the open connection the token the session has just refreshed to. */
+  reauth:    (token: string) => void;
   disconnect: () => void;
 }
 
@@ -18,7 +21,7 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
   connected: false,
   connectionError: null,
 
-  connect(supabaseJwt) {
+  connect(getToken) {
     const existing = get().socket;
     // Idempotent: reuse a socket that is already connected OR still in the
     // middle of (re)connecting (`active`). Without this, React's double-invoke
@@ -32,7 +35,18 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
 
     const apiUrl = getApiUrl();
     const socket = io(apiUrl, {
-      auth:         { token: supabaseJwt },
+      // A function, not a value: socket.io calls it on every attempt. A token
+      // captured once was sent again on every reconnect, so a connection that
+      // dropped more than an hour after it opened could not come back; and the
+      // server now closes a socket whose token has run out (security audit v2,
+      // GX-16). An empty token is refused by the server, which is the answer
+      // for a session that has gone.
+      auth: (cb) => {
+        getToken().then(
+          (token) => cb({ token: token ?? '' }),
+          () => cb({ token: '' }),
+        );
+      },
       transports:   ['websocket'],
       reconnection: true,
       reconnectionDelay:    1000,
@@ -77,6 +91,12 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
     });
 
     set({ socket, connected: socket.connected, connectionError: null });
+  },
+
+  reauth(token) {
+    const socket = get().socket;
+    // A socket that is not connected picks the new token up when it reconnects.
+    if (socket?.connected) socket.emit('reauth', { token });
   },
 
   disconnect() {

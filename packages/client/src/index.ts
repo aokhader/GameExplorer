@@ -2,7 +2,15 @@
 // by apps/web today and apps/mobile (React Native) later. No DOM, no next/*.
 
 export { getApiUrl, setApiUrl } from './config';
-export { apiFetch } from './apiFetch';
+export { apiFetch, ApiError } from './apiFetch';
+export {
+  needsReauth,
+  reauthMethodFor,
+  currentReauthMethod,
+  currentUserId,
+  confirmPassword,
+} from './reauth';
+export type { ReauthMethod, ReauthUser, SocialProvider } from './reauth';
 export { signInWithIdentifier, looksLikeEmail } from './auth';
 export {
   checkUsernameAvailability,

@@ -1,5 +1,6 @@
 import { redis } from '../config/redis';
 import { publicWebUrl } from '../config/cors';
+import { revocationService } from './revocation.service';
 import type { GameType, TimeControl } from '@gameexplorer/shared';
 
 const INVITE_TTL = 600; // 10 minutes
@@ -64,7 +65,8 @@ export const inviteService = {
    */
   async checkInvite(inviteId: string, acceptingUserId: string): Promise<{ invite: InviteData } | { error: string }> {
     const invite = await this.getInvite(inviteId);
-    if (!invite) return { error: 'Invite not found or expired' };
+    // An invite from an account deleted since would start a game against nobody.
+    if (!invite || revocationService.isRevoked(invite.fromId)) return { error: 'Invite not found or expired' };
     if (invite.fromId === acceptingUserId) return { error: 'Cannot accept your own invite' };
     if (invite.toId && invite.toId !== acceptingUserId) return { error: 'Invite is not for you' };
     return { invite };

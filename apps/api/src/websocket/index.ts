@@ -4,6 +4,7 @@ import { logger }                   from '../utils/logger';
 import { verifySocketToken }        from './middleware/auth.middleware';
 import { registerGameHandlers }     from './handlers/game.handler';
 import { registerMatchmakingHandlers } from './handlers/matchmaking.handler';
+import { registerSessionHandlers }  from './handlers/session.handler';
 import { gameSessionService, newGameState, AlreadyInGameError, TIME_CONTROL_CONFIGS } from '../services/gameSession.service';
 import { clockService }             from '../services/clock.service';
 import { matchmakingService, type QueueEntry } from '../services/matchmaking.service';
@@ -148,6 +149,7 @@ export function initializeWebSocket(httpServer: HTTPServer) {
 
     registerGameHandlers(io, socket);
     registerMatchmakingHandlers(io, socket);
+    registerSessionHandlers(socket);
 
     socket.on('disconnect', async () => {
       logger.info(`Client disconnected: ${socket.id} (user ${userId})`);
@@ -195,6 +197,32 @@ export function initializeWebSocket(httpServer: HTTPServer) {
 export function getIO() {
   if (!io) throw new Error('Socket.io not initialized');
   return io;
+}
+
+/**
+ * Takes a user out of everything live: every queue, their game and their open
+ * connections. Account deletion calls it (GX-19). Before, a deleted account
+ * stayed queued and in its game, and when that game ended the server wrote a
+ * rating and a game record for an account that no longer existed (WS4-15).
+ *
+ * The opponent wins, as when a player stays away past the grace period, and the
+ * sockets are disconnected so they do not reconnect by themselves.
+ */
+export async function endUserPresence(userId: string): Promise<void> {
+  await matchmakingService.removeFromAllQueues(userId);
+
+  const gameId = await gameSessionService.getLiveGameId(userId);
+  if (gameId) {
+    cancelForfeit(gameId, userId);
+    const session = await gameSessionService.getGameSession(gameId);
+    if (session && session.status === 'active') {
+      const result: GameResult = session.whiteId === userId ? 'black_wins' : 'white_wins';
+      const ratings = await gameSessionService.endGame(gameId, result, 'disconnect');
+      if (ratings && io) io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'disconnect', ...ratings });
+    }
+  }
+
+  if (io) io.in(`user:${userId}`).disconnectSockets(true);
 }
 
 /** Stops the polling loops and closes the Socket.io server (graceful shutdown + tests). */

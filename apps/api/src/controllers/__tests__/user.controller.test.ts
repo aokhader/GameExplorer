@@ -29,6 +29,7 @@ vi.mock('../../config/database', () => ({
 }));
 vi.mock('../../websocket', () => ({
   getIO: () => ({ to: () => ({ emit: () => {} }) }),
+  endUserPresence: vi.fn(async () => {}),
 }));
 vi.mock('../../services/block.service', () => ({
   blockService: {

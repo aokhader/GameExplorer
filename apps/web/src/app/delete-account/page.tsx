@@ -65,6 +65,11 @@ export default function DeleteAccountPage() {
                 way.
               </li>
             </ul>
+            <p className="mt-3">
+              If you last signed in more than ten minutes ago, you&apos;ll be asked to confirm
+              it&apos;s you first: your password, or Google, Facebook or Apple again. That stops
+              anyone who picks up a signed-in device from deleting your account.
+            </p>
           </section>
 
           <section>

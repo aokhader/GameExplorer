@@ -1,1 +1,2 @@
 arasan-chess c51273aa812c38bd54460adf68f2e15c32e74d71 (2026-07-13) vendored
+network/arasanv8-20260622.nnue from the same commit, unmodified, as ../../assets/arasanv8-20260622.nnue: git blob 0a91b3d2192b2854fad0dd27f5507c892503a726, the same blob upstream holds at that commit (checked 2026-09-27). Its SHA-256 is in ../../CHECKSUMS.txt, which src/__tests__/arasanNetwork.test.ts in apps/mobile checks.

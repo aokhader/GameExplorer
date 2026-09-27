@@ -207,6 +207,8 @@ describe('WS5-21 · every socket event goes through its schema', () => {
       { inviteId: UNKNOWN_GAME.replace(/-/g, '') },                     // a UUID without its dashes
       { inviteId: { $ne: null } },
     ],
+    // Wave 6 (GX-16).
+    reauth: [{ token: '' }, { token: 12345 }, { token: 'x'.repeat(8193) }, { token: { $ne: null } }],
   };
 
   const events = Object.keys(SocketSchemas) as SocketEvent[];
@@ -218,8 +220,8 @@ describe('WS5-21 · every socket event goes through its schema', () => {
   beforeAll(() => { SOCKET_LIMITS.perEvent = {}; });
   afterAll(() => { SOCKET_LIMITS.perEvent = savedBudgets; });
 
-  it('covers all fifteen events', () => {
-    expect(events).toHaveLength(15);
+  it('covers all sixteen events', () => {
+    expect(events).toHaveLength(16);
   });
 
   it('an invite id must be a whole UUID; the old 32-bit form is refused (WS5-30)', () => {

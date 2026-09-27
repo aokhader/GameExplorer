@@ -39,6 +39,8 @@ export const SOCKET_LIMITS = {
     create_invite_link: { max: 10, windowMs: 60_000 },
     accept_invite:      { max: 10, windowMs: 60_000 },
     spectate:           { max: 30, windowMs: 60_000 },
+    // A session refreshes about once an hour; each one costs a signature check.
+    reauth:             { max: 10, windowMs: 60_000 },
   } as Partial<Record<SocketEvent, Budget>>,
 };
 

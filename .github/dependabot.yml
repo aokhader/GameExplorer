@@ -1,0 +1,10 @@
+# Keeps the commit-pinned actions in workflows/ci.yml current: each pin moves by
+# pull request, with its version comment, instead of silently going stale
+# (security audit v2, GX-21). npm packages are left to Dependabot alerts, a
+# repository setting, rather than a pull request for every release.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

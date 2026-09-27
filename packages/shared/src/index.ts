@@ -27,6 +27,8 @@ export * from './analysis';
 
 // Socket event protocol
 export * from './types/socket.types';
+// Actions that need a recent sign-in (account deletion)
+export * from './auth';
 
 // "How to play" tutorial content (web + mobile)
 export * from './constants/tutorials';

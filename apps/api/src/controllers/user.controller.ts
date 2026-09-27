@@ -1,9 +1,11 @@
 import { Response } from 'express';
-import { LIMITS }          from '@gameexplorer/shared';
+import { LIMITS, REAUTH_REQUIRED, REAUTH_WINDOW_SECONDS } from '@gameexplorer/shared';
 import { prisma }         from '../config/database';
-import { getIO }          from '../websocket';
+import { getIO, endUserPresence } from '../websocket';
 import { blockService }   from '../services/block.service';
 import { accountService } from '../services/account.service';
+import { revocationService } from '../services/revocation.service';
+import { logger }         from '../utils/logger';
 import type { AuthRequest } from '../middleware/auth';
 import type { z } from 'zod';
 import type { RestSchemas } from '../schemas';
@@ -174,8 +176,37 @@ export const userController = {
   // ── Account deletion ──────────────────────────────────────────────────────
   async deleteAccount(req: AuthRequest, res: Response) {
     const userId = req.userId!;
+
+    // Only straight after a sign-in (GX-19). The type-to-confirm box is the
+    // app's own; without this, any valid token could delete the account for
+    // good. The message is written for app versions that predate the check and
+    // show it as it is; current ones ask for the sign-in themselves.
+    if (req.signedInAt == null) {
+      // Supabase names the sign-in on every token it issues. Refusing one that
+      // somehow does not would leave that user unable to delete at all.
+      logger.warn(`Account deletion for ${userId}: the token names no sign-in time, so the recent-sign-in check was skipped`);
+    } else if (Date.now() / 1000 - req.signedInAt > REAUTH_WINDOW_SECONDS) {
+      res.status(403).json({
+        error: 'For your security, sign out and sign in again, then delete your account within 10 minutes.',
+        code: REAUTH_REQUIRED,
+      });
+      return;
+    }
+
+    // From here the account's tokens are refused everywhere, so nothing can
+    // queue, start a game or write while its rows go. Lifted again if the
+    // deletion fails, so the user can retry (GX-16).
+    revocationService.revoke(userId);
+    try {
+      await endUserPresence(userId);
+    } catch (err) {
+      // A game left behind ends on its clock. Deleting the account matters more.
+      logger.error(`Account deletion for ${userId}: could not end live state:`, err);
+    }
+
     const result = await accountService.deleteAccount(userId);
     if (result.ok) { res.json({ ok: true }); return; }
+    revocationService.lift(userId);
     if (result.reason === 'unavailable') {
       res.status(503).json({ error: 'Account deletion is temporarily unavailable' });
       return;

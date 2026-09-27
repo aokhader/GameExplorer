@@ -15,17 +15,30 @@ export function useSocket() {
   const user       = useAuthStore(s => s.user);
   const socket     = useSocketStore(s => s.socket);
   const connect    = useSocketStore(s => s.connect);
+  const reauth     = useSocketStore(s => s.reauth);
   const disconnect = useSocketStore(s => s.disconnect);
 
   // Connect / disconnect based on auth state
   useEffect(() => {
     if (!user) { disconnect(); return; }
 
-    supabase.auth.getSession().then(({ data }: { data: { session: { access_token: string } | null } }) => {
-      if (data.session) connect(data.session.access_token);
+    type SessionResult = { data: { session: { access_token: string } | null } };
+    const currentToken = () =>
+      supabase.auth.getSession().then(({ data }: SessionResult) => data.session?.access_token ?? null);
+
+    supabase.auth.getSession().then(({ data }: SessionResult) => {
+      if (data.session) connect(currentToken);
     });
 
-    return () => { disconnect(); };
+    // The server holds an open connection to its token's expiry, so each token
+    // the session refreshes to is handed over as well (GX-16).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event: string, session: { access_token: string } | null) => {
+        if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session) reauth(session.access_token);
+      },
+    );
+
+    return () => { subscription.unsubscribe(); disconnect(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 

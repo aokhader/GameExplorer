@@ -27,3 +27,13 @@ web application, which is MIT-licensed (see the repository root `LICENSE.md`).
 
 These notices are surfaced to users at `/licenses`
 (`apps/web/src/app/licenses/page.tsx`) — keep the two in sync.
+
+## Integrity
+
+`CHECKSUMS.txt` holds each file's SHA-256, in `sha256sum -c` form. On 2026-09-27
+all four matched the npm package `stockfish@18.0.8`, whose
+`bin/stockfish-18-lite{,-single}.{js,wasm}` are these files under unversioned
+names; the registry's per-file SHA-256 was read from
+<https://unpkg.com/stockfish@18.0.8/bin/?meta>. `apps/web/src/__tests__/vendoredEngine.test.ts`
+fails if a file here changes without its line. A new version gets new file
+names, new lines, and the same check against its npm package.

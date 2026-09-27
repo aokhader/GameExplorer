@@ -88,6 +88,9 @@ export const SocketSchemas = {
 
   create_invite_link: z.object({ gameType: GameTypeSchema, timeControl: TimeControlSchema }),
   accept_invite:      z.object({ inviteId: InviteId }),
+
+  // A Supabase access token is 1–3 KB; the ceiling only bounds parsing.
+  reauth: z.object({ token: z.string().min(1).max(8192) }),
 };
 
 export type SocketEvent = keyof typeof SocketSchemas;

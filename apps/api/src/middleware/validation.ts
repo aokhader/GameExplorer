@@ -17,6 +17,7 @@ import type { ZodTypeAny } from 'zod';
 import type { ErrorCode } from '@gameexplorer/shared';
 import { SocketSchemas, type SocketEvent, type SocketPayload } from '../schemas';
 import { SOCKET_LIMITS, take } from '../websocket/limits';
+import { revocationService } from '../services/revocation.service';
 import { logger } from '../utils/logger';
 
 export interface SocketFailure { code: ErrorCode; message: string }
@@ -24,6 +25,13 @@ export interface SocketFailure { code: ErrorCode; message: string }
 const RATE_LIMITED: SocketFailure = { code: 'RATE_LIMITED', message: 'Too many requests. Slow down and try again.' };
 const BAD_REQUEST: SocketFailure  = { code: 'BAD_REQUEST', message: 'Invalid request' };
 const SERVER_ERROR: SocketFailure = { code: 'SERVER_ERROR', message: 'Something went wrong' };
+const SESSION_EXPIRED: SocketFailure = { code: 'AUTH_REQUIRED', message: 'Your session has expired. Sign in again to keep playing.' };
+
+/**
+ * Events that start something. A socket whose token has run out may finish the
+ * game it is in, but not start another (websocket/session.ts, GX-16).
+ */
+const NEEDS_CURRENT_TOKEN: ReadonlySet<string> = new Set(['join_queue', 'create_invite_link', 'accept_invite']);
 
 /**
  * Registers `handler` for `event`, but only ever calls it with a payload that
@@ -34,10 +42,13 @@ const SERVER_ERROR: SocketFailure = { code: 'SERVER_ERROR', message: 'Something 
  * junk is throttled like anything else.
  *
  * `limited`, `rejected` and `failed` replace the generic error for, in turn, a
- * spent budget, a payload that fails the schema and a handler that throws.
- * Override them where a client waits on a specific code: the invite hook only
- * reacts to INVITE_EXPIRED, so any other code would leave its spinner running
- * forever.
+ * spent budget, a payload that fails the schema (or a start refused because
+ * the socket's token has expired) and a handler that throws. Override them
+ * where a client waits on a specific code: the invite hook only reacts to
+ * INVITE_EXPIRED, so any other code would leave its spinner running forever.
+ *
+ * Nothing from a deleted account is handled. Its sockets are disconnected when
+ * it is deleted, and one that races that is disconnected here (GX-16).
  */
 export function onEvent<E extends SocketEvent>(
   socket: Socket,
@@ -48,6 +59,15 @@ export function onEvent<E extends SocketEvent>(
   const schema = SocketSchemas[event];
   const userId = socket.data.userId as string;
   socket.on(event as string, async (raw: unknown) => {
+    if (revocationService.isRevoked(userId)) {
+      socket.disconnect(true);
+      return;
+    }
+    if (socket.data.tokenExpired && NEEDS_CURRENT_TOKEN.has(event)) {
+      socket.emit('error', opts.rejected ?? SESSION_EXPIRED);
+      return;
+    }
+
     const budget = SOCKET_LIMITS.perEvent[event];
     if (!take(`user:${userId}`, SOCKET_LIMITS.allEvents)
         || (budget && !take(`user:${userId}:${event}`, budget))) {

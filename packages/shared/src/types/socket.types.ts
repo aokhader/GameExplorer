@@ -87,6 +87,10 @@ export interface ClientToServerEvents {
   decline_invite:     (data: { inviteId: string }) => void;
   spectate:           (data: { gameId: string }) => void;
   leave_spectate:     (data: { gameId: string }) => void;
+  // The access token the client's session has just refreshed to. A socket whose
+  // token has run out may not start anything new, and is closed once it is idle
+  // (security audit v2, GX-16).
+  reauth:             (data: { token: string }) => void;
 }
 
 // ── Server → Client ───────────────────────────────────────────────────────────

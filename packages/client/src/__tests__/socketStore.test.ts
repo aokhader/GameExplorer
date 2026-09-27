@@ -31,12 +31,17 @@ const fakeSocket = {
   active: true,
   io: { on: (event: string, fn: Handler) => managerHandlers.set(event, fn) },
   on: (event: string, fn: Handler) => socketHandlers.set(event, fn),
+  emit: vi.fn(),
   disconnect: vi.fn(),
   removeAllListeners: vi.fn(),
 };
 
+type SocketOptions = { auth?: unknown };
+let lastOptions: SocketOptions = {};
+const jwt = async () => 'jwt';
+
 vi.mock('socket.io-client', () => ({
-  io: () => fakeSocket,
+  io: (_url: string, opts: SocketOptions) => { lastOptions = opts; return fakeSocket; },
   Socket: class {},
 }));
 
@@ -48,6 +53,8 @@ function emitSocket(event: string, ...args: unknown[]) {
 
 describe('socketStore connection state', () => {
   beforeEach(() => {
+    fakeSocket.emit.mockClear();
+    lastOptions = {};
     socketHandlers.clear();
     managerHandlers.clear();
     fakeSocket.connected = false;
@@ -57,7 +64,7 @@ describe('socketStore connection state', () => {
   });
 
   it('does not report a failure while a retry is still scheduled', () => {
-    useSocketStore.getState().connect('jwt');
+    useSocketStore.getState().connect(jwt);
     // Exactly what a Render cold start produced at the 20s mark.
     fakeSocket.active = true;
     emitSocket('connect_error', new Error('timeout'));
@@ -68,7 +75,7 @@ describe('socketStore connection state', () => {
   });
 
   it('reports a rejection that retrying cannot fix', () => {
-    useSocketStore.getState().connect('jwt');
+    useSocketStore.getState().connect(jwt);
     // A middleware rejection: socket.io has already destroyed the socket.
     fakeSocket.active = false;
     emitSocket('connect_error', new Error('Invalid or expired token'));
@@ -77,7 +84,7 @@ describe('socketStore connection state', () => {
   });
 
   it('reports a failure once every retry is spent', () => {
-    useSocketStore.getState().connect('jwt');
+    useSocketStore.getState().connect(jwt);
     fakeSocket.active = true;
     emitSocket('connect_error', new Error('websocket error'));
     expect(useSocketStore.getState().connectionError).toBeNull();
@@ -87,7 +94,7 @@ describe('socketStore connection state', () => {
   });
 
   it('clears a past error once connected', () => {
-    useSocketStore.getState().connect('jwt');
+    useSocketStore.getState().connect(jwt);
     fakeSocket.active = false;
     emitSocket('connect_error', new Error('Invalid or expired token'));
     expect(useSocketStore.getState().connectionError).not.toBeNull();
@@ -95,6 +102,36 @@ describe('socketStore connection state', () => {
     emitSocket('connect');
     expect(useSocketStore.getState().connected).toBe(true);
     expect(useSocketStore.getState().connectionError).toBeNull();
+  });
+
+  it('asks for the current token on every connection attempt, not once', async () => {
+    // A token captured at connect was sent again on every reconnect, so a
+    // connection that dropped over an hour in could never come back, and the
+    // server now closes one whose token has run out (GX-16).
+    const tokens = ['first', 'refreshed'];
+    useSocketStore.getState().connect(async () => tokens.shift() ?? null);
+    expect(typeof lastOptions.auth).toBe('function');
+
+    const auth = lastOptions.auth as (cb: (data: object) => void) => void;
+    const attempt = () => new Promise<object>((resolve) => auth(resolve));
+    expect(await attempt()).toEqual({ token: 'first' });
+    expect(await attempt()).toEqual({ token: 'refreshed' });
+    // A session that has gone sends an empty token, which the server refuses.
+    expect(await attempt()).toEqual({ token: '' });
+  });
+
+  it('hands a refreshed token to the open connection', () => {
+    useSocketStore.getState().connect(jwt);
+    fakeSocket.connected = true;
+    useSocketStore.getState().reauth('refreshed');
+    expect(fakeSocket.emit).toHaveBeenCalledWith('reauth', { token: 'refreshed' });
+  });
+
+  it('keeps a refreshed token for the next attempt when not connected', () => {
+    useSocketStore.getState().connect(jwt);
+    fakeSocket.connected = false;
+    useSocketStore.getState().reauth('refreshed');
+    expect(fakeSocket.emit).not.toHaveBeenCalled();
   });
 
   it('allows a cold start longer than socket.io default 20s timeout', async () => {

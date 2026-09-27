@@ -56,3 +56,24 @@ data/puzzles/.*.mining.lock
 # when the run finishes; they exist so an interrupted run is resumable, not so
 # anyone reads them.
 data/puzzles/calibration.shard-*.json
+
+# Credentials, denied by type everywhere (security audit v2, GX-14). The
+# repository is public. Before these, 9 of 14 likely credential files would have
+# been committed, and the Play service-account key was kept out only because its
+# name happened to end in "auth.json". GitHub's push protection blocks the
+# secrets it recognises; this catches the ones it does not.
+.env*
+!.env.example
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.key
+credentials.json
+google-services.json
+GoogleService-Info.plist
+*service-account*.json
+secrets.json
+apps/mobile/gameexplorergstoreoauth.json
+.claude/worktrees/
