@@ -20,19 +20,27 @@ export function isAuthPath(pathname: string): boolean {
  * the site, which a `startsWith('//')` test lets through. `router.replace` and
  * the callback's redirect would both follow it with a fresh session in hand.
  *
+ * The parsed path is checked as well as the origin. Dot segments are resolved
+ * after the origin is fixed, so `/.//evil.example` keeps this site's origin
+ * and still comes out as the path `//evil.example`, which a browser follows
+ * off the site (security audit v2, GX-11). No path here contains a backslash,
+ * so any input with one is refused before it reaches the parser's rewriting.
+ *
  * An auth page is refused too. Returning to one is the loop this exists to
  * prevent: signing in on a page whose `next` is the sign-up page used to land
  * a signed-in user back on the sign-up form.
  */
 export function safeReturnPath(raw: string | null | undefined): string | null {
-  if (!raw || !raw.startsWith('/')) return null;
+  if (!raw || !raw.startsWith('/') || raw.includes('\\')) return null;
   let url: URL;
   try {
     url = new URL(raw, PARSE_BASE);
   } catch {
     return null;
   }
-  if (url.origin !== PARSE_BASE || isAuthPath(url.pathname)) return null;
+  if (url.origin !== PARSE_BASE || url.pathname.startsWith('//') || isAuthPath(url.pathname)) {
+    return null;
+  }
   return url.pathname + url.search + url.hash;
 }
 

@@ -37,6 +37,8 @@ export function DeleteAccountCard() {
       // (auth/game/socket) is dropped with the destroyed page.
       const { supabase } = await import('@gameexplorer/db');
       await supabase.auth.signOut();
+      // Deliberately not router.push, which would keep those stores alive.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');

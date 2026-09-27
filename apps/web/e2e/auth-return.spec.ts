@@ -80,8 +80,16 @@ test("the navbar's Sign in on the sign-up page keeps the round trip, not the sig
 });
 
 test('a crafted return address can neither leave the site nor loop into the auth pages', async ({ page }) => {
-  // The URL parser reads the first two as `//evil.example`, a link off the site.
-  for (const next of ['/\\evil.example', '/\t/evil.example', 'https://evil.example', '/auth/signup']) {
+  // The URL parser reads the first four as `//evil.example`, a link off the
+  // site: the first two as an address, the dot-segment pair as a path.
+  for (const next of [
+    '/\\evil.example',
+    '/\t/evil.example',
+    '/.//evil.example',
+    '/..//evil.example',
+    'https://evil.example',
+    '/auth/signup',
+  ]) {
     await page.goto(`/auth/signin?next=${encodeURIComponent(next)}&back=${encodeURIComponent(next)}`);
     await expect(back(page)).toHaveAttribute('href', '/');
     await expect(page.getByRole('link', { name: 'Sign up', exact: true })).toHaveAttribute('href', '/auth/signup');
