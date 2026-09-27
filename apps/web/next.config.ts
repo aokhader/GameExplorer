@@ -18,13 +18,13 @@ import type { NextConfig } from 'next';
 const BASELINE_CSP = "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'";
 
 /**
- * The full policy ships report-only: browsers log what it would block as
- * "[Report Only]" console messages and block nothing. Guest pages were checked
- * with it enforced; the signed-in ones (profile, online play) need a walk with
- * the console open before this is flipped. Once enforced it replaces
- * BASELINE_CSP, which it contains.
+ * The full policy is enforced, and replaces BASELINE_CSP, which it contains. It
+ * went out report-only first: guest pages were checked with it enforced, and
+ * the signed-in ones (profile, online play, settings) showed no "[Report Only]"
+ * console line in production. Set this to false to go back to report-only, where
+ * browsers log what the policy would block and block nothing.
  */
-const ENFORCE_FULL_CSP = false;
+const ENFORCE_FULL_CSP = true;
 
 /** An absolute URL's origin, or null for a missing or malformed value. */
 function parseOrigin(raw: string | undefined): URL | null {
