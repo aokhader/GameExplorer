@@ -383,7 +383,7 @@ export function GameLayout({
             {board}
 
             <PlayerCard
-              name={`You (${s.username})`}
+              name={s.username ? `You (${s.username})` : 'You'}
               initial={youInitial}
               subline={youSubline}
               isYou

@@ -78,7 +78,9 @@ SOFTWARE.
   Project Authors), Space Grotesk (Copyright 2020 The Space Grotesk Project
   Authors), Spectral (Copyright 2017 The Spectral Project Authors) and Nunito
   Sans (Copyright 2016 The Nunito Sans Project Authors). The website serves
-  them through `next/font/google`; the mobile app bundles them through
+  vendored copies of the font files from
+  [`apps/web/src/app/fonts/`](apps/web/src/app/fonts/) (source URLs, versions
+  and SHA-256 in its `README.md`); the mobile app bundles them through
   `@expo-google-fonts` (MIT, Copyright (c) 2020 Expo). Full text at
   [`LICENSES/OFL-1.1.txt`](LICENSES/OFL-1.1.txt).
 - **Chess puzzles — Lichess open puzzle database (CC0 1.0).** Chess puzzles
@@ -88,6 +90,13 @@ SOFTWARE.
   puzzle as a courtesy). The dump's filename, SHA-256 and import date are
   recorded in [`data/puzzles/LICENSE-lichess.md`](data/puzzles/LICENSE-lichess.md).
   Every other puzzle was composed or engine-generated for this project.
+- **Reserved usernames — The Big Username Blocklist (MIT).** Part of the list
+  of names no account may take, in
+  [`packages/shared/src/username.ts`](packages/shared/src/username.ts), is
+  selected from [The Big Username Blocklist](https://github.com/marteinn/The-Big-Username-Blocklist)
+  (Copyright (c) 2015-2021 Martin Sandström; full text at
+  [`LICENSES/big-username-blocklist-MIT.txt`](LICENSES/big-username-blocklist-MIT.txt)).
+  The rest of the list is first-party.
 
 ## Contributions
 

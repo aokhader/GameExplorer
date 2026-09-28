@@ -25,7 +25,7 @@ export default function PrivacyPage() {
         <h1 className="text-3xl font-bold mb-2">
           Privacy Policy
         </h1>
-        <p className="text-fg-muted text-sm mb-10">Last updated: August 17, 2026</p>
+        <p className="text-fg-muted text-sm mb-10">Last updated: September 28, 2026</p>
 
         <div className="space-y-8 text-fg-muted leading-relaxed">
           <section>
@@ -51,8 +51,10 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 space-y-2">
               <li>
                 <span className="text-fg">Account details.</span> If you create an account: your
-                email address, a username, and (for Google sign-in) the basic profile Google
-                shares. You can play as a guest without any of this.
+                email address, a username, and — if you sign in with Google, Facebook or Apple —
+                the basic profile that provider shares, such as your name. We use that name only
+                to suggest a username, which you confirm or change before you continue. You can
+                play as a guest without any of this.
               </li>
               <li>
                 <span className="text-fg">Game activity.</span> Games you finish while signed in —
@@ -74,9 +76,10 @@ export default function PrivacyPage() {
                 description box.
               </li>
               <li>
-                <span className="text-fg">Performance metrics (web only).</span> The website
-                collects anonymous page-performance metrics (Vercel Speed Insights). No advertising
-                trackers, no ad networks, no selling of data — on either platform.
+                <span className="text-fg">Performance and usage statistics (web only).</span> The
+                website collects anonymous page-performance metrics (Vercel Speed Insights) and
+                aggregate page-view statistics (Vercel Web Analytics). No advertising trackers, no
+                ad networks, no selling of data — on either platform.
               </li>
             </ul>
           </section>
@@ -117,7 +120,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-fg mb-2">Where data lives</h2>
             <p>
-              Three companies handle data on our behalf, and that is the complete list:
+              Four companies handle data on our behalf, and that is the complete list:
             </p>
             <ul className="list-disc pl-5 space-y-2 mt-3">
               <li>
@@ -126,11 +129,17 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <span className="text-fg">Vercel</span> — hosts the website, and provides the
-                anonymous performance metrics above.
+                performance metrics and page-view statistics above.
               </li>
               <li>
                 <span className="text-fg">Render</span> — runs the game server that online matches
                 connect to. It relays moves, clocks, chat and emotes; it does not store them.
+              </li>
+              <li>
+                <span className="text-fg">Expo</span> — delivers updates to the iOS and Android
+                apps. Each time the app starts it asks Expo whether a newer version is available.
+                That request carries the app&apos;s version and platform and a random identifier
+                created when the app was installed — nothing about your account or your games.
               </li>
             </ul>
             <p className="mt-3">

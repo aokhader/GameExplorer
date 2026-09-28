@@ -91,3 +91,24 @@ test('the licenses page credits the bundled fonts and icons', async ({ page }) =
   await expect(page.getByRole('link', { name: 'SIL Open Font License 1.1' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Phosphor Icons' })).toBeVisible();
 });
+
+test('the privacy policy names every processor the apps contact', async ({ page }) => {
+  // It is written as "the complete list", so a missing name makes it false. Expo
+  // (app updates, contacted on every launch) and Vercel Web Analytics were both
+  // missing until September 2026 (security audit v2, GX-33).
+  await page.goto('/privacy');
+  await expect(page.getByText(/Four companies handle data/)).toBeVisible();
+  for (const name of ['Supabase', 'Vercel', 'Render', 'Expo']) {
+    await expect(page.locator('li > span.text-fg', { hasText: new RegExp('^' + name + '$') })).toBeVisible();
+  }
+  await expect(page.getByText(/Vercel Web Analytics/)).toBeVisible();
+  // Sign-in is offered through three providers, not only Google.
+  await expect(page.getByText(/Google, Facebook or Apple/)).toBeVisible();
+});
+
+test('the terms charge training hints to the Practice level, not the online Rating', async ({ page }) => {
+  // Since the rating split (a4f009e) hints never touch the online Rating; the
+  // terms said they cost "rating points" until September 2026.
+  await page.goto('/terms');
+  await expect(page.getByText(/training hints already cost you Practice level points/)).toBeVisible();
+});

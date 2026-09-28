@@ -9,8 +9,9 @@ import type { GameType, TimeControl } from '@gameexplorer/shared';
  *    `game_started`, which the global useSocket handler turns into an active game.
  *  - inviteError surfaces expired/invalid links (server `error` event).
  *
- * Identity (username/rating) is passed through because the server stores it on
- * the invite and uses it for the created game / ELO.
+ * The server looks up the player's username and rating itself (security audit
+ * v2, WS5-22), so no identity is sent. The rating field is a placeholder that
+ * the server strips; see CLIENT_RATING_PLACEHOLDER in useGameSession.
  */
 export function useInvite() {
   const socket = useSocketStore(s => s.socket);
@@ -36,20 +37,20 @@ export function useInvite() {
   }, [socket]);
 
   const createInvite = useCallback(
-    (gameType: GameType, timeControl: TimeControl, username: string, rating: number) => {
+    (gameType: GameType, timeControl: TimeControl, rating: number) => {
       if (!socket) return;
       setInviteError(null);
       setCreating(true);
-      socket.emit('create_invite_link', { gameType, timeControl, username, rating });
+      socket.emit('create_invite_link', { gameType, timeControl, rating });
     },
     [socket],
   );
 
   const acceptInvite = useCallback(
-    (inviteId: string, username: string, rating: number) => {
+    (inviteId: string, rating: number) => {
       if (!socket) return;
       setInviteError(null);
-      socket.emit('accept_invite', { inviteId, username, rating });
+      socket.emit('accept_invite', { inviteId, rating });
     },
     [socket],
   );

@@ -29,6 +29,9 @@ regenerate it after adding or upgrading a dependency. In summary:
   [`LICENSES/OFL-1.1.txt`](../../LICENSES/OFL-1.1.txt)).
 - **Interface icons — MIT.** Phosphor Icons path data (Copyright (c) 2023
   Phosphor Icons).
+- **Reserved usernames — MIT.** Part of the reserved-username list is selected
+  from The Big Username Blocklist (Copyright (c) 2015-2021 Martin Sandström;
+  full text at [`LICENSES/big-username-blocklist-MIT.txt`](../../LICENSES/big-username-blocklist-MIT.txt)).
 - **Content — CC0 1.0.** The chess piece shapes ("Merida" via Sashité) and the
   chess puzzles credited to the Lichess open puzzle database.
 

@@ -7,6 +7,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { interpolateClocks, resultForColor } from '@gameexplorer/shared';
+import { getPublicProfile } from '@gameexplorer/db';
 import type { GameType, TimeControl, MovePayload, PlayerColor } from '@gameexplorer/shared';
 import { useAuth } from './useAuth';
 import { useSocket } from './useSocket';
@@ -57,7 +58,18 @@ export function useGameSession(gameType: GameType, defaultTimeControl: TimeContr
   } = useInvite();
   const [accepting, setAccepting] = useState(false);
   const acceptedRef = useRef(false);
-  const username = user?.email?.split('@')[0] ?? 'Player';
+  // The player's own username, for their own player card. It is never sent:
+  // the server reads names from the database (security audit v2, GX-25). It
+  // used to be derived from the email address, whose local part then went to
+  // the API with every queue and invite request. Null until the profile loads.
+  const [username, setUsername] = useState<string | null>(null);
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) { setUsername(null); return; }
+    let cancelled = false;
+    getPublicProfile(userId).then(p => { if (!cancelled) setUsername(p?.username ?? null); });
+    return () => { cancelled = true; };
+  }, [userId]);
 
   // Redeem an invite id. The view supplies it (web from the URL, mobile from a
   // deep link); the guard against double-accept lives here.
@@ -65,12 +77,12 @@ export function useGameSession(gameType: GameType, defaultTimeControl: TimeContr
     if (acceptedRef.current) return;
     acceptedRef.current = true;
     setAccepting(true);
-    acceptInviteRaw(inviteId, username, CLIENT_RATING_PLACEHOLDER);
-  }, [acceptInviteRaw, username]);
+    acceptInviteRaw(inviteId, CLIENT_RATING_PLACEHOLDER);
+  }, [acceptInviteRaw]);
 
   const createInvite = useCallback(() => {
-    createInviteRaw(gameType, timeControl, username, CLIENT_RATING_PLACEHOLDER);
-  }, [createInviteRaw, gameType, timeControl, username]);
+    createInviteRaw(gameType, timeControl, CLIENT_RATING_PLACEHOLDER);
+  }, [createInviteRaw, gameType, timeControl]);
 
   // Clear the "joining…" state once the game starts (or an invite error shows).
   useEffect(() => {
@@ -111,8 +123,8 @@ export function useGameSession(gameType: GameType, defaultTimeControl: TimeContr
   const joinQueue = useCallback(() => {
     if (!user || !connected) return;
     useGameStore.getState().setQueued(gameType);
-    emit('join_queue', { gameType, timeControl, rated, username, rating: CLIENT_RATING_PLACEHOLDER });
-  }, [user, connected, gameType, timeControl, rated, emit, username]);
+    emit('join_queue', { gameType, timeControl, rated, rating: CLIENT_RATING_PLACEHOLDER });
+  }, [user, connected, gameType, timeControl, rated, emit]);
 
   const cancelQueue = useCallback(() => {
     emit('leave_queue', { gameType, timeControl, rated });

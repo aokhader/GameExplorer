@@ -277,7 +277,7 @@ export function OnlineGameLayout({
         board={board}
         bottomCard={
           <PlayerCard
-            name={`You (${s.username})`}
+            name={s.username ? `You (${s.username})` : 'You'}
             initial={(s.username?.trim()[0] ?? 'Y').toUpperCase()}
             isYou
             active={yourTurn}

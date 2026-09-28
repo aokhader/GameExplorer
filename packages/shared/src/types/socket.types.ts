@@ -67,10 +67,12 @@ export interface RatingInfo {
 //
 // The server validates every payload against apps/api/src/schemas.ts. The
 // `username` and `rating` fields below are ignored there: the server reads both
-// from the database. They stay in the type because shipped clients send them.
+// from the database. Current clients no longer send `username` (it was the local
+// part of the player's email address; GX-25), but installed older builds still
+// do, so it stays in the type, optional. `rating` is a placeholder.
 
 export interface ClientToServerEvents {
-  join_queue:         (data: { gameType: GameType; timeControl: TimeControl; rated: boolean; username: string; rating: number }) => void;
+  join_queue:         (data: { gameType: GameType; timeControl: TimeControl; rated: boolean; username?: string; rating: number }) => void;
   leave_queue:        (data: { gameType: GameType; timeControl: TimeControl; rated: boolean }) => void;
   join_game:          (data: { gameId: string }) => void;
   make_move:          (data: { gameId: string; move: MovePayload }) => void;
@@ -82,8 +84,8 @@ export interface ClientToServerEvents {
   send_chat:          (data: { gameId: string; text: string }) => void;
   send_emote:         (data: { gameId: string; emote: Emote }) => void;
   invite_friend:      (data: { friendId: string; gameType: GameType; timeControl: TimeControl }) => void;
-  create_invite_link: (data: { gameType: GameType; timeControl: TimeControl; username: string; rating: number }) => void;
-  accept_invite:      (data: { inviteId: string; username: string; rating: number }) => void;
+  create_invite_link: (data: { gameType: GameType; timeControl: TimeControl; username?: string; rating: number }) => void;
+  accept_invite:      (data: { inviteId: string; username?: string; rating: number }) => void;
   decline_invite:     (data: { inviteId: string }) => void;
   spectate:           (data: { gameId: string }) => void;
   leave_spectate:     (data: { gameId: string }) => void;

@@ -27,7 +27,7 @@ export default function TermsPage() {
         <h1 className="text-3xl font-bold mb-2">
           Terms of Service
         </h1>
-        <p className="text-fg-muted text-sm mb-10">Last updated: August 17, 2026</p>
+        <p className="text-fg-muted text-sm mb-10">Last updated: September 28, 2026</p>
 
         <div className="space-y-8 text-fg-muted leading-relaxed">
           <section>
@@ -95,8 +95,8 @@ export default function TermsPage() {
               <li>
                 Don&apos;t use a chess engine, a solver, another person, or any other outside help
                 to choose your moves. GameExplorer&apos;s own analysis, training hints and puzzles
-                are there to learn from between games — training hints already cost you rating
-                points, which is the trade they&apos;re meant to be.
+                are there to learn from between games — training hints already cost you Practice
+                level points, which is the trade they&apos;re meant to be.
               </li>
               <li>
                 Don&apos;t deliberately lose, stall, or arrange results to move a rating — yours or
