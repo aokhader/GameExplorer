@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome, checkersAnalysis, moveHistoryToPdn, MODE_COPY, ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
+import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome, checkersAnalysis, moveHistoryToPdn, MODE_COPY, ABORT_MOVE_LIMIT, botThinkMs } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
@@ -90,14 +90,6 @@ const DIFFICULTY_LEVELS = [
     depth: 5,
   },
 ] as const;
-
-function thinkTimeForElo(elo: number): number {
-  if (elo < 700)  return 300;
-  if (elo < 1000) return 500;
-  if (elo < 1400) return 750;
-  if (elo < 1800) return 1000;
-  return 1300;
-}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -267,7 +259,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
         new Promise<{ from: string; to: string }>(resolve =>
           setTimeout(() => resolve(getBestCheckersMove(currentLiveState, elo)), 0),
         ),
-        new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
+        new Promise(resolve => setTimeout(resolve, botThinkMs())),
       ]);
 
       // Dropped if the game was reset, or the player resigned / agreed a draw,

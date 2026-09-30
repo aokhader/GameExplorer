@@ -50,7 +50,7 @@ export * from './constants/onboarding';
 // Bot strength tiers — one copy of the numbers the setup screens and the
 // puzzle bands both name
 export * from './constants/botTiers';
-// Bot naming — what to call a rating, preset or custom, on every surface
+// Bot naming (what to call a rating) and pacing (how long a bot "thinks")
 export * from './bots';
 // How a game ended, in words — shared by both platforms' history lists
 export * from './constants/endReasons';

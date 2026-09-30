@@ -13,6 +13,7 @@ import type { GoColor, GoGameState, LessonMark } from '@gameexplorer/shared';
 import { GO_BOARD_COLORS, goStarPoints, GoStone, FONT_SIZES, RADIUS } from '@gameexplorer/ui';
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
+import { useBoardScrollRef } from './BoardScrollContext';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
@@ -269,28 +270,35 @@ function GoBoardInner({
   const releaseRef = useRef(handleRelease);
   releaseRef.current = handleRelease;
 
-  const gesture = useMemo(
-    () =>
-      // A Pan rather than a Tap, because the aim has to follow the finger and a
-      // Tap never reports movement.
-      Gesture.Pan()
-        .minDistance(0)
-        .runOnJS(true)
-        .onBegin((e) => pressRef.current(e.x, e.y))
-        .onUpdate((e) => dragRef.current(e.x, e.y))
-        /*
-         * `onFinalize`, NOT `onEnd`. A Pan only ends if it *activated*, and a
-         * still finger never moves, so a plain tap fires `onBegin` and nothing
-         * else — the aim appeared and the second tap could never place the
-         * stone. `onFinalize` runs whether the gesture activated or failed.
-         *
-         * Found on the device, not by any test: the pure placement rule was
-         * right, the tests that cover it passed, and the gesture never called
-         * it.
-         */
-        .onFinalize((e) => releaseRef.current(e.x, e.y)),
-    [],
-  );
+  // The page scroll this board sits in, if any: an interactive board claims the
+  // touch outright (see `BoardScrollContext`), so aiming a stone near the
+  // board's top or bottom edge can never turn into a page scroll instead.
+  const scrollRef = useBoardScrollRef();
+
+  const gesture = useMemo(() => {
+    // A Pan rather than a Tap, because the aim has to follow the finger and a
+    // Tap never reports movement. Disabled while the board is inert, so a board
+    // that can't be played on scrolls with the page like any other content.
+    const pan = Gesture.Pan()
+      .enabled(interactive)
+      .minDistance(0)
+      .runOnJS(true)
+      .onBegin((e) => pressRef.current(e.x, e.y))
+      .onUpdate((e) => dragRef.current(e.x, e.y))
+      /*
+       * `onFinalize`, NOT `onEnd`. A Pan only ends if it *activated*, and a
+       * still finger never moves, so a plain tap fires `onBegin` and nothing
+       * else — the aim appeared and the second tap could never place the
+       * stone. `onFinalize` runs whether the gesture activated or failed.
+       *
+       * Found on the device, not by any test: the pure placement rule was
+       * right, the tests that cover it passed, and the gesture never called
+       * it.
+       */
+      .onFinalize((e) => releaseRef.current(e.x, e.y));
+    if (scrollRef) pan.blocksExternalGesture(scrollRef);
+    return pan;
+  }, [interactive, scrollRef]);
 
   return (
     <BoardFrame accessibilityLabel="Go board">

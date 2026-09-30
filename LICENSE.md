@@ -97,6 +97,12 @@ SOFTWARE.
   (Copyright (c) 2015-2021 Martin Sandström; full text at
   [`LICENSES/big-username-blocklist-MIT.txt`](LICENSES/big-username-blocklist-MIT.txt)).
   The rest of the list is first-party.
+- **Bot pause timing — mulberry32 (CC0 1.0).** The small random-number generator in
+  [`packages/shared/src/bots/pacing.ts`](packages/shared/src/bots/pacing.ts), which
+  varies how long a bot pauses before it replies, is
+  [mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c)
+  by Tommy Ettinger (2017), dedicated to the public domain under CC0 1.0 Universal (no
+  attribution required; recorded here as a courtesy).
 
 ## Contributions
 

@@ -1,10 +1,14 @@
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useRef, type ReactNode } from 'react';
+import { Pressable, Text, View } from 'react-native';
+// Gesture-handler's ScrollView, not React Native's: a board's drag needs a ref
+// it can name in `blocksExternalGesture` (see `BoardScrollContext`). Same props.
+import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { FONTS } from '@/theme/typography';
 import { Icon } from '@/components/ui/Icon';
+import { BoardScrollContext } from '@/board/BoardScrollContext';
 
 export type GameAccent = 'chess' | 'checkers' | 'reversi' | 'go' | 'liquidate';
 
@@ -54,6 +58,7 @@ export function GameScreenLayout({
 
   const router = useRouter();
   const accentColor = accent ? GAME_ACCENTS[accent].base : COLORS.accent;
+  const scrollRef = useRef<ScrollView>(null);
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
@@ -92,15 +97,20 @@ export function GameScreenLayout({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>{headerActions}</View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28, gap: SPACING[3] }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {topCard}
-        {board}
-        {bottomCard}
-        {sidebar}
-      </ScrollView>
+      {/* A touch that starts on an interactive board is the board's, never the
+          page's — the board's drag blocks this scroll through the context. */}
+      <BoardScrollContext.Provider value={scrollRef}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28, gap: SPACING[3] }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {topCard}
+          {board}
+          {bottomCard}
+          {sidebar}
+        </ScrollView>
+      </BoardScrollContext.Provider>
 
       {bottomBar}
     </SafeAreaView>

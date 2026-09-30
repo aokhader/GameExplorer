@@ -10,6 +10,7 @@ import {
   calculateNewRating,
   GameOutcome,
   botStrengthLabel,
+  botThinkMs,
 } from '@gameexplorer/shared';
 import { CheckersBoard, BoardArrow } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
@@ -50,14 +51,6 @@ const GameResultScreen = dynamic(
 
 /** A bot's name, shared with the setup screen so a preset keeps its tier. */
 const eloLabel = (elo: number): string => botStrengthLabel('checkers', elo);
-
-function thinkTimeForElo(elo: number): number {
-  if (elo < 700)  return 300;
-  if (elo < 1000) return 500;
-  if (elo < 1400) return 750;
-  if (elo < 1800) return 1000;
-  return 1300;
-}
 
 function formatMove(move: CheckersGameState['moveHistory'][number]): string {
   if (move.captures.length === 0) return `${move.from}-${move.to}`;
@@ -297,7 +290,7 @@ export default function CheckersTrainingPage() {
         new Promise<{ from: string; to: string }>(resolve =>
           setTimeout(() => resolve(getBestCheckersMove(currentLiveState, elo)), 0),
         ),
-        new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
+        new Promise(resolve => setTimeout(resolve, botThinkMs())),
       ]);
 
       // Dropped if the game was reset, or the player resigned / agreed a draw,

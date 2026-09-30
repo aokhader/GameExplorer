@@ -1,6 +1,7 @@
 import {
   GoEngine,
   analyzeGoPosition,
+  botThinkMs,
   getBestGoMove,
   type GoGameState,
   type NewGoGameOptions,
@@ -41,20 +42,6 @@ export const GO_FINALIZE = 'finalize';
 /** `finalize:` plus the marks, for `handleMove`. */
 export function goFinalizeMove(dead: readonly string[]): string {
   return `${GO_FINALIZE}:${dead.join(',')}`;
-}
-
-/**
- * Bot pacing. Deliberately shorter padding than the other three games use: this
- * bot's search really does take a few hundred milliseconds at the upper tiers
- * (MCTS spends its budget on playouts, where alpha-beta returns early), and the
- * loop takes the LONGER of the search and this delay. Padding a 600 ms search
- * out to 1400 ms would just make every strong bot feel sluggish.
- */
-function thinkTimeForElo(elo: number): number {
-  if (elo < 700) return 400;
-  if (elo < 1000) return 500;
-  if (elo < 1400) return 600;
-  return 700;
 }
 
 /**
@@ -125,7 +112,14 @@ export function makeGoAdapter(options: NewGoGameOptions = {}): LocalGameAdapter<
     // budget and ignores the bot's rating entirely.
     hintElo: () => 2000,
 
-    thinkTimeForElo,
+    // Bot pacing: the same 2–3 s floor as every other bot game. This used to be
+    // deliberately shorter than the others (400–700 ms), on the grounds that
+    // MCTS spends real time on playouts and padding it would make strong bots
+    // feel sluggish. The floor is now a product decision instead: an instant
+    // reply reads as a machine. The loop still takes the LONGER of the search
+    // and the pad, so a 19×19 search nearing its 3 s ceiling is not padded
+    // further.
+    thinkTimeForElo: () => botThinkMs(),
 
     // Genuinely rare in Go — it needs a board where every point is self-capture or
     // ko — but the loop still needs the hook so a player who truly cannot move is

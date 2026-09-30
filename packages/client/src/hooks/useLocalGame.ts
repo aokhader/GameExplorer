@@ -70,7 +70,11 @@ export interface LocalGameAdapter<S> {
    * Go search at full strength and ignore it.
    */
   hintElo?(botElo: number): number;
-  /** Padding delay (ms) so a bot reply doesn't feel instant. */
+  /**
+   * Minimum time (ms) before a bot reply lands, so it doesn't feel instant. The
+   * loop waits for the LONGER of the search and this pad. Every real adapter
+   * returns `botThinkMs()` from @gameexplorer/shared; tests stub it to 0.
+   */
   thinkTimeForElo(elo: number): number;
   /**
    * Reversi and Go — the current player has no legal move and must pass. When

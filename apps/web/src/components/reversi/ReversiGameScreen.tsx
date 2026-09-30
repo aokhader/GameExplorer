@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToReversi, MODE_COPY, ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
+import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToReversi, MODE_COPY, ABORT_MOVE_LIMIT, botThinkMs } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
@@ -57,14 +57,6 @@ const DIFFICULTY_LEVELS = [
   { elo: 1700, label: 'Expert',   description: 'Deep tactical and positional play',         depth: 5 },
   { elo: 2000, label: 'Master',   description: 'Near-optimal — very hard to beat',          depth: 5 },
 ] as const;
-
-function thinkTimeForElo(elo: number): number {
-  if (elo < 700)  return 350;
-  if (elo < 1000) return 550;
-  if (elo < 1400) return 800;
-  if (elo < 1800) return 1100;
-  return 1400;
-}
 
 function formatMoveNotation(move: ReversiGameState['moveHistory'][number]): string {
   return move.position ?? '—';
@@ -228,7 +220,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
         new Promise<{ position: string }>(resolve =>
           setTimeout(() => resolve(getBestReversiMove(currentLive, elo)), 0),
         ),
-        new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
+        new Promise(resolve => setTimeout(resolve, botThinkMs())),
       ]);
       // Dropped if the game was reset, or the player resigned, while the bot
       // was thinking.

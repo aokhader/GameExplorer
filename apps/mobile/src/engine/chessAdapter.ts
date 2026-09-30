@@ -1,5 +1,6 @@
 import {
   CHESS_HINT_SEARCH_MS,
+  botThinkMs,
   chessBotConfig,
   getBestMoveElo,
   type ChessGameState,
@@ -14,15 +15,6 @@ import {
   cancelEngineSearch,
   whenEngineReady,
 } from './chessEngineNative';
-
-/** Bot pacing by strength — mirrors web's `useStockfish` `thinkTimeForElo`. */
-function thinkTimeForElo(elo: number): number {
-  if (elo < 800) return 400;
-  if (elo < 1200) return 650;
-  if (elo < 1400) return 900;
-  if (elo < 1800) return 1100;
-  return 1400;
-}
 
 /**
  * How long a hint waits for Arasan to finish starting. The engine loads its
@@ -85,5 +77,7 @@ export const chessAdapter: LocalGameAdapter<ChessGameState> = {
     if (!bestMove) throw new Error('The engine has no move in this position');
     return bestMove;
   },
-  thinkTimeForElo,
+  // The same 2–3 s floor at every strength. Arasan's deepest searches are
+  // capped at 2 s, so they finish inside it too.
+  thinkTimeForElo: () => botThinkMs(),
 };

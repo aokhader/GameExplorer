@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -35,6 +34,8 @@ import { ChessPiece, BOARD_COLORS, COLORS, useThemeName, FONT_SIZES, RADIUS, SPA
 import { BoardFrame } from './BoardFrame';
 import { BoardMark, BoardMarkLabel, markMap } from './BoardMark';
 import { CaptureCorners, CheckMarker, SquareTint } from './SquareState';
+import { DRAG_FEEDBACK_SCALE, DragGhost, DragTarget, isOnBoard } from './dragFeedback';
+import { useBoardGesture, type BoardGestureHandlers } from './useBoardGesture';
 import { useGameSfx } from '@/audio/useGameSfx.native';
 import { useSettings } from '@/providers/SettingsProvider';
 import { FONTS } from '@/theme/typography';
@@ -43,14 +44,11 @@ import { timing } from '@/theme/motion';
 // Board motion from MOTION (project-docs/design/motion-spec.md §5.12). `base` is
 // the board's own BOARD_ANIM_MS, held equal by a test in packages/ui; `move` is
 // the travel curve web's PieceSlot uses, so a piece now glides identically on
-// both platforms. Built once here because the drop runs inside a gesture
-// worklet, which can capture a config but cannot call the helper. MOTION is not
-// themed, so this is not the frozen-token trap.
+// both platforms. The drag lift lives with the rest of the drag feedback, in
+// `dragFeedback.tsx`. MOTION is not themed, so this is not the frozen-token trap.
 const TRAVEL = timing('base', 'move');
 const CAPTURE_FADE = timing('base', 'linear');
 const LAND_POP = timing('micro', 'standard');
-const DRAG_LIFT = timing('micro', 'out');
-const DRAG_DROP = timing('micro', 'standard');
 
 interface ChessBoardProps {
   gameState: ChessGameState;
@@ -85,6 +83,25 @@ interface ChessBoardProps {
    * way, via `interactive`.
    */
   onSquarePress?: (position: string) => void;
+}
+
+/** The piece under drag, as it was when picked up. */
+interface HeldPiece {
+  from: string;
+  piece: Piece;
+}
+
+/**
+ * The destinations on show, and the position and mode they were worked out for.
+ * A selection can outlive the position it was made in — the opponent's reply
+ * lands while a piece is held — so "is this square a destination" is only ever
+ * answered by a list known to describe the position on the board now.
+ */
+interface Dests {
+  from: string;
+  state: ChessGameState;
+  premove: boolean;
+  list: string[];
 }
 
 // The vector piece art fills ~89% of its viewBox; 0.9 seats it at play scale with
@@ -346,9 +363,16 @@ function PromotionPicker({
 
 /**
  * Native chess board — the interaction/animation port of web's `ChessBoard.tsx`.
- * One `Pan`+`Tap` race serves both tap-to-move and drag-to-move (identical to the
- * checkers board): `Pan.onStart` picks up an own piece, `onUpdate` glides a
- * floating copy on the UI thread, `onEnd` drops it; `Tap` handles click-to-move.
+ * Touch handling is `useBoardGesture` (shared with checkers): a `Tap` selects and
+ * taps a destination; a `Pan` picks up an own piece, carries it at 2× one square
+ * above the finger with a disc under the square it is over (`dragFeedback.tsx`),
+ * and drops it where the finger lifts.
+ *
+ * A held piece survives the opponent's move landing: the selection is
+ * reconciled against the new position rather than thrown away, so a drag begun
+ * as a premove becomes a real move if the reply lands first. It is dropped only
+ * if the piece itself was taken, or the board goes inert.
+ *
  * Legal moves come from the shared `ChessEngine`. Pawn promotions surface a picker
  * before committing; the king's square rings red while in check.
  */
@@ -366,7 +390,12 @@ function ChessBoardInner({
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves] = useState<string[]>([]);
   const [lastMoveTo, setLastMoveTo] = useState<string | null>(null);
-  const [draggingFrom, setDraggingFrom] = useState<string | null>(null);
+  // The piece under drag, captured at pick-up — never re-read from the live
+  // board, which the opponent's move may change while it is held.
+  const [held, setHeldState] = useState<HeldPiece | null>(null);
+  // A move just played by dropping the piece where it lands. That piece is
+  // already on its square, so it must not slide in again from its origin.
+  const [dropped, setDropped] = useState<{ to: string; historyLength: number } | null>(null);
   const [pending, setPendingState] = useState<
     { from: string; to: string; isPremove?: boolean } | null
   >(null);
@@ -400,9 +429,13 @@ function ChessBoardInner({
     enabled: animMs > 0,
   });
 
-  const dragTX = useSharedValue(0);
-  const dragTY = useSharedValue(0);
-  const dragScale = useSharedValue(1);
+  // Touch handling. The handlers are defined below and handed over through a
+  // ref, because they need `active`, which the hook creates.
+  const gestureHandlers = useRef<BoardGestureHandlers | null>(null);
+  const { gesture, fingerX, fingerY, lift, active } = useBoardGesture(gestureHandlers, {
+    interactive,
+    reducedMotion,
+  });
 
   // Props/derived refs — mirror render every render (read by the memoized gesture).
   const stateRef = useRef(gameState);
@@ -448,8 +481,8 @@ function ChessBoardInner({
   // Interaction refs — source of truth during a gesture (see CheckersBoard for why
   // these must be written synchronously, not from render).
   const selectedRef = useRef<string | null>(null);
-  const validRef = useRef<string[]>([]);
-  const draggingRef = useRef<string | null>(null);
+  const destsRef = useRef<Dests | null>(null);
+  const heldRef = useRef<HeldPiece | null>(null);
   const pendingRef = useRef<{ from: string; to: string; isPremove?: boolean } | null>(null);
   const premoveRef = useRef<ChessPremove | null>(null);
 
@@ -474,13 +507,15 @@ function ChessBoardInner({
   // ── Selection mutators — update ref (synchronous) AND state (for render) ──────
   const setSelection = (pos: string | null, dests: string[]) => {
     selectedRef.current = pos;
-    validRef.current = dests;
+    destsRef.current = pos
+      ? { from: pos, state: stateRef.current, premove: premoveModeRef.current, list: dests }
+      : null;
     setSelectedSquare(pos);
     setValidMoves(dests);
   };
-  const setDrag = (pos: string | null) => {
-    draggingRef.current = pos;
-    setDraggingFrom(pos);
+  const setHeld = (h: HeldPiece | null) => {
+    heldRef.current = h;
+    setHeldState(h);
   };
   const setPending = (p: { from: string; to: string; isPremove?: boolean } | null) => {
     pendingRef.current = p;
@@ -505,9 +540,81 @@ function ChessBoardInner({
             .filter((m) => m.from === pos)
             .map((m) => m.to),
     );
+  /**
+   * Where the selected piece may go in the position on the board NOW. Empty if
+   * the list on show was worked out for an earlier position or the other mode —
+   * `reconcile` refreshes it first wherever that can have happened.
+   */
+  const currentDests = (): string[] => {
+    const d = destsRef.current;
+    return d && d.state === stateRef.current && d.premove === premoveModeRef.current ? d.list : [];
+  };
+  /** Let go of everything: the held piece, the selection and the hover disc. */
+  const releaseAll = () => {
+    setHeld(null);
+    clearSelection();
+    active.value = 0;
+  };
 
-  const commitMove = (from: string, to: string) => {
-    setDrag(null);
+  /**
+   * May the piece on `pos` be picked up right now? Out of turn that's the
+   * premoving side's own pieces; in turn, the side to move.
+   */
+  const canGrab = (pos: string): boolean => {
+    const s = stateRef.current;
+    const piece = s.board[rowOf(pos)][colOf(pos)];
+    if (!piece) return false;
+    return premoveModeRef.current
+      ? piece.color === premoveColorRef.current
+      : piece.color === s.currentTurn;
+  };
+
+  /**
+   * Bring whatever the player is holding up to date with the position on the
+   * board. This replaces "clear the selection whenever the turn flips", which
+   * threw away a drag in progress the moment the opponent's reply landed — the
+   * player's move silently vanished on release.
+   *
+   * Now a held piece survives the position changing. If the same
+   * piece still stands where it was picked up and may still be moved, it stays
+   * held and its destinations are recomputed for the new position — premove
+   * candidates become legal moves when the turn comes back, so the drop plays at
+   * once. If the piece was taken (or is no longer the side's to move), it is let
+   * go. A premove promotion whose pawn was taken while the picker was open is
+   * withdrawn the same way.
+   */
+  const reconcile = () => {
+    const p = pendingRef.current;
+    if (p?.isPremove) {
+      const pawn = stateRef.current.board[rowOf(p.from)][colOf(p.from)];
+      if (!pawn || pawn.type !== 'pawn' || pawn.color !== premoveColorRef.current) {
+        setPending(null);
+        sfx.play('illegal');
+      }
+    }
+
+    const h = heldRef.current;
+    if (h) {
+      const now = stateRef.current.board[rowOf(h.from)][colOf(h.from)];
+      if (!now || now.color !== h.piece.color || now.type !== h.piece.type) {
+        releaseAll();
+        return;
+      }
+    }
+    const sel = selectedRef.current;
+    if (!sel) return;
+    if (!canGrab(sel)) {
+      releaseAll();
+      return;
+    }
+    const d = destsRef.current;
+    if (!d || d.state !== stateRef.current || d.premove !== premoveModeRef.current) {
+      selectSquare(sel);
+    }
+  };
+
+  const commitMove = (from: string, to: string, byDrop: boolean) => {
+    setHeld(null);
     clearSelection();
     const queueing = premoveModeRef.current;
     // Pawn promotion → resolve the picker before notifying the parent. A queued
@@ -522,6 +629,9 @@ function ChessBoardInner({
       sfx.play('select');
       return;
     }
+    // A dropped piece is already standing on `to`; sliding it in again from its
+    // origin would show the move twice.
+    if (byDrop) setDropped({ to, historyLength: stateRef.current.moveHistory.length + 1 });
     onMoveRef.current(from, to);
   };
 
@@ -530,17 +640,36 @@ function ChessBoardInner({
     if (!p) return;
     setPending(null);
     sfx.play('promote');
-    if (p.isPremove) setPremove({ from: p.from, to: p.to, promotion: piece });
-    else onMoveRef.current(p.from, p.to, piece);
+    const move = { from: p.from, to: p.to, promotion: piece };
+    // Queue or play is decided NOW, not when the picker opened: the reply may
+    // have landed while the player chose, and a premove queued after that would
+    // wait for a turn that has already come back.
+    if (premoveModeRef.current) setPremove(move);
+    else if (!p.isPremove || isChessPremoveLegal(stateRef.current, move)) {
+      onMoveRef.current(p.from, p.to, piece);
+    } else sfx.play('illegal');
   };
 
-  // Clear selection whenever the turn flips (e.g. after the bot replies). A
-  // selection made under one turn means something different under the next
-  // (premove candidates vs legal moves), so it never carries over.
+  // A held or selected piece outlives the opponent's move — see `reconcile`.
   useEffect(() => {
-    setSelection(null, []);
-    setDrag(null);
-  }, [gameState.currentTurn]);
+    reconcile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, premoveMode]);
+
+  // …but not the board going inert (game over, review, a puzzle's reply beat).
+  useEffect(() => {
+    if (interactive && !gameOver) return;
+    if (heldRef.current || selectedRef.current) releaseAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interactive, gameOver]);
+
+  // The no-slide for a dropped move applies only to the position that move
+  // produced, and only if it arrived with the drop. A local game applies the
+  // move in the same render; an online one waits for the server, and by then
+  // the piece is visibly back on its square, so the echo should slide as usual.
+  useEffect(() => {
+    if (dropped && dropped.historyLength !== gameState.moveHistory.length) setDropped(null);
+  }, [dropped, gameState.moveHistory.length]);
 
   // ── Premove firing ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -572,19 +701,6 @@ function ChessBoardInner({
 
   // ── Gesture → JS handlers ─────────────────────────────────────────────────────
 
-  /**
-   * May the piece on `pos` be picked up right now? Out of turn that's the
-   * premoving side's own pieces; in turn, the side to move.
-   */
-  const canGrab = (pos: string): boolean => {
-    const s = stateRef.current;
-    const piece = s.board[rowOf(pos)][colOf(pos)];
-    if (!piece) return false;
-    return premoveModeRef.current
-      ? piece.color === premoveColorRef.current
-      : piece.color === s.currentTurn;
-  };
-
   const handleTap = (x: number, y: number) => {
     if (!interactiveRef.current || pendingRef.current) return;
     const s = stateRef.current;
@@ -597,10 +713,14 @@ function ChessBoardInner({
       return;
     }
     if (s.isCheckmate || s.isStalemate || s.isDraw) return;
+    // A tap can arrive after a new position rendered but before the effect that
+    // reconciles the selection with it has run.
+    reconcile();
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
+    const from = selectedRef.current;
 
-    if (selectedRef.current) {
-      if (validRef.current.includes(pos)) commitMove(selectedRef.current, pos);
+    if (from) {
+      if (currentDests().includes(pos)) commitMove(from, pos, false);
       else if (canGrab(pos)) selectSquare(pos);
       else {
         clearSelection();
@@ -620,86 +740,60 @@ function ChessBoardInner({
     const s = stateRef.current;
     if (s.isCheckmate || s.isStalemate || s.isDraw) return;
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
-    if (canGrab(pos)) {
-      setDrag(pos);
-      // Deliberately silent. Tapping a piece already selects without a sound,
-      // so only dragging made noise, and web stays quiet on pickup entirely —
-      // the 'select' cue is reserved for queueing a premove (see commitMove).
-      selectSquare(pos);
-      if (!reducedMotion) dragScale.value = withTiming(1.1, DRAG_LIFT);
-    }
+    const piece = s.board[rowOf(pos)][colOf(pos)];
+    if (!piece || !canGrab(pos)) return;
+    // Deliberately silent. Tapping a piece already selects without a sound,
+    // so only dragging made noise, and web stays quiet on pickup entirely —
+    // the 'select' cue is reserved for queueing a premove (see commitMove).
+    setHeld({ from: pos, piece });
+    selectSquare(pos);
+    active.value = 1;
   };
 
-  const handleDragEnd = (x: number, y: number) => {
-    const dragging = draggingRef.current;
-    if (!dragging) return;
-    const endSq = squareAt(x, y, flipRef.current, sizeRef.current);
-    if (endSq !== dragging && validRef.current.includes(endSq)) {
-      commitMove(dragging, endSq);
+  const handleDrop = (x: number, y: number) => {
+    active.value = 0;
+    const h = heldRef.current;
+    if (!h) return;
+    const s = stateRef.current;
+    if (!interactiveRef.current || s.isCheckmate || s.isStalemate || s.isDraw) {
+      releaseAll();
+      return;
+    }
+    // Released off the board: the player changed their mind. The piece goes
+    // back and stays selected, so a tap can still move it. (Clamping the point
+    // to the nearest edge square, as a tap does, would play a move there.)
+    if (!isOnBoard(x, y, sizeRef.current)) {
+      setHeld(null);
+      return;
+    }
+    // The opponent's reply may have landed while the piece was in the air.
+    reconcile();
+    if (!heldRef.current) return;
+    const to = squareAt(x, y, flipRef.current, sizeRef.current);
+    if (to !== h.from && currentDests().includes(to)) {
+      commitMove(h.from, to, true);
     } else {
-      setDrag(null);
-      if (endSq !== dragging) sfx.play('illegal');
+      setHeld(null);
+      if (to !== h.from) sfx.play('illegal');
     }
   };
 
-  const tapRef = useRef(handleTap);
-  tapRef.current = handleTap;
-  const dragStartRef = useRef(handleDragStart);
-  dragStartRef.current = handleDragStart;
-  const dragEndRef = useRef(handleDragEnd);
-  dragEndRef.current = handleDragEnd;
-  const callTap = (x: number, y: number) => tapRef.current(x, y);
-  const callDragStart = (x: number, y: number) => dragStartRef.current(x, y);
-  const callDragEnd = (x: number, y: number) => dragEndRef.current(x, y);
+  // The system took the touch, or the board went inert mid-drag: no move.
+  const handleDragCancel = () => {
+    active.value = 0;
+    setHeld(null);
+  };
 
-  const gesture = useMemo(() => {
-    // maxDistance keeps a real tap a tap: without it, a slow finger drag travels
-    // far while still registering as a Tap (winning the race over Pan), so the
-    // piece only ever gets "selected", never dragged. Capping the tap's travel
-    // lets Pan.minDistance take the drag once the finger moves past it.
-    const tap = Gesture.Tap()
-      .maxDuration(400)
-      .maxDistance(10)
-      .onEnd((e) => {
-        'worklet';
-        runOnJS(callTap)(e.x, e.y);
-      });
+  gestureHandlers.current = {
+    onTap: handleTap,
+    onDragStart: handleDragStart,
+    onDrop: handleDrop,
+    onDragCancel: handleDragCancel,
+  };
 
-    const pan = Gesture.Pan()
-      .maxPointers(1)
-      .minDistance(8)
-      .onStart((e) => {
-        'worklet';
-        runOnJS(callDragStart)(e.x - e.translationX, e.y - e.translationY);
-      })
-      .onUpdate((e) => {
-        'worklet';
-        dragTX.value = e.translationX;
-        dragTY.value = e.translationY;
-      })
-      .onEnd((e) => {
-        'worklet';
-        runOnJS(callDragEnd)(e.x, e.y);
-      })
-      .onFinalize(() => {
-        'worklet';
-        dragTX.value = 0;
-        dragTY.value = 0;
-        dragScale.value = withTiming(1, DRAG_DROP);
-      });
-
-    return Gesture.Race(pan, tap);
-    // Gesture is stable; all mutable state is read through refs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const floatStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: dragTX.value },
-      { translateY: dragTY.value },
-      { scale: dragScale.value },
-    ],
-  }));
+  // A dropped move's piece is already on its square — see `dropped`.
+  const droppedTo =
+    dropped && dropped.historyLength === gameState.moveHistory.length ? dropped.to : null;
 
   return (
     <BoardFrame maxPx={520} vhCap={70} accessibilityLabel="Chess board">
@@ -850,9 +944,15 @@ function ChessBoardInner({
                   sq={sq}
                   type={piece.type}
                   color={piece.color}
-                  dimmed={draggingFrom === pos}
-                  pop={lastMoveTo === pos}
-                  offset={motion.offsets.get(motionKey(boardRow, boardCol)) ?? null}
+                  dimmed={held?.from === pos}
+                  // A dropped piece landed where the finger let go: no slide,
+                  // and no landing pop either — the lift was its animation.
+                  pop={lastMoveTo === pos && droppedTo !== pos}
+                  offset={
+                    droppedTo === pos
+                      ? null
+                      : motion.offsets.get(motionKey(boardRow, boardCol)) ?? null
+                  }
                   animMs={animMs}
                 />,
               );
@@ -876,65 +976,58 @@ function ChessBoardInner({
           );
         });
 
-        // Floating copy of the piece being dragged (above everything).
-        let floating: React.ReactNode = null;
-        if (draggingFrom) {
-          const dragPiece = gameState.board[rowOf(draggingFrom)][colOf(draggingFrom)];
-          if (dragPiece) {
-            const { x, y } = screenXY(draggingFrom, isFlipped, sq);
-            floating = (
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  {
-                    position: 'absolute',
-                    left: x,
-                    top: y,
-                    width: sq,
-                    height: sq,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 30,
-                  },
-                  floatStyle,
-                ]}
-              >
-                <ChessPiece type={dragPiece.type} color={dragPiece.color} size={sq * PIECE_RATIO} />
-              </Animated.View>
-            );
-          }
-        }
-
         return (
           // Whose move it is lives on the player cards, not on the board — the
           // turn glow that used to ring it repeated the card.
           <GestureDetector gesture={gesture}>
-            <View
-              style={{
-                width: size,
-                height: size,
-                borderRadius: RADIUS.xl,
-                overflow: 'hidden',
-                borderWidth: 2,
-                borderColor: COLORS.borderStrong,
-                backgroundColor: BOARD_COLORS.darkSquare,
-              }}
-            >
-              {squares}
-              {fading}
-              {pieces}
-              {floating}
-              {markLabels}
-              {pending && (
-                <PromotionPicker
-                  // The promoting pawn's own color — not `playerColor`, which in
-                  // pass-and-play is the board orientation, not the mover.
-                  color={
-                    gameState.board[rowOf(pending.from)][colOf(pending.from)]?.color ?? playerColor
-                  }
+            {/* Unclipped on purpose: the lifted piece rides a square above the
+                finger, so near the far rank it has to be able to leave the
+                board. Same origin as the board, so touch coordinates hold. */}
+            <View style={{ width: size, height: size }}>
+              <View
+                style={{
+                  width: size,
+                  height: size,
+                  borderRadius: RADIUS.xl,
+                  overflow: 'hidden',
+                  borderWidth: 2,
+                  borderColor: COLORS.borderStrong,
+                  backgroundColor: BOARD_COLORS.darkSquare,
+                }}
+              >
+                {squares}
+                {/* Over the square tints and dots, under the pieces. */}
+                <DragTarget
+                  sq={sq}
                   size={size}
-                  onSelect={handlePromotion}
+                  color={BOARD_COLORS.dragTarget}
+                  fingerX={fingerX}
+                  fingerY={fingerY}
+                  active={active}
                 />
+                {fading}
+                {pieces}
+                {markLabels}
+                {pending && (
+                  <PromotionPicker
+                    // The promoting pawn's own color — not `playerColor`, which in
+                    // pass-and-play is the board orientation, not the mover.
+                    color={
+                      gameState.board[rowOf(pending.from)][colOf(pending.from)]?.color ?? playerColor
+                    }
+                    size={size}
+                    onSelect={handlePromotion}
+                  />
+                )}
+              </View>
+              {held && (
+                <DragGhost sq={sq} fingerX={fingerX} fingerY={fingerY} lift={lift}>
+                  <ChessPiece
+                    type={held.piece.type}
+                    color={held.piece.color}
+                    size={sq * DRAG_FEEDBACK_SCALE * PIECE_RATIO}
+                  />
+                </DragGhost>
               )}
             </View>
           </GestureDetector>

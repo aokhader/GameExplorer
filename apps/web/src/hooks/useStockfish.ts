@@ -23,18 +23,6 @@ import {
  */
 export { STOCKFISH_MIN_ELO };
 
-/**
- * Minimum think time (ms) shown in the UI. The engine may compute faster;
- * the bot page Promise.all()s this with the engine call to pad it.
- */
-export function thinkTimeForElo(elo: number): number {
-  if (elo < 800)  return 400;
-  if (elo < 1200) return 650;
-  if (elo < 1400) return 900;
-  if (elo < 1800) return 1100;
-  return 1400;
-}
-
 export type StockfishMove = UciBestMove;
 
 /**
