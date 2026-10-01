@@ -123,4 +123,12 @@ describe('chessAdapter — bot moves still follow the ladder', () => {
       ChessEngine.validateMove(start, move.from as Position, move.to as Position, false).valid,
     ).toBe(true);
   });
+
+  it('stops the in-house search when the loop no longer wants it', async () => {
+    // A new game or leaving the screen sets the signal; the sliced search checks
+    // it between slices and rejects as a cancelled search, not as a failure.
+    await expect(
+      chessAdapter.getBotMove(ChessEngine.newGame(), 1300, { aborted: true }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+  });
 });

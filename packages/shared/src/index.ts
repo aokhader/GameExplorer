@@ -11,6 +11,8 @@ export * from './utils/clock';
 export * from './utils/rng';
 // Currency formatting for the property game
 export * from './utils/currency';
+// Running the minimax bots a few ms at a time, so they don't freeze the UI thread
+export * from './utils/slicedSearch';
 // Checkers
 export * from './game-logic/checkers';
 export * from './game-logic/reversi';

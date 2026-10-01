@@ -1,4 +1,10 @@
 import type { ReversiGameState } from './types';
+import {
+  runSearch,
+  runSearchSliced,
+  type ShouldPause,
+  type SlicedSearchOptions,
+} from '../../utils/slicedSearch';
 import { ReversiEngine } from './engine';
 import { getAllLegalPositions } from './moves';
 
@@ -93,30 +99,37 @@ function evaluate(state: ReversiGameState, noise: number): number {
 
 const WIN_SCORE = 100_000;
 
-function minimax(
+/**
+ * The search, as a generator that can pause at any interior node — see
+ * `utils/slicedSearch.ts`. `minimax` below runs it without pausing.
+ */
+function* minimaxSteps(
   state: ReversiGameState,
   depth: number,
   alpha: number,
   beta: number,
   isMaximizing: boolean,
   noise: number,
-): number {
+  shouldPause: ShouldPause,
+): Generator<void, number, void> {
   if (state.isGameOver || depth === 0) return evaluate(state, noise);
 
+  if (shouldPause()) yield;
   const moves = ReversiEngine.getAllLegalMoves(state);
 
   if (moves.length === 0) {
     // Must pass — recurse with pass state
     const passed = ReversiEngine.executePass(state);
     if (passed.isGameOver) return evaluate(passed, noise);
-    return minimax(passed, depth - 1, alpha, beta, !isMaximizing, noise);
+    return yield* minimaxSteps(passed, depth - 1, alpha, beta, !isMaximizing, noise, shouldPause);
   }
 
   if (isMaximizing) {
     let best = -Infinity;
     for (const pos of moves) {
       const next = ReversiEngine.executeMove(state, pos);
-      best = Math.max(best, minimax(next, depth - 1, alpha, beta, false, noise));
+      const score = yield* minimaxSteps(next, depth - 1, alpha, beta, false, noise, shouldPause);
+      best = Math.max(best, score);
       alpha = Math.max(alpha, best);
       if (beta <= alpha) break;
     }
@@ -125,12 +138,26 @@ function minimax(
     let best = Infinity;
     for (const pos of moves) {
       const next = ReversiEngine.executeMove(state, pos);
-      best = Math.min(best, minimax(next, depth - 1, alpha, beta, true, noise));
+      const score = yield* minimaxSteps(next, depth - 1, alpha, beta, true, noise, shouldPause);
+      best = Math.min(best, score);
       beta = Math.min(beta, best);
       if (beta <= alpha) break;
     }
     return best;
   }
+}
+
+function minimax(
+  state: ReversiGameState,
+  depth: number,
+  alpha: number,
+  beta: number,
+  isMaximizing: boolean,
+  noise: number,
+): number {
+  return runSearch((shouldPause) =>
+    minimaxSteps(state, depth, alpha, beta, isMaximizing, noise, shouldPause),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +172,27 @@ export function getBestReversiMove(
   state: ReversiGameState,
   targetElo: number,
 ): ReversiiBotMove {
+  return runSearch((shouldPause) => bestMoveSteps(state, targetElo, shouldPause));
+}
+
+/**
+ * `getBestReversiMove`, run a few milliseconds at a time so the thread it shares
+ * with the UI keeps answering (see `utils/slicedSearch.ts`). Mobile's bot and
+ * hint use it. Same square for the same `Math.random` draws.
+ */
+export function getBestReversiMoveSliced(
+  state: ReversiGameState,
+  targetElo: number,
+  options?: SlicedSearchOptions,
+): Promise<ReversiiBotMove> {
+  return runSearchSliced((shouldPause) => bestMoveSteps(state, targetElo, shouldPause), options);
+}
+
+function* bestMoveSteps(
+  state: ReversiGameState,
+  targetElo: number,
+  shouldPause: ShouldPause,
+): Generator<void, ReversiiBotMove, void> {
   const config = eloToConfig(targetElo);
   const legalMoves = ReversiEngine.getAllLegalMoves(state);
 
@@ -163,13 +211,14 @@ export function getBestReversiMove(
 
   for (const pos of legalMoves) {
     const next = ReversiEngine.executeMove(state, pos);
-    const score = minimax(
+    const score = yield* minimaxSteps(
       next,
       config.depth - 1,
       -Infinity,
       Infinity,
       !isMaximizing,
       config.evalNoise,
+      shouldPause,
     );
     if (isMaximizing ? score > bestScore : score < bestScore) {
       bestScore = score;

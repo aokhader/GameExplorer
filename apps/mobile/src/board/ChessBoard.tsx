@@ -79,10 +79,17 @@ interface ChessBoardProps {
   premoveColor?: 'white' | 'black';
   /**
    * Position-editing hook for the analysis board: when set, a tap reports the
-   * square and no move logic runs at all. Dragging is still disabled the usual
-   * way, via `interactive`.
+   * square and no move logic runs at all. A drag goes to `onPieceRelocate`, and
+   * without one it does nothing — it never plays a move.
    */
   onSquarePress?: (position: string) => void;
+  /**
+   * Position editing by drag: any piece may be picked up — either colour,
+   * whoever's turn it is, whatever the result — and dropping it on another
+   * square reports both squares instead of playing a move. The parent does the
+   * moving, with no rules applied. Released off the board, it stays put.
+   */
+  onPieceRelocate?: (from: string, to: string) => void;
 }
 
 /** The piece under drag, as it was when picked up. */
@@ -386,6 +393,7 @@ function ChessBoardInner({
   highlightSquares,
   premoveColor,
   onSquarePress,
+  onPieceRelocate,
 }: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [validMoves, setValidMoves] = useState<string[]>([]);
@@ -414,6 +422,9 @@ function ChessBoardInner({
   // move instead of playing one.
   const premoveMode =
     !!premoveColor && interactive && !gameOver && gameState.currentTurn !== premoveColor;
+  // Position editing: taps go to `onSquarePress`, drags to `onPieceRelocate`,
+  // and neither is a move.
+  const editing = !!onSquarePress || !!onPieceRelocate;
 
   const lastMoveEntry = gameState.moveHistory[gameState.moveHistory.length - 1] ?? null;
   const lastMove = lastMoveEntry ? { from: lastMoveEntry.from, to: lastMoveEntry.to } : null;
@@ -433,7 +444,9 @@ function ChessBoardInner({
   // ref, because they need `active`, which the hook creates.
   const gestureHandlers = useRef<BoardGestureHandlers | null>(null);
   const { gesture, fingerX, fingerY, lift, active } = useBoardGesture(gestureHandlers, {
-    interactive,
+    // An editor with nowhere to report a drag has nothing for one to do; left
+    // on, it would pick up a piece and play it as a move.
+    interactive: interactive && (!onSquarePress || !!onPieceRelocate),
     reducedMotion,
   });
 
@@ -451,6 +464,8 @@ function ChessBoardInner({
   premoveColorRef.current = premoveColor;
   const onSquarePressRef = useRef(onSquarePress);
   onSquarePressRef.current = onSquarePress;
+  const onPieceRelocateRef = useRef(onPieceRelocate);
+  onPieceRelocateRef.current = onPieceRelocate;
   // Read at fire time, not closure time: the queued move is released a tick
   // after the opponent's move landed, by which point the parent has re-rendered.
   const onMoveRef = useRef(onMove);
@@ -656,12 +671,14 @@ function ChessBoardInner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, premoveMode]);
 
-  // …but not the board going inert (game over, review, a puzzle's reply beat).
+  // …but not the board going inert (game over, review, a puzzle's reply beat),
+  // or becoming a position editor, where a selection's legal-move dots would
+  // sit on the board with no tap left that could act on them.
   useEffect(() => {
-    if (interactive && !gameOver) return;
+    if (interactive && !gameOver && !editing) return;
     if (heldRef.current || selectedRef.current) releaseAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interactive, gameOver]);
+  }, [interactive, gameOver, editing]);
 
   // The no-slide for a dropped move applies only to the position that move
   // produced, and only if it arrived with the drop. A local game applies the
@@ -738,9 +755,19 @@ function ChessBoardInner({
   const handleDragStart = (x: number, y: number) => {
     if (!interactiveRef.current || pendingRef.current) return;
     const s = stateRef.current;
-    if (s.isCheckmate || s.isStalemate || s.isDraw) return;
     const pos = squareAt(x, y, flipRef.current, sizeRef.current);
     const piece = s.board[rowOf(pos)][colOf(pos)];
+    // Position editing picks up anything, for the same reason a tap there
+    // places anything: turn order and a finished position mean nothing to an
+    // editor. No selection either — its dots would claim only some squares
+    // can take the piece.
+    if (onPieceRelocateRef.current) {
+      if (!piece) return;
+      setHeld({ from: pos, piece });
+      active.value = 1;
+      return;
+    }
+    if (s.isCheckmate || s.isStalemate || s.isDraw) return;
     if (!piece || !canGrab(pos)) return;
     // Deliberately silent. Tapping a piece already selects without a sound,
     // so only dragging made noise, and web stays quiet on pickup entirely —
@@ -754,6 +781,17 @@ function ChessBoardInner({
     active.value = 0;
     const h = heldRef.current;
     if (!h) return;
+    const relocate = onPieceRelocateRef.current;
+    if (relocate) {
+      // Let go in the same render the parent moves the piece in: the ghost and
+      // the dimmed original vanish together as it appears on `to`. Off the
+      // board, or back on its own square, is a change of mind.
+      setHeld(null);
+      if (!interactiveRef.current || !isOnBoard(x, y, sizeRef.current)) return;
+      const to = squareAt(x, y, flipRef.current, sizeRef.current);
+      if (to !== h.from) relocate(h.from, to);
+      return;
+    }
     const s = stateRef.current;
     if (!interactiveRef.current || s.isCheckmate || s.isStalemate || s.isDraw) {
       releaseAll();

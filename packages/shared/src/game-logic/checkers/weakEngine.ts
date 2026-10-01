@@ -1,4 +1,10 @@
 import type { CheckersGameState } from './types';
+import {
+  runSearch,
+  runSearchSliced,
+  type ShouldPause,
+  type SlicedSearchOptions,
+} from '../../utils/slicedSearch';
 import { CheckersEngine } from './engine';
 
 // ---------------------------------------------------------------------------
@@ -85,20 +91,26 @@ function evaluate(state: CheckersGameState, noise: number): number {
 
 const CHECKMATE_SCORE = 100_000;
 
-function minimax(
+/**
+ * The search, as a generator that can pause at any interior node — see
+ * `utils/slicedSearch.ts`. `minimax` below runs it without pausing.
+ */
+function* minimaxSteps(
   state: CheckersGameState,
   depth: number,
   alpha: number,
   beta: number,
   isMaximizing: boolean,
   noise: number,
-): number {
+  shouldPause: ShouldPause,
+): Generator<void, number, void> {
   if (state.isGameOver) {
     if (state.winner === null) return 0; // draw
     return state.winner === 'white' ? CHECKMATE_SCORE : -CHECKMATE_SCORE;
   }
   if (depth === 0) return evaluate(state, noise);
 
+  if (shouldPause()) yield;
   const moves = CheckersEngine.getAllLegalMoves(state);
   if (moves.length === 0) {
     return isMaximizing ? -CHECKMATE_SCORE : CHECKMATE_SCORE;
@@ -111,7 +123,8 @@ function minimax(
     let best = -Infinity;
     for (const move of ordered) {
       const next = CheckersEngine.executeMove(state, move);
-      best = Math.max(best, minimax(next, depth - 1, alpha, beta, false, noise));
+      const score = yield* minimaxSteps(next, depth - 1, alpha, beta, false, noise, shouldPause);
+      best = Math.max(best, score);
       alpha = Math.max(alpha, best);
       if (beta <= alpha) break;
     }
@@ -120,12 +133,26 @@ function minimax(
     let best = Infinity;
     for (const move of ordered) {
       const next = CheckersEngine.executeMove(state, move);
-      best = Math.min(best, minimax(next, depth - 1, alpha, beta, true, noise));
+      const score = yield* minimaxSteps(next, depth - 1, alpha, beta, true, noise, shouldPause);
+      best = Math.min(best, score);
       beta = Math.min(beta, best);
       if (beta <= alpha) break;
     }
     return best;
   }
+}
+
+function minimax(
+  state: CheckersGameState,
+  depth: number,
+  alpha: number,
+  beta: number,
+  isMaximizing: boolean,
+  noise: number,
+): number {
+  return runSearch((shouldPause) =>
+    minimaxSteps(state, depth, alpha, beta, isMaximizing, noise, shouldPause),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -144,6 +171,27 @@ export function getBestCheckersMove(
   state: CheckersGameState,
   targetElo: number,
 ): CheckersBotMove {
+  return runSearch((shouldPause) => bestMoveSteps(state, targetElo, shouldPause));
+}
+
+/**
+ * `getBestCheckersMove`, run a few milliseconds at a time so the thread it
+ * shares with the UI keeps answering (see `utils/slicedSearch.ts`). Mobile's bot
+ * and hint use it. Same move for the same `Math.random` draws.
+ */
+export function getBestCheckersMoveSliced(
+  state: CheckersGameState,
+  targetElo: number,
+  options?: SlicedSearchOptions,
+): Promise<CheckersBotMove> {
+  return runSearchSliced((shouldPause) => bestMoveSteps(state, targetElo, shouldPause), options);
+}
+
+function* bestMoveSteps(
+  state: CheckersGameState,
+  targetElo: number,
+  shouldPause: ShouldPause,
+): Generator<void, CheckersBotMove, void> {
   const config = eloToConfig(targetElo);
   const legalMoves = CheckersEngine.getAllLegalMoves(state);
 
@@ -164,13 +212,14 @@ export function getBestCheckersMove(
 
   for (const move of ordered) {
     const next = CheckersEngine.executeMove(state, move);
-    const score = minimax(
+    const score = yield* minimaxSteps(
       next,
       config.depth - 1,
       -Infinity,
       Infinity,
       !isMaximizing,
       config.evalNoise,
+      shouldPause,
     );
     if (isMaximizing ? score > bestScore : score < bestScore) {
       bestScore = score;

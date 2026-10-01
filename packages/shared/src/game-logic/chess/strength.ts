@@ -154,9 +154,10 @@ export interface ChessBotConfig {
  * A caveat that is real but did not move the seam: on mobile the in-house engine
  * runs on the JavaScript thread (web runs it in a worker), and its depth-4 band
  * costs ~530ms per move on a desktop and several times that on a handset. Ratings
- * from about 1280 to the seam are therefore expensive. Fixing that means moving it
- * off the thread, not moving the seam — putting the seam lower would hand those
- * ratings to an engine that measurably cannot play them.
+ * from about 1280 to the seam are therefore expensive. Mobile now runs the search
+ * in slices (`getBestMoveEloSliced`), so the board keeps answering while it
+ * thinks; the cost is still there, and moving the seam lower would only hand
+ * those ratings to an engine that measurably cannot play them.
  */
 export const TS_ENGINE_CEILING = CHESS_BOT_LADDER.tsCeilingElo;
 

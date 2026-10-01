@@ -145,6 +145,29 @@ export default function AnalysisScreen() {
     [tool],
   );
 
+  /**
+   * A dragged piece, moved to wherever it was dropped — the eraser and the
+   * palette in one gesture, whatever tool is picked. Like them it applies no
+   * rules: the piece replaces anything standing on `to`.
+   */
+  const handlePieceRelocate = useCallback((from: string, to: string) => {
+    const fromCol = from.charCodeAt(0) - 97;
+    const fromRow = parseInt(from[1], 10) - 1;
+    const toCol = to.charCodeAt(0) - 97;
+    const toRow = parseInt(to[1], 10) - 1;
+
+    setState((prev) => {
+      const piece = prev.board[fromRow][fromCol];
+      if (!piece) return prev;
+      const board = prev.board.map((r) => [...r]);
+      board[fromRow][fromCol] = null;
+      board[toRow][toCol] = piece;
+      const next = { ...prev, board };
+      setFenInput(stateToFen(next));
+      return next;
+    });
+  }, []);
+
   const handleFenInput = (raw: string) => {
     setFenInput(raw);
     try {
@@ -249,8 +272,10 @@ export default function AnalysisScreen() {
             }
           }}
           playerColor={flipped ? 'black' : 'white'}
-          // Edit mode routes taps to the palette; analyse mode plays real moves.
+          // Edit mode routes taps to the palette and drags to relocation;
+          // analyse mode plays real moves.
           onSquarePress={mode === 'edit' ? handleSquarePress : undefined}
+          onPieceRelocate={mode === 'edit' ? handlePieceRelocate : undefined}
           hintMove={mode === 'analyze' ? evaluation?.bestMove ?? null : null}
           interactive
         />
@@ -388,8 +413,8 @@ function EditPanel({
           }}
         >
           {tool
-            ? 'Tap a square to place or remove.'
-            : 'Pick a piece or the eraser, then tap the board.'}
+            ? 'Tap a square to place or remove. Drag a piece to move it.'
+            : 'Drag a piece to move it, or pick a piece or the eraser, then tap the board.'}
         </Text>
       </Section>
 

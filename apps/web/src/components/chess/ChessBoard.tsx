@@ -83,6 +83,16 @@ interface ChessBoardProps {
   /** Allow selecting and previewing moves for pieces of any color, regardless of whose turn it is */
   allowSelectAnyColor?: boolean;
   /**
+   * Position editing by drag: any piece may be picked up — either colour,
+   * whoever's turn it is — and dropping it on another square reports both
+   * squares instead of playing a move. The parent does the moving, with no rules
+   * applied. Released off the board, it stays put.
+   *
+   * The drag starts only once the pointer moves, so a click on a piece is still
+   * a click — the editor places and erases over pieces with one.
+   */
+  onPieceRelocate?: (from: Position, to: Position) => void;
+  /**
    * Precomputed legal-move destinations keyed by from-square.
    * When provided the board does a pure O(1) map lookup on piece selection
    * instead of running getAllLegalMoves() on the main thread.
@@ -121,6 +131,12 @@ interface PendingPromotion {
  * before the premove is offered to it.
  */
 const PREMOVE_FIRE_DELAY_MS = 90;
+
+/**
+ * How far a press on a piece travels before a position editor takes it for a
+ * relocation drag rather than a click. The native boards' pan starts at 8px too.
+ */
+const RELOCATE_DRAG_PX = 8;
 
 // Promotion picker — shown as an overlay on the board when a pawn reaches the back rank
 function PromotionPicker({
@@ -238,6 +254,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   editMode = false,
   onSquareClick,
   allowSelectAnyColor = false,
+  onPieceRelocate,
   legalMovesMap,
   allowPremoves = false,
   interactive = true,
@@ -318,6 +335,16 @@ export const ChessBoard = React.memo(function ChessBoard({
   const draggingRef  = useRef(dragging);
   draggingRef.current = dragging;
   const dragMovesRef = useRef<Position[]>([]);
+  // A relocation drag in waiting: the pointer is down on a piece but has not
+  // moved yet, so this is still a click. See `onPieceRelocate`.
+  const pressRef = useRef<{
+    piece: Piece;
+    from: Position;
+    pointerId: number;
+    x: number;
+    y: number;
+    squareWidth: number;
+  } | null>(null);
   // Orientation only. Every ownership test above deliberately keeps reading
   // `playerColor`, so flipping the view never changes what you can move.
   const isFlipped = (orientation ?? playerColor) === 'black';
@@ -567,6 +594,8 @@ export const ChessBoard = React.memo(function ChessBoard({
   /** Pieces this board will let the pointer pick up right now. */
   const canGrab = (piece: Piece): boolean => {
     if (!interactive) return false;
+    // A position editor moves anything; see `onPieceRelocate`.
+    if (onPieceRelocate) return true;
     if (editMode || allowSelectAnyColor) return false;
     return premoveMode ? piece.color === playerColor : piece.color === effectiveState.currentTurn;
   };
@@ -576,15 +605,30 @@ export const ChessBoard = React.memo(function ChessBoard({
     if (e.button !== 0) return; // left-click only
     e.preventDefault();
 
-    // Route all subsequent pointer events to the board even when off-board.
-    boardRef.current?.setPointerCapture(e.pointerId);
-
-    selectPiece(position);
-
     // currentTarget is the square, so scale to the piece's own footprint —
     // `.piece` is 90% of its square, and a ghost the full square size reads as
     // the piece growing the instant it is picked up.
     const { width: squareWidth } = (e.currentTarget as HTMLElement).getBoundingClientRect();
+
+    if (onPieceRelocate) {
+      // Not a drag yet. Capturing the pointer now would send the click that
+      // places or erases on this square to the board instead.
+      pressRef.current = {
+        piece, from: position, pointerId: e.pointerId, x: e.clientX, y: e.clientY, squareWidth,
+      };
+      return;
+    }
+
+    // Route all subsequent pointer events to the board even when off-board.
+    boardRef.current?.setPointerCapture(e.pointerId);
+
+    selectPiece(position);
+    startDrag(piece, position, squareWidth, e.clientX, e.clientY);
+  };
+
+  const startDrag = (
+    piece: Piece, from: Position, squareWidth: number, clientX: number, clientY: number,
+  ) => {
     const width = squareWidth * 0.9;
     const halfSize = width / 2;
 
@@ -592,16 +636,35 @@ export const ChessBoard = React.memo(function ChessBoard({
     if (ghostRef.current) {
       ghostRef.current.style.width  = `${width}px`;
       ghostRef.current.style.height = `${width}px`;
-      ghostRef.current.style.left   = `${e.clientX - halfSize}px`;
-      ghostRef.current.style.top    = `${e.clientY - halfSize}px`;
+      ghostRef.current.style.left   = `${clientX - halfSize}px`;
+      ghostRef.current.style.top    = `${clientY - halfSize}px`;
     }
 
-    const d = { piece, from: position, halfSize };
+    const d = { piece, from, halfSize };
     draggingRef.current = d;
     setDragging(d);
   };
 
   const handleBoardPointerMove = (e: React.PointerEvent) => {
+    const press = pressRef.current;
+    if (press && press.pointerId === e.pointerId) {
+      // Released somewhere the board never heard about (it holds no capture
+      // yet): the press is over.
+      if (!(e.buttons & 1)) {
+        pressRef.current = null;
+        return;
+      }
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < RELOCATE_DRAG_PX) return;
+      pressRef.current = null;
+      boardRef.current?.setPointerCapture(e.pointerId);
+      // A move preview left by an earlier click would claim only some squares
+      // can take the piece; a relocation goes anywhere.
+      setSelectedSquare(null);
+      setValidMoves([]);
+      dragMovesRef.current = [];
+      startDrag(press.piece, press.from, press.squareWidth, e.clientX, e.clientY);
+      return;
+    }
     if (!draggingRef.current) return;
     e.preventDefault();
     // Move ghost imperatively — avoids a React re-render on every frame.
@@ -612,11 +675,20 @@ export const ChessBoard = React.memo(function ChessBoard({
   };
 
   const handleBoardPointerUp = (e: React.PointerEvent) => {
+    // A press that never moved was a click, and the click handler has it.
+    pressRef.current = null;
     const drag = draggingRef.current;
     if (!drag) return;
     e.preventDefault();
 
     const target = getSquareAtPoint(e.clientX, e.clientY);
+    if (onPieceRelocate) {
+      // Off the board, or back on its own square, is a change of mind.
+      if (target && target !== drag.from) onPieceRelocate(drag.from, target);
+      draggingRef.current = null;
+      setDragging(null);
+      return;
+    }
     if (target && target !== drag.from && !editMode && dragMovesRef.current.includes(target)) {
       if (premoveMode) queuePremove(drag.from, target);
       else attemptMove(drag.from, target);
@@ -643,6 +715,7 @@ export const ChessBoard = React.memo(function ChessBoard({
 
   const handleBoardPointerCancel = () => {
     // OS cancelled the gesture (e.g. incoming call on mobile).
+    pressRef.current = null;
     draggingRef.current = null;
     setDragging(null);
     setSelectedSquare(null);

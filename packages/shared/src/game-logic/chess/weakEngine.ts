@@ -1,6 +1,12 @@
 // Minimax-based weak chess engine to simulate low-ELO play (~600–1200)
 
 import type { ChessGameState, Color, Position, PieceType } from '../../types/chess.types';
+import {
+  runSearch,
+  runSearchSliced,
+  type ShouldPause,
+  type SlicedSearchOptions,
+} from '../../utils/slicedSearch';
 import { ChessEngine } from './engine';
 
 // ---------------------------------------------------------------------------
@@ -186,14 +192,19 @@ function orderMoves(
 
 const CHECKMATE_SCORE = 100_000;
 
-function minimax(
+/**
+ * The search, as a generator that can pause at any interior node — see
+ * `utils/slicedSearch.ts`. `minimax` below runs it without pausing.
+ */
+function* minimaxSteps(
   state: ChessGameState,
   depth: number,
   alpha: number,
   beta: number,
   isMaximizing: boolean,
   noise: number,
-): number {
+  shouldPause: ShouldPause,
+): Generator<void, number, void> {
   // Terminal node: checkmate / stalemate / draw
   if (state.isCheckmate) {
     // The side that just moved delivered checkmate.
@@ -205,13 +216,15 @@ function minimax(
   // Leaf node
   if (depth === 0) return evaluate(state, noise);
 
+  if (shouldPause()) yield;
   const moves = orderMoves(state, ChessEngine.getAllLegalMoves(state));
 
   if (isMaximizing) {
     let best = -Infinity;
     for (const move of moves) {
       const next = ChessEngine.executeMove(state, move.from, move.to, false, 'queen');
-      best = Math.max(best, minimax(next, depth - 1, alpha, beta, false, noise));
+      const score = yield* minimaxSteps(next, depth - 1, alpha, beta, false, noise, shouldPause);
+      best = Math.max(best, score);
       alpha = Math.max(alpha, best);
       if (beta <= alpha) break; // Beta cut-off
     }
@@ -220,12 +233,26 @@ function minimax(
     let best = Infinity;
     for (const move of moves) {
       const next = ChessEngine.executeMove(state, move.from, move.to, false, 'queen');
-      best = Math.min(best, minimax(next, depth - 1, alpha, beta, true, noise));
+      const score = yield* minimaxSteps(next, depth - 1, alpha, beta, true, noise, shouldPause);
+      best = Math.min(best, score);
       beta = Math.min(beta, best);
       if (beta <= alpha) break; // Alpha cut-off
     }
     return best;
   }
+}
+
+function minimax(
+  state: ChessGameState,
+  depth: number,
+  alpha: number,
+  beta: number,
+  isMaximizing: boolean,
+  noise: number,
+): number {
+  return runSearch((shouldPause) =>
+    minimaxSteps(state, depth, alpha, beta, isMaximizing, noise, shouldPause),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -447,6 +474,21 @@ export function getBestMoveElo(
 }
 
 /**
+ * `getBestMoveElo`, run a few milliseconds at a time so the thread it shares
+ * with the UI keeps answering (see `utils/slicedSearch.ts`). Mobile's bot uses
+ * it, since its depth-4 band blocks a handset's JavaScript thread for seconds.
+ * Same move for the same `Math.random` draws.
+ */
+export function getBestMoveEloSliced(
+  state: ChessGameState,
+  targetElo: number,
+  options?: SlicedSearchOptions,
+): Promise<WeakEngineMove> {
+  const config = eloToConfig(targetElo);
+  return runSearchSliced((shouldPause) => bestMoveSteps(state, config, shouldPause), options);
+}
+
+/**
  * The same move selection, driven by an explicit profile instead of a rating.
  *
  * Split out so strength can be *measured* rather than asserted. `ELO_BANDS`
@@ -462,6 +504,14 @@ export function getBestMoveWithProfile(
   state: ChessGameState,
   config: EloConfig,
 ): WeakEngineMove {
+  return runSearch((shouldPause) => bestMoveSteps(state, config, shouldPause));
+}
+
+function* bestMoveSteps(
+  state: ChessGameState,
+  config: EloConfig,
+  shouldPause: ShouldPause,
+): Generator<void, WeakEngineMove, void> {
   const color: Color = state.currentTurn;
   const legalMoves = ChessEngine.getAllLegalMoves(state);
 
@@ -480,13 +530,14 @@ export function getBestMoveWithProfile(
 
   for (const move of orderMoves(state, legalMoves)) {
     const next = ChessEngine.executeMove(state, move.from, move.to, false, 'queen');
-    const score = minimax(
+    const score = yield* minimaxSteps(
       next,
       config.depth - 1,
       -Infinity,
       Infinity,
       !isMaximizing,
       config.evalNoise,
+      shouldPause,
     );
     if (isMaximizing ? score > bestScore : score < bestScore) {
       bestScore = score;

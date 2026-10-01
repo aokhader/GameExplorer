@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { type EngineMove } from '@gameexplorer/shared';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { type EngineMove, type SearchSignal } from '@gameexplorer/shared';
 import {
   getPracticeRating,
   type GameType,
@@ -56,14 +56,20 @@ export interface LocalGameAdapter<S> {
     to: string,
     promotion?: string,
   ): { valid: boolean; resultingState?: S };
-  /** Sync (in-house TS engine fallback) or async (native Arasan engine). */
-  getBotMove(state: S, elo: number): LocalMove | Promise<LocalMove>;
+  /**
+   * Sync, or async: the native Arasan engine, or an in-house search run in
+   * slices so it doesn't freeze the board. `signal` is set once nobody wants the
+   * answer any more (a new game, a resume, a resign, the screen closing); an
+   * engine that honours it rejects with an `AbortError`.
+   */
+  getBotMove(state: S, elo: number, signal?: SearchSignal): LocalMove | Promise<LocalMove>;
   /**
    * Training only — the best move this game can find, for the hint. Kept
    * separate from `getBotMove`, which is deliberately weakened to a rating: a
    * hint that blunders is worse than no hint, and the player paid rating for it.
+   * `signal` works as it does there, and is also set when the player moves.
    */
-  getHintMove?(state: S, elo: number): LocalMove | Promise<LocalMove>;
+  getHintMove?(state: S, elo: number, signal?: SearchSignal): LocalMove | Promise<LocalMove>;
   /**
    * Rating handed to `getHintMove`, for engines that only take one. Checkers and
    * reversi ask for their top band, which makes no deliberate errors. Chess and
@@ -164,6 +170,12 @@ export interface UseLocalGameOptions<S> {
     /** The setup the game is played with, in `localSetup`'s shape for this game. */
     setup: object;
   };
+}
+
+/** Tell an in-flight search that nobody wants its answer, and forget it. */
+function cancelSearch(ref: RefObject<{ aborted: boolean } | null>) {
+  if (ref.current) ref.current.aborted = true;
+  ref.current = null;
 }
 
 export interface RatingResult {
@@ -329,6 +341,14 @@ export function useLocalGame<S>({
   // Mirrors `isThinking` but is readable synchronously — see makeBotMove.
   const botRunRef = useRef<number | null>(null);
   const nextBotRunId = useRef(0);
+  // The in-flight bot search's cancel flag. Separate from the claim: the claim
+  // decides who may answer the turn, this stops a search nobody will read. A
+  // search that runs in slices would otherwise carry on in the background after
+  // a new game or after leaving the screen, taking turns on the JS thread with
+  // whatever came next.
+  const botSearchRef = useRef<{ aborted: boolean } | null>(null);
+  // Unmounting stops it too.
+  useEffect(() => () => cancelSearch(botSearchRef), []);
 
   // Load the player's Practice level once we know who they are (rated bot games).
   // Training also reads it before the game starts — the setup screen shows it,
@@ -450,6 +470,8 @@ export function useLocalGame<S>({
 
     const current = timelineRef.current[timelineRef.current.length - 1];
     const elo = botEloRef.current;
+    const signal = { aborted: false };
+    botSearchRef.current = signal;
 
     setIsThinking(true);
     try {
@@ -457,7 +479,7 @@ export function useLocalGame<S>({
       // think time, exactly like web.
       const [move] = await Promise.all([
         new Promise<LocalMove>((resolve) =>
-          setTimeout(() => resolve(adapter.getBotMove(current, elo)), 0),
+          setTimeout(() => resolve(adapter.getBotMove(current, elo, signal)), 0),
         ),
         new Promise((resolve) => setTimeout(resolve, adapter.thinkTimeForElo(elo))),
       ]);
@@ -483,6 +505,7 @@ export function useLocalGame<S>({
       // superseded request) and nobody is waiting for this answer any more.
       if ((err as Error)?.name !== 'AbortError') console.error('Bot error:', err);
     } finally {
+      if (botSearchRef.current === signal) botSearchRef.current = null;
       // Only the run still holding the claim may release it (and stop the
       // "thinking…" indicator) — a superseded one must leave both alone.
       if (botRunRef.current === runId) {
@@ -605,8 +628,12 @@ export function useLocalGame<S>({
   // and would each bill the player a hint (same reasoning as the bot-run claim).
   const hintingRef = useRef(false);
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintSearchRef = useRef<{ aborted: boolean } | null>(null);
 
+  // A hint belongs to the position it was asked about: every caller is a sign
+  // that position is gone, so a hint still being searched for is stopped too.
   const clearHint = useCallback(() => {
+    cancelSearch(hintSearchRef);
     if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
     hintTimerRef.current = null;
     setHintMove(null);
@@ -633,8 +660,14 @@ export function useLocalGame<S>({
 
     hintingRef.current = true;
     setIsHinting(true);
+    const signal = { aborted: false };
+    hintSearchRef.current = signal;
     try {
-      const move = await getHint(live, adapter.hintElo?.(botEloRef.current) ?? botEloRef.current);
+      const move = await getHint(
+        live,
+        adapter.hintElo?.(botEloRef.current) ?? botEloRef.current,
+        signal,
+      );
       // The position moved on while the search ran (resigned, new game, or the
       // player moved anyway) — the answer is stale, so it isn't billed either.
       if (timelineRef.current[timelineRef.current.length - 1] !== live) return;
@@ -648,6 +681,7 @@ export function useLocalGame<S>({
       // An aborted search is routine — the game moved on and nobody is waiting.
       if ((err as Error)?.name !== 'AbortError') console.error('Hint error:', err);
     } finally {
+      if (hintSearchRef.current === signal) hintSearchRef.current = null;
       hintingRef.current = false;
       setIsHinting(false);
     }
@@ -696,6 +730,8 @@ export function useLocalGame<S>({
     (kind: 'resign' | 'draw') => {
       const live = timelineRef.current[timelineRef.current.length - 1];
       if (manualEndRef.current || adapter.isGameOver(live)) return;
+      // The bot's answer would be dropped anyway; stop working it out.
+      cancelSearch(botSearchRef);
       setManualEnd(kind);
       setIsThinking(false);
       clearHint();
@@ -706,8 +742,10 @@ export function useLocalGame<S>({
   const newGame = useCallback(() => {
     // adapter.newGame() aborts any in-flight search, so drop the claim with it —
     // otherwise the next game's first bot turn would be locked out. The aborted
-    // run won't touch it on the way out: its id no longer matches.
+    // run won't touch it on the way out: its id no longer matches. The in-house
+    // engines don't abort on `adapter.newGame()`, so their search is stopped here.
     botRunRef.current = null;
+    cancelSearch(botSearchRef);
     setTimeline([adapter.newGame()]);
     setActions([]);
     setViewIndex(0);
@@ -763,6 +801,7 @@ export function useLocalGame<S>({
       const replayed = replayActions(rules, saved.actions);
       if (!replayed) return false;
       botRunRef.current = null;
+      cancelSearch(botSearchRef);
       setTimeline(replayed);
       setActions(saved.actions);
       setViewIndex(replayed.length - 1);

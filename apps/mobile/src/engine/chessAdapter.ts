@@ -2,11 +2,12 @@ import {
   CHESS_HINT_SEARCH_MS,
   botThinkMs,
   chessBotConfig,
-  getBestMoveElo,
+  getBestMoveEloSliced,
   type ChessGameState,
 } from '@gameexplorer/shared';
 import { CHESS_RULES } from '@gameexplorer/client/game/localRules';
 import type { LocalGameAdapter } from './useLocalGame';
+import { slicedOnJsThread } from './yieldToJsQueue';
 import {
   getEngineBestMove,
   getEngineEvaluation,
@@ -56,11 +57,14 @@ export const chessAdapter: LocalGameAdapter<ChessGameState> = {
     engineNewGame();
     return CHESS_RULES.newGame();
   },
-  getBotMove: async (s, elo) => {
+  getBotMove: async (s, elo, signal) => {
     // Ratings the ladder assigns to the in-house engine, plus any rating at all
-    // on a dev client with no native module linked.
+    // on a dev client with no native module linked. Sliced, because it runs on
+    // the JS thread beside the board's touch handlers and its depth-4 band takes
+    // seconds a move on a phone; `newGame` below stops Arasan, and the loop's
+    // `signal` stops this.
     if (chessBotConfig(elo).engine === 'ts' || !isEngineAvailable()) {
-      const m = getBestMoveElo(s, elo);
+      const m = await getBestMoveEloSliced(s, elo, slicedOnJsThread(signal));
       return { from: m.from, to: m.to, promotion: m.promotion };
     }
     return getEngineBestMove(s, elo);
