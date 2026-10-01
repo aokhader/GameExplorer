@@ -36,6 +36,17 @@ export interface GoSearchOptions {
    * package keeps needing no DOM lib; a real `AbortSignal` satisfies it.
    */
   signal?: { aborted: boolean };
+  /**
+   * How to hand the thread back between slices. The default is a zero-delay
+   * `setTimeout`, which is right for browsers and Node. React Native needs its
+   * own, for the reason `utils/slicedSearch.ts` gives: its timers fire only on
+   * frame boundaries, so a gap lasts until the next frame — 9 to 35 ms on an
+   * idle screen and about 40 on the game screen, against an 8 ms slice (Pixel 8
+   * emulator, dev build, Sep 2026). `SEARCH_CEILING_MS` counts that wait, so on
+   * the game screen the Master tier stopped at about 540 of its 4,000 playouts
+   * (at the 3 s ceiling of the time).
+   */
+  yieldToHost?: () => Promise<void>;
 }
 
 /** What a backend reports about the position it just searched. */
@@ -46,6 +57,13 @@ export interface GoSearchResult {
   winRate: number;
   /** Estimated final area lead for BLACK, komi included. Positive = black ahead. */
   scoreLead: number;
+  /**
+   * Playouts the search actually completed. Below `iterations` only when
+   * `SEARCH_CEILING_MS` cut it short — a slow device, or long gaps between
+   * slices — which makes the bot weaker than its tier says. Reported because
+   * desktop never shows it, so nothing else would.
+   */
+  playouts: number;
 }
 
 export interface GoSearch {
@@ -64,13 +82,25 @@ export interface GoSearch {
   ): Promise<GoSearchResult>;
 }
 
-/** Hard ceiling on one search, whatever the iteration budget says. */
-export const SEARCH_CEILING_MS = 3000;
+/**
+ * Hard ceiling on one search, whatever the iteration budget says.
+ *
+ * Desktop never reaches it: every tier finishes its budget in well under a
+ * second there. It exists for slow devices, so a search degrades to a weaker
+ * move instead of thinking for as long as the playouts take. Five seconds
+ * rather than the three it was, because on the Pixel 8 emulator (dev build,
+ * game screen) the Master tier's 4,000 playouts take about 3.8–4.1 s: three
+ * seconds stopped it near 3,000, and four would still clip the slower moves.
+ * A ceiling that truncates the top tier makes it weaker than its label on
+ * exactly the devices nobody measures.
+ */
+export const SEARCH_CEILING_MS = 5000;
 
 /** How long a backend may run before yielding to the host. */
 export const SLICE_MS = 8;
 
-export const yieldToHost = (): Promise<void> =>
+/** The default gap between slices: one task, so queued input and renders run first. */
+export const nextTask = (): Promise<void> =>
   new Promise<void>(resolve => setTimeout(resolve, 0));
 
 export function abortError(): Error {

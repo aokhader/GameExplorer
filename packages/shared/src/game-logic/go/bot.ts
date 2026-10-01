@@ -110,7 +110,7 @@ const MAX_ELO = 2000;
  * A playout is a whole game, so it costs what the board costs: measured at
  * 1,000 playouts on desktop Node, one search takes 0.38 s at 9×9, 0.79 s at
  * 13×13 and 1.93 s at 19×19. Holding the budget fixed would put a 19×19 move
- * five times over the ceiling, and `SEARCH_CEILING_MS` would silently truncate
+ * well over the ceiling, and `SEARCH_CEILING_MS` would silently truncate
  * it — so a tier would mean one thing on a small board and something else on a
  * big one, which is exactly what the ceiling exists to prevent.
  *
@@ -176,7 +176,19 @@ export interface GoBotOptions {
    * package keeps needing no DOM lib; a real `AbortSignal` satisfies it.
    */
   signal?: { aborted: boolean };
+  /** How the search hands the thread back between slices — see `GoSearchOptions`. */
+  yieldToHost?: () => Promise<void>;
 }
+
+/**
+ * How the platform runs Go searches, for code that sets up once and searches
+ * many times: the game adapter (`makeGoAdapter`) and review
+ * (`createGoAnalysis`). Everything is optional; the defaults are right for
+ * browsers and Node. Mobile passes its JS-queue yield, because React Native's
+ * zero-delay timers wait for a frame boundary and the search's time ceiling
+ * counts that wait.
+ */
+export type GoSearchHost = Pick<GoBotOptions, 'yieldToHost'>;
 
 export interface GoBotMove {
   /** The point to play, or null to pass. */
@@ -238,7 +250,7 @@ function rootCandidates(state: GoGameState): string[] {
  * Async and time-sliced: the search yields to the host every ~8 ms so neither
  * the browser's main thread nor React Native's JS thread ever loses a frame to
  * it. That is also why no Web Worker is needed for v1 — the same implementation
- * serves both platforms.
+ * serves both platforms, each passing its own `yieldToHost`.
  */
 export async function getBestGoMove(
   state: GoGameState,
@@ -271,6 +283,7 @@ export async function getBestGoMove(
     iterations: config.iterations,
     seed: options.seed ?? randomSeed(),
     signal: options.signal,
+    yieldToHost: options.yieldToHost,
   });
   return { position: result.position };
 }
@@ -299,6 +312,7 @@ export async function analyzeGoPosition(
     iterations: options.iterations ?? goAnalysisIterations(state.size),
     seed: options.seed ?? randomSeed(),
     signal: options.signal,
+    yieldToHost: options.yieldToHost,
   });
 }
 

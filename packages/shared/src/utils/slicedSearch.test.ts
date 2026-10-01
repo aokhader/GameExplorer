@@ -206,9 +206,7 @@ describe('sliced bots play the same move after the same draws', () => {
     }).filter((s) => ReversiEngine.getAllLegalMoves(s).length > 0);
 
     for (const [i, s] of positions.entries()) {
-      // The depth-5 band only early on: it is seconds a move in an open midgame.
-      const elos = i < 2 ? [500, 800, 1100, 1400, 1700] : [500, 800, 1100, 1400];
-      for (const elo of elos) {
+      for (const elo of [500, 800, 1100, 1400, 1700, 2000]) {
         const r = await bothWays(
           i * 31 + elo,
           () => getBestReversiMove(s, elo),

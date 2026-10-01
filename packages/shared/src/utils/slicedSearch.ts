@@ -6,16 +6,19 @@
  * same thread that answers the boards' touch handlers, and one search there
  * measured 2.6 s on average for chess at 1300 and up to 50 s for reversi at 2000
  * (Pixel 8 emulator, dev build, Sep 2026). A piece the player picked up during
- * that time did not lift until the search finished.
+ * that time did not lift until the search finished. Web's checkers and reversi
+ * bots run on the page's main thread, where reversi at 2000 took up to 13.7 s a
+ * move on a desktop and the page could not respond at all meanwhile.
  *
  * So each search is written once, as a generator that can stop at any interior
  * node, and is driven one of two ways:
  *
  * - `runSearch` runs it straight through and never stops. This is the
- *   synchronous API every existing caller keeps (web, review, puzzles, the
- *   calibration scripts).
+ *   synchronous API every other caller keeps (web's chess worker, review,
+ *   puzzles, the calibration scripts).
  * - `runSearchSliced` runs it a few milliseconds at a time and gives the thread
- *   back between slices, so queued touches and renders run in the gaps.
+ *   back between slices, so queued touches and renders run in the gaps. Every
+ *   in-house bot and hint on mobile uses it, and web's checkers and reversi.
  *
  * **Slicing cannot change the move.** The generator *is* the search; the driver
  * only decides when to resume it. Nodes are visited in the same order with the
@@ -23,8 +26,12 @@
  * order, which is what web's e2e `seedRandom` relies on to replay a bot line.
  * Tests pin it: a seeded search returns the same move after the same number of
  * draws whether or not it was sliced. What slicing does allow is *other* code
- * drawing from `Math.random` between slices. Only mobile slices, and nothing
- * seeds `Math.random` there.
+ * drawing from `Math.random` between slices, which would shift the engine's
+ * share of a seeded sequence. On web's bot pages nothing else draws from it
+ * once they have loaded (React DOM and Supabase take four draws while their
+ * modules load; bot pacing has its own generator, see `bots/pacing.ts`), and
+ * nothing seeds it on mobile. Keep it that way, or the pinned e2e lines stop
+ * replaying.
  *
  * Go's MCTS does its own slicing (see `go/search/types.ts`), because a playout
  * loop has a natural place to stop and a recursive search does not.

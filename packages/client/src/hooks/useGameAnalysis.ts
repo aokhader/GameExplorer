@@ -15,7 +15,16 @@ export interface UseGameAnalysisOptions<S> {
   viewIndex: number;
   /** Review is open. False keeps the engine idle. */
   enabled: boolean;
+  /**
+   * How the scan hands the thread back between positions, so renders and
+   * input run while it works. Defaults to a zero-delay timer. React Native's
+   * timers wait for the next frame, which made every position of a scan wait
+   * for one, so mobile passes its JS-queue yield instead.
+   */
+  yieldToHost?: () => Promise<void>;
 }
+
+const nextTimer = (): Promise<void> => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 /** Per-move verdict, indexed by the move number (move `i` produced `timeline[i+1]`). */
 export interface GradedMove {
@@ -48,6 +57,7 @@ export function useGameAnalysis<S>({
   timeline,
   viewIndex,
   enabled,
+  yieldToHost = nextTimer,
 }: UseGameAnalysisOptions<S>) {
   const [evals, setEvals] = useState<(PositionEval | null)[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -157,7 +167,7 @@ export function useGameAnalysis<S>({
         }
         setProgress({ done: i + 1, total: states.length });
         // Breathe, so a long scan doesn't freeze the UI thread.
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await yieldToHost();
       }
     } catch (err) {
       if (runId !== runIdRef.current || (err as Error)?.name === 'AbortError') return;
@@ -165,7 +175,7 @@ export function useGameAnalysis<S>({
     } finally {
       if (runId === runIdRef.current) setScanning(false);
     }
-  }, [adapter, write]);
+  }, [adapter, write, yieldToHost]);
 
   // ── Grades ──────────────────────────────────────────────────────────────────
 

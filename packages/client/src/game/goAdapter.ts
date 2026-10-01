@@ -4,6 +4,7 @@ import {
   botThinkMs,
   getBestGoMove,
   type GoGameState,
+  type GoSearchHost,
   type NewGoGameOptions,
 } from '@gameexplorer/shared';
 import { saveGoGame } from '@gameexplorer/db';
@@ -64,7 +65,12 @@ export function goFinalizeMove(dead: readonly string[]): string {
  * Go engine would slot into later: replace `getBotMove`/`getHintMove` and no
  * screen on either platform changes.
  */
-export function makeGoAdapter(options: NewGoGameOptions = {}): LocalGameAdapter<GoGameState> {
+export function makeGoAdapter(
+  options: NewGoGameOptions = {},
+  host: GoSearchHost = {},
+): LocalGameAdapter<GoGameState> {
+  const { yieldToHost } = host;
+
   return {
     gameType: 'go',
     newGame: () => GoEngine.newGame(options),
@@ -90,8 +96,8 @@ export function makeGoAdapter(options: NewGoGameOptions = {}): LocalGameAdapter<
       return { valid: result.valid, resultingState: result.resultingState };
     },
 
-    getBotMove: async (s, elo) => {
-      const { position } = await getBestGoMove(s, elo);
+    getBotMove: async (s, elo, signal) => {
+      const { position } = await getBestGoMove(s, elo, { signal, yieldToHost });
       const move = position ?? GO_PASS;
       return { from: move, to: move };
     },
@@ -102,8 +108,8 @@ export function makeGoAdapter(options: NewGoGameOptions = {}): LocalGameAdapter<
      * is over is a skill — so it comes back as the sentinel rather than as a
      * point the player should not play.
      */
-    getHintMove: async (s) => {
-      const { position } = await analyzeGoPosition(s);
+    getHintMove: async (s, _elo, signal) => {
+      const { position } = await analyzeGoPosition(s, { signal, yieldToHost });
       const move = position ?? GO_PASS;
       return { from: move, to: move };
     },
@@ -117,7 +123,7 @@ export function makeGoAdapter(options: NewGoGameOptions = {}): LocalGameAdapter<
     // MCTS spends real time on playouts and padding it would make strong bots
     // feel sluggish. The floor is now a product decision instead: an instant
     // reply reads as a machine. The loop still takes the LONGER of the search
-    // and the pad, so a 19×19 search nearing its 3 s ceiling is not padded
+    // and the pad, so a 19×19 search nearing its 5 s ceiling is not padded
     // further.
     thinkTimeForElo: () => botThinkMs(),
 

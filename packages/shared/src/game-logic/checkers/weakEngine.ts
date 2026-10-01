@@ -176,8 +176,8 @@ export function getBestCheckersMove(
 
 /**
  * `getBestCheckersMove`, run a few milliseconds at a time so the thread it
- * shares with the UI keeps answering (see `utils/slicedSearch.ts`). Mobile's bot
- * and hint use it. Same move for the same `Math.random` draws.
+ * shares with the UI keeps answering (see `utils/slicedSearch.ts`). The bot and
+ * hint use it on mobile and web. Same move for the same `Math.random` draws.
  */
 export function getBestCheckersMoveSliced(
   state: CheckersGameState,

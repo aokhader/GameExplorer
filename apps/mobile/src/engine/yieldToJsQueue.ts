@@ -1,4 +1,4 @@
-import type { SearchSignal, SlicedSearchOptions } from '@gameexplorer/shared';
+import type { GoSearchHost, SearchSignal, SlicedSearchOptions } from '@gameexplorer/shared';
 
 /**
  * React Native's JS task queue (the new architecture's `RuntimeScheduler`),
@@ -46,3 +46,16 @@ export function yieldToJsQueue(): Promise<void> {
 export function slicedOnJsThread(signal?: SearchSignal): SlicedSearchOptions {
   return { signal, yieldToHost: yieldToJsQueue };
 }
+
+/**
+ * How every Go search on mobile runs: the bot and hint (`makeGoAdapter`) and
+ * review (`createGoAnalysis`).
+ *
+ * Go's search stops at a wall-clock ceiling, so a timer's frame-long gaps cost
+ * it playouts as well as time. On the game screen, which renders while the bot
+ * thinks, the Master tier finished only about 540 of its 4,000 playouts in 3 s
+ * (Pixel 8 emulator, dev build, Sep 2026). Review runs one short search per
+ * position, and a whole-game scan took over twice as long on timers
+ * (`createGoAnalysis` has the numbers).
+ */
+export const goSearchOnJsThread: GoSearchHost = { yieldToHost: yieldToJsQueue };

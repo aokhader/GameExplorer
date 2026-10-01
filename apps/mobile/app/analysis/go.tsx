@@ -13,9 +13,13 @@ import { goRulesetSummary } from '@gameexplorer/client/game/goSetup';
 import { COLORS, FONT_SIZES, SPACING } from '@gameexplorer/ui';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
+import { goSearchOnJsThread } from '@/engine/yieldToJsQueue';
 import { GoBoard } from '@/board/GoBoard';
 import { Button, Screen, TextField } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
+
+/** The board is display-only here; one handler for every render, so its memo holds. */
+const NO_MOVE = () => {};
 
 /**
  * Go's analysis screen — the counterpart to `/analysis/chess`, and deliberately
@@ -113,7 +117,7 @@ function SgfAnalysis({ timeline, onExit }: { timeline: GoGameState[]; onExit: ()
   const [seekedIndex, setSeekedIndex] = useState<number | null>(null);
   const viewIndex = seekedIndex ?? timeline.length - 1;
 
-  const adapter = useMemo(() => createGoAnalysis(size), [size]);
+  const adapter = useMemo(() => createGoAnalysis(size, goSearchOnJsThread), [size]);
   const analysis = useGameAnalysis<GoGameState>({
     adapter,
     timeline,
@@ -123,6 +127,14 @@ function SgfAnalysis({ timeline, onExit }: { timeline: GoGameState[]; onExit: ()
 
   const displayState = timeline[viewIndex];
   const best = analysis.current?.bestMove ?? null;
+  // Memoized so `GoBoard`'s own memo can skip the renders that change nothing
+  // on the board. A scan re-renders this screen once per position it grades,
+  // and re-rendering the board each time was most of a scan step outside the
+  // search (148 of ~250 ms on the Pixel 8 emulator, dev build, Oct 2026).
+  const ownership = useMemo(
+    () => goReviewOwnership(displayState.board, size),
+    [displayState.board, size],
+  );
 
   return (
     <ReviewScreen
@@ -140,10 +152,10 @@ function SgfAnalysis({ timeline, onExit }: { timeline: GoGameState[]; onExit: ()
       board={
         <GoBoard
           gameState={displayState}
-          onMove={() => {}}
+          onMove={NO_MOVE}
           playerColor="black"
           hintPos={best?.to ?? null}
-          ownership={goReviewOwnership(displayState.board, size)}
+          ownership={ownership}
           interactive={false}
         />
       }

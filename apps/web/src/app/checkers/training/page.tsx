@@ -6,7 +6,7 @@ import {
   MODE_COPY,
   CheckersEngine,
   CheckersGameState,
-  getBestCheckersMove,
+  getBestCheckersMoveSliced,
   calculateNewRating,
   GameOutcome,
   botStrengthLabel,
@@ -14,6 +14,8 @@ import {
 } from '@gameexplorer/shared';
 import { CheckersBoard, BoardArrow } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
+import { useCancellableSearch } from '@/hooks/useCancellableSearch';
+import { slicedInBrowser } from '@/lib/yieldToBrowser';
 import { saveCheckersGame, getPracticeRating, recordPracticeResult } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
@@ -158,6 +160,8 @@ export default function CheckersTrainingPage() {
       return;
     }
     gameGenRef.current += 1;
+    botSearch.cancel();
+    hintSearch.cancel();
     update({ color: saved.playerColor });
     setTimeline(replayed);
     setViewIndex(replayed.length - 1);
@@ -219,6 +223,7 @@ export default function CheckersTrainingPage() {
     if (liveState.isGameOver || manualEnd) return;
     const isBotTurn = liveState.currentTurn !== playerColor;
     if (isBotTurn && !isThinking) makeBotMove();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState, playerColor, gameStarted, isThinking, manualEnd]);
 
   // ── Save game + update rating when game ends ──────────────────────────────
@@ -276,6 +281,8 @@ export default function CheckersTrainingPage() {
   // one ends, so a reply still being computed for the finished board must not be
   // appended to the new one, or clear the thinking flag a newer search owns.
   const gameGenRef = useRef(0);
+  // Stopped wherever the generation is bumped, and on resign / draw.
+  const botSearch = useCancellableSearch();
 
   const makeBotMove = async () => {
     const gen = gameGenRef.current;
@@ -286,10 +293,10 @@ export default function CheckersTrainingPage() {
 
     setIsThinking(true);
     try {
+      // Sliced, so the page keeps answering while the bot thinks — see
+      // `lib/yieldToBrowser.ts`.
       const [move] = await Promise.all([
-        new Promise<{ from: string; to: string }>(resolve =>
-          setTimeout(() => resolve(getBestCheckersMove(currentLiveState, elo)), 0),
-        ),
+        getBestCheckersMoveSliced(currentLiveState, elo, slicedInBrowser(botSearch.start())),
         new Promise(resolve => setTimeout(resolve, botThinkMs())),
       ]);
 
@@ -305,7 +312,7 @@ export default function CheckersTrainingPage() {
         if (wasAtLive) setViewIndex(newLength - 1);
       }
     } catch (err) {
-      console.error('Bot error:', err);
+      if ((err as Error)?.name !== 'AbortError') console.error('Bot error:', err);
     } finally {
       if (gen === gameGenRef.current) setIsThinking(false);
     }
@@ -316,6 +323,7 @@ export default function CheckersTrainingPage() {
   const handleMove = (from: string, to: string) => {
     if (!isAtLive || isThinking || liveState.isGameOver || manualEnd) return;
     if (liveState.currentTurn !== playerColor) return;
+    hintSearch.cancel();
     setHintArrow(null);
 
     const result = CheckersEngine.validateMove(liveState, from, to);
@@ -328,20 +336,22 @@ export default function CheckersTrainingPage() {
 
   // ── Hint ──────────────────────────────────────────────────────────────────
 
+  // Sliced like the bot, so the board stays playable while a hint is worked
+  // out, and stopped as soon as the position it was for is gone.
+  const hintSearch = useCancellableSearch();
+
   const handleHint = async () => {
     if (isHinting || isThinking || liveState.currentTurn !== playerColor) return;
     if (!isAtLive || liveState.isGameOver) return;
 
     setIsHinting(true);
     try {
-      const move = await new Promise<{ from: string; to: string }>(resolve =>
-        setTimeout(() => resolve(getBestCheckersMove(liveState, 2000)), 0),
-      );
+      const move = await getBestCheckersMoveSliced(liveState, 2000, slicedInBrowser(hintSearch.start()));
       setHintsUsed(n => n + 1);
       setHintArrow({ from: move.from, to: move.to });
       setTimeout(() => setHintArrow(null), 3000);
     } catch (err) {
-      console.error('Hint error:', err);
+      if ((err as Error)?.name !== 'AbortError') console.error('Hint error:', err);
     } finally {
       setIsHinting(false);
     }
@@ -354,6 +364,8 @@ export default function CheckersTrainingPage() {
   const endManually = (kind: 'resign' | 'draw') => {
     if (manualEnd || liveState.isGameOver) return;
     setManualEnd(kind);
+    botSearch.cancel();
+    hintSearch.cancel();
     setIsThinking(false);
     setHintArrow(null);
   };
@@ -361,6 +373,8 @@ export default function CheckersTrainingPage() {
   /** Clear the finished game. `keepSetup` starts the next one straight away. */
   const resetGame = (keepSetup: boolean) => {
     gameGenRef.current += 1;
+    botSearch.cancel();
+    hintSearch.cancel();
     setTimeline([CheckersEngine.newGame()]);
     setViewIndex(0);
     if (!keepSetup) setGameStarted(false);
@@ -597,7 +611,7 @@ export default function CheckersTrainingPage() {
             playerColor={playerColor}
             orientation={orientation}
             showCoordinates
-            arrows={hintArrow ? [hintArrow] : undefined}
+            arrows={hintArrow && isAtLive ? [hintArrow] : undefined}
           />
         }
         bottomCard={

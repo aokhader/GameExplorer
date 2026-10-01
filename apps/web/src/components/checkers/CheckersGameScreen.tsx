@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { CheckersEngine, CheckersGameState, getBestCheckersMove, calculateNewRating, GameOutcome, checkersAnalysis, moveHistoryToPdn, MODE_COPY, ABORT_MOVE_LIMIT, botThinkMs } from '@gameexplorer/shared';
+import { CheckersEngine, CheckersGameState, getBestCheckersMoveSliced, calculateNewRating, GameOutcome, checkersAnalysis, moveHistoryToPdn, MODE_COPY, ABORT_MOVE_LIMIT, botThinkMs } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
+import { useCancellableSearch } from '@/hooks/useCancellableSearch';
+import { slicedInBrowser } from '@/lib/yieldToBrowser';
 import { CheckersBoard } from '@/components/checkers/CheckersBoard';
 import { useAuth } from '@/hooks/useAuth';
 import { saveCheckersGame, getPracticeRating, recordPracticeResult } from '@/lib/db';
@@ -244,6 +246,8 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   // one ends, so a reply still being computed for the finished board must not be
   // appended to the new one, or clear the thinking flag a newer search owns.
   const gameGenRef = useRef(0);
+  // Stopped wherever the generation is bumped, and on resign / draw.
+  const botSearch = useCancellableSearch();
 
   const makeBotMove = useCallback(async () => {
     const gen = gameGenRef.current;
@@ -254,11 +258,10 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
 
     setIsThinking(true);
     try {
-      // Run the minimax bot off the main thread tick so the UI can show "thinking"
+      // Sliced, so the page keeps answering while the bot thinks — see
+      // `lib/yieldToBrowser.ts`. Same move, from the same `Math.random` draws.
       const [move] = await Promise.all([
-        new Promise<{ from: string; to: string }>(resolve =>
-          setTimeout(() => resolve(getBestCheckersMove(currentLiveState, elo)), 0),
-        ),
+        getBestCheckersMoveSliced(currentLiveState, elo, slicedInBrowser(botSearch.start())),
         new Promise(resolve => setTimeout(resolve, botThinkMs())),
       ]);
 
@@ -274,11 +277,11 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
         if (wasAtLive) setViewIndex(newLength - 1);
       }
     } catch (err) {
-      console.error('Bot error:', err);
+      if ((err as Error)?.name !== 'AbortError') console.error('Bot error:', err);
     } finally {
       if (gen === gameGenRef.current) setIsThinking(false);
     }
-  }, []);
+  }, [botSearch]);
 
 
   // ── Unfinished game (`ux-fix-ideas.md` §2.4) ────────────────────────────────
@@ -314,6 +317,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
       return;
     }
     gameGenRef.current += 1;
+    botSearch.cancel();
     update({ elo: saved.botElo, color: saved.playerColor, rated: saved.rated });
     setTimeline(replayed);
     setViewIndex(replayed.length - 1);
@@ -432,12 +436,14 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   const endManually = (kind: 'resign' | 'draw') => {
     if (manualEnd || liveState.isGameOver) return;
     setManualEnd(kind);
+    botSearch.cancel();
     setIsThinking(false);
   };
 
   /** Clear the finished game. `keepSetup` starts the next one straight away. */
   const resetGame = (keepSetup: boolean) => {
     gameGenRef.current += 1;
+    botSearch.cancel();
     setTimeline([CheckersEngine.newGame()]);
     setViewIndex(0);
     if (!keepSetup) setGameStarted(false);

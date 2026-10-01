@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useCallback, useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { COLORS, GAME_ACCENTS, useThemeName, FONT_SIZES, RADIUS, SPACING } from '@gameexplorer/ui';
 import type { GameAccent } from '@/game/GameScreenLayout';
@@ -48,10 +48,13 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades, positi
   // Repaint when the theme changes; the tokens below are live views.
   useThemeName();
 
-  const accentColor = GAME_ACCENTS[accent].base;
   const scrollRef = useRef<ScrollView>(null);
   // Chip x-offsets, captured on layout, so the auto-scroll can centre one.
   const offsets = useRef<number[]>([]);
+  // Stable, so it never breaks a chip's memo.
+  const recordOffset = useCallback((index: number, x: number) => {
+    offsets.current[index] = x;
+  }, []);
 
   /** Chip showing on the board, or −1 for a position no move produced. */
   const activeChip = positions ? positions.indexOf(viewIndex) : viewIndex - 1;
@@ -106,74 +109,115 @@ export function MoveBand({ moves: san, viewIndex, onSeek, accent, grades, positi
         // measured before we chase it — see scrollToActive.
         onContentSizeChange={scrollToActive}
       >
-        {san.map((text, i) => {
-          const stateIdx = positions?.[i] ?? i + 1;
-          const isActive = i === activeChip;
-          // Every game's moveHistory strictly alternates (reversi records a pass
-          // as its own entry), so the first ply of each pair — white/gold, or
-          // black in reversi where it moves first — carries the move number.
-          const startsPair = i % 2 === 0;
-          const grade = grades?.[i] ?? null;
-          const meta = grade ? GRADE_META[grade] : null;
-          // 'good' is the unremarkable majority — marking it would drown the
-          // few moves that actually want attention.
-          const marked = meta && grade !== 'good';
-          return (
-            <View
-              key={i}
-              onLayout={(e) => {
-                offsets.current[i] = e.nativeEvent.layout.x;
-              }}
-              style={{ flexDirection: 'row', alignItems: 'center' }}
-            >
-              {startsPair && (
-                <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.label, marginLeft: i === 0 ? 0 : 8 }}>
-                  {i / 2 + 1}.
-                </Text>
-              )}
-              <Pressable
-                onPress={() => onSeek(stateIdx)}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  marked ? `Move ${i + 1}, ${text}, ${meta!.label}` : `Move ${i + 1}, ${text}`
-                }
-                accessibilityState={{ selected: isActive }}
-                style={{ marginLeft: 4 }}
-              >
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: SPACING[1],
-                    paddingHorizontal: 8,
-                    paddingVertical: 5,
-                    borderRadius: RADIUS.lg,
-                    backgroundColor: isActive ? GAME_ACCENTS[accent].tintBg : 'transparent',
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: isActive ? accentColor : marked ? meta!.color() : COLORS.fg,
-                      fontSize: FONT_SIZES.sm,
-                      fontFamily: isActive ? FONTS.bodyBold : FONTS.bodySemi,
-                    }}
-                  >
-                    {text}
-                  </Text>
-                  {marked && (
-                    <Text style={{ color: meta!.color(), fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyBold }}>
-                      {meta!.glyph}
-                    </Text>
-                  )}
-                </View>
-              </Pressable>
-            </View>
-          );
-        })}
+        {san.map((text, i) => (
+          <MoveChip
+            key={i}
+            index={i}
+            text={text}
+            stateIdx={positions?.[i] ?? i + 1}
+            isActive={i === activeChip}
+            grade={grades?.[i] ?? null}
+            accent={accent}
+            onSeek={onSeek}
+            onLayoutX={recordOffset}
+          />
+        ))}
       </ScrollView>
     </View>
   );
 }
+
+interface MoveChipProps {
+  index: number;
+  text: string;
+  /** The timeline index this move produced — what a tap seeks to. */
+  stateIdx: number;
+  isActive: boolean;
+  grade: MoveGrade | null;
+  accent: GameAccent;
+  onSeek: (index: number) => void;
+  onLayoutX: (index: number, x: number) => void;
+}
+
+/**
+ * One move in the band. Memoized, with only primitive props and stable
+ * callbacks, so a chip re-renders only when its own move, grade or highlight
+ * changes. Review re-renders the band once per position its scan grades, and
+ * re-rendering every chip each time cost about 70 ms a step on a 90-move game
+ * (Pixel 8 emulator, dev build, Oct 2026); a live game re-renders it per move.
+ */
+const MoveChip = memo(function MoveChip({
+  index,
+  text,
+  stateIdx,
+  isActive,
+  grade,
+  accent,
+  onSeek,
+  onLayoutX,
+}: MoveChipProps) {
+  // Its own subscription: a memoized chip would otherwise keep the old theme's
+  // colours when the band above it repaints.
+  useThemeName();
+
+  const accentColor = GAME_ACCENTS[accent].base;
+  // Every game's moveHistory strictly alternates (reversi records a pass as its
+  // own entry), so the first ply of each pair — white/gold, or black in reversi
+  // where it moves first — carries the move number.
+  const startsPair = index % 2 === 0;
+  const meta = grade ? GRADE_META[grade] : null;
+  // 'good' is the unremarkable majority — marking it would drown the few moves
+  // that actually want attention.
+  const marked = meta && grade !== 'good';
+  return (
+    <View
+      onLayout={(e) => onLayoutX(index, e.nativeEvent.layout.x)}
+      style={{ flexDirection: 'row', alignItems: 'center' }}
+    >
+      {startsPair && (
+        <Text style={{ color: COLORS.fgSubtle, fontSize: FONT_SIZES.label, marginLeft: index === 0 ? 0 : 8 }}>
+          {index / 2 + 1}.
+        </Text>
+      )}
+      <Pressable
+        onPress={() => onSeek(stateIdx)}
+        accessibilityRole="button"
+        accessibilityLabel={
+          marked ? `Move ${index + 1}, ${text}, ${meta!.label}` : `Move ${index + 1}, ${text}`
+        }
+        accessibilityState={{ selected: isActive }}
+        style={{ marginLeft: 4 }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: SPACING[1],
+            paddingHorizontal: 8,
+            paddingVertical: 5,
+            borderRadius: RADIUS.lg,
+            backgroundColor: isActive ? GAME_ACCENTS[accent].tintBg : 'transparent',
+          }}
+        >
+          <Text
+            style={{
+              color: isActive ? accentColor : marked ? meta!.color() : COLORS.fg,
+              fontSize: FONT_SIZES.sm,
+              fontFamily: isActive ? FONTS.bodyBold : FONTS.bodySemi,
+            }}
+          >
+            {text}
+          </Text>
+          {marked && (
+            <Text style={{ color: meta!.color(), fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyBold }}>
+              {meta!.glyph}
+            </Text>
+          )}
+        </View>
+      </Pressable>
+    </View>
+  );
+});
 
 // Colors are looked up during render, never captured here — the token objects
 // are live views, so a module-scope read freezes them at import (see themeRuntime).

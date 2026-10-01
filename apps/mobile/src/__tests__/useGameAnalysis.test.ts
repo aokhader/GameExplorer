@@ -1,6 +1,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useGameAnalysis } from '@/analysis/useGameAnalysis';
 import type { AnalysisAdapter, PositionEval } from '@/analysis/types';
+import { yieldToJsQueue } from '@/engine/yieldToJsQueue';
+
+// The real yield (a timer under Jest, where there is no runtime scheduler),
+// counted.
+jest.mock('@/engine/yieldToJsQueue', () => {
+  const actual = jest.requireActual('@/engine/yieldToJsQueue');
+  return { ...actual, yieldToJsQueue: jest.fn(actual.yieldToJsQueue) };
+});
 
 /**
  * A game reduced to the two things review actually reads: whose turn it is, and
@@ -133,6 +141,55 @@ describe('useGameAnalysis — scanning', () => {
 
     await waitFor(() => expect(result.current.current).not.toBeNull());
     expect(result.current.current!.score).toBe(-20);
+  });
+});
+
+describe('useGameAnalysis — between positions', () => {
+  /*
+   * The scan gives the thread back after every position so renders and taps
+   * get a turn. A timer was the way it did that, and React Native fires timers
+   * only on frame callbacks: every position of a scan waited for a frame, and
+   * on the Pixel 8 emulator frames during a scan took up to 450 ms.
+   */
+  const timeline = [
+    state('white', 0),
+    state('black', -20, ['a1', 'a2'], ['e2', 'e4']),
+    state('white', 10, ['b1', 'c3'], ['e7', 'e5']),
+  ];
+
+  beforeEach(() => {
+    jest.mocked(yieldToJsQueue).mockClear();
+  });
+
+  it('yields on the JS queue on mobile, once per position', async () => {
+    const { result } = renderAnalysis(timeline, makeAdapter());
+
+    await act(async () => {
+      await result.current.scan();
+    });
+
+    expect(yieldToJsQueue).toHaveBeenCalledTimes(timeline.length);
+  });
+
+  it('uses the yield a caller passes instead', async () => {
+    const yieldToHost = jest.fn(() => Promise.resolve());
+    const { result } = renderHook(() =>
+      useGameAnalysis<FakeState>({
+        adapter: makeAdapter(),
+        timeline,
+        viewIndex: 0,
+        enabled: true,
+        yieldToHost,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.scan();
+    });
+
+    expect(yieldToHost).toHaveBeenCalledTimes(timeline.length);
+    expect(yieldToJsQueue).not.toHaveBeenCalled();
+    expect(result.current.complete).toBe(true);
   });
 });
 
