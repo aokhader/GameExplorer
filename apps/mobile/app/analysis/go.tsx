@@ -60,7 +60,10 @@ export default function GoAnalysisScreen() {
   if (!timeline) {
     return (
       <Screen>
-        <ScrollView contentContainerStyle={{ padding: 16, gap: SPACING[4] }}>
+        <ScrollView
+          contentContainerStyle={{ padding: 16, gap: SPACING[4] }}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={{ color: COLORS.fg, fontFamily: FONTS.display, fontSize: FONT_SIZES.display }}>
             Go analysis
           </Text>

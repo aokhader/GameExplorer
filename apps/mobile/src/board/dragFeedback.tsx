@@ -19,7 +19,7 @@ import { timing } from '@/theme/motion';
  * The drop square is still the one under the finger — the disc says which.
  *
  * Touch-only by design: a mouse pointer hides nothing, and web's boards keep
- * their dragged piece at 0.9 of a square. So these live beside the mobile
+ * their dragged piece at its resting size. So these live beside the mobile
  * boards, not in the shared tokens.
  */
 

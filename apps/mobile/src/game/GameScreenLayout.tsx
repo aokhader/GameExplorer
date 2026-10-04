@@ -104,6 +104,7 @@ export function GameScreenLayout({
           ref={scrollRef}
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28, gap: SPACING[3] }}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {topCard}
           {board}

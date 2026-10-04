@@ -107,6 +107,7 @@ export function Screen({
             column,
           ]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {entrance === 'none' ? children : <Entrance variant={entrance}>{children}</Entrance>}
         </ScrollView>

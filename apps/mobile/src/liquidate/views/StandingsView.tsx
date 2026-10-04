@@ -141,7 +141,11 @@ export function StandingsView({ state, youId, roundLabel, onBack }: StandingsVie
         })}
       </View>
 
-      <ScrollView ref={logRef} contentContainerStyle={{ padding: 18, paddingTop: 10 }}>
+      <ScrollView
+        ref={logRef}
+        contentContainerStyle={{ padding: 18, paddingTop: 10 }}
+        showsVerticalScrollIndicator={false}
+      >
         <ViewSection>Game log</ViewSection>
         <View>
           {log.map((entry, i) => {
