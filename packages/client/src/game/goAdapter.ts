@@ -1,8 +1,10 @@
 import {
   GoEngine,
   analyzeGoPosition,
+  botThinkMs,
   getBestGoMove,
   type GoGameState,
+  type GoSearchHost,
   type NewGoGameOptions,
 } from '@gameexplorer/shared';
 import { saveGoGame } from '@gameexplorer/db';
@@ -44,20 +46,6 @@ export function goFinalizeMove(dead: readonly string[]): string {
 }
 
 /**
- * Bot pacing. Deliberately shorter padding than the other three games use: this
- * bot's search really does take a few hundred milliseconds at the upper tiers
- * (MCTS spends its budget on playouts, where alpha-beta returns early), and the
- * loop takes the LONGER of the search and this delay. Padding a 600 ms search
- * out to 1400 ms would just make every strong bot feel sluggish.
- */
-function thinkTimeForElo(elo: number): number {
-  if (elo < 700) return 400;
-  if (elo < 1000) return 500;
-  if (elo < 1400) return 600;
-  return 700;
-}
-
-/**
  * Go binding for `useLocalGame`, shared by web and mobile.
  *
  * A factory rather than a constant because the setup screen now chooses the
@@ -77,7 +65,12 @@ function thinkTimeForElo(elo: number): number {
  * Go engine would slot into later: replace `getBotMove`/`getHintMove` and no
  * screen on either platform changes.
  */
-export function makeGoAdapter(options: NewGoGameOptions = {}): LocalGameAdapter<GoGameState> {
+export function makeGoAdapter(
+  options: NewGoGameOptions = {},
+  host: GoSearchHost = {},
+): LocalGameAdapter<GoGameState> {
+  const { yieldToHost } = host;
+
   return {
     gameType: 'go',
     newGame: () => GoEngine.newGame(options),
@@ -103,8 +96,8 @@ export function makeGoAdapter(options: NewGoGameOptions = {}): LocalGameAdapter<
       return { valid: result.valid, resultingState: result.resultingState };
     },
 
-    getBotMove: async (s, elo) => {
-      const { position } = await getBestGoMove(s, elo);
+    getBotMove: async (s, elo, signal) => {
+      const { position } = await getBestGoMove(s, elo, { signal, yieldToHost });
       const move = position ?? GO_PASS;
       return { from: move, to: move };
     },
@@ -115,8 +108,8 @@ export function makeGoAdapter(options: NewGoGameOptions = {}): LocalGameAdapter<
      * is over is a skill — so it comes back as the sentinel rather than as a
      * point the player should not play.
      */
-    getHintMove: async (s) => {
-      const { position } = await analyzeGoPosition(s);
+    getHintMove: async (s, _elo, signal) => {
+      const { position } = await analyzeGoPosition(s, { signal, yieldToHost });
       const move = position ?? GO_PASS;
       return { from: move, to: move };
     },
@@ -125,7 +118,14 @@ export function makeGoAdapter(options: NewGoGameOptions = {}): LocalGameAdapter<
     // budget and ignores the bot's rating entirely.
     hintElo: () => 2000,
 
-    thinkTimeForElo,
+    // Bot pacing: the same 2–3 s floor as every other bot game. This used to be
+    // deliberately shorter than the others (400–700 ms), on the grounds that
+    // MCTS spends real time on playouts and padding it would make strong bots
+    // feel sluggish. The floor is now a product decision instead: an instant
+    // reply reads as a machine. The loop still takes the LONGER of the search
+    // and the pad, so a 19×19 search nearing its 5 s ceiling is not padded
+    // further.
+    thinkTimeForElo: () => botThinkMs(),
 
     // Genuinely rare in Go — it needs a board where every point is self-capture or
     // ko — but the loop still needs the hook so a player who truly cannot move is

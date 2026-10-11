@@ -28,6 +28,11 @@ import { liveView } from '../themeRuntime';
  * selected piece standing on a last-move square gold on gold.
  *
  * The same values serve the checkers board — one budget for both grids.
+ *
+ * `dragTarget` sits outside the budget on purpose: it is not a state of the
+ * position but a pointer, the neutral disc under the finger while a piece is
+ * dragged (mobile only). It carries no hue so it can never be read as one of
+ * the four.
  */
 const DARK_BOARD_COLORS = {
   lightSquare: '#445576',
@@ -49,6 +54,12 @@ const DARK_BOARD_COLORS = {
   premoveHint: 'rgba(139,92,246,0.75)',
   /** Centre of the still radial gradient under a king in check. */
   check: 'rgba(239,68,68,0.95)',
+  /**
+   * The square under the finger while dragging — a disc two squares across,
+   * so it shows around the thumb. Darkening barely reads on this slate board,
+   * so Arcade lightens; the wood board darkens.
+   */
+  dragTarget: 'rgba(255,255,255,0.14)',
   /** Board frame. Web reads `--gx-board-frame`; native draws a real border. */
   frame: '#2b3652',
 } as const;
@@ -83,6 +94,9 @@ const COZY_BOARD_COLORS = {
   premove: 'rgba(45,90,140,0.55)',
   premoveHint: 'rgba(45,90,140,0.70)',
   check: 'rgba(190,30,30,0.9)',
+  // A plain shade over both woods: reads on the pale square without muddying
+  // the dark one.
+  dragTarget: 'rgba(0,0,0,0.22)',
   frame: '#6e4a2a',
 } as const;
 

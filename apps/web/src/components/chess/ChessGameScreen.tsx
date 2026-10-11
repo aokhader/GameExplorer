@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial, timelineToSan, illegalMoveReason, ILLEGAL_MOVE_COPY, MODE_COPY, botStrengthLabel, BOT_TIERS, ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
+import { ChessGameState, Position, PieceType, calculateNewRating, GameOutcome, summarizeMaterial, timelineToSan, illegalMoveReason, ILLEGAL_MOVE_COPY, MODE_COPY, botStrengthLabel, botThinkMs, BOT_TIERS, ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
 import { useChessReviewAdapter } from '@/hooks/useChessReviewAdapter';
 import { ChessBoard } from '@/components/chess/ChessBoard';
@@ -10,7 +10,7 @@ import '@/components/chess/ChessBoard.css';
 import { ChessPiece } from '@gameexplorer/ui';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useChessEngine } from '@/hooks/useChessEngine';
-import { useStockfish, thinkTimeForElo } from '@/hooks/useStockfish';
+import { useStockfish } from '@/hooks/useStockfish';
 import { useAuth } from '@/hooks/useAuth';
 import { saveGame, getPracticeRating, recordPracticeResult } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
@@ -475,14 +475,14 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
         // Weak engine runs inside the chess engine worker — zero main-thread cost.
         const [move] = await Promise.all([
           getBotMove(elo),
-          new Promise<void>(r => setTimeout(r, thinkTimeForElo(elo))),
+          new Promise<void>(r => setTimeout(r, botThinkMs())),
         ]);
         from = move.from; to = move.to; promotion = move.promotion;
       } else {
         // Stockfish runs in its own worker; we just need the current position.
         const [move] = await Promise.all([
           stockfish.getBestMove(liveStateRef.current, elo),
-          new Promise<void>(r => setTimeout(r, thinkTimeForElo(elo))),
+          new Promise<void>(r => setTimeout(r, botThinkMs())),
         ]);
         from = move.from; to = move.to; promotion = move.promotion;
       }

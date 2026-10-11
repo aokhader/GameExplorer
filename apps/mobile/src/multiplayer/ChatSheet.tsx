@@ -77,6 +77,7 @@ export function ChatSheet({
         style={{ maxHeight: 220 }}
         contentContainerStyle={{ gap: SPACING['1.5'], paddingBottom: 8 }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {log.length === 0 ? (
           <Text style={{ color: COLORS.fgSubtle, fontFamily: FONTS.body, fontSize: FONT_SIZES.label }}>

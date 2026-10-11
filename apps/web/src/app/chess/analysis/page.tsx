@@ -182,6 +182,25 @@ function AnalysisPageInner() {
     });
   }, [selectedPiece, eraserMode]);
 
+  // A dragged piece, moved to wherever it was dropped — the eraser and the
+  // palette in one gesture, whatever is picked. Like them it applies no rules:
+  // the piece replaces anything standing on `to`.
+  const handleEditRelocate = useCallback((from: Position, to: Position) => {
+    const fromCol = from.charCodeAt(0) - 97;
+    const fromRow = parseInt(from[1]) - 1;
+    const toCol = to.charCodeAt(0) - 97;
+    const toRow = parseInt(to[1]) - 1;
+
+    setEditState(prev => {
+      const piece = prev.board[fromRow][fromCol];
+      if (!piece) return prev;
+      const newBoard = prev.board.map(r => [...r]);
+      newBoard[fromRow][fromCol] = null;
+      newBoard[toRow][toCol] = piece;
+      return { ...prev, board: newBoard };
+    });
+  }, []);
+
   const handleFenInput = (raw: string) => {
     setFenInput(raw);
     try {
@@ -354,6 +373,8 @@ function AnalysisPageInner() {
               onSquareClick={handleEditSquareClick}
               // Browse mode (nothing selected): show moves for any piece, no execution
               allowSelectAnyColor={mode === 'edit' && !isInPlacementMode}
+              // Either way, dragging a piece moves it
+              onPieceRelocate={mode === 'edit' ? handleEditRelocate : undefined}
               // Worker-precomputed for the displayed position — O(1) lookup on tap
               legalMovesMap={mode === 'analyze' ? legalMovesMap : undefined}
               arrows={arrows}
@@ -371,7 +392,7 @@ function AnalysisPageInner() {
                     <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-3">
                       {isInPlacementMode
                         ? (eraserMode ? 'Eraser active — click a square to remove' : `Placing: ${selectedPiece?.color} ${selectedPiece?.type}`)
-                        : 'Click a piece to place it, or click on the board to preview moves'}
+                        : 'Click a piece to place it, click the board to preview moves, or drag a piece to move it'}
                     </p>
 
                     {/* White pieces row */}
@@ -480,6 +501,7 @@ function AnalysisPageInner() {
                   <div className="bg-white/[0.04] rounded-xl border border-white/10 p-4">
                     <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-2">FEN String</p>
                     <textarea
+                      aria-label="FEN string"
                       value={fenInput}
                       onChange={e => handleFenInput(e.target.value)}
                       className={`w-full text-xs font-mono rounded-lg px-2.5 py-2 border resize-none focus:outline-none focus:ring-2 focus:ring-accent bg-black/30 text-fg ${

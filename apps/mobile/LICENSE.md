@@ -34,6 +34,8 @@ regenerate it after adding or upgrading a dependency. In summary:
   full text at [`LICENSES/big-username-blocklist-MIT.txt`](../../LICENSES/big-username-blocklist-MIT.txt)).
 - **Content — CC0 1.0.** The chess piece shapes ("Merida" via Sashité) and the
   chess puzzles credited to the Lichess open puzzle database.
+- **Bot pause timing — CC0 1.0.** The mulberry32 random-number generator by
+  Tommy Ettinger, which varies how long a bot pauses before it replies.
 
 No GPL code is linked into the app. Arasan replaced the previously-linked GPL
 Stockfish in July 2026 so the same engine can ship on Google Play **and** the

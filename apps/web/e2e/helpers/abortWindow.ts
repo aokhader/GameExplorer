@@ -200,6 +200,10 @@ export async function playPastAbortWindowCheckers(page: Page) {
  * The weak engines add noise to their scores and blunder on a dice roll, both
  * through `Math.random`; nothing else in a local game is random. Call before
  * `goto`.
+ *
+ * The checkers and reversi searches are sliced across many tasks
+ * (`lib/yieldToBrowser.ts`), still drawing in the same order. That only holds
+ * while nothing else on the page draws from `Math.random` mid-search.
  */
 export async function seedRandom(page: Page) {
   await page.addInitScript(() => {

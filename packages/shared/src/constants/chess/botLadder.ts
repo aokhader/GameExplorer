@@ -49,7 +49,9 @@
  * setting and ~1415 at its ceiling, covering exactly the band Arasan cannot. It is
  * also far cheaper, which matters because mobile runs it on the JavaScript thread
  * rather than in a worker — its depth-4 band costs about half a second per move
- * on a desktop and several times that on a handset.
+ * on a desktop and several times that on a handset (2.6 s mean on a Pixel 8
+ * emulator). Mobile runs it in slices so the board stays responsive meanwhile
+ * (`utils/slicedSearch.ts`), but the time is still spent.
  *
  * **Every rung here is fitted** against a Stockfish rung over 40 games or more.
  * The in-house tiles below the seam are fitted as well, but not against Stockfish:

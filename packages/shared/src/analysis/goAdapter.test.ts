@@ -7,7 +7,7 @@
  * confident, fluent, exactly-backwards account of the game — praising every
  * blunder and grading every good move a mistake.
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { createGoAnalysis, goAnalysis, goReviewOwnership, goTimelineToPoints } from './goAdapter';
 import { replayGoMoves } from './timeline';
 import { GoEngine } from '../game-logic/go/engine';
@@ -214,6 +214,70 @@ describe('the engine actually reaches a verdict', () => {
     // Black is winning here, and white-positive means that reads negative.
     expect(evaluation.score).toBeLessThan(0);
   }, 60_000);
+});
+
+describe('the platform’s yield', () => {
+  /*
+   * Review runs one short search per position, so where the gap between search
+   * slices is slow, a whole-game scan is mostly gaps. That is React Native on
+   * Android, where a zero-delay timer waits for the next frame, so mobile hands
+   * the adapter its own yield. Nothing fails if the adapter drops it; review is
+   * just several times slower on the phone, which no desktop test would see.
+   */
+  const position = () => {
+    let state = GoEngine.newGame();
+    for (const move of ['e5', 'c3', 'g7', 'c7', 'g3']) state = GoEngine.executeMove(state, move);
+    return state;
+  };
+
+  // A clock that moves 1 ms per reading, so a slice ends every few playouts
+  // however fast the machine running the test is.
+  const tickingClock = () => {
+    let clock = 0;
+    vi.spyOn(Date, 'now').mockImplementation(() => clock++);
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('runs both the scan search and the deep one through the host’s yield', async () => {
+    tickingClock();
+    let yields = 0;
+    const adapter = createGoAnalysis(9, {
+      yieldToHost: async () => {
+        yields++;
+      },
+    });
+    const state = position();
+
+    await adapter.evaluate(state, adapter.scanBudgetMs);
+    const scanYields = yields;
+    expect(scanYields).toBeGreaterThan(0);
+
+    await adapter.evaluate(state, adapter.liveBudgetMs);
+    expect(yields).toBeGreaterThan(scanYields);
+  }, 60_000);
+
+  it('changes the timing and nothing else', async () => {
+    tickingClock();
+    // Every search takes its seed from here, so both runs search the same tree.
+    const crypto = globalThis.crypto as { getRandomValues(array: Uint32Array): Uint32Array };
+    vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
+      array[0] = 0x5eed;
+      return array;
+    });
+    const state = position();
+
+    const hosted = await createGoAnalysis(9, { yieldToHost: () => Promise.resolve() }).evaluate(
+      state,
+      0,
+    );
+    const plain = await createGoAnalysis(9).evaluate(state, 0);
+
+    expect(hosted).toEqual(plain);
+    expect(hosted.bestMove).not.toBeNull();
+  });
 });
 
 describe('territory shading under review', () => {

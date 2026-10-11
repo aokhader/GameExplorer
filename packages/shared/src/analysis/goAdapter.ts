@@ -15,7 +15,7 @@
 
 import { GoEngine } from '../game-logic/go/engine';
 import { ownershipMap } from '../game-logic/go/scoring';
-import { analyzeGoPosition, goAnalysisIterations } from '../game-logic/go/bot';
+import { analyzeGoPosition, goAnalysisIterations, type GoSearchHost } from '../game-logic/go/bot';
 import { toGoPoint } from '../game-logic/go/notation';
 import type { GoBoard, GoColor, GoGameState } from '../game-logic/go/types';
 import { logisticShare, type AnalysisAdapter } from './types';
@@ -48,7 +48,22 @@ function formatGoScore(score: number): string {
   return `${score > 0 ? 'W' : 'B'}+${rounded}`;
 }
 
-export function createGoAnalysis(size: number): AnalysisAdapter<GoGameState> {
+/**
+ * `host` is how the platform runs the searches, as for `makeGoAdapter`. It
+ * matters more here than in a game: a review scan is one short search per
+ * position, so when each gap between slices is slow, a whole game's scan is
+ * mostly gaps. Measured on a 91-position 9×9 game (dev builds, Oct 2026):
+ * - Pixel 8 emulator, zero-delay timers → JS-queue yield: each scan search
+ *   0.84–1.08 s → 0.25–0.26 s (medians), the whole scan 94–113 s → 44–47 s,
+ *   and the deep eval's 4,000 playouts 4.2–4.5 s → 1.4–1.6 s.
+ * - Headless Chromium, timers → message channel: the whole scan 5.1–5.5 s →
+ *   3.3–3.4 s.
+ */
+export function createGoAnalysis(
+  size: number,
+  host: GoSearchHost = {},
+): AnalysisAdapter<GoGameState> {
+  const { yieldToHost } = host;
   const liveIterations = goAnalysisIterations(size);
   const scanIterations = Math.max(30, Math.round(liveIterations * SCAN_FRACTION));
 
@@ -73,7 +88,7 @@ export function createGoAnalysis(size: number): AnalysisAdapter<GoGameState> {
         return { score: -lead, mate: null, bestMove: null, terminal: true };
       }
 
-      const result = await analyzeGoPosition(state, { iterations });
+      const result = await analyzeGoPosition(state, { iterations, yieldToHost });
       return {
         // ⚠️ SIGN. `PositionEval.score` is WHITE-positive across every game here
         // (see `analysis/types.ts`), and `analyzeGoPosition` reports a

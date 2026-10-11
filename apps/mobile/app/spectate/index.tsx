@@ -87,6 +87,7 @@ export default function SpectateLobby() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />
         }
+        showsVerticalScrollIndicator={false}
       >
         <BackHeader title="Watch Live" fallbackHref="/" />
 

@@ -14,7 +14,8 @@ import { liveView } from '../themeRuntime';
  * gold for the last move, teal for what you can do, violet for a queued
  * premove. Checkers' pink survives in its piece art and its accent, not on the
  * squares — a destination means the same thing on every grid in the app.
- * Every tint is laid over the square's own colour.
+ * Every tint is laid over the square's own colour. `dragTarget` is the neutral
+ * pointer under a dragged piece, outside the budget, exactly as on chess.
  */
 const DARK_CHECKERS_BOARD_COLORS = {
   lightSquare: '#445576',          // arcade blue-slate (light)
@@ -28,6 +29,7 @@ const DARK_CHECKERS_BOARD_COLORS = {
   // families so a pending intent never reads as either.
   premove: 'rgba(139,92,246,0.60)',
   premoveHint: 'rgba(139,92,246,0.75)',
+  dragTarget: 'rgba(255,255,255,0.14)',
   frame: '#2b3652',
 };
 
@@ -42,6 +44,7 @@ const COZY_CHECKERS_BOARD_COLORS = {
   captureIndicator: 'rgba(47,110,78,0.50)',
   premove: 'rgba(45,90,140,0.55)',
   premoveHint: 'rgba(45,90,140,0.70)',
+  dragTarget: 'rgba(0,0,0,0.22)',
   frame: '#6e4a2a',
 };
 

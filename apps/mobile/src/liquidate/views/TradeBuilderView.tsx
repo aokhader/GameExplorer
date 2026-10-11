@@ -93,7 +93,10 @@ export function TradeBuilderView({ state, dispatch, onBack }: TradeBuilderViewPr
     <View style={{ flex: 1 }}>
       <ViewHeader title="Propose trade" sub={`with ${to.name}`} onBack={onBack} />
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 18, gap: SPACING[3] }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 18, gap: SPACING[3] }}
+        showsVerticalScrollIndicator={false}
+      >
         {partners.length > 1 && (
           <View>
             <ViewSection>Partner</ViewSection>

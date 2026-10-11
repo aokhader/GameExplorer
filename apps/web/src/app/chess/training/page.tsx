@@ -12,13 +12,14 @@ import {
   GameOutcome,
   summarizeMaterial,
   botStrengthLabel,
+  botThinkMs,
 } from '@gameexplorer/shared';
 import { ChessBoard, BoardArrow } from '@/components/chess/ChessBoard';
 import { ChessPiece, Icon } from '@gameexplorer/ui';
 import '@/components/chess/ChessBoard.css';
 import { ChessMoveList, buildMovePairs } from '@/components/chess/ChessMoveList';
 import { useChessEngine } from '@/hooks/useChessEngine';
-import { useStockfish, thinkTimeForElo, STOCKFISH_MIN_ELO } from '@/hooks/useStockfish';
+import { useStockfish, STOCKFISH_MIN_ELO } from '@/hooks/useStockfish';
 import { useAuth } from '@/hooks/useAuth';
 import { saveGame, getPracticeRating, recordPracticeResult } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
@@ -372,13 +373,13 @@ export default function ChessTrainingPage() {
         // Weak engine runs inside the chess engine worker — zero main-thread cost.
         [move] = await Promise.all([
           getBotMove(elo),
-          new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
+          new Promise(resolve => setTimeout(resolve, botThinkMs())),
         ]);
       } else {
         // Stockfish runs in its own worker; we just need the current position.
         [move] = await Promise.all([
           stockfish.getBestMove(liveStateRef.current, elo),
-          new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
+          new Promise(resolve => setTimeout(resolve, botThinkMs())),
         ]);
       }
 

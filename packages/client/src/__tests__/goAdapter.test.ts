@@ -59,6 +59,37 @@ describe('makeGoAdapter — the chosen ruleset', () => {
   });
 });
 
+describe('makeGoAdapter — how the search runs', () => {
+  // Mobile hands in its own gap between slices: React Native's zero-delay timers
+  // wait for a frame, and the search's time ceiling counts the wait.
+  it('gives the thread back through the host’s yield, for the bot and the hint', async () => {
+    let yields = 0;
+    const adapter = makeGoAdapter({}, {
+      yieldToHost: () => {
+        yields++;
+        return new Promise<void>((resolve) => setTimeout(resolve, 0));
+      },
+    });
+    const state = adapter.newGame();
+
+    // 2000 is the one tier with no random-move share, so it always searches.
+    await adapter.getBotMove(state, 2000);
+    expect(yields).toBeGreaterThan(0);
+
+    const afterBot = yields;
+    await adapter.getHintMove!(state, 2000);
+    expect(yields).toBeGreaterThan(afterBot);
+  });
+
+  it('stops when the loop abandons the search', async () => {
+    const adapter = makeGoAdapter();
+    const state = adapter.newGame();
+    const signal = { aborted: true };
+    await expect(adapter.getBotMove(state, 2000, signal)).rejects.toMatchObject({ name: 'AbortError' });
+    await expect(adapter.getHintMove!(state, 2000, signal)).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
 describe('makeGoAdapter — the review', () => {
   const adapter = makeGoAdapter();
 

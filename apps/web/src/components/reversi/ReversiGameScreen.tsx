@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
-import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMove, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToReversi, MODE_COPY, ABORT_MOVE_LIMIT } from '@gameexplorer/shared';
+import { ReversiEngine, ReversiGameState, ReversiColor, getBestReversiMoveSliced, calculateNewRating, GameOutcome, reversiAnalysis, moveHistoryToReversi, MODE_COPY, ABORT_MOVE_LIMIT, botThinkMs } from '@gameexplorer/shared';
 import { useGameAnalysis } from '@gameexplorer/client/hooks/useGameAnalysis';
+import { useCancellableSearch } from '@/hooks/useCancellableSearch';
+import { slicedInBrowser } from '@/lib/yieldToBrowser';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
 import { useAuth } from '@/hooks/useAuth';
@@ -57,14 +59,6 @@ const DIFFICULTY_LEVELS = [
   { elo: 1700, label: 'Expert',   description: 'Deep tactical and positional play',         depth: 5 },
   { elo: 2000, label: 'Master',   description: 'Near-optimal — very hard to beat',          depth: 5 },
 ] as const;
-
-function thinkTimeForElo(elo: number): number {
-  if (elo < 700)  return 350;
-  if (elo < 1000) return 550;
-  if (elo < 1400) return 800;
-  if (elo < 1800) return 1100;
-  return 1400;
-}
 
 function formatMoveNotation(move: ReversiGameState['moveHistory'][number]): string {
   return move.position ?? '—';
@@ -216,6 +210,8 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   // one ends, so a reply still being computed for the finished board must not be
   // appended to the new one, or clear the thinking flag a newer search owns.
   const gameGenRef = useRef(0);
+  // Stopped wherever the generation is bumped, and on resign.
+  const botSearch = useCancellableSearch();
 
   const makeBotMove = useCallback(async () => {
     const gen = gameGenRef.current;
@@ -224,11 +220,11 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
 
     setIsThinking(true);
     try {
+      // Sliced, so the page keeps answering while the bot thinks — an open
+      // midgame at the top levels takes seconds. See `lib/yieldToBrowser.ts`.
       const [move] = await Promise.all([
-        new Promise<{ position: string }>(resolve =>
-          setTimeout(() => resolve(getBestReversiMove(currentLive, elo)), 0),
-        ),
-        new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
+        getBestReversiMoveSliced(currentLive, elo, slicedInBrowser(botSearch.start())),
+        new Promise(resolve => setTimeout(resolve, botThinkMs())),
       ]);
       // Dropped if the game was reset, or the player resigned, while the bot
       // was thinking.
@@ -238,11 +234,11 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
         appendState(result.resultingState);
       }
     } catch (err) {
-      console.error('Bot error:', err);
+      if ((err as Error)?.name !== 'AbortError') console.error('Bot error:', err);
     } finally {
       if (gen === gameGenRef.current) setIsThinking(false);
     }
-  }, [appendState]);
+  }, [appendState, botSearch]);
 
 
   // ── Unfinished game (`ux-fix-ideas.md` §2.4) ────────────────────────────────
@@ -278,6 +274,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
       return;
     }
     gameGenRef.current += 1;
+    botSearch.cancel();
     update({ elo: saved.botElo, color: saved.playerColor, rated: saved.rated });
     setTimeline(replayed);
     setViewIndex(replayed.length - 1);
@@ -403,6 +400,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   const handleResign = () => {
     if (manualEnd || liveState.isGameOver) return;
     setManualEnd('resign');
+    botSearch.cancel();
     setIsThinking(false);
     setPassMsg(null);
   };
@@ -410,6 +408,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   /** Clear the finished game. `keepSetup` starts the next one straight away. */
   const resetGame = (keepSetup: boolean) => {
     gameGenRef.current += 1;
+    botSearch.cancel();
     setTimeline([ReversiEngine.newGame()]);
     setViewIndex(0);
     if (!keepSetup) setGameStarted(false);
@@ -436,14 +435,17 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
    */
   const handleRematch = () => resetGame(true);
 
+  /**
+   * The turn effect gives the bot the first move when it plays black, as on a
+   * rematch. (A second call from here used to start another search from the
+   * opening position, so the bot made two first moves and the second, landing
+   * up to a second later, replaced the first — or a reply the player had
+   * already made to it.)
+   */
   const handleStartGame = () => {
     setGameStarted(true);
-    // If player is white, black (bot) moves first
-    if (playerColor === 'white') setTimeout(makeBotMove, 500);
   };
-  // `?start=1`: start once it is known no unfinished game is waiting — through
-  // the Start button's own handler, which the tour's link used to skip, so a
-  // linked game as White never got the bot's first move.
+  // `?start=1`: start once it is known no unfinished game is waiting.
   const awaitingStart = useStartLink(unfinished, handleStartGame);
 
   const canGoBack    = viewIndex > 0;

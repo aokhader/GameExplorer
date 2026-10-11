@@ -130,7 +130,7 @@ describe('useLocalGame — training hints', () => {
     expect(result.current.hintMove).toEqual(HINT_MOVE);
     expect(result.current.hintsUsed).toBe(1);
     // Asked a notch above the matched bot, per the adapter's hintElo.
-    expect(adapter.getHintMove).toHaveBeenCalledWith(expect.anything(), 1700);
+    expect(adapter.getHintMove).toHaveBeenCalledWith(expect.anything(), 1700, expect.anything());
   });
 
   it('stops showing the move after the reveal window', async () => {
@@ -166,6 +166,39 @@ describe('useLocalGame — training hints', () => {
     act(() => result.current.handleMove('e2', 'e4'));
     expect(result.current.hintMove).toBeNull();
     expect(result.current.hintsUsed).toBe(1);
+  });
+
+  it('stops a hint search the player has moved past, and does not bill it', async () => {
+    // The in-house hints run in slices now, so the player can move while one is
+    // still searching. Nobody will read that answer.
+    const seen: { signal?: { aborted: boolean }; answer?: (m: typeof HINT_MOVE) => void } = {};
+    const getHintMove = jest.fn(
+      (_s: FakeState, _elo: number, signal?: { aborted: boolean }) =>
+        new Promise<typeof HINT_MOVE>((resolve) => {
+          seen.signal = signal;
+          seen.answer = resolve;
+        }),
+    );
+    const { result } = renderTraining(makeAdapter({ getBotMove: silentBot, getHintMove }));
+    await waitFor(() => expect(result.current.userRating).not.toBeNull());
+
+    let hint: Promise<void> = Promise.resolve();
+    act(() => {
+      hint = result.current.requestHint();
+    });
+    await waitFor(() => expect(seen.signal).toBeDefined());
+    expect(seen.signal?.aborted).toBe(false);
+
+    act(() => result.current.handleMove('e2', 'e4'));
+    expect(seen.signal?.aborted).toBe(true);
+
+    // An engine that answers anyway is still not billed for a position that's gone.
+    await act(async () => {
+      seen.answer?.(HINT_MOVE);
+      await hint;
+    });
+    expect(result.current.hintsUsed).toBe(0);
+    expect(result.current.hintMove).toBeNull();
   });
 
   it('refuses — and does not bill — a hint on the opponent turn', async () => {

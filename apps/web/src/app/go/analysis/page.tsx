@@ -13,6 +13,7 @@ import { GoBoard } from '@/components/go/GoBoard';
 import { GoSgfLoad } from '@/components/go/GoSgfLoad';
 import { ReviewPanel } from '@/components/game/ReviewPanel';
 import { ShellNav } from '@/components/game/ShellNav';
+import { yieldToBrowser } from '@/lib/yieldToBrowser';
 
 /**
  * Go's analysis page.
@@ -80,7 +81,13 @@ function SgfAnalysis({ timeline, onExit }: { timeline: GoGameState[]; onExit: ()
   const [seekedIndex, setSeekedIndex] = useState<number | null>(null);
   const viewIndex = seekedIndex ?? timeline.length - 1;
 
-  const adapter = useMemo(() => createGoAnalysis(start.size), [start.size]);
+  // The searches yield on a message channel rather than a timer (see
+  // `lib/yieldToBrowser.ts`); a whole-game scan is about a third faster for it.
+  // `createGoAnalysis` has the measurements.
+  const adapter = useMemo(
+    () => createGoAnalysis(start.size, { yieldToHost: yieldToBrowser }),
+    [start.size],
+  );
   const analysis = useGameAnalysis<GoGameState>({
     adapter,
     timeline,

@@ -137,3 +137,63 @@ describe('useLocalGame — bot errors', () => {
     await waitFor(() => expect(result.current.timeline).toHaveLength(2));
   });
 });
+
+describe('useLocalGame — stopping a search nobody will read', () => {
+  // The in-house bots run in slices, so a search keeps taking turns on the JS
+  // thread until it finishes — seconds, for chess's depth-4 band and reversi's
+  // top tiers. Each of these is a moment its answer stops mattering.
+
+  /** A bot that never answers, keeping the signal each search was handed. */
+  function hangingBot() {
+    const signals: { aborted: boolean }[] = [];
+    const getBotMove = jest.fn((_s: FakeState, _elo: number, signal?: { aborted: boolean }) => {
+      if (signal) signals.push(signal);
+      return new Promise<typeof BOT_MOVE>(() => {});
+    });
+    return { getBotMove, signals };
+  }
+
+  it('stops it on a new game, and gives the next search a live signal', async () => {
+    const { getBotMove, signals } = hangingBot();
+    const { result } = renderLoop(makeAdapter({ getBotMove }));
+    await waitFor(() => expect(signals).toHaveLength(1));
+    expect(signals[0].aborted).toBe(false);
+
+    act(() => result.current.newGame());
+    expect(signals[0].aborted).toBe(true);
+
+    await waitFor(() => expect(signals).toHaveLength(2));
+    expect(signals[1].aborted).toBe(false);
+  });
+
+  it('stops it on resign', async () => {
+    const { getBotMove, signals } = hangingBot();
+    const { result } = renderLoop(makeAdapter({ getBotMove }));
+    await waitFor(() => expect(signals).toHaveLength(1));
+
+    act(() => result.current.resign());
+    expect(signals[0].aborted).toBe(true);
+  });
+
+  it('stops it when the screen closes', async () => {
+    const { getBotMove, signals } = hangingBot();
+    const { unmount } = renderLoop(makeAdapter({ getBotMove }));
+    await waitFor(() => expect(signals).toHaveLength(1));
+
+    unmount();
+    expect(signals[0].aborted).toBe(true);
+  });
+
+  it('leaves a search alone once it has answered', async () => {
+    const signals: { aborted: boolean }[] = [];
+    const getBotMove = jest.fn(async (_s: FakeState, _elo: number, signal?: { aborted: boolean }) => {
+      if (signal) signals.push(signal);
+      return BOT_MOVE;
+    });
+    const { result, unmount } = renderLoop(makeAdapter({ getBotMove }));
+    await waitFor(() => expect(result.current.timeline).toHaveLength(2));
+
+    unmount();
+    expect(signals[0].aborted).toBe(false);
+  });
+});

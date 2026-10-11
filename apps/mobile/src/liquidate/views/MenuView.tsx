@@ -48,7 +48,10 @@ export function MenuView({ roundLabel, state, dock, onOpen, onSettings, onResign
         onBack={onBack}
       />
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 22, gap: SPACING['2.5'] }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 22, gap: SPACING['2.5'] }}
+        showsVerticalScrollIndicator={false}
+      >
         {ROWS.map((row) => {
           const enabled = enabledOf(row.slot);
           return (

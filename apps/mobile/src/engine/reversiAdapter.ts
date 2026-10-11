@@ -1,15 +1,7 @@
-import { getBestReversiMove, type ReversiGameState } from '@gameexplorer/shared';
+import { botThinkMs, getBestReversiMoveSliced, type ReversiGameState } from '@gameexplorer/shared';
 import { REVERSI_RULES } from '@gameexplorer/client/game/localRules';
 import type { LocalGameAdapter } from './useLocalGame';
-
-/** Bot pacing by strength — mirrors web's reversi `thinkTimeForElo`. */
-function thinkTimeForElo(elo: number): number {
-  if (elo < 700) return 350;
-  if (elo < 1000) return 550;
-  if (elo < 1400) return 800;
-  if (elo < 1800) return 1100;
-  return 1400;
-}
+import { slicedOnJsThread } from './yieldToJsQueue';
 
 /**
  * Reversi binding for `useLocalGame`. Reversi moves are a single placement, so
@@ -22,15 +14,18 @@ export const reversiAdapter: LocalGameAdapter<ReversiGameState> = {
   // Rules, forced pass and writer shared with anything that replays or resigns
   // a saved reversi game away from this screen.
   ...REVERSI_RULES,
-  getBotMove: (s, elo) => {
-    const { position } = getBestReversiMove(s, elo);
+  // Sliced: the search shares the JS thread with the board's touch handlers.
+  // The depth-5 tiers still take up to ~0.4 s a move on the Pixel 8 emulator
+  // (dev build), and unsliced the whole screen would freeze for that long.
+  getBotMove: async (s, elo, signal) => {
+    const { position } = await getBestReversiMoveSliced(s, elo, slicedOnJsThread(signal));
     return { from: position, to: position };
   },
-  getHintMove: (s, elo) => {
-    const { position } = getBestReversiMove(s, elo);
+  getHintMove: async (s, elo, signal) => {
+    const { position } = await getBestReversiMoveSliced(s, elo, slicedOnJsThread(signal));
     return { from: position, to: position };
   },
   // Always the engine's strongest square, as on web.
   hintElo: () => 2000,
-  thinkTimeForElo,
+  thinkTimeForElo: () => botThinkMs(),
 };

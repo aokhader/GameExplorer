@@ -33,6 +33,26 @@ test('plays the opening of a bot game as black', async ({ page }) => {
   await expect(legal.first()).toBeVisible(); // our turn again — game is alive
 });
 
+test('the bot makes one first move when the player is White', async ({ page }) => {
+  await page.goto('/reversi/bot');
+  await page.getByRole('button', { name: /Beginner/ }).click();
+  await page.getByRole('button', { name: /Bot moves first/ }).click();
+  await page.getByRole('button', { name: 'Start Game' }).click();
+
+  const discs = page.locator('[data-disc]');
+  await expect(discs).toHaveCount(5, { timeout: 15_000 });
+  // The Start handler used to run a second search from the opening position,
+  // half a second behind the turn effect's. Its reply landed up to a second
+  // after the first (each waits out its own 2–3 s pace) and was appended as a
+  // second first move. Absence needs a wait: past the latest it could land.
+  await page.waitForTimeout(1_600);
+  await expect(page.locator('body')).toContainText('your move');
+
+  // One step back is the opening position, not the bot's other first move.
+  await page.getByRole('button', { name: '←' }).click();
+  await expect(discs).toHaveCount(4);
+});
+
 test('Rematch starts the next game without the setup screen', async ({ page }) => {
   await page.goto('/reversi/bot');
   await page.getByRole('button', { name: /Beginner/ }).click();

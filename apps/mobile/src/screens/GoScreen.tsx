@@ -48,6 +48,7 @@ import { GoReviewBar } from '@/game/GoReviewBar';
 import { GoRulesCard } from '@/game/GoRulesCard';
 import { TrainingSetup } from '@/game/TrainingSetup';
 import { useLocalGame, type LocalGameMode } from '@/engine/useLocalGame';
+import { goSearchOnJsThread } from '@/engine/yieldToJsQueue';
 import { useSetupDeepLink } from '@/game/useSetupDeepLink';
 import { useGameSetup, useUnfinishedGame } from '@/game/useGameSetup';
 import { ContinueCard, SetupStartFooter } from '@/game/ContinueCard';
@@ -145,7 +146,7 @@ export function GoScreen() {
    * all of them.
    */
   const adapter = useMemo(
-    () => makeGoAdapter({ size, komi, scoring }),
+    () => makeGoAdapter({ size, komi, scoring }, goSearchOnJsThread),
     [size, komi, scoring],
   );
 

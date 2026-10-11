@@ -29,7 +29,7 @@ export {
   GO_ANALYSIS_ITERATIONS,
   goAnalysisIterations,
 } from './bot';
-export type { GoBotMove, GoBotOptions, GoPositionEval } from './bot';
+export type { GoBotMove, GoBotOptions, GoPositionEval, GoSearchHost } from './bot';
 export * from './notation';
 export {
   passAliveChains,

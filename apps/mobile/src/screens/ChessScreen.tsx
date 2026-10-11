@@ -713,7 +713,9 @@ export function ChessScreen() {
           <View>
             <ChessBoard
               gameState={displayState}
-              onMove={(from, to, promotion) => game.handleMove(from, to, promotion)}
+              // Passed as-is: it is a stable callback, and a fresh arrow here
+              // would re-render the memoized board on every screen render.
+              onMove={game.handleMove}
               playerColor={boardColor}
               interactive={interactive}
               hintMove={isAtLive ? game.hintMove : null}

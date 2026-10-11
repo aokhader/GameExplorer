@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { setActiveTheme, THEMES } from '@gameexplorer/ui';
 import { MoveBand } from '@/game/MoveBand';
 
 // 1. e4 e5 2. Nf3 Nc6 — the band takes formatted strings, so the tests don't
@@ -105,5 +106,40 @@ describe('MoveBand — review grades', () => {
     render(<MoveBand moves={OPENING} viewIndex={2} onSeek={jest.fn()} accent="chess" />);
     expect(screen.getByRole('button', { name: 'Move 2, e5' })).toBeSelected();
     expect(screen.queryByText('??')).toBeNull();
+  });
+});
+
+describe('MoveBand — memoized chips', () => {
+  /*
+   * Each chip is memoized, so review's scan re-renders only the chip whose
+   * grade just arrived instead of all of them (about 70 ms a step on a 90-move
+   * game, Pixel 8 emulator, dev build). The two ways memoizing goes wrong: a
+   * chip that misses a change it should show, and a chip that keeps the old
+   * theme because none of its props changed when the theme did.
+   */
+  // Still mounted here (cleanup runs after this), so the reset re-renders them.
+  afterEach(() => act(() => setActiveTheme('dark')));
+
+  it('repaints every chip when the theme changes, though no prop did', () => {
+    render(<MoveBand moves={OPENING} viewIndex={0} onSeek={jest.fn()} accent="chess" />);
+    expect(screen.getByText('e4')).toHaveStyle({ color: THEMES.dark.fg });
+
+    act(() => setActiveTheme('cozy'));
+
+    expect(screen.getByText('e4')).toHaveStyle({ color: THEMES.cozy.fg });
+  });
+
+  it('shows a grade that arrives after the band first rendered', () => {
+    const onSeek = jest.fn();
+    const band = (grades: ('blunder' | null)[]) => (
+      <MoveBand moves={OPENING} viewIndex={0} onSeek={onSeek} accent="chess" grades={grades} />
+    );
+    render(band([null, null, null, null]));
+    expect(screen.getByRole('button', { name: 'Move 4, Nc6' })).toBeOnTheScreen();
+
+    screen.rerender(band([null, null, null, 'blunder']));
+
+    expect(screen.getByRole('button', { name: 'Move 4, Nc6, Blunder' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Move 1, e4' })).toBeOnTheScreen();
   });
 });

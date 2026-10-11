@@ -11,6 +11,8 @@ export * from './utils/clock';
 export * from './utils/rng';
 // Currency formatting for the property game
 export * from './utils/currency';
+// Running the minimax bots a few ms at a time, so they don't freeze the UI thread
+export * from './utils/slicedSearch';
 // Checkers
 export * from './game-logic/checkers';
 export * from './game-logic/reversi';
@@ -50,7 +52,7 @@ export * from './constants/onboarding';
 // Bot strength tiers — one copy of the numbers the setup screens and the
 // puzzle bands both name
 export * from './constants/botTiers';
-// Bot naming — what to call a rating, preset or custom, on every surface
+// Bot naming (what to call a rating) and pacing (how long a bot "thinks")
 export * from './bots';
 // How a game ended, in words — shared by both platforms' history lists
 export * from './constants/endReasons';

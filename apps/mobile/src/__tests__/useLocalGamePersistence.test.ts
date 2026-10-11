@@ -344,6 +344,6 @@ describe('useLocalGame — resumable slot', () => {
 
     await act(async () => resolveRating(rating(1720)));
     await waitFor(() => expect(adapter.getBotMove).toHaveBeenCalledTimes(1));
-    expect(adapter.getBotMove).toHaveBeenCalledWith(expect.anything(), 1720);
+    expect(adapter.getBotMove).toHaveBeenCalledWith(expect.anything(), 1720, expect.anything());
   });
 });

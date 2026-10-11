@@ -67,7 +67,10 @@ export function HoldingsView({
         onBack={onBack}
       />
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
+      >
         {holdings.length === 0 ? (
           <Text
             style={{

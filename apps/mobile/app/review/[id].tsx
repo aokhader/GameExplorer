@@ -28,12 +28,20 @@ import { isReviewable } from '@/analysis/reviewable';
 import { ReviewScreen } from '@/analysis/ReviewScreen';
 import { chessAnalysis } from '@/analysis/adapters';
 import { useEngineNative } from '@/engine/useEngineNative';
+import { goSearchOnJsThread } from '@/engine/yieldToJsQueue';
 import { ChessBoard } from '@/board/ChessBoard';
 import { CheckersBoard } from '@/board/CheckersBoard';
 import { ReversiBoard } from '@/board/ReversiBoard';
 import { GoBoard } from '@/board/GoBoard';
 import { Screen } from '@/components/ui';
 import { FONTS } from '@/theme/typography';
+
+/**
+ * The boards are display-only here. One handler for every render, so their
+ * `React.memo` holds: a scan re-renders this screen once per position it
+ * grades, and an inline `() => {}` re-rendered the whole board each time.
+ */
+const NO_MOVE = () => {};
 
 /**
  * Review a game that was played earlier, loaded from its stored move list.
@@ -145,8 +153,12 @@ export default function PastGameReviewScreen() {
   const engine = useEngineNative({ enabled: gameType === 'chess' });
   // Go's adapter is built per board size: its grade bands and eval-bar squash
   // both scale with the board, because a ten-point swing is most of a 9×9 game
-  // and a detail on 19×19.
-  const goAdapterForSize = useMemo(() => createGoAnalysis(goRules.size), [goRules.size]);
+  // and a detail on 19×19. Its searches yield on the JS queue, as the game
+  // screen's do, or a scan spends most of its time waiting for frames.
+  const goAdapterForSize = useMemo(
+    () => createGoAnalysis(goRules.size, goSearchOnJsThread),
+    [goRules.size],
+  );
 
   const adapter = (
     gameType === 'checkers' ? checkersAnalysis
@@ -163,6 +175,15 @@ export default function PastGameReviewScreen() {
   });
 
   const exit = useCallback(() => router.back(), [router]);
+
+  // Memoized for the same reason as `NO_MOVE`: a new Map each render would
+  // re-render the Go board on every scanned position (`/analysis/go` has the
+  // measurement).
+  const goBoard = gameType === 'go' ? (timeline[viewIndex] as GoGameState | undefined)?.board : undefined;
+  const goOwnership = useMemo(
+    () => (goBoard ? goReviewOwnership(goBoard, goRules.size) : null),
+    [goBoard, goRules.size],
+  );
 
   if (loading) {
     return (
@@ -197,16 +218,12 @@ export default function PastGameReviewScreen() {
   const displayState = timeline[viewIndex];
   const playerColor = game.player_color as Color;
   const best = analysis.current?.bestMove ?? null;
-  const goOwnership =
-    gameType === 'go'
-      ? goReviewOwnership((displayState as GoGameState).board, goRules.size)
-      : null;
 
   const board =
     gameType === 'checkers' ? (
       <CheckersBoard
         gameState={displayState as CheckersGameState}
-        onMove={() => {}}
+        onMove={NO_MOVE}
         playerColor={playerColor}
         hintMove={best}
         interactive={false}
@@ -214,14 +231,14 @@ export default function PastGameReviewScreen() {
     ) : gameType === 'reversi' ? (
       <ReversiBoard
         gameState={displayState as ReversiGameState}
-        onMove={() => {}}
+        onMove={NO_MOVE}
         playerColor={playerColor}
         interactive={false}
       />
     ) : gameType === 'go' ? (
       <GoBoard
         gameState={displayState as GoGameState}
-        onMove={() => {}}
+        onMove={NO_MOVE}
         playerColor={playerColor}
         // The engine's choice reuses the training hint's outline — same meaning.
         hintPos={best?.to ?? null}
@@ -234,7 +251,7 @@ export default function PastGameReviewScreen() {
     ) : (
       <ChessBoard
         gameState={displayState as ChessGameState}
-        onMove={() => {}}
+        onMove={NO_MOVE}
         playerColor={playerColor}
         // The engine's choice reuses the training hint's rings — same meaning
         // ("play this move"), so it should look the same.

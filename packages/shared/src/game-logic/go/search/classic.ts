@@ -43,7 +43,7 @@ import {
   SEARCH_CEILING_MS,
   SLICE_MS,
   abortError,
-  yieldToHost,
+  nextTask,
   type GoSearch,
   type GoSearchOptions,
   type GoSearchResult,
@@ -201,6 +201,7 @@ async function runSearch(
   const board = new Uint8Array(geo.points);
   let leadTotal = 0;
   let leadSamples = 0;
+  const yieldToHost = options.yieldToHost ?? nextTask;
   const searchStart = Date.now();
   let sliceStart = searchStart;
 
@@ -260,13 +261,14 @@ async function runSearch(
   // No child at all means every candidate was illegal on application — take the
   // first candidate rather than returning nothing.
   if (!best) {
-    return { position: candidates[0], winRate: 0.5, scoreLead: 0 };
+    return { position: candidates[0], winRate: 0.5, scoreLead: 0, playouts: leadSamples };
   }
 
   return {
     position: indexToPosition(best.move, state.size),
     winRate: best.wins / best.visits,
     scoreLead: leadSamples > 0 ? leadTotal / leadSamples - state.komi : -state.komi,
+    playouts: leadSamples,
   };
 }
 

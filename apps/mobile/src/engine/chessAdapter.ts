@@ -1,11 +1,13 @@
 import {
   CHESS_HINT_SEARCH_MS,
+  botThinkMs,
   chessBotConfig,
-  getBestMoveElo,
+  getBestMoveEloSliced,
   type ChessGameState,
 } from '@gameexplorer/shared';
 import { CHESS_RULES } from '@gameexplorer/client/game/localRules';
 import type { LocalGameAdapter } from './useLocalGame';
+import { slicedOnJsThread } from './yieldToJsQueue';
 import {
   getEngineBestMove,
   getEngineEvaluation,
@@ -14,15 +16,6 @@ import {
   cancelEngineSearch,
   whenEngineReady,
 } from './chessEngineNative';
-
-/** Bot pacing by strength — mirrors web's `useStockfish` `thinkTimeForElo`. */
-function thinkTimeForElo(elo: number): number {
-  if (elo < 800) return 400;
-  if (elo < 1200) return 650;
-  if (elo < 1400) return 900;
-  if (elo < 1800) return 1100;
-  return 1400;
-}
 
 /**
  * How long a hint waits for Arasan to finish starting. The engine loads its
@@ -64,11 +57,14 @@ export const chessAdapter: LocalGameAdapter<ChessGameState> = {
     engineNewGame();
     return CHESS_RULES.newGame();
   },
-  getBotMove: async (s, elo) => {
+  getBotMove: async (s, elo, signal) => {
     // Ratings the ladder assigns to the in-house engine, plus any rating at all
-    // on a dev client with no native module linked.
+    // on a dev client with no native module linked. Sliced, because it runs on
+    // the JS thread beside the board's touch handlers and its depth-4 band takes
+    // seconds a move on a phone; `newGame` below stops Arasan, and the loop's
+    // `signal` stops this.
     if (chessBotConfig(elo).engine === 'ts' || !isEngineAvailable()) {
-      const m = getBestMoveElo(s, elo);
+      const m = await getBestMoveEloSliced(s, elo, slicedOnJsThread(signal));
       return { from: m.from, to: m.to, promotion: m.promotion };
     }
     return getEngineBestMove(s, elo);
@@ -85,5 +81,7 @@ export const chessAdapter: LocalGameAdapter<ChessGameState> = {
     if (!bestMove) throw new Error('The engine has no move in this position');
     return bestMove;
   },
-  thinkTimeForElo,
+  // The same 2–3 s floor at every strength. Arasan's deepest searches are
+  // capped at 2 s, so they finish inside it too.
+  thinkTimeForElo: () => botThinkMs(),
 };

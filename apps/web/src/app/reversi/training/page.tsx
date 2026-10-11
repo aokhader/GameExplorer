@@ -6,14 +6,17 @@ import {
   MODE_COPY,
   ReversiEngine,
   ReversiGameState,
-  getBestReversiMove,
+  getBestReversiMoveSliced,
   calculateNewRating,
   GameOutcome,
   botStrengthLabel,
+  botThinkMs,
 } from '@gameexplorer/shared';
 import { ReversiBoard } from '@/components/reversi/ReversiBoard';
 import { DiscCountBar } from '@/components/reversi/DiscCountBar';
 import { useAuth } from '@/hooks/useAuth';
+import { useCancellableSearch } from '@/hooks/useCancellableSearch';
+import { slicedInBrowser } from '@/lib/yieldToBrowser';
 import { saveReversiGame, getPracticeRating, recordPracticeResult } from '@/lib/db';
 import type { UserRating } from '@/lib/db';
 import dynamic from 'next/dynamic';
@@ -51,14 +54,6 @@ const GameResultScreen = dynamic(
 
 /** A bot's name, shared with the setup screen so a preset keeps its tier. */
 const eloLabel = (elo: number): string => botStrengthLabel('reversi', elo);
-
-function thinkTimeForElo(elo: number): number {
-  if (elo < 700)  return 350;
-  if (elo < 1000) return 550;
-  if (elo < 1400) return 800;
-  if (elo < 1800) return 1100;
-  return 1400;
-}
 
 function formatMoveNotation(move: ReversiGameState['moveHistory'][number]): string {
   return move.position ?? '—';
@@ -164,6 +159,8 @@ export default function ReversiTrainingPage() {
       return;
     }
     gameGenRef.current += 1;
+    botSearch.cancel();
+    hintSearch.cancel();
     update({ color: saved.playerColor });
     setTimeline(replayed);
     setViewIndex(replayed.length - 1);
@@ -236,6 +233,8 @@ export default function ReversiTrainingPage() {
   // one ends, so a reply still being computed for the finished board must not be
   // appended to the new one, or clear the thinking flag a newer search owns.
   const gameGenRef = useRef(0);
+  // Stopped wherever the generation is bumped, and on resign.
+  const botSearch = useCancellableSearch();
 
   const makeBotMove = useCallback(async () => {
     const gen = gameGenRef.current;
@@ -244,11 +243,11 @@ export default function ReversiTrainingPage() {
 
     setIsThinking(true);
     try {
+      // Sliced, so the page keeps answering while the bot thinks — an open
+      // midgame at the top levels takes seconds. See `lib/yieldToBrowser.ts`.
       const [move] = await Promise.all([
-        new Promise<{ position: string }>(resolve =>
-          setTimeout(() => resolve(getBestReversiMove(currentLive, elo)), 0),
-        ),
-        new Promise(resolve => setTimeout(resolve, thinkTimeForElo(elo))),
+        getBestReversiMoveSliced(currentLive, elo, slicedInBrowser(botSearch.start())),
+        new Promise(resolve => setTimeout(resolve, botThinkMs())),
       ]);
       // Dropped if the game was reset, or the player resigned, while the bot
       // was thinking.
@@ -258,11 +257,11 @@ export default function ReversiTrainingPage() {
         appendState(result.resultingState);
       }
     } catch (err) {
-      console.error('Bot error:', err);
+      if ((err as Error)?.name !== 'AbortError') console.error('Bot error:', err);
     } finally {
       if (gen === gameGenRef.current) setIsThinking(false);
     }
-  }, [appendState]);
+  }, [appendState, botSearch]);
 
   // ── Main turn effect — bot moves and auto-passes ──────────────────────────
 
@@ -340,6 +339,7 @@ export default function ReversiTrainingPage() {
   const handleMove = (position: string) => {
     if (!isAtLive || isThinking || liveState.isGameOver || manualEnd) return;
     if (liveState.currentTurn !== playerColor) return;
+    hintSearch.cancel();
     setHintPos(null);
 
     const result = ReversiEngine.validateMove(liveState, position);
@@ -350,20 +350,23 @@ export default function ReversiTrainingPage() {
 
   // ── Hint ──────────────────────────────────────────────────────────────────
 
+  // Sliced like the bot — a top-strength hint can take seconds in an open
+  // midgame, and the board stays playable meanwhile — and stopped as soon as
+  // the position it was for is gone.
+  const hintSearch = useCancellableSearch();
+
   const handleHint = async () => {
     if (isHinting || isThinking || liveState.currentTurn !== playerColor) return;
     if (!isAtLive || liveState.isGameOver) return;
 
     setIsHinting(true);
     try {
-      const move = await new Promise<{ position: string }>(resolve =>
-        setTimeout(() => resolve(getBestReversiMove(liveState, 2000)), 0),
-      );
+      const move = await getBestReversiMoveSliced(liveState, 2000, slicedInBrowser(hintSearch.start()));
       setHintsUsed(n => n + 1);
       setHintPos(move.position);
       setTimeout(() => setHintPos(null), 3000);
     } catch (err) {
-      console.error('Hint error:', err);
+      if ((err as Error)?.name !== 'AbortError') console.error('Hint error:', err);
     } finally {
       setIsHinting(false);
     }
@@ -375,6 +378,8 @@ export default function ReversiTrainingPage() {
   const handleResign = () => {
     if (manualEnd || liveState.isGameOver) return;
     setManualEnd('resign');
+    botSearch.cancel();
+    hintSearch.cancel();
     setIsThinking(false);
     setPassMsg(null);
     setHintPos(null);
@@ -383,6 +388,8 @@ export default function ReversiTrainingPage() {
   /** Clear the finished game. `keepSetup` starts the next one straight away. */
   const resetGame = (keepSetup: boolean) => {
     gameGenRef.current += 1;
+    botSearch.cancel();
+    hintSearch.cancel();
     setTimeline([ReversiEngine.newGame()]);
     setViewIndex(0);
     if (!keepSetup) setGameStarted(false);

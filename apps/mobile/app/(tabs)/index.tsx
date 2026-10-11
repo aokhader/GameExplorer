@@ -211,6 +211,7 @@ export default function HomeScreen() {
           maxWidth: 560,
           alignSelf: 'center',
         }}
+        showsVerticalScrollIndicator={false}
       >
         <View style={{ gap: SPACING[2] }}>
           {top}

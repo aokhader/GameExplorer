@@ -99,7 +99,10 @@ export function AuctionView({ state, deviceIds, dispatch, onBack }: AuctionViewP
         }
       />
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, gap: SPACING['3.5'], paddingBottom: 18 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 18, gap: SPACING['3.5'], paddingBottom: 18 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View
           style={{
             backgroundColor: P.panel,

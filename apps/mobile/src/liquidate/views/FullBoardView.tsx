@@ -157,7 +157,10 @@ export function FullBoardView({
         </GestureDetector>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 22 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 22 }}
+        showsVerticalScrollIndicator={false}
+      >
         <ViewSection>System control</ViewSection>
         <View style={{ gap: SPACING['2.5'] }}>
           {systems.map((system) => {

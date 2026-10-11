@@ -28,6 +28,7 @@ import { ReviewPanel } from '@/components/game/ReviewPanel';
 import { ShellNav } from '@/components/game/ShellNav';
 import { GameSkeleton } from '@/components/game/GameSkeleton';
 import { EmptyState, ErrorState } from '@/components/ui';
+import { yieldToBrowser } from '@/lib/yieldToBrowser';
 
 type ReviewedGame = 'checkers' | 'reversi' | 'go';
 
@@ -114,7 +115,12 @@ function SavedGameReview({ game, gameType }: { game: SavedGame; gameType: Review
   const [seekedIndex, setSeekedIndex] = useState<number | null>(null);
   const viewIndex = seekedIndex ?? Math.max(0, timeline.length - 1);
 
-  const goAdapter = useMemo(() => createGoAnalysis(goRules.size), [goRules.size]);
+  // Go's searches yield on a message channel rather than a timer, which makes
+  // a whole-game scan about a third faster (see `createGoAnalysis`).
+  const goAdapter = useMemo(
+    () => createGoAnalysis(goRules.size, { yieldToHost: yieldToBrowser }),
+    [goRules.size],
+  );
   const adapter = (
     gameType === 'checkers' ? checkersAnalysis : gameType === 'reversi' ? reversiAnalysis : goAdapter
   ) as AnalysisAdapter<unknown>;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import type {
   CheckersGameState,
   ChessGameState,
@@ -76,15 +76,31 @@ export function InteractiveBoard({
   refutation,
   marks,
 }: InteractiveBoardProps) {
+  // Stable adapters and hint object, so the memoized boards skip the host
+  // screen's re-renders. Fresh arrows and a fresh `{ from, to }` on every render
+  // re-rendered the whole board each time, and that work competes with a
+  // pick-up or a drop for the JS thread. Declared before the per-game branches:
+  // hooks can't be called conditionally.
+  const hintMove = useMemo(() => (hint ? { from: hint.from, to: hint.to } : null), [hint]);
+  const onPieceMove = useCallback(
+    (from: string, to: string, promotion?: PuzzleMove['promotion']) =>
+      onMove(promotion ? { from, to, promotion } : { from, to }),
+    [onMove],
+  );
+  const onPlacement = useCallback(
+    (position: string) => onMove({ from: position, to: position }),
+    [onMove],
+  );
+
   if (game === 'chess') {
     return (
       <ChessBoard
         gameState={state as ChessGameState}
         playerColor={playerColor}
         interactive={interactive}
-        hintMove={hint ? { from: hint.from, to: hint.to } : null}
+        hintMove={hintMove}
         highlightSquares={marks}
-        onMove={(from, to, promotion) => onMove({ from, to, promotion })}
+        onMove={onPieceMove}
       />
     );
   }
@@ -95,9 +111,9 @@ export function InteractiveBoard({
         gameState={state as CheckersGameState}
         playerColor={playerColor}
         interactive={interactive}
-        hintMove={hint ? { from: hint.from, to: hint.to } : null}
+        hintMove={hintMove}
         highlightSquares={marks}
-        onMove={(from, to) => onMove({ from, to })}
+        onMove={onPieceMove}
       />
     );
   }
@@ -113,7 +129,7 @@ export function InteractiveBoard({
         hintPos={hint?.to ?? null}
         highlightPos={refutation?.to ?? null}
         highlightSquares={marks}
-        onMove={(position) => onMove({ from: position, to: position })}
+        onMove={onPlacement}
       />
     );
   }
@@ -127,7 +143,7 @@ export function InteractiveBoard({
       hintPos={hint?.to ?? null}
       highlightPos={refutation?.to ?? null}
       highlightSquares={marks}
-      onMove={(position) => onMove({ from: position, to: position })}
+      onMove={onPlacement}
     />
   );
 }
