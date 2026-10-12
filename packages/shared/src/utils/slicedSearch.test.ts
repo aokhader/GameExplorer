@@ -196,7 +196,8 @@ describe('sliced bots play the same move after the same draws', () => {
         expect(r.sliced).toEqual(r.sync);
       }
     }
-  });
+    // ~2 s on a desktop under load; a CI runner is several times slower.
+  }, 30_000);
 
   it('reversi, every depth', async () => {
     seedRandom(13);

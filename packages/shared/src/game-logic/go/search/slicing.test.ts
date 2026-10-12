@@ -49,7 +49,8 @@ describe.each([patternSearch, classicSearch])('the $id search', (search) => {
     expect(hosted.position).toBe(plain.position);
     expect(hosted.playouts).toBe(2000);
     expect(plain.playouts).toBe(2000);
-  });
+    // ~1 s on a desktop under load; a CI runner is several times slower.
+  }, 30_000);
 
   it('counts the gaps against the time ceiling and reports the playouts it managed', async () => {
     // A clock that moves 1 ms per reading, so a slice ends every few playouts,

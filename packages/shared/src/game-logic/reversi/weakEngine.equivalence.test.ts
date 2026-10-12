@@ -242,7 +242,8 @@ describe('the bit-set search is the state-based search', () => {
         expect(Object.is(got.score, -want.score)).toBe(true);
       }
     }
-  });
+    // ~1.4 s on a desktop, but 5 s on a CI runner.
+  }, 30_000);
 
   it('the bot plays the same square after the same draws, in every band', () => {
     // Bands: depth 1 (400–700), 2, 3, 4, 5 with noise (1600–1999), and 2000,
