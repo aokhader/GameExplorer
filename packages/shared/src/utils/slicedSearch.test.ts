@@ -175,7 +175,8 @@ describe('sliced bots play the same move after the same draws', () => {
         expect(r.sliced).toEqual(r.sync);
       }
     }
-  });
+    // ~2 s alone, but over 5 s when turbo runs every package's tests at once.
+  }, 30_000);
 
   it('checkers, every depth', async () => {
     seedRandom(11);

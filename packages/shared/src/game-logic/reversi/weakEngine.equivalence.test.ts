@@ -273,5 +273,7 @@ describe('the bit-set search is the state-based search', () => {
       }
     }
     expect(compared).toBeGreaterThan(150);
-  });
+    // ~6.5 s on a desktop, all of it synchronous. Vitest 2 could not time out a
+    // test that never yields, so the default 5 s never fired; Vitest 4 checks.
+  }, 30_000);
 });

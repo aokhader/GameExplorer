@@ -468,7 +468,7 @@ export const NOTICES: readonly Notice[] = [
   },
   {
     "name": "nanoid",
-    "version": "3.3.15",
+    "version": "3.3.19",
     "license": "MIT",
     "kind": "library",
     "textIndex": 42
