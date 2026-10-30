@@ -9,8 +9,8 @@
 // returned to the caller — only the session that the password grant produced.
 import { USERNAME_PATTERN } from '@gameexplorer/shared';
 import { supabaseAdmin, supabaseAnon } from '../config/supabase';
-import { escapeLike } from '../utils/escapeLike';
 import { logger } from '../utils/logger';
+import { profileIdsForUsername } from './usernameLookup';
 
 export interface AuthSession {
   access_token: string;
@@ -40,14 +40,15 @@ async function emailForUsername(username: string): Promise<string | null> {
   // a reserved-but-grandfathered name must still be able to sign in.
   if (!USERNAME_PATTERN.test(username)) return null;
 
-  // `limit(2)`: usernames are unique case-insensitively (profiles_username_lower_key,
-  // wave 1b), but refusing an ambiguous match costs nothing if that index is
-  // ever lost. Two matches is ambiguous — refuse rather than pick one.
-  const { data, error } = await admin
-    .from('profiles')
-    .select('id')
-    .ilike('username', escapeLike(username))
-    .limit(2);
+  // At most two rows: usernames are unique case-insensitively
+  // (profiles_username_lower_key, wave 1b), but refusing an ambiguous match
+  // costs nothing if that index is ever lost. Two matches is ambiguous —
+  // refuse rather than pick one.
+  //
+  // Deliberately NOT the username Bloom filter. Skipping the lookup for an
+  // unknown name would make "no such user" answer faster than "wrong
+  // password", and this endpoint promises the two look the same.
+  const { data, error } = await profileIdsForUsername(admin, username);
 
   if (error) {
     logger.error(`Username lookup failed: ${error.message}`);

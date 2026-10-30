@@ -31,14 +31,21 @@ const isRefusal = (value: unknown): value is Refusal => REFUSALS.includes(value 
  * Ask the API whether a name is free. Never throws. Anything but a well-formed
  * answer — a network error, a 429, a 503, an abort, an unexpected body — is
  * `unknown`.
+ *
+ * `fresh` makes the API skip its username Bloom filter and ask the database.
+ * The filter can be up to a poll behind, so a name taken seconds ago may still
+ * read as free through it; the recheck after a failed sign-up needs the truth.
+ * An API without the filter ignores the flag.
  */
 export async function checkUsernameAvailability(
   username: string,
   signal?: AbortSignal,
+  options: { fresh?: boolean } = {},
 ): Promise<UsernameCheck> {
   try {
+    const fresh = options.fresh ? '&fresh=1' : '';
     const body = await apiFetch<{ available?: unknown; reason?: unknown }>(
-      `/auth/username-available?username=${encodeURIComponent(username)}`,
+      `/auth/username-available?username=${encodeURIComponent(username)}${fresh}`,
       { signal },
     );
     if (body.available === true && body.reason === 'ok') return 'available';

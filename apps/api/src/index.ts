@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import app from './app';
 import { initializeWebSocket, shutdownWebSocket } from './websocket';
 import { waitForDatabase, disconnectDatabase } from './config/database';
+import { usernameFilter } from './services/usernameFilter.service';
 import { logger } from './utils/logger';
 
 const PORT = process.env.PORT || 4000;
@@ -53,12 +54,18 @@ async function startServer() {
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📡 WebSocket ready on ws://localhost:${PORT}`);
       logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+      // After listen, never before: the build reads every username, and boot
+      // (and Render's health check) must not wait on it. Until it finishes,
+      // availability checks go to the database as they always did.
+      usernameFilter.start();
     });
 
     // Graceful shutdown
     const shutdown = async (signal: string) => {
       logger.info(`${signal} signal received: closing HTTP server`);
-      
+
+      usernameFilter.stop();
       await shutdownWebSocket();
 
       httpServer.close(async () => {

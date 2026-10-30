@@ -11,15 +11,30 @@ const state = vi.hoisted(() => ({
   emails: {} as Record<string, string>,
   /** Passwords that are correct, keyed by email. */
   passwords: {} as Record<string, string>,
-  /** The pattern the last profiles lookup was given. */
+  /** The pattern the last `ilike` fallback lookup was given. */
   lastIlikePattern: null as string | null,
+  /** The name the last profile_ids_for_username call was given. */
+  lastRpcName: null as string | null,
+  /** profile_ids_for_username has not been created yet. */
+  rpcMissing: false,
   /** Whether a password grant was attempted at all. */
   signInCalls: [] as { email: string; password: string }[],
   anonAvailable: true,
 }));
 
+const filter = vi.hoisted(() => ({ check: vi.fn(), note: vi.fn(), add: vi.fn() }));
+vi.mock('../usernameFilter.service', () => ({ usernameFilter: filter }));
+
 vi.mock('../../config/supabase', () => ({
   supabaseAdmin: {
+    rpc: (_fn: string, args: { p_name: string }) => {
+      state.lastRpcName = args.p_name;
+      return Promise.resolve(
+        state.rpcMissing
+          ? { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } }
+          : { data: state.profiles, error: state.profilesError },
+      );
+    },
     from: () => ({
       select: () => ({
         ilike: (_col: string, pattern: string) => {
@@ -64,6 +79,7 @@ vi.mock('../../config/supabase', () => ({
 }));
 
 import { authService } from '../auth.service';
+import { resetUsernameLookup } from '../usernameLookup';
 
 describe('authService.loginWithIdentifier', () => {
   beforeEach(() => {
@@ -72,8 +88,12 @@ describe('authService.loginWithIdentifier', () => {
     state.emails = {};
     state.passwords = {};
     state.lastIlikePattern = null;
+    state.lastRpcName = null;
+    state.rpcMissing = false;
     state.signInCalls = [];
     state.anonAvailable = true;
+    resetUsernameLookup();
+    filter.check.mockReset();
   });
 
   it('signs in by username, resolving it to the account email', async () => {
@@ -97,7 +117,21 @@ describe('authService.loginWithIdentifier', () => {
 
     expect(result.ok).toBe(true);
     // No username lookup happened at all.
+    expect(state.lastRpcName).toBeNull();
     expect(state.lastIlikePattern).toBeNull();
+  });
+
+  it('resolves the username through the index-backed function, as typed', async () => {
+    await authService.loginWithIdentifier('Aziz', 'hunter2');
+    expect(state.lastRpcName).toBe('Aziz');
+    expect(state.lastIlikePattern).toBeNull();
+  });
+
+  it('never consults the username Bloom filter, so a missing account takes as long to refuse', async () => {
+    filter.check.mockReturnValue('definitely-free');
+    await authService.loginWithIdentifier('nobody', 'hunter2');
+    expect(filter.check).not.toHaveBeenCalled();
+    expect(state.lastRpcName).toBe('nobody');
   });
 
   it('refuses an ambiguous username instead of picking a row', async () => {
@@ -117,11 +151,13 @@ describe('authService.loginWithIdentifier', () => {
     const result = await authService.loginWithIdentifier('%', 'hunter2');
 
     expect(result).toEqual({ ok: false, reason: 'invalid' });
+    expect(state.lastRpcName).toBeNull();
     expect(state.lastIlikePattern).toBeNull();
     expect(state.signInCalls).toEqual([]);
   });
 
-  it('escapes the legal _ so a_b cannot match axb', async () => {
+  it('escapes the legal _ so a_b cannot match axb, while the function is missing', async () => {
+    state.rpcMissing = true;
     await authService.loginWithIdentifier('a_b', 'hunter2');
     expect(state.lastIlikePattern).toBe('a\\_b');
   });

@@ -65,7 +65,18 @@ describe('GET /api/auth/username-available', () => {
   it('passes a 64-character name through — the service owns the 20-character rule', async () => {
     const { res } = mockRes();
     await authController.checkUsername(checkReq({ username: 'a'.repeat(64) }), res);
-    expect(mocks.checkAvailability).toHaveBeenCalledWith('a'.repeat(64));
+    expect(mocks.checkAvailability).toHaveBeenCalledWith('a'.repeat(64), { fresh: false });
+  });
+
+  it('asks for a fresh answer only for exactly fresh=1', async () => {
+    const { res } = mockRes();
+    await authController.checkUsername(checkReq({ username: 'bob', fresh: '1' }), res);
+    expect(mocks.checkAvailability).toHaveBeenLastCalledWith('bob', { fresh: true });
+
+    for (const fresh of ['true', '0', '', ['1'], { x: '1' }]) {
+      await authController.checkUsername(checkReq({ username: 'bob', fresh }), res);
+      expect(mocks.checkAvailability).toHaveBeenLastCalledWith('bob', { fresh: false });
+    }
   });
 
   it('answers 200 with the reason code, uncached', async () => {

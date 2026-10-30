@@ -117,6 +117,15 @@ describe('checkUsernameAvailability', () => {
     expect(apiFetch.mock.calls[0][0]).toBe('/auth/username-available?username=b_b');
   });
 
+  it('asks for a fresh answer, past the API’s Bloom filter, only when told to', async () => {
+    apiFetch.mockResolvedValue({ available: false, reason: 'taken' });
+    expect(await checkUsernameAvailability('bob', undefined, { fresh: true })).toBe('taken');
+    expect(apiFetch.mock.calls[0][0]).toBe('/auth/username-available?username=bob&fresh=1');
+
+    await checkUsernameAvailability('bob');
+    expect(apiFetch.mock.calls[1][0]).toBe('/auth/username-available?username=bob');
+  });
+
   it('passes the refusal reasons through', async () => {
     for (const reason of ['taken', 'reserved', 'invalid-format']) {
       apiFetch.mockResolvedValueOnce({ available: false, reason });
