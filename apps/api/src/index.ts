@@ -5,7 +5,7 @@ import './config/env';
 import { createServer } from 'http';
 import app from './app';
 import { initializeWebSocket, shutdownWebSocket } from './websocket';
-import { checkDatabaseConnection, disconnectDatabase } from './config/database';
+import { waitForDatabase, disconnectDatabase } from './config/database';
 import { logger } from './utils/logger';
 
 const PORT = process.env.PORT || 4000;
@@ -35,8 +35,8 @@ process.on('uncaughtException', (err) => {
 
 async function startServer() {
   try {
-    // Check database connection
-    const dbConnected = await checkDatabaseConnection();
+    // Check database connection, retrying on a backoff (see DB_BOOT_RETRY_DELAYS_MS)
+    const dbConnected = await waitForDatabase();
     if (!dbConnected) {
       throw new Error('Failed to connect to database');
     }

@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool, type PoolConfig } from 'pg';
 import { logger } from '../utils/logger';
+import { retry } from '../utils/retry';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -71,11 +72,17 @@ try {
 }
 
 // Create PostgreSQL connection pool
+//
+// connectionTimeoutMillis covers the whole handshake: TCP, TLS with CA
+// verification, and SCRAM auth through Supabase's pooler. 2s was too tight for
+// a just-booted container on Render's free tier (a tenth of a CPU, also busy
+// loading the app), and it is the timeout every request waits out when the
+// database is unreachable, so it stays short of "the app looks hung".
 const pool = new Pool({
   ...poolConfig,
   max: 20, // Maximum pool size
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000,
 });
 
 // Create Prisma adapter
@@ -107,10 +114,31 @@ export async function disconnectDatabase() {
   await pool.end();
 }
 
-// Health check
-export async function checkDatabaseConnection() {
+/**
+ * Waits between boot-time connection attempts: six attempts over ~30s of
+ * waiting, ~60s in all with each attempt's connect timeout.
+ *
+ * One attempt used to be all there was, so a single slow handshake exited the
+ * process and Render restarted it, over and over. A database that stays away
+ * this long is down (a paused Supabase project looks exactly like this), and
+ * exiting is still right then: it keeps the deploy visibly failed instead of
+ * serving an API that cannot read anything.
+ */
+export const DB_BOOT_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 15000] as const;
+
+/** Boot-time check: true once `SELECT 1` succeeds, false when every attempt failed. */
+export async function waitForDatabase(): Promise<boolean> {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await retry(() => prisma.$queryRaw`SELECT 1`, {
+      delaysMs: DB_BOOT_RETRY_DELAYS_MS,
+      onRetry: (error, attempt, delayMs) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        logger.warn(
+          `Database not reachable (attempt ${attempt}/${DB_BOOT_RETRY_DELAYS_MS.length + 1}: ${reason}); ` +
+            `retrying in ${delayMs / 1000}s`,
+        );
+      },
+    });
     return true;
   } catch (error) {
     logger.error('Database connection failed:', error);
