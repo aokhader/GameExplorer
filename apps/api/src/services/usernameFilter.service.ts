@@ -49,7 +49,7 @@ export const FILTER_STATS_MS = 60 * 60_000;
 
 export type FilterAnswer = 'definitely-free' | 'maybe-taken' | 'not-ready';
 
-/** How one availability check went, for the hourly summary. */
+/** How one availability check went, for the summary line. */
 export type FilterOutcome =
   /** The filter answered "free"; no database lookup. */
   | 'skipped'
@@ -63,13 +63,16 @@ export type FilterOutcome =
   | 'fresh';
 
 interface Stats {
+  /** When this window began, so a partial one printed at shutdown says how long it covers. */
+  since: number;
   outcomes: Record<FilterOutcome, number>;
   lookups: number;
   lookupMsTotal: number;
   lookupMsMax: number;
 }
 
-const emptyStats = (): Stats => ({
+const emptyStats = (since: number): Stats => ({
+  since,
   outcomes: { skipped: 0, taken: 0, 'false-positive': 0, 'not-ready': 0, fresh: 0 },
   lookups: 0,
   lookupMsTotal: 0,
@@ -102,7 +105,7 @@ export function createUsernameFilter(options: UsernameFilterOptions) {
   let pendingAdds: string[] | null = null;
   let failures = 0;
   let retryAt = 0;
-  let stats = emptyStats();
+  let stats = emptyStats(now());
   let timers: NodeJS.Timeout[] = [];
 
   async function build(admin: SupabaseClient): Promise<void> {
@@ -215,14 +218,15 @@ export function createUsernameFilter(options: UsernameFilterOptions) {
   }
 
   function logStats(): void {
-    const { outcomes, lookups, lookupMsTotal, lookupMsMax } = stats;
-    stats = emptyStats();
+    const { since, outcomes, lookups, lookupMsTotal, lookupMsMax } = stats;
+    stats = emptyStats(now());
     const checks = Object.values(outcomes).reduce((sum, n) => sum + n, 0);
     if (checks === 0) return;
+    const minutes = Math.max(1, Math.round((now() - since) / 60_000));
     const free = outcomes.skipped + outcomes['false-positive'];
     const fpRate = free > 0 ? ((100 * outcomes['false-positive']) / free).toFixed(1) : '0.0';
     log.info(
-      `Username filter, last hour: ${checks} checks, ${outcomes.skipped} answered without the database, ` +
+      `Username filter, last ${minutes} min: ${checks} checks, ${outcomes.skipped} answered without the database, ` +
         `${outcomes['false-positive']} false positives (${fpRate}% of free names), ` +
         `${outcomes.taken} taken, ${outcomes['not-ready']} not ready, ${outcomes.fresh} fresh; ` +
         `${lookups} lookups, mean ${lookups ? Math.round(lookupMsTotal / lookups) : 0} ms, ` +
@@ -244,9 +248,15 @@ export function createUsernameFilter(options: UsernameFilterOptions) {
       for (const timer of timers) timer.unref();
     },
 
+    /**
+     * Also prints what the summary has counted so far. Render's free tier stops
+     * the server after fifteen idle minutes, so on a quiet site the hourly
+     * timer may never fire and this is the only line the logs get.
+     */
     stop(): void {
       for (const timer of timers) clearInterval(timer);
       timers = [];
+      logStats();
     },
 
     /** What the filter says about `name`. Case-insensitive, like the unique index. */

@@ -312,17 +312,19 @@ describe('start and stop', () => {
   });
 });
 
-describe('the hourly summary', () => {
+describe('the summary line', () => {
   it('reports the false-positive rate over free names, then resets', () => {
     const filter = makeFilter();
     for (let i = 0; i < 98; i++) filter.note('skipped');
     filter.note('false-positive', 20);
     filter.note('false-positive', 40);
     filter.note('taken', 30);
+    clock += FILTER_STATS_MS;
 
     filter.logStats();
 
     const line = log.info.mock.calls.at(-1)?.[0] as string;
+    expect(line).toContain('last 60 min');
     expect(line).toContain('101 checks');
     expect(line).toContain('98 answered without the database');
     expect(line).toContain('2 false positives (2.0% of free names)');
@@ -341,5 +343,28 @@ describe('the hourly summary', () => {
     vi.advanceTimersByTime(FILTER_STATS_MS);
     expect(log.info).toHaveBeenCalledWith(expect.stringContaining('1 checks'));
     filter.stop();
+  });
+
+  // Render's free tier stops the server after fifteen idle minutes, so on a
+  // quiet site the hourly timer may never fire.
+  it('prints the window so far at stop(), saying how long it covers', () => {
+    const filter = makeFilter();
+    filter.note('skipped');
+    filter.note('taken', 25);
+    clock += 15 * 60_000;
+
+    filter.stop();
+
+    expect(log.info).toHaveBeenCalledTimes(1);
+    const line = log.info.mock.calls[0][0] as string;
+    expect(line).toContain('last 15 min');
+    expect(line).toContain('2 checks');
+  });
+
+  it('prints nothing at stop() when nothing was checked', () => {
+    const filter = makeFilter();
+    filter.stop();
+
+    expect(log.info).not.toHaveBeenCalled();
   });
 });
