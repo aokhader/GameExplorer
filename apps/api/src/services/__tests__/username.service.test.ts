@@ -5,6 +5,9 @@
 //
 // The Supabase fake is hand-rolled on purpose. helpers/supabase-fake.ts has no
 // `.ilike()` and four other suites depend on its exact shape.
+//
+// The username Bloom filter is mocked: its own suite covers what it answers.
+// Here the question is what the service does with each answer.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 type Op = [string, ...unknown[]];
@@ -12,15 +15,37 @@ type Result = { data: unknown; error: { code?: string; message: string } | null 
 
 const state = vi.hoisted(() => ({
   adminAvailable: true,
-  /** Every query built, as the list of calls made on it. */
+  /** Every query built, as the list of calls made on it. An RPC is one `rpc` op. */
   queries: [] as Op[][],
+  /** What a lookup finds, through the RPC or the `ilike` fallback alike. */
   lookup: { data: [], error: null } as Result,
+  /** profile_ids_for_username has not been created yet. */
+  rpcMissing: false,
   current: { data: null, error: null } as Result,
   write: { data: [{ id: 'user-1' }], error: null } as Result,
   throwOnQuery: false,
 }));
 
+const filter = vi.hoisted(() => ({
+  check: vi.fn<(name: string) => string>(),
+  note: vi.fn(),
+  add: vi.fn(),
+}));
+
+vi.mock('../usernameFilter.service', () => ({ usernameFilter: filter }));
+
 vi.mock('../../config/supabase', () => {
+  function rpc(fn: string, args: unknown) {
+    state.queries.push([['rpc', fn, args]]);
+    if (state.throwOnQuery) return Promise.reject(new Error('fetch failed'));
+    if (state.rpcMissing) {
+      return Promise.resolve({
+        data: null,
+        error: { code: 'PGRST202', message: `Could not find the function public.${fn}(p_name)` },
+      });
+    }
+    return Promise.resolve(state.lookup);
+  }
   function builder() {
     const ops: Op[] = [];
     state.queries.push(ops);
@@ -55,13 +80,14 @@ vi.mock('../../config/supabase', () => {
   }
   return {
     get supabaseAdmin() {
-      return state.adminAvailable ? { from: () => builder() } : null;
+      return state.adminAvailable ? { from: () => builder(), rpc } : null;
     },
     supabaseAnon: null,
   };
 });
 
 import { usernameService, isProfaneUsername } from '../username.service';
+import { resetUsernameLookup } from '../usernameLookup';
 
 const op = (query: Op[], name: string) => query.find(([n]) => n === name);
 
@@ -69,9 +95,15 @@ beforeEach(() => {
   state.adminAvailable = true;
   state.queries = [];
   state.lookup = { data: [], error: null };
+  state.rpcMissing = false;
   state.current = { data: { username_status: 'derived' }, error: null };
   state.write = { data: [{ id: 'user-1' }], error: null };
   state.throwOnQuery = false;
+  resetUsernameLookup();
+  filter.check.mockReset();
+  filter.check.mockReturnValue('not-ready');
+  filter.note.mockReset();
+  filter.add.mockReset();
 });
 
 describe('usernameService.checkAvailability', () => {
@@ -122,13 +154,35 @@ describe('usernameService.checkAvailability', () => {
     expect(state.queries).toEqual([]);
   });
 
-  it('escapes the legal _ so b_b is looked up as exactly b\\_b, and bounds the match', async () => {
+  it('looks the name up through the index-backed function, as typed', async () => {
+    await usernameService.checkAvailability('B_b');
+    expect(state.queries).toEqual([[['rpc', 'profile_ids_for_username', { p_name: 'B_b' }]]]);
+  });
+
+  it('falls back to an escaped, bounded ilike while the function is missing, and remembers', async () => {
+    state.rpcMissing = true;
+
     const result = await usernameService.checkAvailability('b_b');
 
     expect(result).toMatchObject({ available: true });
-    const [query] = state.queries;
+    const [rpcCall, query] = state.queries;
+    expect(op(rpcCall, 'rpc')).toBeDefined();
+    // The legal _ is escaped, so b_b is looked up as exactly b\_b, not as a pattern.
     expect(op(query, 'ilike')).toEqual(['ilike', 'username', 'b\\_b']);
     expect(op(query, 'limit')).toEqual(['limit', 2]);
+
+    state.queries = [];
+    await usernameService.checkAvailability('b_b');
+    expect(state.queries.some((q) => op(q, 'rpc'))).toBe(false);
+  });
+
+  it('reports a function error other than "missing" as unavailable, not as a fallback', async () => {
+    state.lookup = { data: null, error: { code: '42501', message: 'permission denied for function' } };
+    expect(await usernameService.checkAvailability('fresh_name')).toEqual({
+      ok: false,
+      reason: 'unavailable',
+    });
+    expect(state.queries.some((q) => op(q, 'ilike'))).toBe(false);
   });
 
   it('reports unavailable — never available — when the lookup errors', async () => {
@@ -156,6 +210,63 @@ describe('usernameService.checkAvailability', () => {
   });
 });
 
+describe('usernameService.checkAvailability with the Bloom filter', () => {
+  it('answers a name the filter has never seen as free, without the database', async () => {
+    filter.check.mockReturnValue('definitely-free');
+
+    expect(await usernameService.checkAvailability('fresh_name')).toEqual({
+      ok: true,
+      available: true,
+      reason: 'ok',
+    });
+    expect(state.queries).toEqual([]);
+    expect(filter.note).toHaveBeenCalledWith('skipped');
+  });
+
+  it('looks up a "maybe" and records whether it was really taken', async () => {
+    filter.check.mockReturnValue('maybe-taken');
+    state.lookup = { data: [{ id: 'someone' }], error: null };
+    expect(await usernameService.checkAvailability('Bob')).toMatchObject({ reason: 'taken' });
+    expect(filter.note).toHaveBeenLastCalledWith('taken', expect.any(Number));
+
+    state.lookup = { data: [], error: null };
+    expect(await usernameService.checkAvailability('Bobby')).toMatchObject({ available: true });
+    expect(filter.note).toHaveBeenLastCalledWith('false-positive', expect.any(Number));
+  });
+
+  it('looks up while the filter is not ready', async () => {
+    filter.check.mockReturnValue('not-ready');
+    await usernameService.checkAvailability('fresh_name');
+    expect(state.queries).toHaveLength(1);
+    expect(filter.note).toHaveBeenCalledWith('not-ready', expect.any(Number));
+  });
+
+  it('never asks the filter for a fresh check', async () => {
+    filter.check.mockReturnValue('definitely-free');
+    state.lookup = { data: [{ id: 'someone' }], error: null };
+
+    expect(await usernameService.checkAvailability('just_taken', { fresh: true })).toMatchObject({
+      reason: 'taken',
+    });
+    expect(filter.check).not.toHaveBeenCalled();
+    expect(filter.note).toHaveBeenCalledWith('fresh', expect.any(Number));
+  });
+
+  it('refuses before the filter can call a reserved or profane name free', async () => {
+    filter.check.mockReturnValue('definitely-free');
+    expect(await usernameService.checkAvailability('Admin')).toMatchObject({ reason: 'reserved' });
+    expect(await usernameService.checkAvailability('sh1t')).toMatchObject({ reason: 'reserved' });
+    expect(await usernameService.checkAvailability('b*b')).toMatchObject({ reason: 'invalid-format' });
+    expect(filter.check).not.toHaveBeenCalled();
+  });
+
+  it('still reports unavailable, never available, when a "maybe" cannot be looked up', async () => {
+    filter.check.mockReturnValue('maybe-taken');
+    state.lookup = { data: null, error: { message: 'boom' } };
+    expect(await usernameService.checkAvailability('Bob')).toEqual({ ok: false, reason: 'unavailable' });
+  });
+});
+
 describe('usernameService.claim', () => {
   it('replaces a derived name and marks it chosen, only where it is not already chosen', async () => {
     expect(await usernameService.claim('user-1', 'New_Name')).toEqual({ ok: true, claimed: true });
@@ -166,6 +277,21 @@ describe('usernameService.claim', () => {
     expect(op(write!, 'eq')).toEqual(['eq', 'id', 'user-1']);
     // The filter that makes claim-once atomic.
     expect(op(write!, 'neq')).toEqual(['neq', 'username_status', 'chosen']);
+  });
+
+  it('tells the Bloom filter about a claimed name, and only a claimed one', async () => {
+    await usernameService.claim('user-1', 'New_Name');
+    expect(filter.add).toHaveBeenCalledWith('New_Name');
+
+    filter.add.mockReset();
+    state.write = {
+      data: null,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint "profiles_username_lower_key"' },
+    };
+    await usernameService.claim('user-1', 'Lost_Race');
+    state.current = { data: { username_status: 'chosen' }, error: null };
+    await usernameService.claim('user-1', 'Second_Try');
+    expect(filter.add).not.toHaveBeenCalled();
   });
 
   it('refuses a user whose name is already chosen, without writing', async () => {

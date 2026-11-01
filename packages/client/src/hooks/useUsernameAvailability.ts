@@ -34,7 +34,9 @@ export interface UseUsernameAvailabilityResult {
   /**
    * Ask again now, bypassing the cache, and return the answer. For the moment
    * a sign-up has just failed and the form needs to know whether it was the
-   * username — someone may have taken it since the last check.
+   * username — someone may have taken it since the last check. It also asks
+   * the API to skip its Bloom filter (`fresh`), which may not have seen a name
+   * taken seconds ago.
    */
   recheck: () => Promise<UsernameCheck>;
 }
@@ -85,7 +87,7 @@ export function useUsernameAvailability(
   const recheck = useCallback(async (): Promise<UsernameCheck> => {
     if (validateUsername(value) !== 'ok') return 'unknown';
     const gen = ++generation.current;
-    const result = await checkUsernameAvailability(value);
+    const result = await checkUsernameAvailability(value, undefined, { fresh: true });
     if (result !== 'unknown') cache.current.set(value.toLowerCase(), result);
     if (gen === generation.current) setCheck({ username: value, result });
     return result;

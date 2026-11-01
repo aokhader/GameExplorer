@@ -63,12 +63,16 @@ export const authController = {
   },
 
   /**
-   * GET /api/auth/username-available?username=X — is this name free?
+   * GET /api/auth/username-available?username=X[&fresh=1] — is this name free?
    *
    * Unauthenticated: the sign-up form asks before an account exists. Protocol
    * failures are `{ error }` with a status; product answers are always
    * `200 { available, reason }`. The reason is a code, never a sentence — the
    * words live in packages/shared so both platforms say the same thing.
+   *
+   * `fresh=1` skips the username Bloom filter and asks the database. The form
+   * sends it when rechecking after a failed sign-up, where a name taken seconds
+   * ago must not read as free. Same route, same limiter: no extra headroom.
    */
   async checkUsername(req: Request, res: Response) {
     const username = usernameInput(req.query.username);
@@ -76,8 +80,11 @@ export const authController = {
       res.status(400).json({ error: 'A username is required' });
       return;
     }
+    // Exactly the string '1'. `?fresh[]=1` arrives as an array; anything that
+    // is not the one expected value is simply not fresh.
+    const fresh = req.query.fresh === '1';
 
-    const result = await usernameService.checkAvailability(username);
+    const result = await usernameService.checkAvailability(username, { fresh });
 
     // An answer that goes stale in seconds must never be served from a cache.
     res.set('Cache-Control', 'no-store');

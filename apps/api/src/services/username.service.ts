@@ -14,6 +14,11 @@
 // That courtesy is ADVISORY. Two people can both be told "available" for the
 // same name; the unique index decides, and the sign-up forms handle losing.
 //
+// A Bloom filter (usernameFilter.service.ts) answers "definitely free" without
+// the database. Its only wrong answer is "free" for a name taken since its last
+// refresh — the same race as above — and `fresh` skips it for the moment that
+// matters: the recheck after a sign-up failed.
+//
 // This endpoint is also the product's first bulk username-enumeration oracle:
 // a stranger can test names at the rate usernameCheckLimiter allows. Usernames
 // are already public in games and spectate lists, which is why that is an
@@ -21,8 +26,9 @@
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity';
 import { validateUsername, type UsernameReason } from '@gameexplorer/shared';
 import { supabaseAdmin } from '../config/supabase';
-import { escapeLike } from '../utils/escapeLike';
 import { logger } from '../utils/logger';
+import { usernameFilter, type FilterOutcome } from './usernameFilter.service';
+import { profileIdsForUsername } from './usernameLookup';
 
 /** What the API tells a client. Finer local reasons collapse to `invalid-format`. */
 export type WireReason = 'ok' | 'taken' | 'reserved' | 'invalid-format';
@@ -89,32 +95,42 @@ export const usernameService = {
   /**
    * Is this name free? Order is deliberate and tested:
    *   grammar → reserved → profanity (none of these touch the database)
-   *   → escapeLike → ilike → limit(2)
-   * Grammar comes first so that `b*b` is refused as a name rather than sent as
-   * a pattern; escaping comes before the ilike so that the LEGAL `_` in `b_b`
-   * cannot match `bob`.
+   *   → the Bloom filter, unless `fresh` → the lookup (usernameLookup.ts)
+   * Grammar comes first so that `b*b` is refused as a name rather than sent to
+   * the database at all. The filter comes after every refusal, so a reserved
+   * name nobody holds is still refused rather than called free.
    */
-  async checkAvailability(name: string): Promise<AvailabilityResult> {
+  async checkAvailability(
+    name: string,
+    options: { fresh?: boolean } = {},
+  ): Promise<AvailabilityResult> {
     const admin = supabaseAdmin;
     if (!admin) return { ok: false, reason: 'unavailable' };
 
     const refused = refuseWithoutLookup(name);
     if (refused) return { ok: true, available: false, reason: refused };
 
+    const answer = options.fresh ? 'fresh' : usernameFilter.check(name);
+    if (answer === 'definitely-free') {
+      usernameFilter.note('skipped');
+      return { ok: true, available: true, reason: 'ok' };
+    }
+
     try {
-      // `ilike` with every metacharacter escaped is a case-insensitive equality,
-      // which is what profiles_username_lower_key enforces.
-      const { data, error } = await admin
-        .from('profiles')
-        .select('id')
-        .ilike('username', escapeLike(name))
-        .limit(2);
+      const started = performance.now();
+      const { data, error } = await profileIdsForUsername(admin, name);
+      const lookupMs = performance.now() - started;
 
       if (error) {
         logger.error(`Username availability lookup failed: ${error.message}`);
         return { ok: false, reason: 'unavailable' };
       }
-      return data && data.length > 0
+      const taken = !!data && data.length > 0;
+      const outcome: FilterOutcome =
+        answer === 'maybe-taken' ? (taken ? 'taken' : 'false-positive') : answer;
+      usernameFilter.note(outcome, lookupMs);
+
+      return taken
         ? { ok: true, available: false, reason: 'taken' }
         : { ok: true, available: true, reason: 'ok' };
     } catch (err) {
@@ -187,6 +203,8 @@ export const usernameService = {
       if (!written || written.length === 0) {
         return { ok: true, claimed: false, reason: 'already-chosen' };
       }
+      // A claim changes no timestamp, so the filter's poll would never see it.
+      usernameFilter.add(name);
       return { ok: true, claimed: true };
     } catch (err) {
       logger.error(`Username claim threw: ${err instanceof Error ? err.message : String(err)}`);
