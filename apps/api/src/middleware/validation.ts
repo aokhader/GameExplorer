@@ -13,7 +13,7 @@
 // applies coercions, so a handler reads only what passed — see schemas.ts.
 import type { Socket } from 'socket.io';
 import type { RequestHandler } from 'express';
-import type { ZodTypeAny } from 'zod';
+import type { ZodType } from 'zod';
 import type { ErrorCode } from '@gameexplorer/shared';
 import { SocketSchemas, type SocketEvent, type SocketPayload } from '../schemas';
 import { SOCKET_LIMITS, take } from '../websocket/limits';
@@ -98,7 +98,7 @@ type RequestPart = 'params' | 'body';
  * Params are checked first, so a malformed id never reaches body parsing
  * rules that assume it was valid.
  */
-export function validate(schemas: Partial<Record<RequestPart, ZodTypeAny>>): RequestHandler {
+export function validate(schemas: Partial<Record<RequestPart, ZodType>>): RequestHandler {
   return (req, res, next) => {
     for (const part of ['params', 'body'] as const) {
       const schema = schemas[part];

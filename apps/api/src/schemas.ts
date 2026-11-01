@@ -36,8 +36,12 @@ void gameTypesComplete; void timeControlsComplete;
 
 // ── Primitives ────────────────────────────────────────────────────────────────
 
-/** Game and user ids are `crypto.randomUUID()` / Supabase auth ids. */
-export const Uuid = z.string().uuid();
+/**
+ * Game and user ids are `crypto.randomUUID()` / Supabase auth ids. `guid()`,
+ * not zod 4's `uuid()`: that one also checks the version and variant digits,
+ * which zod 3's never did, so it would reject ids this API has always accepted.
+ */
+export const Uuid = z.guid();
 export const GameTypeSchema = z.enum(ONLINE_GAME_TYPES);
 export const TimeControlSchema = z.enum(TIME_CONTROLS);
 /** `inviteService.createInvite` issues a whole UUID (it was 8 hex digits until WS5-30). */

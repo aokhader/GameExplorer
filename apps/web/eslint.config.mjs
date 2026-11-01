@@ -104,6 +104,14 @@ const eslintConfig = defineConfig([
       // server render and first client render both omit the marker, so hydration
       // matches). Keep it visible as a warning rather than block CI on the pattern.
       "react-hooks/refs": "warn",
+      // react-hooks 7.1 (required by eslint-config-next 16.4) started reporting
+      // `immutability` here: the bot effects in the training pages and
+      // ChessGameScreen use `botSearch`, `gameGenRef` and `makeBotMove`, which
+      // are declared further down the component. Effects run after render, so
+      // nothing reads them early; the risk the rule guards is React Compiler
+      // memoization, which this app doesn't enable. Warn until those components
+      // are reordered.
+      "react-hooks/immutability": "warn",
     },
   },
   {
