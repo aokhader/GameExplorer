@@ -41,6 +41,7 @@ export default function SpectateLobby() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sets state when the request settles, not during the effect
     loadGames();
     const t = setInterval(loadGames, 5000); // refresh the live list periodically
     return () => clearInterval(t);

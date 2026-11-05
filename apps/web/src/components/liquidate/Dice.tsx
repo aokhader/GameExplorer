@@ -75,6 +75,7 @@ export function Dice({ dice, rolling = false, size = 44 }: DiceProps) {
   React.useEffect(() => {
     if (!dice || reducedMotion) return;
     const face = () => (1 + Math.floor(Math.random() * 6)) as number;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- first frame of a timed tumble; the interval below continues it
     setTumble([face(), face()]);
     const spin = window.setInterval(() => setTumble([face(), face()]), TUMBLE_TICK_MS);
     const land = window.setTimeout(() => {

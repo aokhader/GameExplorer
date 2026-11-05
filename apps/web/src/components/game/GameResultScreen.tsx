@@ -9,6 +9,7 @@ import { m, LazyMotion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useSettings } from '@/components/providers/SettingsProvider';
 import { useGameSfx } from '@/hooks/useGameSfx';
+import { useMounted } from '@/hooks/useMounted';
 import { celebratePop, springSoft, easeOut } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { SaveProgressPrompt } from './SaveProgressPrompt';
@@ -51,10 +52,7 @@ const COPY: Record<GameResult, { icon: IconName; iconClass: string; heading: str
 function useCountUp(from: number, to: number, active: boolean, durationMs = 800): number {
   const [value, setValue] = React.useState(from);
   React.useEffect(() => {
-    if (!active) {
-      setValue(to);
-      return;
-    }
+    if (!active) return;
     let raf = 0;
     const start = performance.now();
     const tick = (now: number) => {
@@ -67,7 +65,9 @@ function useCountUp(from: number, to: number, active: boolean, durationMs = 800)
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [from, to, active, durationMs]);
-  return value;
+  // At rest it simply shows the target — derived, rather than copied into
+  // state by the effect a render late.
+  return active ? value : to;
 }
 
 export function GameResultScreen({
@@ -81,8 +81,7 @@ export function GameResultScreen({
 }: GameResultScreenProps) {
   const { reducedMotion } = useSettings();
   const sfx = useGameSfx();
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   const copy = COPY[result];
   const animateCount = open && !reducedMotion;

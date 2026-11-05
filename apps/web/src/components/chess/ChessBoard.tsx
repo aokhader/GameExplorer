@@ -22,6 +22,7 @@ import { BOARD_MAX_PX, BoardFrame } from '@/components/board/BoardFrame';
 import { BoardMark, markMap } from '@/components/board/BoardMark';
 import { PieceSlot } from '@/components/board/PieceSlot';
 import { useGameSfx } from '@/hooks/useGameSfx';
+import { useLatest } from '@/hooks/useLatest';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
 // The board palette lives in the `--gx-board-*` vars that ChessBoard.css reads.
@@ -269,6 +270,7 @@ export const ChessBoard = React.memo(function ChessBoard({
 
   // Discard optimistic state once the parent confirms (new gameState prop)
   // — or tells us the move was rejected, which leaves gameState untouched.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- board timing: the optimistic-to-confirmed swap lands a commit later, which PieceSlot's arrival animation is built around
   useEffect(() => { setOptimisticState(null); }, [gameState, rejectedMoves]);
 
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
@@ -332,8 +334,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   const boardRef  = useRef<HTMLDivElement>(null);
   const ghostRef  = useRef<HTMLDivElement>(null);
   // Always-current ref so pointer handlers don't close over stale state.
-  const draggingRef  = useRef(dragging);
-  draggingRef.current = dragging;
+  const draggingRef  = useLatest(dragging);
   const dragMovesRef = useRef<Position[]>([]);
   // A relocation drag in waiting: the pointer is down on a piece but has not
   // moved yet, so this is still a click. See `onPieceRelocate`.
@@ -353,13 +354,11 @@ export const ChessBoard = React.memo(function ChessBoard({
   // accept the move in that newer render (the bot page clears `isThinking`
   // there). Same reason `premoveRef` exists — the fire timer must see the
   // queue as it is when it runs.
-  const onMoveRef = useRef(onMove);
-  onMoveRef.current = onMove;
+  const onMoveRef = useLatest(onMove);
   // Render-synced position, for the same reason: by the time the fire timer
   // runs, the optimistic copy from our previous move has been discarded and
   // this ref holds the position the premove must actually be applied to.
-  const effectiveStateRef = useRef(effectiveState);
-  effectiveStateRef.current = effectiveState;
+  const effectiveStateRef = useLatest(effectiveState);
   const premoveRef = useRef<ChessPremove | null>(premove);
   const setPremove = (p: ChessPremove | null) => {
     premoveRef.current = p;
@@ -371,6 +370,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   useEffect(() => {
     const latest = effectiveState.moveHistory.at(-1);
     if (!latest) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the arrival pop, its sound and its timer start together on a new move
     setLastMoveTo(latest.to);
     // Per-move feedback. Checkmate's terminal chime is owned by the page /
     // result screen, so we stay quiet on mate to avoid doubling up.
@@ -390,6 +390,7 @@ export const ChessBoard = React.memo(function ChessBoard({
 
   // Reset selection when edit mode changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a selection never carries across an edit-mode switch
     setSelectedSquare(null);
     setValidMoves([]);
   }, [editMode]);
@@ -397,6 +398,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   // A selection made under one turn means something different under the next
   // (premove candidates vs legal moves), so it never carries over.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clears dragMovesRef in the same pass, which cannot happen during render
     setSelectedSquare(null);
     setValidMoves([]);
     dragMovesRef.current = [];
@@ -514,6 +516,7 @@ export const ChessBoard = React.memo(function ChessBoard({
     const queued = premoveRef.current;
     if (!queued) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setPremove also clears premoveRef, which the fire timer reads
     if (!allowPremoves) { setPremove(null); return; }
     // Still the opponent's move — keep waiting.
     if (gameState.currentTurn !== playerColor) return;
@@ -542,6 +545,7 @@ export const ChessBoard = React.memo(function ChessBoard({
   // (game over, mode switch, board handed to another player).
   useEffect(() => {
     if (!premoveRef.current) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setPremove also clears premoveRef, which the fire timer reads
     if (!allowPremoves || editMode || allowSelectAnyColor || gameOver) setPremove(null);
   }, [allowPremoves, editMode, allowSelectAnyColor, gameOver]);
 

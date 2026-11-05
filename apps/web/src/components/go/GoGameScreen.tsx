@@ -169,6 +169,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
   // Seeded the moment the second pass lands, and cleared on the way out so a
   // resumed game that reaches a second review starts from a fresh proof.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- seeded once per phase flip, after the pass paints; the solver stays off the render path
     setDead(awaitingReview ? detectDeadStones(liveState) : []);
     // Only when the phase flips — recomputing per render would re-run the solver.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -261,6 +262,7 @@ export function GoGameScreen({ mode }: GoGameScreenProps) {
 
   useEffect(() => {
     if (!awaitingResume || !unfinished.hydrated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumes the ?resume=1 intent in the same batch as the resume it starts, so the setup form never flashes
     setAwaitingResume(false);
     const saved = unfinished.saved;
     if (saved && !saved.end && saved.mode === loopMode) resumeSaved(saved);

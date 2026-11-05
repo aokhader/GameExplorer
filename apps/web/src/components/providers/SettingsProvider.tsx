@@ -59,6 +59,20 @@ function applyTheme(theme: ThemeChoice) {
   else root.dataset.theme = theme;
 }
 
+/**
+ * The OS `prefers-reduced-motion` query as an external store. The server, and
+ * the hydrating render after it, cannot know it and say false; React then
+ * re-reads it once hydrated, as the effect this replaced did.
+ */
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+function subscribeOsReduceMotion(onChange: () => void) {
+  const mq = window.matchMedia(REDUCED_MOTION_QUERY);
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+}
+const getOsReduceMotion = () => window.matchMedia(REDUCED_MOTION_QUERY).matches;
+const getOsReduceMotionOnServer = () => false;
+
 interface SettingsContextValue {
   settings: Settings;
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
@@ -82,16 +96,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     storage: webStorage,
     onTheme: applyTheme,
   });
-  const [osReduceMotion, setOsReduceMotion] = React.useState(false);
-
   // Track the OS reduced-motion preference.
-  React.useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setOsReduceMotion(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setOsReduceMotion(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
+  const osReduceMotion = React.useSyncExternalStore(
+    subscribeOsReduceMotion,
+    getOsReduceMotion,
+    getOsReduceMotionOnServer,
+  );
 
   // Carry the in-app toggle into CSS. Components reading `reducedMotion` below
   // already honour it, but everything animated from the stylesheet — the aurora

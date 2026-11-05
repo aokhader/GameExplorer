@@ -23,6 +23,7 @@ import { PieceSlot } from '@/components/board/PieceSlot';
 import { captureCorners, tintedSquare } from '@/components/board/squareTint';
 import { useBoardDrag } from '@/hooks/useBoardDrag';
 import { useGameSfx } from '@/hooks/useGameSfx';
+import { useLatest } from '@/hooks/useLatest';
 import { useSettings } from '@/components/providers/SettingsProvider';
 
 /**
@@ -190,8 +191,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   // Read at fire time rather than closure time: a premove fires from a timer,
   // a render after the opponent's move landed, and the parent's handler may
   // only accept it in that newer render (the bot page clears "thinking" there).
-  const onMoveRef = useRef(onMove);
-  onMoveRef.current = onMove;
+  const onMoveRef = useLatest(onMove);
   const premoveRef = useRef<CheckersPremove | null>(premove);
   const setPremove = (p: CheckersPremove | null) => {
     premoveRef.current = p;
@@ -201,6 +201,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   useEffect(() => {
     if (gameState.moveHistory.length > 0) {
       const latest = gameState.moveHistory[gameState.moveHistory.length - 1];
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the last-move mark, its sound and its pop timer start together on a new move
       setLastMove({ from: latest.from, to: latest.to });
       setLastMoveTo(latest.to);
       // A 2-rank jump is a capture; a single diagonal step is a plain move.
@@ -214,6 +215,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
 
   // Reset selection whenever the game state changes (e.g. after bot moves)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- board timing: cleared after the move commits, in step with the board's other per-move effects
     setSelectedSquare(null);
     setValidMoves([]);
   }, [gameState.currentTurn]);
@@ -352,6 +354,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   useEffect(() => {
     if (!premoveRef.current) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setPremove also clears premoveRef, which the fire timer reads
     if (!allowPremoves) { setPremove(null); return; }
     // Still the opponent's move — keep waiting.
     if (gameState.currentTurn !== playerColor) return;
@@ -374,6 +377,7 @@ export const CheckersBoard = React.memo(function CheckersBoard({
   // Drop a stale queue when the board stops being a premove surface.
   useEffect(() => {
     if (!premoveRef.current) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- setPremove also clears premoveRef, which the fire timer reads
     if (!allowPremoves || gameState.isGameOver) setPremove(null);
   }, [allowPremoves, gameState.isGameOver]);
 
