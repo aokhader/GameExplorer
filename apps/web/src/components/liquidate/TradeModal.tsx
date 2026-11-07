@@ -84,17 +84,19 @@ export function TradeModal({ open, onClose, state, fromId, dispatch }: TradeModa
   const [offerCredits, setOfferCredits] = React.useState(0);
   const [requestCredits, setRequestCredits] = React.useState(0);
 
+  // A partner who has left the table is swapped for the first one still at it.
+  // Both adjustments run during render, so neither paints a stale form first.
+  if (!partners.some((p) => p.id === toId) && partners[0]) setToId(partners[0].id);
+
   // Reset the form whenever it opens or the partner changes.
-  React.useEffect(() => {
+  const [formFor, setFormFor] = React.useState({ toId, open });
+  if (formFor.toId !== toId || formFor.open !== open) {
+    setFormFor({ toId, open });
     setOfferTiles([]);
     setRequestTiles([]);
     setOfferCredits(0);
     setRequestCredits(0);
-  }, [toId, open]);
-
-  React.useEffect(() => {
-    if (!partners.some((p) => p.id === toId) && partners[0]) setToId(partners[0].id);
-  }, [partners, toId]);
+  }
 
   if (!open) return null;
   const me = state.players.find((p) => p.id === fromId);

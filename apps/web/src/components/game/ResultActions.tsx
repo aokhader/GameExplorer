@@ -50,6 +50,7 @@ export function ResultActions({
   const canReview = !!onReview || !!reviewHref;
   const [reviewTip, setReviewTip] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- claimTip writes localStorage, so it runs once after mount, never in render
     if (canReview && claimTip('review')) setReviewTip(true);
     // Once, when the card first shows.
     // eslint-disable-next-line react-hooks/exhaustive-deps

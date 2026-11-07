@@ -38,6 +38,7 @@ import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishe
 import { useMarkPlayed } from '@/hooks/useMarkPlayed';
 import { useStartLink } from '@/hooks/useStartLink';
 import { useOnceTip } from '@/hooks/useOnceTip';
+import { useLatest } from '@/hooks/useLatest';
 import { BoardTip } from '@/components/game/BoardTip';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -167,7 +168,8 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
     if (reason && reason !== 'cantReach') offerTip('illegal-move', ILLEGAL_MOVE_COPY[reason]);
   };
 
-  const [userId, setUserId] = useState<string | null>(null);
+  // Derived rather than copied in by an effect, so it is current on the render the account arrives.
+  const userId = user?.id ?? null;
   /**
    * Whether this game actually counts — the screen's one answer, used by the
    * switch, the board and the save alike.
@@ -221,18 +223,12 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   const gameGenRef = useRef(0);
 
   // Always-fresh refs for use inside async callbacks and effects.
-  const targetEloRef    = useRef(targetElo);
-  targetEloRef.current  = targetElo;
-  const playerColorRef  = useRef(playerColor);
-  playerColorRef.current = playerColor;
-  const liveStateRef    = useRef(liveState);
-  liveStateRef.current  = liveState;
-  const manualEndRef    = useRef(manualEnd);
-  manualEndRef.current  = manualEnd;
-  const userRatingRef   = useRef(userRating);
-  userRatingRef.current = userRating;
-  const ratedRef        = useRef(ratedEffective);
-  ratedRef.current      = ratedEffective;
+  const targetEloRef    = useLatest(targetElo);
+  const playerColorRef  = useLatest(playerColor);
+  const liveStateRef    = useLatest(liveState);
+  const manualEndRef    = useLatest(manualEnd);
+  const userRatingRef   = useLatest(userRating);
+  const ratedRef        = useLatest(ratedEffective);
 
   // A link's strength (?elo=1200, from the tour or the first-run picker) wins
   // over the remembered one and is then remembered itself. Its `start=1` is
@@ -278,7 +274,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
       }
       return prev;
     });
-  }, [engineReady, liveState]);
+  }, [engineReady, liveState, playerColorRef]);
 
   const isAtLive    = viewIndex === timeline.length - 1;
   const displayState = timeline[viewIndex] ?? liveState;
@@ -290,8 +286,6 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
     () => (reviewing ? timelineToSan(timeline) : []),
     [reviewing, timeline],
   );
-
-  useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
   // Load rating when user is available
   useEffect(() => {
@@ -374,6 +368,7 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   }, []);
   useEffect(() => {
     if (!awaitingResume || !unfinished.hydrated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumes the ?resume=1 intent in the same batch as the resume it starts, so the setup form never flashes
     setAwaitingResume(false);
     const saved = unfinished.saved;
     if (saved && !saved.end && saved.mode === setupMode) resumeSaved(saved);
@@ -381,85 +376,11 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
   }, [awaitingResume, unfinished.hydrated]);
   useEffect(() => {
     if (!pendingResume || !engineReady) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumes the queued resume in the same batch as the resume it starts
     setPendingResume(null);
     resumeSaved(pendingResume);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingResume, engineReady]);
-
-  // ── Trigger bot move when it's the bot's turn ───────────────────────────────
-  useEffect(() => {
-    // Pass-and-play has no bot to move: the second player supplies the reply.
-    if (isLocal) return;
-    if (!gameStarted || !engineReady) return;
-    // Weak bots (< STOCKFISH_MIN_ELO) run in the chess-engine worker and don't
-    // need Stockfish; only wait on it when the selected ELO actually uses it.
-    if (targetElo >= STOCKFISH_MIN_ELO && !stockfish.isReady) return;
-    // Between a reset and the worker's fresh position the timeline is empty and
-    // `liveState` is still the finished game — never search on that.
-    if (timeline.length === 0) return;
-    if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd) return;
-    if (liveState.currentTurn !== playerColor && !isThinking) {
-      makeBotMove();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, targetElo, manualEnd, timeline.length]);
-
-  // ── Save game and update rating when it ends ────────────────────────────────
-  // One effect for both endings. Resign/draw used to save from its own handler,
-  // which meant a resigned game could never carry a rating change — and the two
-  // call sites could both fire for one game. Mirrors checkers/reversi.
-  useEffect(() => {
-    // Pass-and-play is casual by definition — no rating and no saved row. There
-    // is no single "player" whose result could be recorded against an account.
-    // With the game over nothing is owed, so its resumable slot goes.
-    if (isLocal) {
-      const ended = liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd;
-      if (gameStarted && ended) slot.clear();
-      return;
-    }
-    if (!gameStarted || gameSaved) return;
-    const naturalEnd = liveState.isCheckmate || liveState.isStalemate || liveState.isDraw;
-    if (!naturalEnd && !manualEnd) return;
-    setGameSaved(true);
-
-    const pc = playerColorRef.current;
-    const result: 'white' | 'black' | 'draw' =
-      manualEnd === 'draw' ? 'draw'
-      : manualEnd === 'resign' ? (pc === 'white' ? 'black' : 'white')
-      : liveState.isCheckmate ? (liveState.currentTurn === 'white' ? 'black' : 'white')
-      : 'draw';
-
-    const outcome: GameOutcome =
-      result === 'draw' ? 'draw' : result === pc ? 'win' : 'loss';
-
-    const current = userRatingRef.current;
-    const uid = userId;
-
-    if (current && uid && ratedRef.current) {
-      const rawDelta = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played) - current.rating;
-      const newRating = Math.max(100, current.rating + rawDelta);
-
-      // Owed until written: a failed write or a closed tab leaves the result on
-      // the Continue card rather than losing it.
-      slot.markEnded(manualEnd ?? 'over');
-      Promise.all([
-        recordPracticeResult(newRating, outcome, 'chess'),
-        saveGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid, {
-          mode: 'rated',
-          rating_before: current.rating,
-          rating_after: newRating,
-        }),
-      ]).then(([updatedRating]) => {
-        slot.clear();
-        setUserRating(updatedRating);
-        setRatingResult({ before: current.rating, after: newRating, delta: rawDelta });
-      }).catch((err) => console.error('Failed to save game / rating:', err));
-    } else {
-      slot.clear();
-      saveGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid ?? undefined);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveState.isCheckmate, liveState.isStalemate, liveState.isDraw, manualEnd]);
 
   // ── Bot move ────────────────────────────────────────────────────────────────
   const makeBotMove = useCallback(async () => {
@@ -506,7 +427,84 @@ export function ChessGameScreen({ mode }: ChessGameScreenProps) {
       botMovePendingRef.current = false;
       setIsThinking(false);
     }
-  }, [getBotMove, makeMove, stockfish]);
+  }, [getBotMove, makeMove, stockfish, liveStateRef, manualEndRef, targetEloRef]);
+
+  // ── Trigger bot move when it's the bot's turn ───────────────────────────────
+  useEffect(() => {
+    // Pass-and-play has no bot to move: the second player supplies the reply.
+    if (isLocal) return;
+    if (!gameStarted || !engineReady) return;
+    // Weak bots (< STOCKFISH_MIN_ELO) run in the chess-engine worker and don't
+    // need Stockfish; only wait on it when the selected ELO actually uses it.
+    if (targetElo >= STOCKFISH_MIN_ELO && !stockfish.isReady) return;
+    // Between a reset and the worker's fresh position the timeline is empty and
+    // `liveState` is still the finished game — never search on that.
+    if (timeline.length === 0) return;
+    if (liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd) return;
+    if (liveState.currentTurn !== playerColor && !isThinking) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the bot's turn starts here; its isThinking flag is the re-entrancy guard this effect watches
+      makeBotMove();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveState, playerColor, gameStarted, isThinking, stockfish.isReady, engineReady, targetElo, manualEnd, timeline.length]);
+
+  // ── Save game and update rating when it ends ────────────────────────────────
+  // One effect for both endings. Resign/draw used to save from its own handler,
+  // which meant a resigned game could never carry a rating change — and the two
+  // call sites could both fire for one game. Mirrors checkers/reversi.
+  useEffect(() => {
+    // Pass-and-play is casual by definition — no rating and no saved row. There
+    // is no single "player" whose result could be recorded against an account.
+    // With the game over nothing is owed, so its resumable slot goes.
+    if (isLocal) {
+      const ended = liveState.isCheckmate || liveState.isStalemate || liveState.isDraw || manualEnd;
+      if (gameStarted && ended) slot.clear();
+      return;
+    }
+    if (!gameStarted || gameSaved) return;
+    const naturalEnd = liveState.isCheckmate || liveState.isStalemate || liveState.isDraw;
+    if (!naturalEnd && !manualEnd) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- once-per-game guard, set in the same pass as the save it guards
+    setGameSaved(true);
+
+    const pc = playerColorRef.current;
+    const result: 'white' | 'black' | 'draw' =
+      manualEnd === 'draw' ? 'draw'
+      : manualEnd === 'resign' ? (pc === 'white' ? 'black' : 'white')
+      : liveState.isCheckmate ? (liveState.currentTurn === 'white' ? 'black' : 'white')
+      : 'draw';
+
+    const outcome: GameOutcome =
+      result === 'draw' ? 'draw' : result === pc ? 'win' : 'loss';
+
+    const current = userRatingRef.current;
+    const uid = userId;
+
+    if (current && uid && ratedRef.current) {
+      const rawDelta = calculateNewRating(current.rating, targetEloRef.current, outcome, current.games_played) - current.rating;
+      const newRating = Math.max(100, current.rating + rawDelta);
+
+      // Owed until written: a failed write or a closed tab leaves the result on
+      // the Continue card rather than losing it.
+      slot.markEnded(manualEnd ?? 'over');
+      Promise.all([
+        recordPracticeResult(newRating, outcome, 'chess'),
+        saveGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid, {
+          mode: 'rated',
+          rating_before: current.rating,
+          rating_after: newRating,
+        }),
+      ]).then(([updatedRating]) => {
+        slot.clear();
+        setUserRating(updatedRating);
+        setRatingResult({ before: current.rating, after: newRating, delta: rawDelta });
+      }).catch((err) => console.error('Failed to save game / rating:', err));
+    } else {
+      slot.clear();
+      saveGame(liveState, pc, result, `elo-${targetEloRef.current}`, uid ?? undefined);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveState.isCheckmate, liveState.isStalemate, liveState.isDraw, manualEnd]);
 
   // ── Player move ─────────────────────────────────────────────────────────────
   const handleMove = (from: Position, to: Position, promotionPiece?: PieceType) => {

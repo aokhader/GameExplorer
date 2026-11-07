@@ -30,6 +30,7 @@ export function BlockedPlayers() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sets state when the request settles, not during the effect
   useEffect(() => { load(); }, [load]);
 
   const unblock = async (id: string) => {

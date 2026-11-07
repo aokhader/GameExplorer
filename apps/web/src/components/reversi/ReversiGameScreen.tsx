@@ -33,6 +33,7 @@ import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
 import { useMarkPlayed } from '@/hooks/useMarkPlayed';
 import { useStartLink } from '@/hooks/useStartLink';
+import { useLatest } from '@/hooks/useLatest';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -111,7 +112,9 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   const [isThinking, setIsThinking]   = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   useMarkPlayed('reversi', isLocal ? 'pass-and-play' : 'bot', gameStarted);
-  const [userId, setUserId]           = useState<string | null>(null);
+  const { user } = useAuth();
+  // Derived rather than copied in by an effect, so it is current on the render the account arrives.
+  const userId = user?.id ?? null;
   /**
    * Whether this game actually counts — the screen's one answer, used by the
    * switch, the board and the save alike.
@@ -131,22 +134,13 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   // Player-initiated end — reversi has no draw offers, so resign only.
   const [manualEnd, setManualEnd]     = useState<'resign' | null>(null);
 
-  const { user } = useAuth();
-
-  const timelineRef    = useRef(timeline);
-  timelineRef.current  = timeline;
-  const viewIndexRef   = useRef(viewIndex);
-  viewIndexRef.current = viewIndex;
-  const targetEloRef   = useRef(targetElo);
-  targetEloRef.current = targetElo;
-  const playerColorRef = useRef(playerColor);
-  playerColorRef.current = playerColor;
-  const userRatingRef  = useRef(userRating);
-  userRatingRef.current = userRating;
-  const manualEndRef   = useRef(manualEnd);
-  manualEndRef.current = manualEnd;
-  const ratedRef       = useRef(ratedEffective);
-  ratedRef.current     = ratedEffective;
+  const timelineRef    = useLatest(timeline);
+  const viewIndexRef   = useLatest(viewIndex);
+  const targetEloRef   = useLatest(targetElo);
+  const playerColorRef = useLatest(playerColor);
+  const userRatingRef  = useLatest(userRating);
+  const manualEndRef   = useLatest(manualEnd);
+  const ratedRef       = useLatest(ratedEffective);
 
   const liveState    = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -169,8 +163,6 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
 
   const lastMove = liveState.moveHistory[liveState.moveHistory.length - 1];
   const lastPlacedPos = lastMove?.position ?? null;
-
-  useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
   // Deep link from onboarding (?elo=1100&start=1) — snap to the nearest
   // difficulty level and skip the setup screen. Layout effect so the flip to
@@ -204,7 +196,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
       if (wasAtLive) setViewIndex(updated.length - 1);
       return updated;
     });
-  }, []);
+  }, [viewIndexRef]);
 
   // Bumped on every reset. A rematch starts the next game the instant the last
   // one ends, so a reply still being computed for the finished board must not be
@@ -238,7 +230,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
     } finally {
       if (gen === gameGenRef.current) setIsThinking(false);
     }
-  }, [appendState, botSearch]);
+  }, [appendState, botSearch, manualEndRef, targetEloRef, timelineRef]);
 
 
   // ── Unfinished game (`ux-fix-ideas.md` §2.4) ────────────────────────────────
@@ -296,6 +288,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
   }, []);
   useEffect(() => {
     if (!awaitingResume || !unfinished.hydrated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumes the ?resume=1 intent in the same batch as the resume it starts, so the setup form never flashes
     setAwaitingResume(false);
     const saved = unfinished.saved;
     if (saved && !saved.end && saved.mode === setupMode) resumeSaved(saved);
@@ -312,6 +305,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
 
     if (mustPass) {
       const who = isLocal ? capitalize(liveState.currentTurn) : isBotTurn ? 'Bot' : 'You';
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the pass notice and the timer that plays the pass start together
       setPassMsg(`${who} ${isLocal || isBotTurn ? 'has' : 'have'} no legal moves — passing`);
       const t = setTimeout(() => {
         setPassMsg(null);
@@ -334,6 +328,7 @@ export function ReversiGameScreen({ mode }: ReversiGameScreenProps) {
     }
     if (!gameStarted || gameSaved) return;
     if (!liveState.isGameOver && !manualEnd) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- once-per-game guard, set in the same pass as the save it guards
     setGameSaved(true);
 
     const pc = playerColorRef.current;

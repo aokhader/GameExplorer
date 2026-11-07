@@ -39,6 +39,7 @@ import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishe
 import { useMarkPlayed } from '@/hooks/useMarkPlayed';
 import { useStartLink } from '@/hooks/useStartLink';
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect';
+import { useLatest } from '@/hooks/useLatest';
 import { signInRequiredHref } from '@/components/auth/returnTo';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
@@ -97,18 +98,22 @@ export default function CheckersTrainingPage() {
   // View only — which colour sits at the bottom. Never changes what you own.
   const [flipped, setFlipped] = useState(false);
 
-  const timelineRef = useRef(timeline);
-  timelineRef.current = timeline;
-  const viewIndexRef = useRef(viewIndex);
-  viewIndexRef.current = viewIndex;
-  const userRatingRef = useRef(userRating);
-  userRatingRef.current = userRating;
-  const hintsUsedRef = useRef(hintsUsed);
-  hintsUsedRef.current = hintsUsed;
-  const playerColorRef = useRef(playerColor);
-  playerColorRef.current = playerColor;
-  const manualEndRef = useRef(manualEnd);
-  manualEndRef.current = manualEnd;
+  const timelineRef = useLatest(timeline);
+  const viewIndexRef = useLatest(viewIndex);
+  const userRatingRef = useLatest(userRating);
+  const hintsUsedRef = useLatest(hintsUsed);
+  const playerColorRef = useLatest(playerColor);
+  const manualEndRef = useLatest(manualEnd);
+
+  // Bumped on every reset. A rematch starts the next game the instant the last
+  // one ends, so a reply still being computed for the finished board must not be
+  // appended to the new one, or clear the thinking flag a newer search owns.
+  const gameGenRef = useRef(0);
+  // Stopped wherever the generation is bumped, and on resign / draw.
+  const botSearch = useCancellableSearch();
+  // Sliced like the bot, so the board stays playable while a hint is worked
+  // out, and stopped as soon as the position it was for is gone.
+  const hintSearch = useCancellableSearch();
 
   const liveState = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -183,6 +188,7 @@ export default function CheckersTrainingPage() {
   }, []);
   useEffect(() => {
     if (!awaitingResume || !unfinished.hydrated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumes the ?resume=1 intent in the same batch as the resume it starts, so the setup form never flashes
     setAwaitingResume(false);
     const saved = unfinished.saved;
     if (saved && !saved.end && saved.mode === 'training') resumeSaved(saved);
@@ -190,6 +196,7 @@ export default function CheckersTrainingPage() {
   }, [awaitingResume, unfinished.hydrated]);
   useEffect(() => {
     if (!pendingResume || ratingLoading) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumes the queued resume in the same batch as the resume it starts
     setPendingResume(null);
     resumeSaved(pendingResume);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -207,6 +214,7 @@ export default function CheckersTrainingPage() {
 
   useEffect(() => {
     if (!user) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- re-arms the loading gate for a new account; the fetch below clears it
     setRatingLoading(true);
     // Practice level, never the online Rating (GX-04). A failed read leaves the
     // row null: the game still plays, and its result waits on the Continue card.
@@ -216,12 +224,49 @@ export default function CheckersTrainingPage() {
       .finally(() => setRatingLoading(false));
   }, [user]);
 
+  // ── Bot move ──────────────────────────────────────────────────────────────
+
+  const makeBotMove = async () => {
+    const gen = gameGenRef.current;
+    const currentTimeline = timelineRef.current;
+    const wasAtLive = viewIndexRef.current === currentTimeline.length - 1;
+    const currentLiveState = currentTimeline[currentTimeline.length - 1];
+    const elo = userRatingRef.current?.rating ?? 1200;
+
+    setIsThinking(true);
+    try {
+      // Sliced, so the page keeps answering while the bot thinks — see
+      // `lib/yieldToBrowser.ts`.
+      const [move] = await Promise.all([
+        getBestCheckersMoveSliced(currentLiveState, elo, slicedInBrowser(botSearch.start())),
+        new Promise(resolve => setTimeout(resolve, botThinkMs())),
+      ]);
+
+      // Dropped if the game was reset, or the player resigned / agreed a draw,
+      // while the bot thought.
+      if (gen !== gameGenRef.current || manualEndRef.current) return;
+
+      const result = CheckersEngine.validateMove(currentLiveState, move.from, move.to);
+      if (result.valid && result.resultingState) {
+        const next = result.resultingState;
+        const newLength = currentTimeline.length + 1;
+        setTimeline(prev => [...prev, next]);
+        if (wasAtLive) setViewIndex(newLength - 1);
+      }
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') console.error('Bot error:', err);
+    } finally {
+      if (gen === gameGenRef.current) setIsThinking(false);
+    }
+  };
+
   // ── Bot turn trigger ──────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!gameStarted) return;
     if (liveState.isGameOver || manualEnd) return;
     const isBotTurn = liveState.currentTurn !== playerColor;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the bot's turn starts here; its isThinking flag is the re-entrancy guard this effect watches
     if (isBotTurn && !isThinking) makeBotMove();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState, playerColor, gameStarted, isThinking, manualEnd]);
@@ -231,6 +276,7 @@ export default function CheckersTrainingPage() {
   useEffect(() => {
     if (!gameStarted || gameSaved) return;
     if (!liveState.isGameOver && !manualEnd) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- once-per-game guard, set in the same pass as the save it guards
     setGameSaved(true);
 
     const pc = playerColorRef.current;
@@ -275,49 +321,6 @@ export default function CheckersTrainingPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState.isGameOver, manualEnd]);
 
-  // ── Bot move ──────────────────────────────────────────────────────────────
-
-  // Bumped on every reset. A rematch starts the next game the instant the last
-  // one ends, so a reply still being computed for the finished board must not be
-  // appended to the new one, or clear the thinking flag a newer search owns.
-  const gameGenRef = useRef(0);
-  // Stopped wherever the generation is bumped, and on resign / draw.
-  const botSearch = useCancellableSearch();
-
-  const makeBotMove = async () => {
-    const gen = gameGenRef.current;
-    const currentTimeline = timelineRef.current;
-    const wasAtLive = viewIndexRef.current === currentTimeline.length - 1;
-    const currentLiveState = currentTimeline[currentTimeline.length - 1];
-    const elo = userRatingRef.current?.rating ?? 1200;
-
-    setIsThinking(true);
-    try {
-      // Sliced, so the page keeps answering while the bot thinks — see
-      // `lib/yieldToBrowser.ts`.
-      const [move] = await Promise.all([
-        getBestCheckersMoveSliced(currentLiveState, elo, slicedInBrowser(botSearch.start())),
-        new Promise(resolve => setTimeout(resolve, botThinkMs())),
-      ]);
-
-      // Dropped if the game was reset, or the player resigned / agreed a draw,
-      // while the bot thought.
-      if (gen !== gameGenRef.current || manualEndRef.current) return;
-
-      const result = CheckersEngine.validateMove(currentLiveState, move.from, move.to);
-      if (result.valid && result.resultingState) {
-        const next = result.resultingState;
-        const newLength = currentTimeline.length + 1;
-        setTimeline(prev => [...prev, next]);
-        if (wasAtLive) setViewIndex(newLength - 1);
-      }
-    } catch (err) {
-      if ((err as Error)?.name !== 'AbortError') console.error('Bot error:', err);
-    } finally {
-      if (gen === gameGenRef.current) setIsThinking(false);
-    }
-  };
-
   // ── Player move ───────────────────────────────────────────────────────────
 
   const handleMove = (from: string, to: string) => {
@@ -335,10 +338,6 @@ export default function CheckersTrainingPage() {
   };
 
   // ── Hint ──────────────────────────────────────────────────────────────────
-
-  // Sliced like the bot, so the board stays playable while a hint is worked
-  // out, and stopped as soon as the position it was for is gone.
-  const hintSearch = useCancellableSearch();
 
   const handleHint = async () => {
     if (isHinting || isThinking || liveState.currentTurn !== playerColor) return;

@@ -146,6 +146,7 @@ export function LiquidateGameScreen({ mode }: LiquidateGameScreenProps) {
 
   React.useEffect(() => {
     if (!linkIntent || !hydrated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumes the link's intent in the same batch as the action it starts
     setLinkIntent(null);
     if (linkIntent === 'resume') {
       if (savedGame) {

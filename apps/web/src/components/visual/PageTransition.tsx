@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSettings } from '@/components/providers/SettingsProvider';
 import { isImmersiveGameRoute } from '@/lib/routes';
@@ -35,12 +35,16 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/';
   const { reducedMotion } = useSettings();
 
-  // Have we navigated since the initial load? Computed during render (not in an
+  // Have we navigated since the initial load? Settled during render (not in an
   // effect) so it's already correct on the render triggered by the pathname
   // change — flipping it in an effect would retro-fade already-painted content.
-  const firstPath = useRef(pathname);
-  const navigated = useRef(false);
-  if (pathname !== firstPath.current) navigated.current = true;
+  // React's "information from previous renders" pattern: the set re-runs this
+  // component before its children render or anything commits, so the first
+  // committed render on the new path already carries the marker. It sticks:
+  // returning to the first path still counts as a navigation.
+  const [firstPath] = useState(pathname);
+  const [navigated, setNavigated] = useState(false);
+  if (!navigated && pathname !== firstPath) setNavigated(true);
 
   // Same route set that drops the global navbar — a board screen gets the
   // quieter fade either way, so the two should not drift apart.
@@ -51,7 +55,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   return (
     <div
       key={pathname}
-      data-animate={navigated.current ? '' : undefined}
+      data-animate={navigated ? '' : undefined}
       className={isDeepGame ? 'page-enter-fade' : 'page-enter'}
     >
       {children}

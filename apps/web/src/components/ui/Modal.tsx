@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { MOTION } from '@gameexplorer/ui';
 import { cn } from '@/lib/utils';
 import { prefersReducedMotion } from '@/lib/motion';
+import { useMounted } from '@/hooks/useMounted';
 import { IconButton } from './IconButton';
 
 export interface ModalProps {
@@ -50,7 +51,7 @@ export function Modal({
   size = 'md',
   dismissable = true,
 }: ModalProps) {
-  const [mounted, setMounted] = React.useState(false);
+  const mounted = useMounted();
   const panelRef = React.useRef<HTMLDivElement>(null);
 
   // Rendered while open, and for the length of the exit after. Raised during
@@ -58,8 +59,6 @@ export function Modal({
   const [present, setPresent] = React.useState(open);
   if (open && !present) setPresent(true);
   const leaving = present && !open;
-
-  React.useEffect(() => setMounted(true), []);
 
   React.useEffect(() => {
     if (!leaving) return;

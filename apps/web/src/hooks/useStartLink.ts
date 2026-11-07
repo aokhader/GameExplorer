@@ -30,6 +30,7 @@ export function useStartLink(
 
   useEffect(() => {
     if (!awaiting || !unfinished.hydrated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumes the ?start=1 intent in the same batch as the start it triggers
     setAwaiting(false);
     if (!unfinished.saved) start();
     // `start` is read when the answer arrives; re-running for a new closure
