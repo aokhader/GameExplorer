@@ -4,6 +4,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { MOTION } from '@gameexplorer/ui';
 import { cn } from '@/lib/utils';
+import { useMounted } from '@/hooks/useMounted';
 
 export type ToastVariant = 'neutral' | 'success' | 'danger' | 'info';
 
@@ -51,9 +52,7 @@ let nextId = 0;
  */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<ToastItem[]>([]);
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   const toast = React.useCallback((message: string, variant: ToastVariant = 'neutral') => {
     const id = ++nextId;

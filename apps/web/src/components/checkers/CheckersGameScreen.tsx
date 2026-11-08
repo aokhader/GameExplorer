@@ -33,6 +33,7 @@ import { webLocalStore } from '@/lib/localStore';
 import { resumeHref, useUnfinishedGame, wantsResume } from '@/hooks/useUnfinishedGame';
 import { useMarkPlayed } from '@/hooks/useMarkPlayed';
 import { useStartLink } from '@/hooks/useStartLink';
+import { useLatest } from '@/hooks/useLatest';
 
 // GameResultScreen pulls in canvas-confetti + a framer-motion tree but only
 // renders at game end — load it lazily so it stays out of the initial route
@@ -145,7 +146,9 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   const [isThinking, setIsThinking] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   useMarkPlayed('checkers', isLocal ? 'pass-and-play' : 'bot', gameStarted);
-  const [userId, setUserId]         = useState<string | null>(null);
+  const { user } = useAuth();
+  // Derived rather than copied in by an effect, so it is current on the render the account arrives.
+  const userId = user?.id ?? null;
   /**
    * Whether this game actually counts — the screen's one answer, used by the
    * switch, the board and the save alike.
@@ -169,22 +172,13 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   // unlimited free hint, which is exactly what training charges rating for.
   const [reviewing, setReviewing] = useState(false);
 
-  const { user } = useAuth();
-
-  const timelineRef  = useRef(timeline);
-  timelineRef.current = timeline;
-  const viewIndexRef  = useRef(viewIndex);
-  viewIndexRef.current = viewIndex;
-  const targetEloRef  = useRef(targetElo);
-  targetEloRef.current = targetElo;
-  const playerColorRef = useRef(playerColor);
-  playerColorRef.current = playerColor;
-  const userRatingRef  = useRef(userRating);
-  userRatingRef.current = userRating;
-  const manualEndRef   = useRef(manualEnd);
-  manualEndRef.current = manualEnd;
-  const ratedRef       = useRef(ratedEffective);
-  ratedRef.current     = ratedEffective;
+  const timelineRef  = useLatest(timeline);
+  const viewIndexRef  = useLatest(viewIndex);
+  const targetEloRef  = useLatest(targetElo);
+  const playerColorRef = useLatest(playerColor);
+  const userRatingRef  = useLatest(userRating);
+  const manualEndRef   = useLatest(manualEnd);
+  const ratedRef       = useLatest(ratedEffective);
 
   const liveState   = timeline[timeline.length - 1];
   const displayState = timeline[viewIndex];
@@ -215,8 +209,6 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   // turned. In pass-and-play there is no "you", so they follow the board.
   const bottomColor = isLocal ? orientation : playerColor;
   const topColor = bottomColor === 'white' ? 'black' : 'white';
-
-  useEffect(() => { setUserId(user?.id ?? null); }, [user]);
 
   // A link's strength (?elo=1100, from the tour or the first-run picker) snaps
   // to the nearest level, wins over the remembered one and is then remembered.
@@ -281,7 +273,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
     } finally {
       if (gen === gameGenRef.current) setIsThinking(false);
     }
-  }, [botSearch]);
+  }, [botSearch, manualEndRef, targetEloRef, timelineRef, viewIndexRef]);
 
 
   // ── Unfinished game (`ux-fix-ideas.md` §2.4) ────────────────────────────────
@@ -338,6 +330,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
   }, []);
   useEffect(() => {
     if (!awaitingResume || !unfinished.hydrated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consumes the ?resume=1 intent in the same batch as the resume it starts, so the setup form never flashes
     setAwaitingResume(false);
     const saved = unfinished.saved;
     if (saved && !saved.end && saved.mode === setupMode) resumeSaved(saved);
@@ -351,6 +344,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
     if (!gameStarted) return;
     if (liveState.isGameOver || manualEnd) return;
     const isBotTurn = liveState.currentTurn !== playerColor;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the bot's turn starts here; its isThinking flag is the re-entrancy guard this effect watches
     if (isBotTurn && !isThinking) makeBotMove();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveState, playerColor, gameStarted, isThinking, manualEnd]);
@@ -365,6 +359,7 @@ export function CheckersGameScreen({ mode }: CheckersGameScreenProps) {
     }
     if (!gameStarted || gameSaved) return;
     if (!liveState.isGameOver && !manualEnd) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- once-per-game guard, set in the same pass as the save it guards
     setGameSaved(true);
 
     const pc = playerColorRef.current;

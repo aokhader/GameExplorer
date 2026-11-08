@@ -66,6 +66,9 @@ export function useChessReviewAdapter(enabled: boolean): {
       createChessAnalysis(
         // `createChessAnalysis` short-circuits finished positions before this
         // runs, so the engine is never asked to score a mate it cannot report on.
+        // The adapter only stores this; it runs from the async `evaluate`, never
+        // during render, so the ref is read when a search starts.
+        // eslint-disable-next-line react-hooks/refs
         (state, budgetMs) => {
           const evaluator = evaluatorRef.current;
           if (!evaluator) return Promise.reject(new Error('Engine not ready'));

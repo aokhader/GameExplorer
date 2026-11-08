@@ -25,6 +25,7 @@ export function SaveProgressPrompt({ open }: { open: boolean }) {
 
   // Snapshot the flag when the result screen opens (localStorage isn't reactive).
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage isn't reactive: snapshot it each time the screen opens
     if (open) setPending(localStorage.getItem(SAVE_PROGRESS_PENDING_KEY) === '1');
   }, [open]);
 

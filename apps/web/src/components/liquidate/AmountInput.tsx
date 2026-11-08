@@ -42,10 +42,13 @@ export function AmountInput({
   const [text, setText] = React.useState(() => String(value));
 
   // Follow the value when it changes from the outside (a new round of bidding,
-  // a quick-bid chip), without clobbering what is being typed.
-  React.useEffect(() => {
+  // a quick-bid chip), without clobbering what is being typed. Adjusted during
+  // render, so the field never paints the old figure first.
+  const [followed, setFollowed] = React.useState(value);
+  if (value !== followed) {
+    setFollowed(value);
     setText((current) => (Number(current) === value ? current : String(value)));
-  }, [value]);
+  }
 
   return (
     <input

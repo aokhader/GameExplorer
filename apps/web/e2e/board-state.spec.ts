@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { fixBoardOrientation, playPastAbortWindowChessLocal } from './helpers/abortWindow';
+import { playPastAbortWindowChessLocal } from './helpers/abortWindow';
 
 /**
  * Wave 3 of the UX fix ideas (`project-docs/ux-fix-ideas.md` §5.1–§5.4, §8.5):

@@ -44,6 +44,7 @@ export function DeleteAccountCard() {
   // Back from signing in again: open the card where the user left it.
   React.useEffect(() => {
     if (loading || !user || window.location.hash !== `#${ANCHOR}`) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- back from re-auth: opens the card once auth resolves, together with the scroll below
     setExpanded(true);
     cardRef.current?.scrollIntoView({ block: 'center' });
   }, [loading, user]);

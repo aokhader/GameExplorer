@@ -100,10 +100,13 @@ function AnalysisPageInner() {
     return () => { cancelled = true; };
   }, [gameId, replayMoves, resetEngineGame]);
 
-  // Sync FEN input with editState in edit mode
-  useEffect(() => {
+  // Sync FEN input with editState in edit mode. Adjusted during render, so the
+  // box never paints the previous position's FEN for a frame.
+  const [fenSyncedFor, setFenSyncedFor] = useState({ editState, mode });
+  if (fenSyncedFor.editState !== editState || fenSyncedFor.mode !== mode) {
+    setFenSyncedFor({ editState, mode });
     if (mode === 'edit') setFenInput(stateToFen(editState));
-  }, [editState, mode]);
+  }
 
   // Trigger Stockfish when position changes in analyze mode
   const currentAnalyzeState = timeline[currentIndex] ?? null;
@@ -127,19 +130,24 @@ function AnalysisPageInner() {
   // Precompute the displayed position's legal moves off the main thread so
   // selecting a piece is an O(1) map lookup instead of a synchronous
   // getAllLegalMoves scan (ChessBoard falls back to that scan without a map).
-  const [legalMovesMap, setLegalMovesMap] = useState<Map<Position, Position[]> | undefined>(undefined);
+  // Each map is kept with the position it was computed for, and only that
+  // position's is handed on: no stale highlights while the worker computes.
+  const [legalMoves, setLegalMoves] = useState<{
+    state: ChessGameState;
+    map: Map<Position, Position[]>;
+  } | null>(null);
   useEffect(() => {
-    if (mode !== 'analyze' || !currentAnalyzeState) {
-      setLegalMovesMap(undefined);
-      return;
-    }
+    if (mode !== 'analyze' || !currentAnalyzeState) return;
     let cancelled = false;
-    setLegalMovesMap(undefined); // no stale highlights while the worker computes
     getLegalMoves(currentAnalyzeState).then((map) => {
-      if (!cancelled) setLegalMovesMap(map);
+      if (!cancelled) setLegalMoves({ state: currentAnalyzeState, map });
     });
     return () => { cancelled = true; };
   }, [mode, currentAnalyzeState, getLegalMoves]);
+  const legalMovesMap =
+    mode === 'analyze' && currentAnalyzeState && legalMoves?.state === currentAnalyzeState
+      ? legalMoves.map
+      : undefined;
 
   // ── Mode switching ──────────────────────────────────────────────────────────
 

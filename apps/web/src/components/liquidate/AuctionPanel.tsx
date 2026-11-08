@@ -35,14 +35,16 @@ export function AuctionPanel({ state, humanTurn, dispatch, onViewDeed }: Auction
   const auction = state.pendingAuction;
   const bidderId = auction ? auction.bidders[auction.turnIndex] : null;
   const bidder = state.players.find((p) => p.id === bidderId) ?? null;
-  const [amount, setAmount] = React.useState(0);
-
   const minBid = (auction?.highestBid ?? 0) + 1;
+  const [amount, setAmount] = React.useState(minBid);
 
-  // Re-arm the input whenever the standing bid or the bidder changes.
-  React.useEffect(() => {
+  // Re-arm the input whenever the standing bid or the bidder changes. Adjusted
+  // during render, so a new bid never paints under the old amount first.
+  const [armedFor, setArmedFor] = React.useState({ minBid, bidderId });
+  if (armedFor.minBid !== minBid || armedFor.bidderId !== bidderId) {
+    setArmedFor({ minBid, bidderId });
     setAmount(minBid);
-  }, [minBid, bidderId]);
+  }
 
   if (!auction || !bidder) return null;
   const tile = LiquidateEngine.board(state)[auction.tileId];
