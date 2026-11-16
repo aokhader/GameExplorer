@@ -69,9 +69,16 @@ jobs:
   # needs the public Supabase env; configure NEXT_PUBLIC_SUPABASE_URL and
   # NEXT_PUBLIC_SUPABASE_ANON_KEY as repository *Variables* (they are public
   # values, not secrets) to enable this job — it is skipped otherwise.
+  #
+  # Pinned, not ubuntu-latest: `playwright install --with-deps` installs
+  # Chromium's system libraries with apt, from a package list per Ubuntu
+  # release that is fixed inside each Playwright version. When ubuntu-latest
+  # started handing out 26.04, Playwright 1.60 (no 26.04 list) failed before
+  # any test ran; 1.61 added the list. Move this label and @playwright/test
+  # together, in one change.
   e2e-web:
     name: Web E2E (Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     if: ${{ vars.NEXT_PUBLIC_SUPABASE_URL != '' }}
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
