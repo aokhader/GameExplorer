@@ -15,11 +15,15 @@ export interface ClockState {
 }
 
 export const clockService = {
-  async initClock(gameId: string, config: TimeControlConfig): Promise<void> {
+  /**
+   * `firstToMove` is the side the opening position gives the move to. It is not
+   * always white: reversi opens with black.
+   */
+  async initClock(gameId: string, config: TimeControlConfig, firstToMove: PlayerColor = 'white'): Promise<void> {
     await redis.hset(clockKey(gameId), {
       white_ms:      String(config.initialMs),
       black_ms:      String(config.initialMs),
-      active_color:  'white',
+      active_color:  firstToMove,
       last_tick_ts:  String(Date.now()),
       running:       '0',
       increment_ms:  String(config.incrementMs),
@@ -50,8 +54,14 @@ export const clockService = {
     });
   },
 
-  /** Called after a validated move is applied. Deducts time, adds increment, switches active side. */
-  async deductAndSwitch(gameId: string): Promise<{ clocks: ClockSnapshot; flagged: boolean }> {
+  /**
+   * Called after a validated move is applied. Charges the mover's thinking time,
+   * adds their increment, and hands the clock to `nextToMove`: the side the new
+   * position gives the move to. That is usually the opponent, but not after a
+   * reversi auto-pass, which gives the move straight back to the mover. Without
+   * it, the clock assumes the sides alternate.
+   */
+  async deductAndSwitch(gameId: string, nextToMove?: PlayerColor): Promise<{ clocks: ClockSnapshot; flagged: boolean }> {
     const state = await this.getRaw(gameId);
     if (!state) return { clocks: { white_ms: 0, black_ms: 0, active_color: 'white' }, flagged: false };
 
@@ -84,7 +94,7 @@ export const clockService = {
       else blackMsNew += increment;
     }
 
-    const nextActive: PlayerColor = flagged ? color : opponent;
+    const nextActive: PlayerColor = flagged ? color : (nextToMove ?? opponent);
     await redis.hset(clockKey(gameId), {
       white_ms:     String(whiteMsNew),
       black_ms:     String(blackMsNew),

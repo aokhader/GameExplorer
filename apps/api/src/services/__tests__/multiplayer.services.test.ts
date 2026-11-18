@@ -108,6 +108,32 @@ describe('clockService', () => {
     expect(flagged).toBe(true);
     expect(clocks.active_color).toBe('white'); // side stays on the flagged player
   });
+
+  // Reversi opens with black, and passes the turn straight back to the mover
+  // when the opponent has no legal move. The clock follows the position, not a
+  // fixed white-first, always-alternate assumption.
+  it('starts on the clock of the side the position says moves first', async () => {
+    await clockService.initClock('g5', blitz, 'black');
+    expect((await clockService.getSnapshot('g5')).active_color).toBe('black');
+  });
+
+  it('keeps the mover’s clock running when the next move is theirs again', async () => {
+    await clockService.initClock('g6', blitz, 'black');
+    await clockService.startClock('g6');
+    const { clocks, flagged } = await clockService.deductAndSwitch('g6', 'black');
+    expect(flagged).toBe(false);
+    expect(clocks.active_color).toBe('black');
+    expect(clocks.white_ms).toBe(180_000); // white never had the move
+    expect(clocks.black_ms).toBeGreaterThan(180_000); // black earned the +2s increment
+    expect(clocks.black_ms).toBeLessThanOrEqual(182_000);
+  });
+
+  it('leaves a flagged player on move even when the next move would be theirs', async () => {
+    await clockService.initClock('g7', { ...blitz, initialMs: 0 }, 'black');
+    const { flagged, clocks } = await clockService.deductAndSwitch('g7', 'white');
+    expect(flagged).toBe(true);
+    expect(clocks.active_color).toBe('black');
+  });
 });
 
 // ── Invites ───────────────────────────────────────────────────────────────────

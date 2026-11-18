@@ -39,6 +39,8 @@ export interface ApplyMoveResult {
   valid:    boolean;
   reason?:  string;
   newState?: unknown;
+  /** The side the new position gives the move to; the clock follows it. */
+  nextTurn?: PlayerColor;
   gameOver?: boolean;
   result?:   GameResult;
   endReason?: EndReason;
@@ -139,7 +141,7 @@ export const gameSessionService = {
         if (claimed !== 'OK') throw new AlreadyInGameError(id);
       }
 
-      await clockService.initClock(gameId, config);
+      await clockService.initClock(gameId, config, initial.currentTurn);
     } catch (err) {
       // A claim was lost or a write failed partway (Redis full, connection
       // lost). Undo whatever landed so nobody is pointed at a half-made game.
@@ -339,7 +341,8 @@ export const gameSessionService = {
 
     await redis.hset(gameKey(gameId), 'state', JSON.stringify(newState));
 
-    return { valid: true, newState, gameOver, result, endReason };
+    const nextTurn = (newState as { currentTurn: PlayerColor }).currentTurn;
+    return { valid: true, newState, nextTurn, gameOver, result, endReason };
   },
 
   async setDrawOffered(gameId: string, userId: string): Promise<void> {

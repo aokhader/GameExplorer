@@ -76,7 +76,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
       return;
     }
 
-    const { clocks, flagged } = await clockService.deductAndSwitch(gameId);
+    const { clocks, flagged } = await clockService.deductAndSwitch(gameId, result.nextTurn);
 
     io.to(`game:${gameId}`).emit('move_made', { gameId, move, newState: result.newState, clocks });
 

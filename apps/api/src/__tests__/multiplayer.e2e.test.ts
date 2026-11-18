@@ -39,7 +39,7 @@ import { resetSocketLimitState } from '../websocket/limits';
 import { gameSessionService } from '../services/gameSession.service';
 import { redis } from '../config/redis';
 import * as supabaseModule from '../config/supabase';
-import type { GameType } from '@gameexplorer/shared';
+import { ReversiEngine, type GameType } from '@gameexplorer/shared';
 
 const supa = supabaseModule as unknown as {
   __tables: { user_ratings: Record<string, unknown>[]; games: Record<string, unknown>[]; profiles: Record<string, unknown>[] };
@@ -285,6 +285,59 @@ describe('moves', () => {
     const err = once<any>(a, 'error');
     a.emit('make_move', { gameId, move: { type: 'chess', from: 'z9', to: 'e4' } as any });
     expect((await err).message).toBe('Malformed move');
+  });
+});
+
+// ── Clocks follow the side to move ───────────────────────────────────────────
+// Reversi opens with black, and the server passes for a player with no legal
+// move, which hands the turn straight back to the mover. The clock used to
+// assume white opens and that every move switches sides, so each reversi
+// player's thinking time ran on the other's clock.
+
+describe('clocks follow the side to move', () => {
+  it('starts a reversi game on black’s clock, because black opens', async () => {
+    const a = client('rc-a');
+    const b = client('rc-b');
+    await Promise.all([connected(a), connected(b)]);
+    const gameId = await gameSessionService.createGame(
+      'rc-a', 'rc-b', 'name-rc-a', 'name-rc-b', 1200, 1200, 'reversi', 'blitz', true,
+    );
+
+    const started = once<any>(a, 'game_started');
+    a.emit('join_game', { gameId });
+    const ev = await started;
+    expect((ev.initialState as any).currentTurn).toBe('black');
+    expect(ev.clocks.active_color).toBe('black');
+  });
+
+  it('keeps black’s clock running when white has no move and the turn comes back', async () => {
+    const { a, b, gameId } = await startGame('rp-a', 'rp-b', 'reversi'); // a = white, b = black
+
+    // a1 black, b1 white; a8 black, b8 white. Black's c1 takes b1, which leaves
+    // white's b8 with no legal move while black can still play c8, so the
+    // server passes for white and the turn comes straight back to black.
+    const board = Array.from({ length: 8 }, () => Array<{ color: 'black' | 'white' } | null>(8).fill(null));
+    board[0][0] = { color: 'black' };
+    board[0][1] = { color: 'white' };
+    board[7][0] = { color: 'black' };
+    board[7][1] = { color: 'white' };
+    await redis.hset(`game:${gameId}`, 'state', JSON.stringify({ ...ReversiEngine.newGame(), board }));
+
+    const seenByA = once<any>(a, 'move_made');
+    const seenByB = once<any>(b, 'move_made');
+    b.emit('make_move', { gameId, move: { type: 'reversi', position: 'c1' } });
+
+    const [evA, evB] = await Promise.all([seenByA, seenByB]);
+    for (const ev of [evA, evB]) {
+      expect((ev.newState as any).currentTurn).toBe('black'); // white passed
+      expect((ev.newState as any).isGameOver).toBe(false);
+      expect(ev.clocks.active_color).toBe('black');
+      // White never had the move: no time spent, no increment earned.
+      expect(ev.clocks.white_ms).toBe(180_000);
+      // Black thought, then earned the +2s blitz increment.
+      expect(ev.clocks.black_ms).toBeGreaterThan(180_000);
+      expect(ev.clocks.black_ms).toBeLessThanOrEqual(182_000);
+    }
   });
 });
 
