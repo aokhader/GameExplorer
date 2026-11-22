@@ -6,6 +6,7 @@ import { inviteService, inviteUrl } from '../../services/invite.service';
 import { blockService }        from '../../services/block.service';
 import { matchmakingService }  from '../../services/matchmaking.service';
 import { onEvent, type SocketFailure } from '../../middleware/validation';
+import { withGameLock }        from '../../services/gameLock';
 
 // Every listener below is registered through onEvent, so each one only ever
 // sees a payload that matched its schema in schemas.ts: a game id is a UUID, a
@@ -69,7 +70,11 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
   // A move that fails the schema gets the same answer applyMove gives a
   // malformed one. `move` is the parsed copy, so the `move_made` broadcast
   // below never relays extra keys a client tacked on.
-  onEvent(socket, 'make_move', async ({ gameId, move }) => {
+  //
+  // The whole move runs under the game's lock, broadcast included: a second
+  // copy of the same move then sees the new position and is refused, and a
+  // clock sync can never be sent between the clock switching and `move_made`.
+  onEvent(socket, 'make_move', ({ gameId, move }) => withGameLock(gameId, async () => {
     const result = await gameSessionService.applyMove(gameId, userId, move);
     if (!result.valid) {
       socket.emit('error', { code: 'ILLEGAL_MOVE', message: result.reason ?? 'Illegal move' });
@@ -92,7 +97,7 @@ export function registerGameHandlers(io: SocketIOServer, socket: Socket) {
       const ratings = await gameSessionService.endGame(gameId, finalResult, finalReason as import('@gameexplorer/shared').EndReason);
       if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result: finalResult, reason: finalReason, ...ratings });
     }
-  }, { rejected: { code: 'ILLEGAL_MOVE', message: 'Malformed move' } });
+  }), { rejected: { code: 'ILLEGAL_MOVE', message: 'Malformed move' } });
 
   // ── Resign ────────────────────────────────────────────────────────────────
   onEvent(socket, 'resign', async ({ gameId }) => {

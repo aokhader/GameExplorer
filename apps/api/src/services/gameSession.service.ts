@@ -53,9 +53,16 @@ function activeKey(userId: string){ return `active_game:${userId}`; }
  * Structural + range validation for a client-supplied move, before the engine.
  * The socket layer already checked it against the same schema; this keeps the
  * service safe for any caller that did not.
+ *
+ * The move must also be one of *this* game's. The schema cannot know which game
+ * a move is for, and applyMove picks the engine from `move.type`. All three
+ * engines index the board alike and read only `.color` off a square, so a
+ * reversi placement sent into a chess game did not throw: it ran, and could
+ * end the game as a rated win for the sender (1.g4 h6 2.g5, black "f4").
+ * See __tests__/security/move-type-guard.test.ts.
  */
-function isValidMovePayload(move: MovePayload): boolean {
-  return MoveSchema.safeParse(move).success;
+function isValidMovePayload(move: MovePayload, gameType: GameType): boolean {
+  return MoveSchema.safeParse(move).success && move.type === gameType;
 }
 
 /**
@@ -285,8 +292,9 @@ export const gameSessionService = {
     // ── Payload validation ───────────────────────────────────────────────────
     // Reject malformed coordinates before they reach the engines, where an
     // off-board index (e.g. "z9") would throw and surface as an unhandled
-    // rejection.
-    if (!isValidMovePayload(move)) {
+    // rejection, and any move whose type is not this game's: the dispatch
+    // below trusts `move.type` to name the engine.
+    if (!isValidMovePayload(move, session.gameType)) {
       return { valid: false, reason: 'Malformed move' };
     }
 
