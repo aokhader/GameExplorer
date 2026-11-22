@@ -245,36 +245,50 @@ describe('the bit-set search is the state-based search', () => {
     // ~1.4 s on a desktop, but 5 s on a CI runner.
   }, 30_000);
 
-  it('the bot plays the same square after the same draws, in every band', () => {
-    // Bands: depth 1 (400–700), 2, 3, 4, 5 with noise (1600–1999), and 2000,
-    // which has neither noise nor blunders.
-    const elos = [450, 650, 800, 1100, 1250, 1400, 1550, 1700, 1999, 2000];
-    let compared = 0;
-    for (const [i, s] of PLAYABLE.entries()) {
-      // The old search takes seconds at depth 5 in an open midgame, so depths 4
-      // and 5 run in full where it is quick: the opening, and the last sixteen
-      // empty squares, which is where passes and finished games turn up inside
-      // the tree. In between, depth 4 on every other position.
-      const { black, white } = ReversiEngine.getDiscCounts(s);
+  // Bands: depth 1 (400–700), 2, 3, 4, 5 with noise (1600–1999), and 2000,
+  // which has neither noise nor blunders.
+  const ELOS = [450, 650, 800, 1100, 1250, 1400, 1550, 1700, 1999, 2000];
+
+  // The old search takes seconds at depth 5 in an open midgame, so depths 4
+  // and 5 run in full where it is quick: the opening, and the last sixteen
+  // empty squares, which is where passes and finished games turn up inside the
+  // tree. In between, depth 4 on every other position. Each band lists the
+  // indexes into PLAYABLE it compares on.
+  const BOT_CASES = ELOS.map((elo) => {
+    const indexes = [...PLAYABLE.keys()].filter((i) => {
+      const { black, white } = ReversiEngine.getDiscCounts(PLAYABLE[i]);
       const empties = 64 - black - white;
       const quick = empties >= 56 || empties <= 16;
-      const bands = elos.filter((e) => quick || e < 1300 || (e === 1400 && i % 2 === 0));
-      for (const elo of bands) {
-        const seed = i * 31 + elo;
-        seedRandom(seed);
-        const want = referenceBestMove(s, elo);
-        const wantDraws = draws;
+      return quick || elo < 1300 || (elo === 1400 && i % 2 === 0);
+    });
+    return [elo, indexes] as const;
+  });
 
-        seedRandom(seed);
-        const got = getBestReversiMove(s, elo).position;
-        Math.random = realRandom;
-
-        expect([got, draws]).toEqual([want, wantDraws]);
-        compared++;
-      }
+  it('compares the bot on enough positions, in every band', () => {
+    const total = BOT_CASES.reduce((n, [, indexes]) => n + indexes.length, 0);
+    expect(total).toBeGreaterThan(150);
+    for (const [elo, indexes] of BOT_CASES) {
+      expect(indexes.length, `positions at ${elo}`).toBeGreaterThan(0);
     }
-    expect(compared).toBeGreaterThan(150);
-    // ~6.5 s on a desktop, all of it synchronous. Vitest 2 could not time out a
-    // test that never yields, so the default 5 s never fired; Vitest 4 checks.
+  });
+
+  // One test per band. As a single test this was ~6.5 s of synchronous work on
+  // a desktop, and on a CI runner sharing its cores with the other packages'
+  // suites it passed 30 s. Vitest 2 could not time out a test that never
+  // yields, so the default 5 s never fired; Vitest 4 checks.
+  it.each(BOT_CASES)('the bot plays the same square after the same draws, at %i', (elo, indexes) => {
+    for (const i of indexes) {
+      const s = PLAYABLE[i];
+      const seed = i * 31 + elo;
+      seedRandom(seed);
+      const want = referenceBestMove(s, elo);
+      const wantDraws = draws;
+
+      seedRandom(seed);
+      const got = getBestReversiMove(s, elo).position;
+      Math.random = realRandom;
+
+      expect([got, draws], `position ${i}`).toEqual([want, wantDraws]);
+    }
   }, 30_000);
 });
