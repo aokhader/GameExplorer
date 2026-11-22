@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // No DOM: this code runs in a Cloudflare Worker as well as both clients.
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "noEmit": true,
+    "strict": true,
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    // Only the tests use Node (fs, path). Source stays free of it; the
+    // boundary test enforces that, since this list cannot be per-file.
+    "types": ["node"]
+  },
+  // Tests are typechecked too: the conformance fixtures and the drift test
+  // are as much the contract as the source.
+  "include": ["src/**/*", "vitest.config.ts"]
+}
