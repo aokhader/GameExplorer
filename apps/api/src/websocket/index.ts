@@ -7,6 +7,7 @@ import { registerMatchmakingHandlers } from './handlers/matchmaking.handler';
 import { registerSessionHandlers }  from './handlers/session.handler';
 import { gameSessionService, newGameState, AlreadyInGameError, TIME_CONTROL_CONFIGS } from '../services/gameSession.service';
 import { clockService }             from '../services/clock.service';
+import { withGameLock }             from '../services/gameLock';
 import { matchmakingService, type QueueEntry } from '../services/matchmaking.service';
 import { scanKeys }                 from '../config/redis';
 import { corsOrigin }               from '../config/cors';
@@ -296,33 +297,46 @@ async function startMatch(a: QueueEntry, b: QueueEntry): Promise<void> {
 // ── Clock sync loop ───────────────────────────────────────────────────────────
 
 function startClockLoop() {
-  clockTimer = setInterval(async () => {
-    try {
-      const keys = await scanKeys('clock:*');
-      for (const key of keys) {
-        const gameId  = key.slice(6);
-        const running = await clockService.isRunning(gameId);
-        if (!running) continue;
+  clockTimer = setInterval(() => { void tickClocks(); }, 3000);
+}
 
-        const clocks = await clockService.getSnapshot(gameId);
-        io.to(`game:${gameId}`).emit('clock_sync', { gameId, clocks });
-
-        // Check for flag
-        const hasFlagged = clocks.active_color === 'white' ? clocks.white_ms <= 0 : clocks.black_ms <= 0;
-        if (hasFlagged) {
-          const session = await gameSessionService.getGameSession(gameId);
-          if (!session || session.status !== 'active') continue;
-
-          const result: import('@gameexplorer/shared').GameResult =
-            clocks.active_color === 'white' ? 'black_wins' : 'white_wins';
-          const ratings = await gameSessionService.endGame(gameId, result, 'flag');
-          if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'flag', ...ratings });
-        }
-        // Disconnect grace/forfeit is handled by reconnect-aware timers
-        // (scheduleForfeit / cancelForfeit), not this loop.
-      }
-    } catch (err) {
-      logger.error('Clock loop error:', err);
+/**
+ * One pass of the clock loop: broadcast every running clock and end any game
+ * whose side to move has run out. Exported so tests can run a pass at a chosen
+ * moment instead of waiting for the interval.
+ */
+export async function tickClocks(): Promise<void> {
+  try {
+    const keys = await scanKeys('clock:*');
+    // Each game under its lock, so a snapshot read before a move is sent
+    // before that move's `move_made`, never after it (see services/gameLock.ts).
+    for (const key of keys) {
+      const gameId = key.slice(6);
+      await withGameLock(gameId, () => syncClock(gameId));
     }
-  }, 3000);
+  } catch (err) {
+    logger.error('Clock loop error:', err);
+  }
+}
+
+async function syncClock(gameId: string): Promise<void> {
+  const running = await clockService.isRunning(gameId);
+  if (!running) return;
+
+  const clocks = await clockService.getSnapshot(gameId);
+  io.to(`game:${gameId}`).emit('clock_sync', { gameId, clocks });
+
+  // Check for flag
+  const hasFlagged = clocks.active_color === 'white' ? clocks.white_ms <= 0 : clocks.black_ms <= 0;
+  if (hasFlagged) {
+    const session = await gameSessionService.getGameSession(gameId);
+    if (!session || session.status !== 'active') return;
+
+    const result: import('@gameexplorer/shared').GameResult =
+      clocks.active_color === 'white' ? 'black_wins' : 'white_wins';
+    const ratings = await gameSessionService.endGame(gameId, result, 'flag');
+    if (ratings) io.to(`game:${gameId}`).emit('game_ended', { gameId, result, reason: 'flag', ...ratings });
+  }
+  // Disconnect grace/forfeit is handled by reconnect-aware timers
+  // (scheduleForfeit / cancelForfeit), not this loop.
 }
